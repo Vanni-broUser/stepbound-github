@@ -1,0 +1,9 @@
+{
+  "format": "stepbound-character-atlas-v1",
+  "cellWidth": 16,
+  "cellHeight": 24,
+  "columns": ["idle_0", "idle_1", "walk_0", "walk_1", "walk_2", "walk_3"],
+  "rows": ["south", "west", "east", "north"],
+  "files": ["protagonist.png", "zombie_wanderer.png", "zombie_sprinter.png", "zombie_brute.png", "zombie_blind.png"],
+  "style": "original GBA-era top-down monster-catching RPG pixel art"
+}

@@ -1,0 +1,7 @@
+{
+  "format": "stepbound-tile-atlas-v1",
+  "tileWidth": 16,
+  "tileHeight": 16,
+  "layers": ["ground", "structures", "foreground"],
+  "palette": "assets/palette.gpl"
+}

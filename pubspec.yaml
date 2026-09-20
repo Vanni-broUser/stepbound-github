@@ -7,6 +7,7 @@ environment:
   sdk: 3.12.2
 
 dependencies:
+  flame: 1.38.2
   flutter:
     sdk: flutter
   meta: 1.18.0
@@ -20,3 +21,6 @@ flutter:
   uses-material-design: true
   assets:
     - assets/balance/
+    - assets/sprites/
+    - assets/tiles/
+    - assets/palette.gpl
