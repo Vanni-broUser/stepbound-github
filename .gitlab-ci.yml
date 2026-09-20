@@ -1,0 +1,59 @@
+image: ghcr.io/cirruslabs/flutter:3.44.2
+
+stages:
+  - verify
+  - package
+
+variables:
+  PUB_CACHE: "$CI_PROJECT_DIR/.pub-cache"
+
+cache:
+  key:
+    files:
+      - pubspec.lock
+  paths:
+    - .pub-cache/
+
+before_script:
+  - flutter config --no-analytics
+  - flutter pub get
+
+analyze:
+  stage: verify
+  script:
+    - dart format --output=none --set-exit-if-changed .
+    - flutter analyze --fatal-infos --fatal-warnings
+
+test:
+  stage: verify
+  script:
+    - flutter test --reporter expanded
+
+build_android_signed:
+  stage: package
+  tags:
+    - stepbound-local-android
+  rules:
+    - if: '$CI_COMMIT_REF_PROTECTED == "true"'
+      when: manual
+    - when: never
+  script:
+    - test -f android/key.properties
+    - flutter build appbundle --release --flavor prod --target lib/main_prod.dart
+  artifacts:
+    paths:
+      - build/app/outputs/bundle/prodRelease/app-prod-release.aab
+
+build_ios_signed:
+  stage: package
+  tags:
+    - stepbound-local-macos
+  rules:
+    - if: '$CI_COMMIT_REF_PROTECTED == "true"'
+      when: manual
+    - when: never
+  script:
+    - flutter build ipa --release --flavor prod --target lib/main_prod.dart
+  artifacts:
+    paths:
+      - build/ios/ipa/*.ipa

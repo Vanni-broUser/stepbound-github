@@ -1,0 +1,35 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:stepbound/core/core.dart';
+
+import 'test_world.dart';
+
+void main() {
+  test('interact opens the faced door and emits events', () {
+    final world = playerOnlyWorld(
+      rows: const <String>['#####', '#.+.#', '#####'],
+    );
+
+    final events = const TurnScheduler().advance(world, const InteractAction());
+
+    expect(world.tick, 1);
+    expect(world.map.tileAt(const GridPoint(2, 1)).kind, TileKind.openDoor);
+    expect(events.whereType<DoorChangedEvent>(), hasLength(1));
+    expect(events.whereType<NoiseEvent>(), hasLength(1));
+  });
+
+  test('blocked movement consumes a turn without moving the player', () {
+    final world = playerOnlyWorld(facing: Direction.west);
+
+    final events = const TurnScheduler().advance(
+      world,
+      const MoveAction(Direction.west),
+    );
+
+    expect(world.tick, 1);
+    expect(
+      world.player.component<PositionComponent>().position,
+      const GridPoint(1, 1),
+    );
+    expect(events.whereType<BlockedEvent>(), hasLength(1));
+  });
+}
