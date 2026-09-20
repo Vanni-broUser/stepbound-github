@@ -36,6 +36,29 @@ void main() {
       }
       expect(hasTransparentPixel, isTrue, reason: '$name needs alpha');
       expect(hasOpaquePixel, isTrue, reason: '$name needs visible pixels');
+      for (var row = 0; row < 4; row++) {
+        for (var column = 0; column < 6; column++) {
+          var minX = 16;
+          var maxX = -1;
+          var maxY = -1;
+          for (var y = 0; y < 24; y++) {
+            for (var x = 0; x < 16; x++) {
+              final pixel = ((row * 24 + y) * 96 + column * 16 + x) * 4;
+              if (rgba[pixel + 3] == 0) {
+                continue;
+              }
+              if (x < minX) minX = x;
+              if (x > maxX) maxX = x;
+              if (y > maxY) maxY = y;
+            }
+          }
+          final frameName = '$name row $row column $column';
+          expect(minX, greaterThanOrEqualTo(1), reason: frameName);
+          expect(maxX, lessThanOrEqualTo(14), reason: frameName);
+          expect(maxY, 23, reason: '$frameName foot anchor');
+          expect((minX + maxX) / 2, closeTo(7.5, 1), reason: frameName);
+        }
+      }
       image.dispose();
     }
   });
