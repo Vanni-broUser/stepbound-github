@@ -102,6 +102,65 @@ final class InteractAction extends PlayerAction {
   }
 }
 
+final class ShootAction extends PlayerAction {
+  const ShootAction({this.damage = 1, this.noiseRadius = 14});
+
+  final int damage;
+  final int noiseRadius;
+
+  @override
+  int get tickCost => 1;
+
+  @override
+  void resolve(WorldState world) {
+    final player = world.player;
+    final ammo = player.component<AmmoComponent>();
+    final position = player.component<PositionComponent>();
+    if (ammo.loaded == 0) {
+      world.emit(DryFiredEvent(entityId: player.id));
+      return;
+    }
+
+    ammo.loaded -= 1;
+    var cursor = position.position.step(position.facing);
+    var impact = position.position;
+    String? hitEntityId;
+    while (world.map.contains(cursor)) {
+      impact = cursor;
+      if (world.map.tileAt(cursor).blocksSight) {
+        break;
+      }
+      final target = world.entityAt(cursor, excluding: player.id);
+      if (target != null) {
+        hitEntityId = target.id;
+        world.damage(
+          entityId: target.id,
+          amount: damage,
+          sourceEntityId: player.id,
+        );
+        break;
+      }
+      cursor = cursor.step(position.facing);
+    }
+
+    world
+      ..emit(
+        ShotEvent(
+          entityId: player.id,
+          origin: position.position,
+          impact: impact,
+          direction: position.facing,
+          hitEntityId: hitEntityId,
+        ),
+      )
+      ..emitNoise(
+        origin: position.position,
+        radius: noiseRadius,
+        sourceEntityId: player.id,
+      );
+  }
+}
+
 final class WaitAction extends PlayerAction {
   const WaitAction();
 

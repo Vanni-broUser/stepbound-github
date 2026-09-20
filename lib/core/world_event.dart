@@ -14,6 +14,8 @@ sealed class WorldEvent {
       'noiseHeard' => NoiseHeardEvent.fromJson(json),
       'damaged' => DamagedEvent.fromJson(json),
       'died' => DiedEvent.fromJson(json),
+      'shot' => ShotEvent.fromJson(json),
+      'dryFired' => DryFiredEvent.fromJson(json),
       _ => throw FormatException('Unknown world event: ${json['type']}'),
     };
   }
@@ -201,6 +203,66 @@ final class NoiseHeardEvent extends WorldEvent {
     'type': 'noiseHeard',
     'entityId': entityId,
     'origin': origin.toJson(),
+  };
+}
+
+final class ShotEvent extends WorldEvent {
+  const ShotEvent({
+    required this.entityId,
+    required this.origin,
+    required this.impact,
+    required this.direction,
+    this.hitEntityId,
+  });
+
+  factory ShotEvent.fromJson(Map<String, Object?> json) {
+    return ShotEvent(
+      entityId: json['entityId']! as String,
+      origin: GridPoint.fromJson(json['origin']! as Map<String, Object?>),
+      impact: GridPoint.fromJson(json['impact']! as Map<String, Object?>),
+      direction: Direction.values.byName(json['direction']! as String),
+      hitEntityId: json['hitEntityId'] as String?,
+    );
+  }
+
+  final String entityId;
+  final GridPoint origin;
+  final GridPoint impact;
+  final Direction direction;
+  final String? hitEntityId;
+
+  @override
+  String get description => hitEntityId == null
+      ? '$entityId fires toward ${direction.name}'
+      : '$entityId shoots $hitEntityId';
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+    'type': 'shot',
+    'entityId': entityId,
+    'origin': origin.toJson(),
+    'impact': impact.toJson(),
+    'direction': direction.name,
+    'hitEntityId': hitEntityId,
+  };
+}
+
+final class DryFiredEvent extends WorldEvent {
+  const DryFiredEvent({required this.entityId});
+
+  factory DryFiredEvent.fromJson(Map<String, Object?> json) {
+    return DryFiredEvent(entityId: json['entityId']! as String);
+  }
+
+  final String entityId;
+
+  @override
+  String get description => '$entityId pulls an empty trigger';
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+    'type': 'dryFired',
+    'entityId': entityId,
   };
 }
 

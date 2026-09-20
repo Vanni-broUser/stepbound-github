@@ -22,6 +22,9 @@ final class ZombieAi {
 
     final hearing = zombie.component<HearingComponent>();
     final seesPlayer = _canSeePlayer(world, zombie);
+    if (seesPlayer) {
+      hearing.lastHeard = playerPosition;
+    }
     final target = seesPlayer ? playerPosition : hearing.lastHeard;
     if (target == null) {
       world.emit(WaitedEvent(zombie.id));

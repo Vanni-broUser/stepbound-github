@@ -43,6 +43,9 @@ final class CharacterComponent extends PositionComponent {
 
   @override
   void render(ui.Canvas canvas) {
+    if (!entity.isAlive) {
+      return;
+    }
     final atlas = _atlas;
     if (atlas != null) {
       _renderAtlas(canvas, atlas);

@@ -19,6 +19,7 @@ final class TurnScheduler {
 
     for (var index = 0; index < action.tickCost; index++) {
       world.tick += 1;
+      noise.settle(world);
       final actors = world.actorsInSimulationRadius().toList()
         ..sort((left, right) => left.id.compareTo(right.id));
       for (final entity in actors) {
@@ -28,7 +29,6 @@ final class TurnScheduler {
         }
         ai.takeTurn(world, entity);
       }
-      noise.settle(world);
     }
 
     return world.drainEvents();

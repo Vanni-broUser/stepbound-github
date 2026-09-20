@@ -1,5 +1,5 @@
 import 'package:flame/camera.dart';
-import 'package:flame/components.dart';
+import 'package:flame/components.dart' hide PositionComponent;
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
 import 'package:flame/text.dart';
@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/anim/turn_presentation_controller.dart';
 import 'package:stepbound/game/f2_world.dart';
+import 'package:stepbound/game/render/aim_line_component.dart';
 import 'package:stepbound/game/render/character_component.dart';
 import 'package:stepbound/game/render/debug_overlay.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
@@ -37,8 +38,10 @@ final class StepboundGame extends FlameGame with KeyboardEvents {
   late final TextComponent statusText;
   final Map<String, CharacterComponent> _characters =
       <String, CharacterComponent>{};
+  final ValueNotifier<bool> aiming = ValueNotifier<bool>(false);
   Direction? _heldDirection;
   double _holdElapsed = 0;
+  bool _acceptsInput = false;
 
   @override
   Color backgroundColor() => PixelPalette.voidBlack;
@@ -58,7 +61,10 @@ final class StepboundGame extends FlameGame with KeyboardEvents {
       await world.add(component);
     }
     debugOverlay = DebugWorldOverlay(simulation: simulation);
-    await world.add(debugOverlay);
+    await world.addAll(<Component>[
+      debugOverlay,
+      AimLineComponent(simulation: simulation, aiming: aiming),
+    ]);
 
     final textPaint = TextPaint(
       style: const TextStyle(
@@ -81,6 +87,7 @@ final class StepboundGame extends FlameGame with KeyboardEvents {
     await camera.viewport.add(statusText);
     _syncPresentation();
     _snapCameraToPlayer();
+    _acceptsInput = true;
   }
 
   @override
@@ -90,9 +97,10 @@ final class StepboundGame extends FlameGame with KeyboardEvents {
     _updateHeldDirection(dt);
     _syncPresentation();
     _updateCamera();
+    final ammo = simulation.player.component<AmmoComponent>();
     statusText.text =
-        'TICK ${simulation.tick}  QUEUE ${presentation.bufferedActionCount}  '
-        'G DEBUG';
+        'TICK ${simulation.tick}  AMMO ${ammo.loaded}/${ammo.reserve}  '
+        '${aiming.value ? 'MIRA  ' : ''}G DEBUG';
   }
 
   @override
@@ -103,20 +111,20 @@ final class StepboundGame extends FlameGame with KeyboardEvents {
     final direction = _directionFor(event.logicalKey);
     if (event is KeyDownEvent) {
       if (direction != null) {
-        if (_heldDirection != direction) {
-          _heldDirection = direction;
-          _holdElapsed = 0;
-          presentation.submit(MoveAction(direction));
-        }
+        pressDirection(direction);
+        return KeyEventResult.handled;
+      }
+      if (event.logicalKey == LogicalKeyboardKey.keyB) {
+        pressShoot();
+        return KeyEventResult.handled;
+      }
+      if (event.logicalKey == LogicalKeyboardKey.keyE) {
+        pressInteract();
         return KeyEventResult.handled;
       }
       if (event.logicalKey == LogicalKeyboardKey.space ||
           event.logicalKey == LogicalKeyboardKey.keyX) {
-        presentation.submit(const WaitAction());
-        return KeyEventResult.handled;
-      }
-      if (event.logicalKey == LogicalKeyboardKey.keyE) {
-        presentation.submit(const InteractAction());
+        pressWait();
         return KeyEventResult.handled;
       }
       if (event.logicalKey == LogicalKeyboardKey.keyG) {
@@ -124,12 +132,67 @@ final class StepboundGame extends FlameGame with KeyboardEvents {
         return KeyEventResult.handled;
       }
     }
-    if (event is KeyUpEvent && direction == _heldDirection) {
-      _heldDirection = null;
-      _holdElapsed = 0;
+    if (event is KeyUpEvent && direction != null) {
+      releaseDirection(direction);
       return KeyEventResult.handled;
     }
     return KeyEventResult.ignored;
+  }
+
+  void pressDirection(Direction direction) {
+    if (!_acceptsInput) {
+      return;
+    }
+    if (aiming.value) {
+      simulation.player.component<PositionComponent>().facing = direction;
+      return;
+    }
+    if (_heldDirection == direction) {
+      return;
+    }
+    _heldDirection = direction;
+    _holdElapsed = 0;
+    presentation.submit(MoveAction(direction));
+  }
+
+  void releaseDirection(Direction direction) {
+    if (_heldDirection != direction) {
+      return;
+    }
+    _heldDirection = null;
+    _holdElapsed = 0;
+  }
+
+  void pressShoot() {
+    if (!_acceptsInput) {
+      return;
+    }
+    if (!aiming.value) {
+      _heldDirection = null;
+      _holdElapsed = 0;
+      aiming.value = true;
+      return;
+    }
+    presentation.submit(const ShootAction());
+    aiming.value = false;
+  }
+
+  void pressInteract() {
+    if (!_acceptsInput) {
+      return;
+    }
+    if (aiming.value) {
+      aiming.value = false;
+      return;
+    }
+    presentation.submit(const InteractAction());
+  }
+
+  void pressWait() {
+    if (!_acceptsInput || aiming.value) {
+      return;
+    }
+    presentation.submit(const WaitAction());
   }
 
   void _updateHeldDirection(double dt) {

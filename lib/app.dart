@@ -1,5 +1,6 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:stepbound/game/input/touch_controls.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/game/stepbound_game.dart';
 
@@ -39,9 +40,15 @@ final class _StepboundAppState extends State<StepboundApp> {
               child: SizedBox(
                 width: IntegerResolutionViewport.virtualWidth * scale,
                 height: IntegerResolutionViewport.virtualHeight * scale,
-                child: GameWidget<StepboundGame>(
-                  key: const ValueKey<String>('stepbound-game'),
-                  game: _game,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: <Widget>[
+                    GameWidget<StepboundGame>(
+                      key: const ValueKey<String>('stepbound-game'),
+                      game: _game,
+                    ),
+                    TouchControls(game: _game),
+                  ],
                 ),
               ),
             );

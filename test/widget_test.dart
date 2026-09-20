@@ -13,6 +13,16 @@ void main() {
       findsOneWidget,
     );
     expect(find.byType(GameWidget<StepboundGame>), findsOneWidget);
+    for (final key in <String>[
+      'touch-up',
+      'touch-right',
+      'touch-down',
+      'touch-left',
+      'touch-shoot',
+      'touch-interact',
+    ]) {
+      expect(find.byKey(ValueKey<String>(key)), findsOneWidget);
+    }
   });
 
   testWidgets('camera starts clamped around the player', (tester) {

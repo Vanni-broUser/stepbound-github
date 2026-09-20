@@ -30,7 +30,7 @@ WorldState createF2World({int seed = 20260920}) {
       factory.zombie(
         id: 'wanderer',
         kind: EntityKind.wanderer,
-        position: const GridPoint(12, 9),
+        position: const GridPoint(10, 9),
       ),
       factory.zombie(
         id: 'sprinter',

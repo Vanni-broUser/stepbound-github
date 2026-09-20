@@ -17,6 +17,21 @@ void main() {
     expect(events.whereType<NoiseEvent>(), hasLength(1));
   });
 
+  test('shooting consumes ammo and hits the first zombie in line', () {
+    final world = corridorWorld(
+      EntityKind.wanderer,
+      zombiePosition: const GridPoint(4, 1),
+    );
+
+    final events = const TurnScheduler().advance(world, const ShootAction());
+
+    expect(world.tick, 1);
+    expect(world.player.component<AmmoComponent>().loaded, 5);
+    expect(world.entities['zombie']!.isAlive, isFalse);
+    expect(events.whereType<ShotEvent>().single.hitEntityId, 'zombie');
+    expect(events.whereType<NoiseEvent>().single.radius, 14);
+  });
+
   test('blocked movement consumes a turn without moving the player', () {
     final world = playerOnlyWorld(facing: Direction.west);
 
