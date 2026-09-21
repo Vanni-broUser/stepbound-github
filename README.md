@@ -2,7 +2,7 @@
 
 Stepbound is a deterministic, turn-based survival game prototype built with Flutter and Flame.
 
-- F0: reproducible Flutter project, dev/prod entry points, and GitLab CI.
+- F0: reproducible Flutter project and GitLab CI.
 - F1: platform-independent deterministic simulation core.
 - F2: 384×216 pixel-art presentation, integer scaling, layered map rendering, 130 ms turn interpolation, input buffering, dead-zone camera, and debug overlays.
 
@@ -31,13 +31,13 @@ If FVM is installed, replace `flutter` with `fvm flutter`.
 ## Run F2 in a browser
 
 ```bash
-flutter run -d chrome --target lib/main_dev.dart
+flutter run -d chrome
 ```
 
 A browser-independent local server is also available:
 
 ```bash
-flutter run -d web-server --web-hostname 127.0.0.1 --web-port 5173 --target lib/main_dev.dart
+flutter run -d web-server --web-hostname 127.0.0.1 --web-port 5173
 ```
 
 Controls:
@@ -51,22 +51,13 @@ The game renders at a fixed virtual resolution of 384×216 and scales only by wh
 
 ## Run on mobile
 
-Android development flavor:
-
 ```bash
-flutter run --flavor dev --target lib/main_dev.dart
+flutter run
 ```
 
-Android production flavor:
-
-```bash
-flutter run --flavor prod --target lib/main_prod.dart
-```
-
-The same flavor names and entry points are used on iOS. Application IDs are `com.genericlab.stepbound.dev` and `com.genericlab.stepbound`.
+Stepbound currently uses a single application ID: `com.genericlab.stepbound`.
 
 ## Run the F1 ASCII simulation
-
 ```bash
 dart run bin/stepbound_runner.dart 20260920
 ```
@@ -89,8 +80,8 @@ The current set includes the protagonist plus wanderer, sprinter, brute, and bli
 dart format --output=none --set-exit-if-changed .
 flutter analyze --fatal-infos --fatal-warnings
 flutter test
-flutter build web --release --target lib/main_dev.dart
-flutter build apk --debug --flavor dev --target lib/main_dev.dart
+flutter build web --release
+flutter build apk --debug
 ```
 
 GitLab CI runs formatting, static analysis, and tests with Flutter 3.44.2. Signed release builds belong on a protected local runner; signing secrets must never be committed.

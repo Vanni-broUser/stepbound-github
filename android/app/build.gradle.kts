@@ -29,19 +29,6 @@ android {
         versionName = flutter.versionName
     }
 
-    flavorDimensions += "environment"
-    productFlavors {
-        create("dev") {
-            dimension = "environment"
-            applicationIdSuffix = ".dev"
-            resValue("string", "app_name", "Stepbound Dev")
-        }
-        create("prod") {
-            dimension = "environment"
-            resValue("string", "app_name", "Stepbound")
-        }
-    }
-
     signingConfigs {
         if (keystorePropertiesFile.exists()) {
             create("release") {

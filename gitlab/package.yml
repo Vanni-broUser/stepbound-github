@@ -30,13 +30,13 @@ build_android_signed:
         exit 1
       fi
   script:
-    - flutter build appbundle --release --flavor prod --target lib/main_prod.dart --build-number="$CI_PIPELINE_IID"
+    - flutter build appbundle --release --build-number="$CI_PIPELINE_IID"
   after_script:
     - if [ -f .stepbound-ci-signing ]; then rm -f android/release-keystore.jks android/key.properties .stepbound-ci-signing; fi
   artifacts:
     name: "stepbound-aab-$CI_COMMIT_SHORT_SHA"
     paths:
-      - build/app/outputs/bundle/prodRelease/app-prod-release.aab
+      - build/app/outputs/bundle/release/app-release.aab
     expire_in: 1 month
 
 check_macos_runner:
@@ -67,7 +67,7 @@ build_ios_signed:
       allow_failure: true
     - when: never
   script:
-    - flutter build ipa --release --flavor prod --target lib/main_prod.dart --build-number="$CI_PIPELINE_IID"
+    - flutter build ipa --release --build-number="$CI_PIPELINE_IID"
   artifacts:
     name: "stepbound-ipa-$CI_COMMIT_SHORT_SHA"
     paths:
