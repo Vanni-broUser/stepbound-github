@@ -26,6 +26,7 @@ void main() {
       'zombie_sprinter',
       'zombie_brute',
       'zombie_blind',
+      'zombie_carabiniere',
     ];
     for (final name in names) {
       final image = await loadSheet(name);

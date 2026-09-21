@@ -6,7 +6,6 @@ Produces 96x96 transparent PNGs laid out on the shared 4x6 grid
 assets/sprites/atlas_manifest.json.
 
 Sheets:
-  protagonist_gun.png            aim + pistol fire, 4 directions
   zombie_<type>_hit.png          damage flinch, 4 directions
   zombie_<type>_bite.png         lunge + bite, 4 directions
   zombie_<type>_death.png        collapse to prone, 4 directions
@@ -599,7 +598,9 @@ def main() -> None:
     )
     os.makedirs(out_dir, exist_ok=True)
 
-    outputs = {"protagonist_gun.png": gun_sheet(PROTAGONIST)}
+    # Mario's gun and pickup sheets come from tools/generate_protagonist_actions.py,
+    # which builds them from his real idle frames.
+    outputs = {}
     for zombie_type in ZOMBIE_TYPES:
         spec = ZOMBIE_SPECS[zombie_type]
         for action in ("hit", "bite", "death"):

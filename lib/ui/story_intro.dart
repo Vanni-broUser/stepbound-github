@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:stepbound/game/render/integer_resolution_viewport.dart';
+import 'package:stepbound/ui/black_fade.dart';
+import 'package:stepbound/ui/blood_decor.dart';
 
 /// One full-screen frame of the intro story with its dialogue line.
 final class StoryScene {
@@ -19,22 +22,57 @@ const List<StoryScene> introScenes = <StoryScene>[
   ),
   StoryScene(
     image: 'assets/story/scene_blackout.png',
+    speaker: 'Telecronista',
     text: '... Che succede? ... Ragazzi, la luce?',
   ),
-  StoryScene(image: 'assets/story/scene_attack.png', text: 'Aaaaahhh!'),
+  StoryScene(
+    image: 'assets/story/scene_attack.png',
+    speaker: 'Telecronista',
+    text: 'Aaaaahhh!',
+  ),
+];
+
+/// Played after the title card: the night the outbreak spread.
+const List<StoryScene> outbreakScenes = <StoryScene>[
+  StoryScene(
+    image: 'assets/story/scene_outbreak.jpg',
+    text:
+        'Quella notte migliaia di persone in ogni dove si trasformarono in '
+        'zombi, creature non morte prive di una coscienza propria, '
+        'interessate solo a divorare altri esseri umani',
+  ),
+  StoryScene(
+    image: 'assets/story/scene_plane_help.jpg',
+    speaker: 'Hostess',
+    text: 'Aiuto, comandante! Aiuto!',
+  ),
+  StoryScene(
+    image: 'assets/story/scene_plane_captain.jpg',
+    speaker: 'Hostess',
+    text: 'Comandante?',
+  ),
+  StoryScene(
+    image: 'assets/story/scene_collapse.jpg',
+    text:
+        "Quella notte l'intera civiltà umana crollò per colpa di "
+        'questa malvagia e misteriosa minaccia',
+  ),
 ];
 
 /// Plays the intro story: each scene shows the bare image first, the next
 /// tap reveals the dialogue box, the tap after that moves to the next scene.
+/// With [fadeOutAtEnd] the last scene fades to black before [onFinished].
 final class StoryIntro extends StatefulWidget {
   const StoryIntro({
     required this.onFinished,
     this.scenes = introScenes,
+    this.fadeOutAtEnd = false,
     super.key,
   });
 
   final List<StoryScene> scenes;
   final VoidCallback onFinished;
+  final bool fadeOutAtEnd;
 
   @override
   State<StoryIntro> createState() => _StoryIntroState();
@@ -43,8 +81,12 @@ final class StoryIntro extends StatefulWidget {
 final class _StoryIntroState extends State<StoryIntro> {
   int _sceneIndex = 0;
   bool _showText = false;
+  bool _fadingOut = false;
 
   void _advance() {
+    if (_fadingOut) {
+      return;
+    }
     setState(() {
       if (!_showText) {
         _showText = true;
@@ -53,6 +95,10 @@ final class _StoryIntroState extends State<StoryIntro> {
       if (_sceneIndex + 1 < widget.scenes.length) {
         _sceneIndex += 1;
         _showText = false;
+        return;
+      }
+      if (widget.fadeOutAtEnd) {
+        _fadingOut = true;
         return;
       }
       widget.onFinished();
@@ -80,7 +126,13 @@ final class _StoryIntroState extends State<StoryIntro> {
             if (_showText)
               Align(
                 alignment: Alignment.bottomCenter,
-                child: _StoryTextBox(scene: scene),
+                child: StoryTextBox(speaker: scene.speaker, text: scene.text),
+              ),
+            if (_fadingOut)
+              BlackFade(
+                key: const ValueKey<String>('story-fade-out'),
+                toBlack: true,
+                onDone: widget.onFinished,
               ),
           ],
         ),
@@ -89,56 +141,132 @@ final class _StoryIntroState extends State<StoryIntro> {
   }
 }
 
-final class _StoryTextBox extends StatelessWidget {
-  const _StoryTextBox({required this.scene});
+/// Blood poured over the top edge of the dialogue box, with a long run down
+/// the right margin shedding drops, and some splashed just above the box.
+const BloodPainter _boxBlood = BloodPainter(
+  band: 5,
+  cornerRadius: 6,
+  drips: <BloodDrip>[
+    BloodDrip(0.06, 14, 5),
+    BloodDrip(0.19, 9, 4),
+    BloodDrip(0.37, 16, 5),
+    BloodDrip(0.55, 8, 3),
+    BloodDrip(0.71, 13, 4),
+    BloodDrip(0.9, 19, 6),
+    BloodDrip(0, 46, 6, fromRight: 13, falling: <double>[3.4, 2.4]),
+  ],
+  drops: <BloodDrop>[
+    BloodDrop(0.14, -0.1, 3.2),
+    BloodDrop(0.47, -0.06, 2.4),
+    BloodDrop(0.81, -0.16, 4.2),
+  ],
+);
 
-  final StoryScene scene;
+/// Blood-stained dialogue box shared by the story scenes and the in-game
+/// dialogues. An optional [portrait] of the speaker stands on the box's top
+/// edge, its lower part tucked behind the box.
+final class StoryTextBox extends StatelessWidget {
+  const StoryTextBox({
+    required this.text,
+    this.speaker,
+    this.portrait,
+    this.portraitOnRight = false,
+    super.key,
+  });
+
+  static const double portraitTuck = 4;
+
+  /// Font sizes at the 384x216 base resolution; they grow with the view so
+  /// text keeps the same share of the screen on phones and monitors.
+  static const double speakerFontSize = 12;
+  static const double textFontSize = 13;
+
+  final String? speaker;
+  final String text;
+  final Widget? portrait;
+  final bool portraitOnRight;
 
   @override
   Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) => _layout(
+        constraints.maxHeight.isFinite
+            ? constraints.maxHeight / IntegerResolutionViewport.virtualHeight
+            : 1,
+      ),
+    );
+  }
+
+  Widget _layout(double unit) {
+    final portrait = this.portrait;
     return Padding(
       padding: const EdgeInsets.all(10),
+      child: Column(
+        mainAxisSize: portrait == null ? MainAxisSize.min : MainAxisSize.max,
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: portraitOnRight
+            ? CrossAxisAlignment.end
+            : CrossAxisAlignment.start,
+        children: <Widget>[
+          // The portrait takes whatever height the box leaves free, so a
+          // long line shrinks it instead of pushing its head off screen.
+          if (portrait != null)
+            Flexible(
+              child: Padding(
+                padding: portraitOnRight
+                    ? const EdgeInsets.only(right: 24)
+                    : const EdgeInsets.only(left: 10),
+                child: Transform.translate(
+                  offset: const Offset(0, portraitTuck),
+                  child: portrait,
+                ),
+              ),
+            ),
+          _box(unit),
+        ],
+      ),
+    );
+  }
+
+  Widget _box(double unit) {
+    return BloodOverlay(
+      painter: _boxBlood,
       child: Container(
         key: const ValueKey<String>('story-text'),
         width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(12, 9, 12, 6),
+        padding: const EdgeInsets.fromLTRB(12, 20, 26, 12),
         decoration: BoxDecoration(
-          color: const Color(0xdd10181a),
-          border: Border.all(color: const Color(0xff8a8377), width: 2),
+          color: const Color(0xe0140c0c),
+          border: Border.all(color: BloodColors.fresh, width: 2),
           borderRadius: BorderRadius.circular(6),
+          boxShadow: const <BoxShadow>[
+            BoxShadow(color: Color(0x88400000), blurRadius: 8),
+          ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            if (scene.speaker != null)
+            if (speaker != null)
               Text(
-                scene.speaker!,
-                style: const TextStyle(
-                  color: Color(0xffe4705f),
+                speaker!,
+                style: TextStyle(
+                  color: BloodColors.bright,
                   fontFamily: 'monospace',
-                  fontSize: 13,
+                  fontSize: speakerFontSize * unit,
                   fontWeight: FontWeight.bold,
                   height: 1.2,
                   decoration: TextDecoration.none,
                 ),
               ),
             Text(
-              scene.text,
-              style: const TextStyle(
-                color: Color(0xffd8cfbf),
+              text,
+              style: TextStyle(
+                color: const Color(0xffd8cfbf),
                 fontFamily: 'monospace',
-                fontSize: 14,
+                fontSize: textFontSize * unit,
                 height: 1.25,
                 decoration: TextDecoration.none,
-              ),
-            ),
-            const Align(
-              alignment: Alignment.bottomRight,
-              child: Icon(
-                Icons.arrow_drop_down,
-                color: Color(0xffd8cfbf),
-                size: 18,
               ),
             ),
           ],

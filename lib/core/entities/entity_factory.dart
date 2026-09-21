@@ -13,6 +13,9 @@ final class EntityFactory {
     required GridPoint position,
     Direction facing = Direction.east,
     int? health,
+    int loadedAmmo = 6,
+    int reserveAmmo = 6,
+    bool hasGun = true,
   }) {
     final stats = balance[EntityKind.player];
     final maximum = health ?? stats.health;
@@ -22,7 +25,12 @@ final class EntityFactory {
       components: <EntityComponent>[
         PositionComponent(position: position, facing: facing),
         HealthComponent(current: maximum, maximum: maximum),
-        AmmoComponent(loaded: 6, reserve: 6, magazineCapacity: 6),
+        AmmoComponent(
+          loaded: loadedAmmo,
+          reserve: reserveAmmo,
+          magazineCapacity: 6,
+          hasGun: hasGun,
+        ),
         ActorComponent(
           tickCost: stats.tickCost,
           contactDamage: stats.contactDamage,
@@ -52,6 +60,7 @@ final class EntityFactory {
         ActorComponent(
           tickCost: stats.tickCost,
           contactDamage: stats.contactDamage,
+          attackReach: stats.attackReach,
         ),
       ],
     );

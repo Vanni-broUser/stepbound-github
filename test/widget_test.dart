@@ -4,6 +4,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/app.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/stepbound_game.dart';
+import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/ui/black_fade.dart';
+import 'package:stepbound/ui/gameplay_dialogue.dart';
+import 'package:stepbound/ui/story_intro.dart';
+import 'package:stepbound/ui/title_splash.dart';
 
 /// Two taps per scene (image, then text) across the three intro scenes.
 const int _introTapCount = 6;
@@ -16,6 +21,34 @@ Future<void> _pumpAppThroughIntro(WidgetTester tester) async {
     await tester.tap(intro);
     await tester.pump();
   }
+  await tester.pump();
+  await tester.pump(TitleSplash.total + const Duration(milliseconds: 50));
+  await tester.pump();
+  await _tapThroughOutbreak(tester);
+  final dialogue = find.byKey(const ValueKey<String>('gameplay-dialogue'));
+  for (var i = 0; i < tutorialOpening.length; i++) {
+    await tester.tap(dialogue);
+    await tester.pump();
+  }
+}
+
+/// Two taps per scene (image, then text) across the post-title scenes.
+Future<void> _tapThroughOutbreak(WidgetTester tester) async {
+  final story = find.byKey(const ValueKey<String>('story-intro'));
+  for (var i = 0; i < outbreakScenes.length * 2; i++) {
+    await tester.tap(story);
+    await tester.pump();
+  }
+  await _pumpBlackFade(tester);
+}
+
+/// Lets a [BlackFade] started by the last pump run to completion.
+Future<void> _pumpBlackFade(WidgetTester tester) async {
+  await tester.pump();
+  await tester.pump(
+    BlackFade.defaultDuration + const Duration(milliseconds: 50),
+  );
+  await tester.pump();
 }
 
 Future<StepboundGame> _pumpReadyGame(WidgetTester tester) async {
@@ -42,13 +75,13 @@ void main() {
       'touch-right',
       'touch-down',
       'touch-left',
-      'touch-shoot',
-      'touch-interact',
-      'touch-ammo',
     ]) {
       expect(find.byKey(ValueKey<String>(key)), findsOneWidget);
     }
-    expect(find.text('\u00d76'), findsOneWidget);
+    // The tutorial starts with the arrows only.
+    for (final key in <String>['touch-shoot', 'touch-interact', 'touch-ammo']) {
+      expect(find.byKey(ValueKey<String>(key)), findsNothing);
+    }
   });
 
   testWidgets('intro scenes reveal text on tap, then advance to the next', (
@@ -82,14 +115,103 @@ void main() {
       await tester.pump();
     }
     expect(find.byKey(const ValueKey<String>('story-intro')), findsNothing);
+    expect(find.byKey(const ValueKey<String>('title-splash')), findsOneWidget);
+  });
+
+  testWidgets('title card fades in and out, the outbreak scenes play, then the '
+      'protagonist speaks before the controls appear', (tester) async {
+    await tester.pumpWidget(const StepboundApp(flavor: AppFlavor.dev));
+    await tester.pump();
+    final intro = find.byKey(const ValueKey<String>('story-intro'));
+    for (var i = 0; i < _introTapCount; i++) {
+      await tester.tap(intro);
+      await tester.pump();
+    }
+    final fade = find.descendant(
+      of: find.byKey(const ValueKey<String>('title-splash')),
+      matching: find.byType(FadeTransition),
+    );
+    expect(tester.widget<FadeTransition>(fade).opacity.value, 0);
+    await tester.pump();
+    await tester.pump(TitleSplash.fade + TitleSplash.hold ~/ 2);
+    expect(tester.widget<FadeTransition>(fade).opacity.value, 1);
+
+    await tester.pump(TitleSplash.total + const Duration(milliseconds: 50));
+    await tester.pump();
+    expect(find.byKey(const ValueKey<String>('title-splash')), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('outbreak-story')),
+      findsOneWidget,
+    );
+    expect(find.byType(GameWidget<StepboundGame>), findsNothing);
+    await tester.tap(find.byKey(const ValueKey<String>('story-intro')));
+    await tester.pump();
+    expect(find.text(outbreakScenes.first.text), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey<String>('story-intro')));
+    await tester.pump();
+    expect(find.text('Hostess'), findsNothing);
+    await tester.tap(find.byKey(const ValueKey<String>('story-intro')));
+    await tester.pump();
+    expect(find.text('Hostess'), findsOneWidget);
+    for (var i = 3; i < outbreakScenes.length * 2; i++) {
+      await tester.tap(find.byKey(const ValueKey<String>('story-intro')));
+      await tester.pump();
+    }
+    expect(
+      find.byKey(const ValueKey<String>('story-fade-out')),
+      findsOneWidget,
+    );
+    expect(find.byType(GameWidget<StepboundGame>), findsNothing);
+    await _pumpBlackFade(tester);
+    expect(
+      find.byKey(const ValueKey<String>('gameplay-fade-in')),
+      findsOneWidget,
+    );
+
     expect(find.byType(GameWidget<StepboundGame>), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('touch-shoot')), findsNothing);
+    expect(find.text('Mario Rossi'), findsOneWidget);
+    expect(find.text(tutorialOpening.first.text), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('dialogue-portrait-0')),
+      findsOneWidget,
+    );
+
+    final dialogue = find.byKey(const ValueKey<String>('gameplay-dialogue'));
+    for (var i = 0; i < tutorialOpening.length; i++) {
+      await tester.tap(dialogue);
+      await tester.pump();
+    }
+    expect(dialogue, findsNothing);
+    expect(find.byKey(const ValueKey<String>('touch-up')), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('touch-shoot')), findsNothing);
+  });
+
+  testWidgets('tapping the title card skips to its fade out', (tester) async {
+    await tester.pumpWidget(const StepboundApp(flavor: AppFlavor.dev));
+    await tester.pump();
+    final intro = find.byKey(const ValueKey<String>('story-intro'));
+    for (var i = 0; i < _introTapCount; i++) {
+      await tester.tap(intro);
+      await tester.pump();
+    }
+    await tester.pump();
+    await tester.pump(TitleSplash.fade);
+    await tester.tap(find.byKey(const ValueKey<String>('title-splash')));
+    await tester.pump();
+    await tester.pump(TitleSplash.fade + const Duration(milliseconds: 50));
+    await tester.pump();
+    expect(find.byKey(const ValueKey<String>('title-splash')), findsNothing);
   });
 
   testWidgets('camera starts clamped around the player', (tester) {
     return tester.runAsync(() async {
       final game = await _pumpReadyGame(tester);
+      // The player starts near the south-west corner of the tutorial street,
+      // so both axes sit on a clamp: x at half the view width, y at the
+      // map height (52 tiles) minus half the view height.
       expect(game.camera.viewfinder.position.x, 192);
-      expect(game.camera.viewfinder.position.y, 160);
+      expect(game.camera.viewfinder.position.y, 52 * 16 - 108);
     });
   });
 
@@ -99,6 +221,9 @@ void main() {
 
       void setLoadedRounds(int value) =>
           game.simulation.player.component<AmmoComponent>().loaded = value;
+
+      game.simulation.player.component<AmmoComponent>().hasGun = true;
+      game.unlock(HudElement.shoot);
 
       setLoadedRounds(0);
       game.pressShoot();

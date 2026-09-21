@@ -21,6 +21,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/balance/
+    - assets/levels/
     - assets/sprites/
     - assets/story/
     - assets/tiles/

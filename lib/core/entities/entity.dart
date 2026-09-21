@@ -1,6 +1,7 @@
 import 'package:stepbound/core/entities/components.dart';
 
-enum EntityKind { player, wanderer, sprinter, brute, blind }
+/// [carabiniere]: a wanderer in uniform whose baton reaches two tiles.
+enum EntityKind { player, wanderer, sprinter, brute, blind, carabiniere }
 
 final class Entity {
   Entity({

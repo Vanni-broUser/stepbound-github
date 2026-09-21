@@ -38,16 +38,30 @@ final class MoveAction extends PlayerAction {
       );
       return;
     }
+    if (world.pickupAt(target) != null) {
+      world.emit(
+        BlockedEvent(entityId: player.id, at: target, reason: 'pickup'),
+      );
+      return;
+    }
 
     final previous = position.position;
     position.position = target;
-    world
-      ..emit(MovedEvent(entityId: player.id, from: previous, to: target))
-      ..emitNoise(
-        origin: target,
-        radius: world.map.tileAt(target).movementNoiseRadius,
-        sourceEntityId: player.id,
+    world.emit(MovedEvent(entityId: player.id, from: previous, to: target));
+    final portal = world.portals[target];
+    if (portal != null) {
+      position
+        ..position = portal.to
+        ..facing = portal.facing;
+      world.emit(
+        TeleportedEvent(entityId: player.id, from: target, to: portal.to),
       );
+    }
+    world.emitNoise(
+      origin: position.position,
+      radius: world.map.tileAt(position.position).movementNoiseRadius,
+      sourceEntityId: player.id,
+    );
   }
 }
 
@@ -63,6 +77,26 @@ final class InteractAction extends PlayerAction {
     final target = playerPosition.position.step(playerPosition.facing);
     if (!world.map.contains(target)) {
       world.emit(NoInteractionEvent(target));
+      return;
+    }
+
+    final pickup = world.pickupAt(target);
+    if (pickup != null) {
+      pickup
+        ..active = false
+        ..collected = true;
+      final ammo = world.player.component<AmmoComponent>()..add(pickup.ammo);
+      if (pickup.gun) {
+        ammo.hasGun = true;
+      }
+      world.emit(
+        PickedUpEvent(
+          pickupId: pickup.id,
+          at: target,
+          ammo: pickup.ammo,
+          gun: pickup.gun,
+        ),
+      );
       return;
     }
 
@@ -96,7 +130,10 @@ final class InteractAction extends PlayerAction {
             radius: 4,
             sourceEntityId: world.playerId,
           );
-      case TileKind.floor || TileKind.wall || TileKind.debris:
+      case TileKind.floor ||
+          TileKind.wall ||
+          TileKind.debris ||
+          TileKind.obstacle:
         world.emit(NoInteractionEvent(target));
     }
   }
@@ -116,7 +153,7 @@ final class ShootAction extends PlayerAction {
     final player = world.player;
     final ammo = player.component<AmmoComponent>();
     final position = player.component<PositionComponent>();
-    if (ammo.loaded == 0) {
+    if (!ammo.hasGun || ammo.loaded == 0) {
       world.emit(DryFiredEvent(entityId: player.id));
       return;
     }

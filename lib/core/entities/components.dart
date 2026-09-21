@@ -61,6 +61,7 @@ final class AmmoComponent extends EntityComponent {
     required this.loaded,
     required this.reserve,
     required this.magazineCapacity,
+    this.hasGun = true,
   });
 
   factory AmmoComponent.fromJson(Map<String, Object?> json) {
@@ -68,12 +69,23 @@ final class AmmoComponent extends EntityComponent {
       loaded: json['loaded']! as int,
       reserve: json['reserve']! as int,
       magazineCapacity: json['magazineCapacity']! as int,
+      hasGun: json['hasGun'] as bool? ?? true,
     );
   }
 
   int loaded;
   int reserve;
   final int magazineCapacity;
+
+  /// Bullets can be carried before the pistol is found.
+  bool hasGun;
+
+  /// Fills the magazine first, the rest goes to the reserve.
+  void add(int rounds) {
+    final intoMagazine = (magazineCapacity - loaded).clamp(0, rounds);
+    loaded += intoMagazine;
+    reserve += rounds - intoMagazine;
+  }
 
   @override
   String get type => 'ammo';
@@ -84,6 +96,7 @@ final class AmmoComponent extends EntityComponent {
     'loaded': loaded,
     'reserve': reserve,
     'magazineCapacity': magazineCapacity,
+    'hasGun': hasGun,
   };
 }
 
@@ -143,6 +156,7 @@ final class ActorComponent extends EntityComponent {
     required this.tickCost,
     required this.contactDamage,
     this.energy = 0,
+    this.attackReach = 1,
   });
 
   factory ActorComponent.fromJson(Map<String, Object?> json) {
@@ -150,11 +164,15 @@ final class ActorComponent extends EntityComponent {
       tickCost: json['tickCost']! as int,
       contactDamage: json['contactDamage']! as int,
       energy: json['energy']! as int,
+      attackReach: json['attackReach'] as int? ?? 1,
     );
   }
 
   final int tickCost;
   final int contactDamage;
+
+  /// Tiles in a straight line the attack reaches.
+  final int attackReach;
   int energy;
 
   bool gainEnergy() {
@@ -175,6 +193,7 @@ final class ActorComponent extends EntityComponent {
     'tickCost': tickCost,
     'contactDamage': contactDamage,
     'energy': energy,
+    'attackReach': attackReach,
   };
 }
 
