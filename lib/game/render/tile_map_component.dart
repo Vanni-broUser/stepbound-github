@@ -75,7 +75,7 @@ final class TileMapComponent extends Component {
         _paint.color = PixelPalette.door;
         canvas.drawRect(Rect.fromLTWH(left, top, 2, 16), _paint);
         canvas.drawRect(Rect.fromLTWH(left + 14, top, 2, 16), _paint);
-      case TileKind.debris || TileKind.floor:
+      case TileKind.debris || TileKind.floor || TileKind.obstacle:
         break;
     }
   }

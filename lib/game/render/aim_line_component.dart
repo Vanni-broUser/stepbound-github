@@ -16,7 +16,7 @@ final class AimLineComponent extends Component {
   final ValueListenable<bool> aiming;
   final double tileSize;
   final Paint _paint = Paint()
-    ..color = PixelPalette.sprinter
+    ..color = PixelPalette.blood
     ..style = PaintingStyle.fill
     ..isAntiAlias = false;
 

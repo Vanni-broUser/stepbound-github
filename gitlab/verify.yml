@@ -1,0 +1,41 @@
+analyze:
+  extends: .flutter_3_44_2
+  stage: verify
+  needs: []
+  script:
+    - dart format --output=none --set-exit-if-changed lib test
+    - flutter analyze --fatal-infos --fatal-warnings
+
+unit_tests:
+  extends: .flutter_3_44_2
+  stage: verify
+  needs: []
+  variables:
+    # Baseline locale al momento dell'introduzione del gate: 75,30%.
+    COVERAGE_THRESHOLD: "75"
+  script:
+    - set -o pipefail
+    - dart pub global activate junitreport
+    - flutter test --coverage --machine | dart pub global run junitreport:tojunit --output report.xml
+    - |
+      pct=$(awk -F: '/^LF:/{lf+=$2} /^LH:/{lh+=$2} END{if (lf==0) print "0.00"; else printf "%.2f", lh*100/lf}' coverage/lcov.info)
+      echo "Line coverage: ${pct}%"
+      awk -v pct="$pct" -v min="$COVERAGE_THRESHOLD" 'BEGIN{exit !(pct >= min)}' || { echo "Coverage ${pct}% below threshold ${COVERAGE_THRESHOLD}%"; exit 1; }
+  coverage: '/Line coverage: (\d+\.\d+)%/'
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
+    paths:
+      - coverage/lcov.info
+    expire_in: 1 week
+
+deps_check:
+  extends: .flutter_3_44_2
+  stage: verify
+  needs: []
+  allow_failure: true
+  rules:
+    - if: '$CI_COMMIT_BRANCH != "main"'
+  script:
+    - flutter pub outdated --no-transitive || true

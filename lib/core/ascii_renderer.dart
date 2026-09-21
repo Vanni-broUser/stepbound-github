@@ -29,5 +29,6 @@ final class AsciiRenderer {
     EntityKind.sprinter => 'S',
     EntityKind.brute => 'B',
     EntityKind.blind => 'C',
+    EntityKind.carabiniere => 'K',
   };
 }

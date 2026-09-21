@@ -1,11 +1,28 @@
-image: ghcr.io/cirruslabs/flutter:3.44.2
+# Una pipeline per commit: quando esiste una merge request, la pipeline MR
+# sostituisce quella di branch per evitare build duplicate.
+workflow:
+  rules:
+    - if: '$GITLAB_CI == "false"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_PIPELINE_SOURCE == "web" || $CI_PIPELINE_SOURCE == "trigger"'
+    - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
+      when: never
+    - if: '$CI_COMMIT_BRANCH'
 
 stages:
   - verify
+  - build
   - package
 
 variables:
   PUB_CACHE: "$CI_PROJECT_DIR/.pub-cache"
+
+default:
+  image: ghcr.io/cirruslabs/flutter:3.44.0
+  interruptible: true
+  before_script:
+    - flutter config --no-analytics
+    - flutter pub get
 
 cache:
   key:
@@ -14,46 +31,22 @@ cache:
   paths:
     - .pub-cache/
 
-before_script:
-  - flutter config --no-analytics
-  - flutter pub get
+# cirruslabs non pubblica ancora un'immagine 3.44.2. I job containerizzati
+# partono dalla 3.44.0 e passano al tag richiesto da .fvmrc/pubspec.yaml.
+# I job firmati su runner locali non estendono questo template.
+.flutter_3_44_2:
+  variables:
+    FLUTTER_VERSION: "3.44.2"
+  before_script:
+    - FLUTTER_DIR="$(dirname "$(dirname "$(readlink -f "$(command -v flutter)")")")"
+    - git config --global --add safe.directory '*'
+    - git -C "$FLUTTER_DIR" fetch --depth 1 origin "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
+    - git -C "$FLUTTER_DIR" checkout --quiet "$FLUTTER_VERSION"
+    - flutter --version
+    - flutter config --no-analytics
+    - flutter pub get
 
-analyze:
-  stage: verify
-  script:
-    - dart format --output=none --set-exit-if-changed .
-    - flutter analyze --fatal-infos --fatal-warnings
-
-test:
-  stage: verify
-  script:
-    - flutter test --reporter expanded
-
-build_android_signed:
-  stage: package
-  tags:
-    - stepbound-local-android
-  rules:
-    - if: '$CI_COMMIT_REF_PROTECTED == "true"'
-      when: manual
-    - when: never
-  script:
-    - test -f android/key.properties
-    - flutter build appbundle --release --flavor prod --target lib/main_prod.dart
-  artifacts:
-    paths:
-      - build/app/outputs/bundle/prodRelease/app-prod-release.aab
-
-build_ios_signed:
-  stage: package
-  tags:
-    - stepbound-local-macos
-  rules:
-    - if: '$CI_COMMIT_REF_PROTECTED == "true"'
-      when: manual
-    - when: never
-  script:
-    - flutter build ipa --release --flavor prod --target lib/main_prod.dart
-  artifacts:
-    paths:
-      - build/ios/ipa/*.ipa
+include:
+  - local: 'gitlab/verify.yml'
+  - local: 'gitlab/build.yml'
+  - local: 'gitlab/package.yml'

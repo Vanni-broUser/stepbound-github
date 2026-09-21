@@ -6,7 +6,7 @@ import 'package:stepbound/core/core.dart' hide PositionComponent;
 import 'package:stepbound/core/entities/components.dart' as simulation;
 import 'package:stepbound/game/render/pixel_palette.dart';
 
-enum CharacterAction { none, fire, hit, bite, death }
+enum CharacterAction { none, fire, hit, bite, death, pickup }
 
 final class CharacterComponent extends PositionComponent {
   CharacterComponent({required this.entity})
@@ -16,17 +16,21 @@ final class CharacterComponent extends PositionComponent {
   static const double hitDuration = 0.18;
   static const double biteDuration = 0.28;
   static const double deathDuration = 0.45;
-  static const double alertDuration = 0.8;
+  static const double alertDuration = 1.2;
+  static const double pickupDuration = 0.6;
+  static const double emergeDuration = 0.9;
 
   final Entity entity;
   ui.Image? _atlas;
   ui.Image? _gunAtlas;
+  ui.Image? _pickupAtlas;
   ui.Image? _hitAtlas;
   ui.Image? _biteAtlas;
   ui.Image? _deathAtlas;
   double animationProgress = 1;
   double _breathElapsed = 0;
   double _alertElapsed = alertDuration;
+  double _emergeElapsed = emergeDuration;
   bool isMoving = false;
 
   CharacterAction _action = CharacterAction.none;
@@ -61,6 +65,10 @@ final class CharacterComponent extends PositionComponent {
       _gunAtlas = await _loadImage(
         assets,
         'assets/sprites/protagonist_gun.png',
+      );
+      _pickupAtlas = await _loadImage(
+        assets,
+        'assets/sprites/protagonist_pickup.png',
       );
     } else {
       _hitAtlas = await _loadImage(assets, 'assets/sprites/${name}_hit.png');
@@ -101,6 +109,14 @@ final class CharacterComponent extends PositionComponent {
     _startAction(CharacterAction.fire, rowFor(facing), fireDuration);
   }
 
+  /// Crouch, grab the backpack in front and stand up again.
+  void playPickup(Direction facing) {
+    if (_pickupAtlas == null || _action == CharacterAction.death) {
+      return;
+    }
+    _startAction(CharacterAction.pickup, rowFor(facing), pickupDuration);
+  }
+
   void playHit(Direction facing) {
     if (_hitAtlas == null || _action == CharacterAction.death) {
       return;
@@ -129,6 +145,11 @@ final class CharacterComponent extends PositionComponent {
     actionDuration = duration;
   }
 
+  /// Fades the character in out of the dark, rising from a crouch.
+  void playEmerge() {
+    _emergeElapsed = 0;
+  }
+
   /// Shows the comic-style "!" balloon above the head.
   void playAlert() {
     _alertElapsed = 0;
@@ -141,6 +162,9 @@ final class CharacterComponent extends PositionComponent {
     if (_alertElapsed < alertDuration) {
       _alertElapsed += dt;
     }
+    if (_emergeElapsed < emergeDuration) {
+      _emergeElapsed += dt;
+    }
     if (_action == CharacterAction.none) {
       return;
     }
@@ -152,6 +176,22 @@ final class CharacterComponent extends PositionComponent {
 
   @override
   void render(ui.Canvas canvas) {
+    if (_emergeElapsed >= emergeDuration) {
+      _renderCharacter(canvas);
+      return;
+    }
+    final progress = _emergeElapsed / emergeDuration;
+    canvas
+      ..saveLayer(
+        const ui.Rect.fromLTWH(-16, -16, 48, 48),
+        ui.Paint()..color = ui.Color.fromRGBO(0, 0, 0, progress),
+      )
+      ..translate(0, ((1 - progress) * 4).roundToDouble());
+    _renderCharacter(canvas);
+    canvas.restore();
+  }
+
+  void _renderCharacter(ui.Canvas canvas) {
     if (_action == CharacterAction.death) {
       final atlas = _deathAtlas;
       if (atlas == null) {
@@ -174,18 +214,46 @@ final class CharacterComponent extends PositionComponent {
       case CharacterAction.fire when _gunAtlas != null:
         final progress = (_actionElapsed / actionDuration).clamp(0, 1);
         _drawCell(canvas, _gunAtlas!, _actionRow, 3 + (progress * 3).floor());
+      case CharacterAction.pickup when _pickupAtlas != null:
+        final progress = (_actionElapsed / actionDuration).clamp(0, 1);
+        _drawCell(
+          canvas,
+          _pickupAtlas!,
+          _actionRow,
+          (progress * 6).floor().clamp(0, 5),
+        );
       case CharacterAction.hit when _hitAtlas != null:
         final progress = (_actionElapsed / actionDuration).clamp(0, 1);
         _drawCell(canvas, _hitAtlas!, _actionRow, (progress * 3).floor());
       case CharacterAction.bite when _biteAtlas != null:
         final progress = (_actionElapsed / actionDuration).clamp(0, 1);
         _drawCell(canvas, _biteAtlas!, _actionRow, (progress * 4).floor());
+        final reach = entity.component<simulation.ActorComponent>().attackReach;
+        if (reach > 1 && progress >= 0.45 && progress < 0.8) {
+          _drawBatonSwoosh(canvas, _actionRow, reach);
+        }
       case _:
         _renderBase(canvas, row);
     }
     if (_alertElapsed < alertDuration) {
       _drawAlertBalloon(canvas);
     }
+  }
+
+  /// The baton's arc sweeping across the tile between the attacker and a
+  /// player standing further than one tile away.
+  void _drawBatonSwoosh(ui.Canvas canvas, int row, int reach) {
+    final length = (reach - 1) * 16.0;
+    _paint.color = const ui.Color(0xccf4f4f4);
+    final rect = switch (row) {
+      0 => ui.Rect.fromLTWH(5, 22, 6, length),
+      1 => ui.Rect.fromLTWH(-length, 11, length, 2),
+      2 => ui.Rect.fromLTWH(16, 11, length, 2),
+      _ => ui.Rect.fromLTWH(5, -length, 6, length),
+    };
+    canvas.drawRect(rect, _paint);
+    _paint.color = const ui.Color(0x66f4f4f4);
+    canvas.drawRect(rect.inflate(1), _paint);
   }
 
   void _drawAlertBalloon(ui.Canvas canvas) {
@@ -294,6 +362,12 @@ final class CharacterComponent extends PositionComponent {
           PixelPalette.wallShadow,
           PixelPalette.blind,
         ),
+        EntityKind.carabiniere => (
+          PixelPalette.zombie,
+          PixelPalette.voidBlack,
+          PixelPalette.jacket,
+          PixelPalette.brickRed,
+        ),
       };
 
   String _atlasName(EntityKind kind) => switch (kind) {
@@ -302,5 +376,6 @@ final class CharacterComponent extends PositionComponent {
     EntityKind.sprinter => 'zombie_sprinter',
     EntityKind.brute => 'zombie_brute',
     EntityKind.blind => 'zombie_blind',
+    EntityKind.carabiniere => 'zombie_carabiniere',
   };
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flame/camera.dart';
 import 'package:flame/components.dart' hide PositionComponent;
 import 'package:flame/events.dart';
@@ -7,17 +9,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/anim/turn_presentation_controller.dart';
-import 'package:stepbound/game/f2_world.dart';
 import 'package:stepbound/game/render/aim_line_component.dart';
 import 'package:stepbound/game/render/character_component.dart';
 import 'package:stepbound/game/render/debug_overlay.dart';
+import 'package:stepbound/game/render/fire_component.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
+import 'package:stepbound/game/render/level_background_component.dart';
+import 'package:stepbound/game/render/lighting_component.dart';
+import 'package:stepbound/game/render/pickup_component.dart';
 import 'package:stepbound/game/render/pixel_palette.dart';
-import 'package:stepbound/game/render/tile_map_component.dart';
+import 'package:stepbound/game/render/screen_fade_component.dart';
+import 'package:stepbound/game/tutorial/tutorial_director.dart';
 
-final class StepboundGame extends FlameGame with KeyboardEvents {
+final class StepboundGame extends FlameGame
+    with KeyboardEvents
+    implements TutorialHost {
   StepboundGame({int seed = 20260920})
-    : simulation = createF2World(seed: seed),
+    : simulation = createStreetWorld(seed: seed),
       super(
         camera: CameraComponent(
           viewport: FixedResolutionViewport(
@@ -43,6 +51,21 @@ final class StepboundGame extends FlameGame with KeyboardEvents {
       <String, CharacterComponent>{};
   final ValueNotifier<bool> aiming = ValueNotifier<bool>(false);
   final ValueNotifier<bool> gameOver = ValueNotifier<bool>(false);
+
+  /// Ignores the keyboard while a dialogue covers the game.
+  bool inputLocked = false;
+
+  /// Touch controls unlocked so far by the tutorial (the arrows are always
+  /// available).
+  final ValueNotifier<Set<HudElement>> hud = ValueNotifier<Set<HudElement>>(
+    const <HudElement>{},
+  );
+
+  /// Tutorial text currently shown over the game, if any.
+  final ValueNotifier<List<TutorialLine>?> prompt =
+      ValueNotifier<List<TutorialLine>?>(null);
+  void Function()? _onPromptDismissed;
+  late final TutorialDirector tutorial;
   late final ValueNotifier<int> ammoLoaded;
   Direction? _heldDirection;
   double _holdElapsed = 0;
@@ -57,11 +80,32 @@ final class StepboundGame extends FlameGame with KeyboardEvents {
   Future<void> onLoad() async {
     await super.onLoad();
     presentation = TurnPresentationController(world: simulation);
+    for (final region in levelRegions) {
+      await world.add(
+        LevelBackgroundComponent(
+          assetPath: region.background,
+          offset: Offset(
+            region.bounds.left * tileSize,
+            region.bounds.top * tileSize,
+          ),
+        ),
+      );
+      if (region.indoor) {
+        await world.add(
+          LightingComponent(
+            area: _regionRect(region),
+            lights: barracksLights(),
+            playerPosition: () => _characters[playerId]!.position,
+          ),
+        );
+      }
+    }
+    await world.addAll(_fires());
     await world.addAll(<Component>[
-      TileMapComponent(map: simulation.map, layer: TileLayer.ground),
-      TileMapComponent(map: simulation.map, layer: TileLayer.structures),
-      TileMapComponent(map: simulation.map, layer: TileLayer.foreground),
+      for (final pickup in simulation.pickups.values)
+        PickupComponent(pickup: pickup),
     ]);
+    tutorial = TutorialDirector(world: simulation, host: this);
     for (final entity in simulation.entities.values) {
       final component = CharacterComponent(entity: entity);
       _characters[entity.id] = component;
@@ -103,9 +147,10 @@ final class StepboundGame extends FlameGame with KeyboardEvents {
     presentation.update(dt);
     _routeNewEvents();
     _updateGameOverCountdown(dt);
+    tutorial.update(dt, turnAnimating: presentation.isAnimating);
     _updateHeldDirection(dt);
     _syncPresentation();
-    _updateCamera();
+    _updateCamera(dt);
     final ammo = simulation.player.component<AmmoComponent>();
     if (ammoLoaded.value != ammo.loaded) {
       ammoLoaded.value = ammo.loaded;
@@ -117,13 +162,71 @@ final class StepboundGame extends FlameGame with KeyboardEvents {
         '${aiming.value ? 'MIRA  ' : ''}G DEBUG';
   }
 
+  List<FireComponent> _fires() {
+    var seed = 0;
+    return <FireComponent>[
+      for (final spot in streetFireSpots())
+        switch (spot.kind) {
+          // A car parked north-south burns on its roof, mid-way down.
+          FireKind.car when spot.vertical => FireComponent(
+            base: Vector2(
+              spot.tile.x * tileSize + tileSize / 2,
+              spot.tile.y * tileSize + 12,
+            ),
+            halfWidth: 4,
+            flameHeight: 13,
+            seed: seed++,
+          ),
+          // Burning car: wide fire centred on the two-tile wreck's roof.
+          FireKind.car => FireComponent(
+            base: Vector2(
+              spot.tile.x * tileSize + tileSize,
+              spot.tile.y * tileSize + 4,
+            ),
+            halfWidth: 6,
+            flameHeight: 14,
+            seed: seed++,
+          ),
+          FireKind.bin => FireComponent(
+            base: Vector2(
+              spot.tile.x * tileSize + tileSize / 2,
+              spot.tile.y * tileSize + 6,
+            ),
+            halfWidth: 3,
+            flameHeight: 9,
+            seed: seed++,
+          ),
+          FireKind.window => FireComponent(
+            base: Vector2(
+              spot.tile.x * tileSize + tileSize / 2,
+              spot.tile.y * tileSize + 13,
+            ),
+            halfWidth: 4,
+            flameHeight: 12,
+            seed: seed++,
+          ),
+        },
+    ];
+  }
+
   void _routeNewEvents() {
     if (presentation.turnCount == _processedTurn) {
       return;
     }
     _processedTurn = presentation.turnCount;
+    tutorial.onEvents(presentation.lastEvents);
     for (final event in presentation.lastEvents) {
       switch (event) {
+        case TeleportedEvent():
+          _addWithoutWaiting(
+            camera.viewport,
+            ScreenFadeComponent(
+              size: Vector2(
+                IntegerResolutionViewport.virtualWidth,
+                IntegerResolutionViewport.virtualHeight,
+              ),
+            ),
+          );
         case AlertedEvent(entityId: final spotter):
           _characters[spotter]?.playAlert();
         case ShotEvent(entityId: final shooter) when shooter == playerId:
@@ -147,6 +250,73 @@ final class StepboundGame extends FlameGame with KeyboardEvents {
   }
 
   String get playerId => simulation.playerId;
+
+  bool get _canAct => _acceptsInput && !inputLocked;
+
+  @override
+  bool isTileVisible(GridPoint tile) {
+    final view = camera.visibleWorldRect;
+    return view.left <= tile.x * tileSize &&
+        view.top <= tile.y * tileSize &&
+        view.right >= (tile.x + 1) * tileSize &&
+        view.bottom >= (tile.y + 1) * tileSize;
+  }
+
+  @override
+  bool get isPromptVisible => prompt.value != null;
+
+  String? _focusId;
+
+  @override
+  void focusOn(String? entityId) => _focusId = entityId;
+
+  @override
+  void showPrompt(List<TutorialLine> lines, {void Function()? onDismissed}) {
+    _heldDirection = null;
+    _holdElapsed = 0;
+    presentation.clearBuffer();
+    aiming.value = false;
+    inputLocked = true;
+    _onPromptDismissed = onDismissed;
+    prompt.value = List<TutorialLine>.unmodifiable(lines);
+  }
+
+  /// Called by the dialogue overlay after the last line.
+  void dismissPrompt() {
+    final callback = _onPromptDismissed;
+    _onPromptDismissed = null;
+    prompt.value = null;
+    inputLocked = false;
+    callback?.call();
+  }
+
+  @override
+  void playPickupAnimation() {
+    _characters[playerId]?.playPickup(_playerFacing());
+  }
+
+  /// Adds [child] mid-frame; it finishes loading on its own.
+  void _addWithoutWaiting(Component parent, Component child) {
+    final result = parent.add(child);
+    if (result is Future<void>) {
+      unawaited(result);
+    }
+  }
+
+  @override
+  void spawnZombie(Entity zombie) {
+    simulation.entities[zombie.id] = zombie;
+    final component = CharacterComponent(entity: zombie)..playEmerge();
+    _characters[zombie.id] = component;
+    _addWithoutWaiting(world, component);
+  }
+
+  @override
+  void unlock(HudElement element) {
+    if (!hud.value.contains(element)) {
+      hud.value = <HudElement>{...hud.value, element};
+    }
+  }
 
   Direction _playerFacing() =>
       simulation.player.component<PositionComponent>().facing;
@@ -174,6 +344,9 @@ final class StepboundGame extends FlameGame with KeyboardEvents {
     KeyEvent event,
     Set<LogicalKeyboardKey> keysPressed,
   ) {
+    if (inputLocked) {
+      return KeyEventResult.ignored;
+    }
     final direction = _directionFor(event.logicalKey);
     if (event is KeyDownEvent) {
       if (direction != null) {
@@ -206,7 +379,7 @@ final class StepboundGame extends FlameGame with KeyboardEvents {
   }
 
   void pressDirection(Direction direction) {
-    if (!_acceptsInput) {
+    if (!_canAct) {
       return;
     }
     if (aiming.value) {
@@ -230,7 +403,7 @@ final class StepboundGame extends FlameGame with KeyboardEvents {
   }
 
   void pressShoot() {
-    if (!_acceptsInput) {
+    if (!_canAct || !hud.value.contains(HudElement.shoot)) {
       return;
     }
     if (!aiming.value) {
@@ -248,18 +421,21 @@ final class StepboundGame extends FlameGame with KeyboardEvents {
   }
 
   void pressInteract() {
-    if (!_acceptsInput) {
+    if (!_canAct) {
       return;
     }
     if (aiming.value) {
       aiming.value = false;
       return;
     }
+    if (!hud.value.contains(HudElement.interact)) {
+      return;
+    }
     presentation.submit(const InteractAction());
   }
 
   void pressWait() {
-    if (!_acceptsInput || aiming.value) {
+    if (!_canAct || aiming.value) {
       return;
     }
     presentation.submit(const WaitAction());
@@ -267,7 +443,7 @@ final class StepboundGame extends FlameGame with KeyboardEvents {
 
   void _updateHeldDirection(double dt) {
     final direction = _heldDirection;
-    if (direction == null) {
+    if (direction == null || !_canAct) {
       return;
     }
     _holdElapsed += dt;
@@ -302,40 +478,85 @@ final class StepboundGame extends FlameGame with KeyboardEvents {
     _clampCamera();
   }
 
-  void _updateCamera() {
+  /// Follows the player with a dead zone; while a character is in focus it
+  /// frames the player and that character together. The camera glides to
+  /// its target so switching focus never jumps.
+  LevelRegion? _cameraRegion;
+
+  void _updateCamera(double dt) {
     final player = _characters[simulation.playerId]!;
-    final cameraPosition = camera.viewfinder.position.clone();
-    const deadZoneHalfWidth = 48.0;
-    const deadZoneHalfHeight = 32.0;
-    final differenceX = player.position.x - cameraPosition.x;
-    final differenceY = player.position.y - cameraPosition.y;
-    if (differenceX.abs() > deadZoneHalfWidth) {
-      cameraPosition.x =
-          player.position.x - differenceX.sign * deadZoneHalfWidth;
+    final region = _currentRegion();
+    if (region != _cameraRegion) {
+      _cameraRegion = region;
+      _snapCameraToPlayer();
+      return;
     }
-    if (differenceY.abs() > deadZoneHalfHeight) {
-      cameraPosition.y =
-          player.position.y - differenceY.sign * deadZoneHalfHeight;
+    final current = camera.viewfinder.position.clone();
+    final focus = _characters[_focusId ?? ''];
+    final Vector2 target;
+    if (focus != null) {
+      target = (player.position + focus.position)..scale(0.5);
+    } else {
+      const deadZoneHalfWidth = 48.0;
+      const deadZoneHalfHeight = 32.0;
+      target = current.clone();
+      final differenceX = player.position.x - current.x;
+      final differenceY = player.position.y - current.y;
+      if (differenceX.abs() > deadZoneHalfWidth) {
+        target.x = player.position.x - differenceX.sign * deadZoneHalfWidth;
+      }
+      if (differenceY.abs() > deadZoneHalfHeight) {
+        target.y = player.position.y - differenceY.sign * deadZoneHalfHeight;
+      }
     }
-    cameraPosition
-      ..x = cameraPosition.x.roundToDouble()
-      ..y = cameraPosition.y.roundToDouble();
-    camera.viewfinder.position = cameraPosition;
+    const panSpeed = 260.0;
+    final offset = target - current;
+    final maxStep = panSpeed * dt;
+    if (offset.length > maxStep) {
+      offset.scaleTo(maxStep);
+    }
+    final next = current + offset;
+    camera.viewfinder.position = Vector2(
+      next.x.roundToDouble(),
+      next.y.roundToDouble(),
+    );
     _clampCamera();
   }
 
+  Rect _regionRect(LevelRegion region) => Rect.fromLTRB(
+    region.bounds.left * tileSize,
+    region.bounds.top * tileSize,
+    (region.bounds.right + 1) * tileSize,
+    (region.bounds.bottom + 1) * tileSize,
+  );
+
+  /// The region the player is drawn in (it changes when the step through a
+  /// door has finished playing).
+  LevelRegion _currentRegion() {
+    final feet = _characters[playerId]!.position;
+    final tile = GridPoint(
+      (feet.x / tileSize).floor(),
+      ((feet.y - 1) / tileSize).floor(),
+    );
+    return levelRegions.firstWhere(
+      (region) => region.bounds.contains(tile),
+      orElse: () => levelRegions.first,
+    );
+  }
+
+  /// Keeps the view inside the current region; a region smaller than the
+  /// view sits centred on the dark background.
   void _clampCamera() {
     final position = camera.viewfinder.position;
-    final worldWidth = simulation.map.width * tileSize;
-    final worldHeight = simulation.map.height * tileSize;
+    final area = _regionRect(_currentRegion());
     const halfWidth = 192.0;
     const halfHeight = 108.0;
-    final x = worldWidth <= halfWidth * 2
-        ? worldWidth / 2
-        : position.x.clamp(halfWidth, worldWidth - halfWidth);
-    final y = worldHeight <= halfHeight * 2
-        ? worldHeight / 2
-        : position.y.clamp(halfHeight, worldHeight - halfHeight);
+    final x = area.width <= halfWidth * 2
+        ? area.center.dx
+        : position.x.clamp(area.left + halfWidth, area.right - halfWidth);
+    final y = area.height <= halfHeight * 2
+        ? area.center.dy
+        : position.y.clamp(area.top + halfHeight, area.bottom - halfHeight);
     camera.viewfinder.position = Vector2(x, y);
   }
 

@@ -23,6 +23,7 @@ final class TurnScheduler {
       final actors = world.actorsInSimulationRadius().toList()
         ..sort((left, right) => left.id.compareTo(right.id));
       for (final entity in actors) {
+        ai.perceive(world, entity);
         final actor = entity.component<ActorComponent>();
         if (!actor.gainEnergy()) {
           continue;

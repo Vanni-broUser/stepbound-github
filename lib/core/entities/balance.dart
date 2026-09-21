@@ -7,6 +7,7 @@ final class ActorStats {
     required this.vision,
     required this.hearing,
     required this.contactDamage,
+    this.attackReach = 1,
   });
 
   factory ActorStats.fromJson(Map<String, Object?> json) {
@@ -16,6 +17,7 @@ final class ActorStats {
       vision: json['vision']! as int,
       hearing: json['hearing']! as int,
       contactDamage: json['contactDamage']! as int,
+      attackReach: json['attackReach'] as int? ?? 1,
     );
   }
 
@@ -25,12 +27,16 @@ final class ActorStats {
   final int hearing;
   final int contactDamage;
 
+  /// Tiles in a straight line the attack reaches: 1 is a bite, 2 a baton.
+  final int attackReach;
+
   Map<String, Object?> toJson() => <String, Object?>{
     'tickCost': tickCost,
     'health': health,
     'vision': vision,
     'hearing': hearing,
     'contactDamage': contactDamage,
+    'attackReach': attackReach,
   };
 }
 
@@ -75,6 +81,14 @@ final class BalanceConfig {
           vision: 0,
           hearing: 20,
           contactDamage: 1,
+        ),
+        EntityKind.carabiniere: ActorStats(
+          tickCost: 2,
+          health: 1,
+          vision: 6,
+          hearing: 8,
+          contactDamage: 1,
+          attackReach: 2,
         ),
       },
     );

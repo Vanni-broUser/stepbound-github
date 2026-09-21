@@ -1,12 +1,12 @@
 {
-    "name": "stepbound",
-    "short_name": "stepbound",
+    "name": "Stepbound",
+    "short_name": "Stepbound",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#761B22",
+    "theme_color": "#761B22",
+    "description": "Turn-based pixel-art survival where the world moves when you do.",
+    "orientation": "landscape",
     "prefer_related_applications": false,
     "icons": [
         {

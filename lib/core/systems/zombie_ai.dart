@@ -7,6 +7,41 @@ import 'package:stepbound/core/world_event.dart';
 final class ZombieAi {
   const ZombieAi();
 
+  /// Runs every tick, before the zombie's energy is checked. When it first
+  /// spots the player (by sight or by walking into its alert trigger) it
+  /// raises the alert and gets to act on this very tick, so it steps
+  /// towards the player at once instead of after a full wait.
+  void perceive(WorldState world, Entity zombie) {
+    if (!zombie.isAlive || !world.player.isAlive) {
+      return;
+    }
+    final playerPosition = world.player.component<PositionComponent>().position;
+    final trigger = world.alertTriggers[zombie.id];
+    final triggered = trigger != null && trigger.contains(playerPosition);
+    if (!triggered &&
+        !_canSeePlayer(world, zombie) &&
+        !_isTracking(world, zombie)) {
+      return;
+    }
+    if (triggered) {
+      world.alertTriggers.remove(zombie.id);
+    }
+    final hearing = zombie.component<HearingComponent>();
+    final wasAware = hearing.lastHeard != null;
+    hearing.lastHeard = playerPosition;
+    if (wasAware) {
+      return;
+    }
+    world.emit(
+      AlertedEvent(
+        entityId: zombie.id,
+        at: zombie.component<PositionComponent>().position,
+      ),
+    );
+    final actor = zombie.component<ActorComponent>();
+    actor.energy = actor.tickCost - 1;
+  }
+
   void takeTurn(WorldState world, Entity zombie) {
     if (!zombie.isAlive || !world.player.isAlive) {
       return;
@@ -15,7 +50,8 @@ final class ZombieAi {
     final zombiePosition = zombie.component<PositionComponent>();
     final playerPosition = world.player.component<PositionComponent>().position;
 
-    if (zombiePosition.position.manhattanDistanceTo(playerPosition) == 1) {
+    if (zombiePosition.position.manhattanDistanceTo(playerPosition) == 1 ||
+        _inReach(world, zombie)) {
       zombiePosition.facing = _directionBetween(
         zombiePosition.position,
         playerPosition,
@@ -25,15 +61,10 @@ final class ZombieAi {
     }
 
     final hearing = zombie.component<HearingComponent>();
-    final wasAware = hearing.lastHeard != null;
-    final seesPlayer = _canSeePlayer(world, zombie);
+    final seesPlayer =
+        _canSeePlayer(world, zombie) || _isTracking(world, zombie);
     if (seesPlayer) {
       hearing.lastHeard = playerPosition;
-      if (!wasAware) {
-        world.emit(
-          AlertedEvent(entityId: zombie.id, at: zombiePosition.position),
-        );
-      }
     }
     final target = seesPlayer ? playerPosition : hearing.lastHeard;
     if (target == null) {
@@ -88,12 +119,60 @@ final class ZombieAi {
       return false;
     }
 
-    final forward = dx * position.facing.dx + dy * position.facing.dy;
-    final lateral = (dx * position.facing.dy - dy * position.facing.dx).abs();
-    if (forward <= 0 || lateral > forward) {
-      return false;
+    // Unaware zombies see in a cone ahead; a hunting zombie looks all
+    // around, so doubling back in front of it does not shake it off.
+    final aware = zombie.component<HearingComponent>().lastHeard != null;
+    if (!aware) {
+      final forward = dx * position.facing.dx + dy * position.facing.dy;
+      final lateral = (dx * position.facing.dy - dy * position.facing.dx).abs();
+      if (forward <= 0 || lateral > forward) {
+        return false;
+      }
     }
     return world.map.hasLineOfSight(position.position, playerPosition);
+  }
+
+  /// A hunting zombie keeps smelling the player a couple of tiles beyond its
+  /// sight, even behind a wall: only real distance loses it.
+  bool _isTracking(WorldState world, Entity zombie) {
+    if (zombie.component<HearingComponent>().lastHeard == null) {
+      return false;
+    }
+    final vision = zombie.component<VisionComponent>();
+    if (vision.range == 0) {
+      return false;
+    }
+    final playerPosition = world.player.component<PositionComponent>().position;
+    final position = zombie.component<PositionComponent>().position;
+    return position.manhattanDistanceTo(playerPosition) <= vision.range + 2;
+  }
+
+  /// A baton hits the player further than one tile away when they stand in
+  /// a straight line with nothing (wall, table, body, backpack) in between.
+  bool _inReach(WorldState world, Entity zombie) {
+    final reach = zombie.component<ActorComponent>().attackReach;
+    if (reach < 2) {
+      return false;
+    }
+    final from = zombie.component<PositionComponent>().position;
+    final to = world.player.component<PositionComponent>().position;
+    final distance = from.manhattanDistanceTo(to);
+    if (distance < 2 ||
+        distance > reach ||
+        (from.x != to.x && from.y != to.y)) {
+      return false;
+    }
+    final direction = _directionBetween(from, to);
+    var cursor = from.step(direction);
+    while (cursor != to) {
+      if (!world.map.tileAt(cursor).isWalkable ||
+          world.entityAt(cursor, excluding: zombie.id) != null ||
+          world.pickupAt(cursor) != null) {
+        return false;
+      }
+      cursor = cursor.step(direction);
+    }
+    return true;
   }
 
   void _attackPlayer(WorldState world, Entity zombie) {

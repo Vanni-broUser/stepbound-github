@@ -17,6 +17,8 @@ sealed class WorldEvent {
       'shot' => ShotEvent.fromJson(json),
       'dryFired' => DryFiredEvent.fromJson(json),
       'alerted' => AlertedEvent.fromJson(json),
+      'pickedUp' => PickedUpEvent.fromJson(json),
+      'teleported' => TeleportedEvent.fromJson(json),
       _ => throw FormatException('Unknown world event: ${json['type']}'),
     };
   }
@@ -288,6 +290,74 @@ final class AlertedEvent extends WorldEvent {
     'type': 'alerted',
     'entityId': entityId,
     'at': at.toJson(),
+  };
+}
+
+/// The player went through a door into another place.
+final class TeleportedEvent extends WorldEvent {
+  const TeleportedEvent({
+    required this.entityId,
+    required this.from,
+    required this.to,
+  });
+
+  factory TeleportedEvent.fromJson(Map<String, Object?> json) {
+    return TeleportedEvent(
+      entityId: json['entityId']! as String,
+      from: GridPoint.fromJson(json['from']! as Map<String, Object?>),
+      to: GridPoint.fromJson(json['to']! as Map<String, Object?>),
+    );
+  }
+
+  final String entityId;
+  final GridPoint from;
+  final GridPoint to;
+
+  @override
+  String get description => '$entityId goes through the door $from -> $to';
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+    'type': 'teleported',
+    'entityId': entityId,
+    'from': from.toJson(),
+    'to': to.toJson(),
+  };
+}
+
+final class PickedUpEvent extends WorldEvent {
+  const PickedUpEvent({
+    required this.pickupId,
+    required this.at,
+    required this.ammo,
+    required this.gun,
+  });
+
+  factory PickedUpEvent.fromJson(Map<String, Object?> json) {
+    return PickedUpEvent(
+      pickupId: json['pickupId']! as String,
+      at: GridPoint.fromJson(json['at']! as Map<String, Object?>),
+      ammo: json['ammo']! as int,
+      gun: json['gun']! as bool,
+    );
+  }
+
+  final String pickupId;
+  final GridPoint at;
+  final int ammo;
+  final bool gun;
+
+  @override
+  String get description =>
+      'player picks up $pickupId: $ammo rounds${gun ? ' and a pistol' : ''}';
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+    'type': 'pickedUp',
+    'pickupId': pickupId,
+    'at': at.toJson(),
+    'ammo': ammo,
+    'gun': gun,
   };
 }
 

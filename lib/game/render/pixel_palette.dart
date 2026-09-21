@@ -15,6 +15,7 @@ abstract final class PixelPalette {
   static const Color hair = Color(0xff3a2a25);
   static const Color jacket = Color(0xff35586a);
   static const Color brickRed = Color(0xffa33b31);
+  static const Color blood = Color(0xffc42a2a);
   static const Color zombie = Color(0xff66805b);
   static const Color zombieDark = Color(0xff40543d);
   static const Color sprinter = Color(0xff8b7446);
