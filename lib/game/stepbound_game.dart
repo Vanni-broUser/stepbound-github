@@ -4,7 +4,6 @@ import 'package:flame/camera.dart';
 import 'package:flame/components.dart' hide PositionComponent;
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
-import 'package:flame/text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:stepbound/core/core.dart';
@@ -13,6 +12,7 @@ import 'package:stepbound/game/render/aim_line_component.dart';
 import 'package:stepbound/game/render/character_component.dart';
 import 'package:stepbound/game/render/debug_overlay.dart';
 import 'package:stepbound/game/render/fire_component.dart';
+import 'package:stepbound/game/render/flag_component.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/game/render/level_background_component.dart';
 import 'package:stepbound/game/render/lighting_component.dart';
@@ -68,7 +68,6 @@ final class StepboundGame extends FlameGame
   final WorldState simulation;
   late final TurnPresentationController presentation;
   late final DebugWorldOverlay debugOverlay;
-  late final TextComponent statusText;
   final Map<String, CharacterComponent> _characters =
       <String, CharacterComponent>{};
   final ValueNotifier<bool> aiming = ValueNotifier<bool>(false);
@@ -133,6 +132,15 @@ final class StepboundGame extends FlameGame
       }
     }
     await world.addAll(_fires());
+    final pole = flagpoleTile();
+    await world.add(
+      FlagComponent(
+        foot: Vector2(
+          pole.x * tileSize + tileSize / 2,
+          pole.y * tileSize + tileSize - 2,
+        ),
+      ),
+    );
     await world.addAll(<Component>[
       for (final pickup in simulation.pickups.values)
         PickupComponent(pickup: pickup),
@@ -153,25 +161,6 @@ final class StepboundGame extends FlameGame
       AimLineComponent(simulation: simulation, aiming: aiming),
     ]);
 
-    final textPaint = TextPaint(
-      style: const TextStyle(
-        color: PixelPalette.bone,
-        fontSize: 8,
-        fontFamily: 'monospace',
-      ),
-    );
-    await camera.viewport.add(
-      FpsTextComponent<TextPaint>(
-        position: Vector2(4, 4),
-        textRenderer: textPaint,
-      ),
-    );
-    statusText = TextComponent(
-      position: Vector2(4, 14),
-      textRenderer: textPaint,
-      priority: double.maxFinite.toInt(),
-    );
-    await camera.viewport.add(statusText);
     _syncPresentation();
     _snapCameraToPlayer();
     _acceptsInput = true;
@@ -193,17 +182,12 @@ final class StepboundGame extends FlameGame
     if (ammoLoaded.value != ammo.loaded) {
       ammoLoaded.value = ammo.loaded;
     }
-    final health = simulation.player.component<HealthComponent>();
-    statusText.text =
-        'TICK ${simulation.tick}  HP ${health.current}/${health.maximum}  '
-        'AMMO ${ammo.loaded}/${ammo.reserve}  '
-        '${aiming.value ? 'MIRA  ' : ''}G DEBUG';
   }
 
   List<FireComponent> _fires() {
     var seed = 0;
     return <FireComponent>[
-      for (final spot in streetFireSpots())
+      for (final spot in outdoorFireSpots())
         switch (spot.kind) {
           // A car parked north-south burns on its roof, mid-way down.
           FireKind.car when spot.vertical => FireComponent(

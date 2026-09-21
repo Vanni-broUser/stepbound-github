@@ -19,9 +19,8 @@ final class MainMenu extends StatefulWidget {
 
   static const String logo = 'assets/story/logo.png';
 
-  /// The city collapsing, from the story: the title card itself carries a
-  /// "loading" caption.
-  static const String background = 'assets/story/scene_collapse.jpg';
+  /// The city overrun: zombies chasing people through a burning street.
+  static const String background = 'assets/story/menu_background.jpg';
 
   final SaveRepository saves;
 
@@ -95,7 +94,6 @@ final class _MainMenuState extends State<MainMenu> {
           fit: StackFit.expand,
           children: <Widget>[
             Image.asset(MainMenu.background, fit: BoxFit.cover),
-            const ColoredBox(color: Color(0xd8080506)),
             Padding(
               padding: EdgeInsets.all(8 * unit),
               child: Column(
