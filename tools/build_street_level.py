@@ -486,11 +486,8 @@ def paint_barracks(d, level):
     rect(d, sx + 1, py + 7, sign_w - 2, 9, (24, 34, 72))
     paint_text(d, sx + 16, py + 9, "CARABINIERI", (240, 240, 236))
     paint_emblem(d, sx + 3, py + 4)
-    # Italian flag on a pole
-    fx = px + w - 18
-    rect(d, fx, py + 6, 1, 16, (60, 60, 60))
-    for i, colour in enumerate(((40, 130, 60), (240, 240, 236), (200, 40, 40))):
-        rect(d, fx + 1 + i * 3, py + 6, 3, 7, colour)
+    # Italian flag on a pole standing on the roof, torn to rags
+    paint_torn_flag(d, px + w - 30, py - 3)
     # barred windows
     door_x = next(x for x in range(level.width) for y in range(level.height)
                   if level.at(x, y) == "E") * TILE
@@ -520,6 +517,59 @@ def paint_barracks(d, level):
     for i, colour in enumerate(spill):
         rect(d, dx + 2 - i * 2, py + h + i * 3, 20 + i * 4, 3, colour)
     rect(d, dx + 6, py + h, 12, 3, (130, 40, 36))
+
+
+# Rows of the torn tricolour, 21x13: G green, W white, R red, g/w/r their
+# scorched shades, `.` a hole or a missing rag.
+TORN_FLAG = (
+    "GGGGGGGWWWWWWWRRRRRRr",
+    "GGGGGGGWWWWWWWRRRRr..",
+    "GGGGGGGWWWWwWWRRRRRRr",
+    "GGGGGGGWWW.WWWRRRr...",
+    "GGGGGGgWWWWWwWRRRRr..",
+    "GGGGGGGWWWWWW.Rr.....",
+    "GGGGGGGWW..WWWRRRRRr.",
+    "GGGgGGGWWWWWWWRRRR...",
+    "GGGGGGGWWWWWWwRr.....",
+    "GGGGGGWWWWWWW.RRr....",
+    "GGGGgG.WWW.WWW.R.....",
+    "GGG.G..WW...W........",
+    "G.G....W.............",
+)
+FLAG_COLOURS = {
+    "G": (38, 122, 58),
+    "g": (24, 60, 34),
+    "W": (226, 220, 204),
+    "w": (120, 112, 100),
+    "R": (184, 38, 36),
+    "r": (90, 24, 22),
+}
+
+
+def paint_torn_flag(d, base_x, base_y):
+    """Flagpole rising from the roof at (base_x, base_y) with a tattered,
+    scorched tricolour hanging off it: ragged fly end, holes, loose threads
+    and a gentle ripple in the cloth."""
+    top = base_y - 34
+    rect(d, base_x - 2, base_y - 1, 5, 2, (70, 66, 64))  # mount on the roof
+    rect(d, base_x - 1, base_y - 2, 3, 1, (96, 92, 88))
+    rect(d, base_x + 1, base_y, 8, 1, (40, 38, 40))  # pole shadow
+    rect(d, base_x, top, 1, base_y - top, (150, 150, 146))
+    rect(d, base_x + 1, top + 1, 1, base_y - top - 1, (78, 78, 76))
+    rect(d, base_x - 1, top - 2, 3, 2, (200, 170, 70))  # finial
+    for row, line in enumerate(TORN_FLAG):
+        for col, glyph in enumerate(line):
+            if glyph == ".":
+                continue
+            ripple = 1 if (col // 5) % 2 else 0
+            d.point((base_x + 2 + col, top + 1 + row + ripple),
+                    fill=FLAG_COLOURS[glyph])
+    # loose threads hanging from the torn edge
+    for tx, ty, length, glyph in ((1, 13, 2, "G"), (8, 13, 2, "W"),
+                                  (12, 12, 3, "W"), (16, 11, 2, "r")):
+        ripple = 1 if (tx // 5) % 2 else 0
+        rect(d, base_x + 2 + tx, top + 1 + ty + ripple, 1, length,
+             FLAG_COLOURS[glyph])
 
 
 def paint_emblem(d, x, y):

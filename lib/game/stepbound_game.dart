@@ -61,6 +61,10 @@ final class StepboundGame extends FlameGame
   static const double tileSize = 16;
   static const double holdRepeatSeconds = 0.18;
 
+  /// How long Mario stands still on the threshold of a building, so the
+  /// place he has just walked into can sink in.
+  static const double entranceHoldSeconds = 2.2;
+
   final WorldState simulation;
   late final TurnPresentationController presentation;
   late final DebugWorldOverlay debugOverlay;
@@ -85,6 +89,9 @@ final class StepboundGame extends FlameGame
   /// Counts down Mario's rest by the fire before the game is saved.
   double _restLeft = 0;
   GridPoint? _restingAt;
+
+  /// Counts down the pause after walking into a building.
+  double _entranceHoldLeft = 0;
 
   /// Tutorial text currently shown over the game, if any.
   final ValueNotifier<List<TutorialLine>?> prompt =
@@ -178,6 +185,7 @@ final class StepboundGame extends FlameGame
     _updateGameOverCountdown(dt);
     tutorial.update(dt, turnAnimating: presentation.isAnimating);
     _updateRest(dt);
+    _updateEntranceHold(dt);
     _updateHeldDirection(dt);
     _syncPresentation();
     _updateCamera(dt);
@@ -258,7 +266,8 @@ final class StepboundGame extends FlameGame
       switch (event) {
         case CampfireUsedEvent(:final at):
           _startRest(at);
-        case TeleportedEvent():
+        case TeleportedEvent(:final to):
+          final entering = _isIndoor(to);
           _addWithoutWaiting(
             camera.viewport,
             ScreenFadeComponent(
@@ -266,8 +275,14 @@ final class StepboundGame extends FlameGame
                 IntegerResolutionViewport.virtualWidth,
                 IntegerResolutionViewport.virtualHeight,
               ),
+              fadeIn: entering
+                  ? ScreenFadeComponent.slowFadeIn
+                  : ScreenFadeComponent.defaultFadeIn,
             ),
           );
+          if (entering) {
+            _startEntranceHold();
+          }
         case AlertedEvent(entityId: final spotter):
           _characters[spotter]?.playAlert();
         case ShotEvent(entityId: final shooter) when shooter == playerId:
@@ -292,7 +307,27 @@ final class StepboundGame extends FlameGame
 
   String get playerId => simulation.playerId;
 
-  bool get _canAct => _acceptsInput && !inputLocked;
+  bool get _canAct => _acceptsInput && !inputLocked && _entranceHoldLeft <= 0;
+
+  bool _isIndoor(GridPoint tile) => levelRegions.any(
+    (region) => region.indoor && region.bounds.contains(tile),
+  );
+
+  /// Mario stops on the threshold while the room fades in: the steps queued
+  /// on the street are dropped and a held arrow must be pressed again.
+  void _startEntranceHold() {
+    _heldDirection = null;
+    _holdElapsed = 0;
+    presentation.clearBuffer();
+    aiming.value = false;
+    _entranceHoldLeft = entranceHoldSeconds;
+  }
+
+  void _updateEntranceHold(double dt) {
+    if (_entranceHoldLeft > 0) {
+      _entranceHoldLeft -= dt;
+    }
+  }
 
   @override
   bool isTileVisible(GridPoint tile) {

@@ -152,6 +152,39 @@ void main() {
     }
   });
 
+  test('the carabiniere in the middle steps south into the lamp light', () {
+    final world = createStreetWorld();
+    // Mario a few steps past the front door, where the carabinieri come out.
+    world.player.component<PositionComponent>().position = GridPoint(
+      barracksOrigin.x + 10,
+      barracksOrigin.y + 11,
+    );
+    final spawn = carabiniereSpawns().firstWhere(
+      (tile) => tile.x == barracksOrigin.x + 10,
+    );
+    final carabiniere = createCarabiniere('carabiniere-0', spawn);
+    world.entities[carabiniere.id] = carabiniere;
+    final position = carabiniere.component<PositionComponent>();
+    var before = position.position;
+    while (true) {
+      const TurnScheduler().advance(world, const WaitAction());
+      if (position.position.y > before.y) {
+        break;
+      }
+      before = position.position;
+    }
+    bool lit(GridPoint tile) => barracksLights().any(
+      (light) =>
+          (light.tile.x - tile.x).abs() + (light.tile.y - tile.y).abs() <= 1,
+    );
+    expect(lit(before), isFalse, reason: 'still in the dark at $before');
+    expect(
+      lit(position.position),
+      isTrue,
+      reason: 'lit at ${position.position}',
+    );
+  });
+
   test('fires burn on three cars, three bins and five windows', () {
     final spots = streetFireSpots();
     int count(FireKind kind) => spots.where((s) => s.kind == kind).length;

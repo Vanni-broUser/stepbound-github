@@ -292,6 +292,32 @@ void main() {
     });
   });
 
+  testWidgets('walking into the barracks holds Mario still for a moment', (
+    tester,
+  ) {
+    return tester.runAsync(() async {
+      final game = await _pumpReadyGame(tester);
+      final position = game.simulation.player.component<PositionComponent>()
+        ..position = const GridPoint(16, 17)
+        ..facing = Direction.north;
+      void stepNorth() => game
+        ..pressDirection(Direction.north)
+        ..releaseDirection(Direction.north)
+        ..update(0.3);
+
+      stepNorth();
+      final inside = position.position;
+      expect(levelRegions.last.bounds.contains(inside), isTrue);
+
+      stepNorth();
+      expect(position.position, inside, reason: 'still on the threshold');
+
+      game.update(StepboundGame.entranceHoldSeconds);
+      stepNorth();
+      expect(position.position, inside.step(Direction.north));
+    });
+  });
+
   testWidgets('the game opens on the main menu with the Stepbound sign', (
     tester,
   ) async {
