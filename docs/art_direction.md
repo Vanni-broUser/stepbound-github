@@ -44,3 +44,14 @@ The five atlases in `assets/sprites/` were generated as original high-resolution
 - `zombie_blind.png`
 
 `assets/sprites/atlas_manifest.json` is the machine-readable contract used by the project.
+
+## Action sheets
+
+Combat animations share the same 96×96, 4-rows-by-6-columns grid and are listed under `actionSheets` in the manifest. Rows keep the south/west/east/north order; the east row mirrors the west row.
+
+- `protagonist_gun.png`: columns `aim_0..aim_2` (drawn-pistol stance held while aiming) and `fire_0..fire_2` (muzzle flash and recoil).
+- `zombie_<type>_hit.png`: three-frame flinch repeated to fill the row.
+- `zombie_<type>_bite.png`: wind-up, two lunge frames with an open maw, recovery.
+- `zombie_<type>_death.png`: six-frame collapse from flinch to prone.
+
+The sheets are produced by `tools/generate_action_sprites.py` (Python + Pillow); run it from the repository root to regenerate them.

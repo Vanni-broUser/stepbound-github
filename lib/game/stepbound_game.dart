@@ -27,7 +27,10 @@ final class StepboundGame extends FlameGame with KeyboardEvents {
             ),
           ),
         ),
-      );
+      ) {
+    final ammo = simulation.player.component<AmmoComponent>();
+    ammoLoaded = ValueNotifier<int>(ammo.loaded);
+  }
 
   static const double tileSize = 16;
   static const double holdRepeatSeconds = 0.18;
@@ -39,9 +42,13 @@ final class StepboundGame extends FlameGame with KeyboardEvents {
   final Map<String, CharacterComponent> _characters =
       <String, CharacterComponent>{};
   final ValueNotifier<bool> aiming = ValueNotifier<bool>(false);
+  final ValueNotifier<bool> gameOver = ValueNotifier<bool>(false);
+  late final ValueNotifier<int> ammoLoaded;
   Direction? _heldDirection;
   double _holdElapsed = 0;
   bool _acceptsInput = false;
+  int _processedTurn = 0;
+  double _gameOverCountdown = 0;
 
   @override
   Color backgroundColor() => PixelPalette.voidBlack;
@@ -94,13 +101,72 @@ final class StepboundGame extends FlameGame with KeyboardEvents {
   void update(double dt) {
     super.update(dt);
     presentation.update(dt);
+    _routeNewEvents();
+    _updateGameOverCountdown(dt);
     _updateHeldDirection(dt);
     _syncPresentation();
     _updateCamera();
     final ammo = simulation.player.component<AmmoComponent>();
+    if (ammoLoaded.value != ammo.loaded) {
+      ammoLoaded.value = ammo.loaded;
+    }
+    final health = simulation.player.component<HealthComponent>();
     statusText.text =
-        'TICK ${simulation.tick}  AMMO ${ammo.loaded}/${ammo.reserve}  '
+        'TICK ${simulation.tick}  HP ${health.current}/${health.maximum}  '
+        'AMMO ${ammo.loaded}/${ammo.reserve}  '
         '${aiming.value ? 'MIRA  ' : ''}G DEBUG';
+  }
+
+  void _routeNewEvents() {
+    if (presentation.turnCount == _processedTurn) {
+      return;
+    }
+    _processedTurn = presentation.turnCount;
+    for (final event in presentation.lastEvents) {
+      switch (event) {
+        case AlertedEvent(entityId: final spotter):
+          _characters[spotter]?.playAlert();
+        case ShotEvent(entityId: final shooter) when shooter == playerId:
+          _characters[playerId]?.playFire(_playerFacing());
+        case DamagedEvent(entityId: final target, sourceEntityId: final source)
+            when target == playerId:
+          _characters[source]?.playBite(_facingOf(source));
+        case DamagedEvent(entityId: final target, sourceEntityId: _):
+          _characters[target]?.playHit(_facingOf(target));
+        case DiedEvent(entityId: final victim) when victim == playerId:
+          _acceptsInput = false;
+          aiming.value = false;
+          _heldDirection = null;
+          _gameOverCountdown = CharacterComponent.deathDuration + 0.45;
+        case DiedEvent(entityId: final victim):
+          _characters[victim]?.playDeath(_facingOf(victim));
+        case _:
+          break;
+      }
+    }
+  }
+
+  String get playerId => simulation.playerId;
+
+  Direction _playerFacing() =>
+      simulation.player.component<PositionComponent>().facing;
+
+  Direction _facingOf(String entityId) {
+    final entity = simulation.entities[entityId];
+    if (entity == null) {
+      return Direction.south;
+    }
+    return entity.component<PositionComponent>().facing;
+  }
+
+  void _updateGameOverCountdown(double dt) {
+    if (_gameOverCountdown <= 0 || gameOver.value) {
+      return;
+    }
+    _gameOverCountdown -= dt;
+    if (_gameOverCountdown <= 0) {
+      gameOver.value = true;
+    }
   }
 
   @override
@@ -168,6 +234,10 @@ final class StepboundGame extends FlameGame with KeyboardEvents {
       return;
     }
     if (!aiming.value) {
+      final ammo = simulation.player.component<AmmoComponent>();
+      if (ammo.loaded == 0) {
+        return;
+      }
       _heldDirection = null;
       _holdElapsed = 0;
       aiming.value = true;
@@ -218,7 +288,8 @@ final class StepboundGame extends FlameGame with KeyboardEvents {
           visual.y * tileSize + tileSize,
         )
         ..isMoving = moving
-        ..animationProgress = animationProgress;
+        ..animationProgress = animationProgress
+        ..aiming = entry.key == playerId && aiming.value;
     }
   }
 

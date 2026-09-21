@@ -12,14 +12,16 @@ final class EntityFactory {
     required String id,
     required GridPoint position,
     Direction facing = Direction.east,
+    int? health,
   }) {
     final stats = balance[EntityKind.player];
+    final maximum = health ?? stats.health;
     return Entity(
       id: id,
       kind: EntityKind.player,
       components: <EntityComponent>[
         PositionComponent(position: position, facing: facing),
-        HealthComponent(current: stats.health, maximum: stats.health),
+        HealthComponent(current: maximum, maximum: maximum),
         AmmoComponent(loaded: 6, reserve: 6, magazineCapacity: 6),
         ActorComponent(
           tickCost: stats.tickCost,

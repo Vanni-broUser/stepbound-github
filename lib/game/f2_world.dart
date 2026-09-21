@@ -26,7 +26,7 @@ WorldState createF2World({int seed = 20260920}) {
   return WorldState(
     map: TileMap.fromAscii(rows),
     entities: <Entity>[
-      factory.player(id: 'player', position: const GridPoint(4, 9)),
+      factory.player(id: 'player', position: const GridPoint(4, 9), health: 1),
       factory.zombie(
         id: 'wanderer',
         kind: EntityKind.wanderer,
