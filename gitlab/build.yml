@@ -2,23 +2,23 @@ build_web:
   extends: .flutter_3_44_2
   stage: build
   script:
-    - flutter build web --release --target lib/main_prod.dart --build-number="$CI_PIPELINE_IID"
+    - flutter build web --release --build-number="$CI_PIPELINE_IID"
   artifacts:
     name: "stepbound-web-$CI_COMMIT_SHORT_SHA"
     paths:
       - build/web/
     expire_in: 1 week
 
-build_android_dev:
+build_android_debug:
   extends: .flutter_3_44_2
   stage: build
   rules:
     - when: manual
       allow_failure: true
   script:
-    - flutter build apk --debug --flavor dev --target lib/main_dev.dart --build-number="$CI_PIPELINE_IID"
+    - flutter build apk --debug --build-number="$CI_PIPELINE_IID"
   artifacts:
-    name: "stepbound-dev-apk-$CI_COMMIT_SHORT_SHA"
+    name: "stepbound-debug-apk-$CI_COMMIT_SHORT_SHA"
     paths:
-      - build/app/outputs/flutter-apk/app-dev-debug.apk
+      - build/app/outputs/flutter-apk/app-debug.apk
     expire_in: 1 week

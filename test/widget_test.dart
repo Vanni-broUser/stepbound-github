@@ -14,7 +14,7 @@ import 'package:stepbound/ui/title_splash.dart';
 const int _introTapCount = 6;
 
 Future<void> _pumpAppThroughIntro(WidgetTester tester) async {
-  await tester.pumpWidget(const StepboundApp(flavor: AppFlavor.dev));
+  await tester.pumpWidget(const StepboundApp());
   await tester.pump();
   final intro = find.byKey(const ValueKey<String>('story-intro'));
   for (var i = 0; i < _introTapCount; i++) {
@@ -87,7 +87,7 @@ void main() {
   testWidgets('intro scenes reveal text on tap, then advance to the next', (
     tester,
   ) async {
-    await tester.pumpWidget(const StepboundApp(flavor: AppFlavor.dev));
+    await tester.pumpWidget(const StepboundApp());
     await tester.pump();
     final intro = find.byKey(const ValueKey<String>('story-intro'));
     expect(intro, findsOneWidget);
@@ -120,7 +120,7 @@ void main() {
 
   testWidgets('title card fades in and out, the outbreak scenes play, then the '
       'protagonist speaks before the controls appear', (tester) async {
-    await tester.pumpWidget(const StepboundApp(flavor: AppFlavor.dev));
+    await tester.pumpWidget(const StepboundApp());
     await tester.pump();
     final intro = find.byKey(const ValueKey<String>('story-intro'));
     for (var i = 0; i < _introTapCount; i++) {
@@ -188,7 +188,7 @@ void main() {
   });
 
   testWidgets('tapping the title card skips to its fade out', (tester) async {
-    await tester.pumpWidget(const StepboundApp(flavor: AppFlavor.dev));
+    await tester.pumpWidget(const StepboundApp());
     await tester.pump();
     final intro = find.byKey(const ValueKey<String>('story-intro'));
     for (var i = 0; i < _introTapCount; i++) {

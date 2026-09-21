@@ -12,16 +12,12 @@ import 'package:stepbound/ui/gameplay_dialogue.dart';
 import 'package:stepbound/ui/story_intro.dart';
 import 'package:stepbound/ui/title_splash.dart';
 
-enum AppFlavor { dev, prod }
-
 /// Opening flow: story scenes, title card, then the protagonist talks over
 /// the game before the controls appear.
 enum _Phase { story, title, outbreak, dialogue, playing }
 
 final class StepboundApp extends StatefulWidget {
-  const StepboundApp({required this.flavor, super.key});
-
-  final AppFlavor flavor;
+  const StepboundApp({super.key});
 
   @override
   State<StepboundApp> createState() => _StepboundAppState();
@@ -67,7 +63,7 @@ final class _StepboundAppState extends State<StepboundApp> {
     final game = _game;
     return MaterialApp(
       title: 'Stepbound',
-      debugShowCheckedModeBanner: widget.flavor == AppFlavor.dev,
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xff111718),

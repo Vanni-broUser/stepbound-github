@@ -11,11 +11,11 @@ F0 must be checked on at least one physical Android phone in landscape immersive
 
 ## F0 physical smoke test
 
-1. Install the dev flavor on a clean device.
+1. Install the current debug build on a clean device.
 2. Launch Stepbound with the phone in portrait.
 3. Confirm that the app switches to landscape.
 4. Confirm that status and navigation bars are hidden.
 5. Confirm that the screen is a stable blank dark surface.
 6. Background and resume the app, then repeat the orientation and fullscreen checks.
 
-Record the device model, OS version, flavor, commit SHA, and result in the merge request.
+Record the device model, OS version, build type, commit SHA, and result in the merge request.

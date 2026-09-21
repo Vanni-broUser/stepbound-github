@@ -10,8 +10,8 @@ suddivisa per responsabilita in `gitlab/`.
 - `unit_tests`: JUnit, LCOV e soglia iniziale di copertura al 75%.
 - `deps_check`: dipendenze obsolete, informativo.
 - `build_web`: build release automatica conservata per una settimana.
-- `build_android_dev`: APK debug installabile, manuale e non bloccante.
-- `build_android_signed` / `build_ios_signed`: pacchetti prod manuali solo su ref
+- `build_android_debug`: APK debug installabile, manuale e non bloccante.
+- `build_android_signed` / `build_ios_signed`: pacchetti release manuali solo su ref
   protette e su runner dedicati.
 
 ## Firma Android
