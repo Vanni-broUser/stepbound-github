@@ -3,11 +3,14 @@ import 'dart:async';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:stepbound/core/core.dart';
+import 'package:stepbound/game/audio/game_audio.dart';
+import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/input/touch_controls.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
 import 'package:stepbound/save/save_game.dart';
+import 'package:stepbound/ui/audio_scope.dart';
 import 'package:stepbound/ui/black_fade.dart';
 import 'package:stepbound/ui/blood_decor.dart';
 import 'package:stepbound/ui/gameplay_dialogue.dart';
@@ -21,10 +24,13 @@ import 'package:stepbound/ui/title_splash.dart';
 enum _Phase { menu, story, title, outbreak, dialogue, playing }
 
 final class StepboundApp extends StatefulWidget {
-  const StepboundApp({this.saves, super.key});
+  const StepboundApp({this.saves, this.audio, super.key});
 
   /// Where the four save slots live; the device storage when null.
   final SaveRepository? saves;
+
+  /// The sound of the game; silent when null.
+  final GameAudio? audio;
 
   @override
   State<StepboundApp> createState() => _StepboundAppState();
@@ -34,6 +40,10 @@ final class _StepboundAppState extends State<StepboundApp> {
   static const int baseSeed = 20260920;
   late final SaveRepository _saves =
       widget.saves ?? PreferencesSaveRepository();
+  late final GameAudio _audio = widget.audio ?? SilentAudio();
+
+  /// Pauses the sound while the app is in the background.
+  late final AppLifecycleListener _lifecycle;
   StepboundGame? _game;
   _Phase _phase = _Phase.menu;
   int _restartCount = 0;
@@ -44,8 +54,25 @@ final class _StepboundAppState extends State<StepboundApp> {
   /// Whether the current slot holds a campfire save to resume after dying.
   bool _hasSave = false;
 
+  @override
+  void initState() {
+    super.initState();
+    _lifecycle = AppLifecycleListener(
+      onHide: _audio.pause,
+      onShow: _audio.resume,
+    );
+    _audio.playMusic(Music.menu);
+  }
+
+  @override
+  void dispose() {
+    _lifecycle.dispose();
+    super.dispose();
+  }
+
   Future<void> _newGame(int slot) async {
     await _saves.clear(slot);
+    _audio.playMusic(Music.story);
     setState(() {
       _slot = slot;
       _hasSave = false;
@@ -72,6 +99,7 @@ final class _StepboundAppState extends State<StepboundApp> {
           if (element.name == name) element,
     },
     onRest: _store,
+    audio: _audio,
   );
 
   /// Called by the game when Mario rests at a campfire.
@@ -100,7 +128,7 @@ final class _StepboundAppState extends State<StepboundApp> {
   void _finishOutbreak() {
     setState(() {
       _phase = _Phase.dialogue;
-      _game = StepboundGame(onRest: _store)..inputLocked = true;
+      _game = StepboundGame(onRest: _store, audio: _audio)..inputLocked = true;
     });
   }
 
@@ -122,12 +150,19 @@ final class _StepboundAppState extends State<StepboundApp> {
       _restartCount += 1;
       _game = save != null
           ? _gameFrom(save)
-          : StepboundGame(seed: baseSeed + _restartCount, onRest: _store);
+          : StepboundGame(
+              seed: baseSeed + _restartCount,
+              onRest: _store,
+              audio: _audio,
+            );
       _phase = _Phase.playing;
     });
   }
 
   void _backToMenu() {
+    _audio
+      ..silenceAmbience()
+      ..playMusic(Music.menu);
     setState(() {
       _game = null;
       _phase = _Phase.menu;
@@ -144,99 +179,107 @@ final class _StepboundAppState extends State<StepboundApp> {
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xff111718),
       ),
-      home: ColoredBox(
-        key: const ValueKey<String>('stepbound-game-surface'),
-        color: const Color(0xff111718),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final scale = IntegerResolutionViewport.scaleFor(
-              constraints.maxWidth,
-              constraints.maxHeight,
-            );
-            return Center(
-              child: SizedBox(
-                width: IntegerResolutionViewport.virtualWidth * scale,
-                height: IntegerResolutionViewport.virtualHeight * scale,
-                child: switch (_phase) {
-                  _Phase.menu => MainMenu(
-                    saves: _saves,
-                    onNewGame: (slot) => unawaited(_newGame(slot)),
-                    onLoad: _loadGame,
-                  ),
-                  _Phase.story => StoryIntro(onFinished: _finishIntro),
-                  _Phase.title => TitleSplash(onFinished: _finishTitle),
-                  _Phase.outbreak => StoryIntro(
-                    key: const ValueKey<String>('outbreak-story'),
-                    scenes: outbreakScenes,
-                    fadeOutAtEnd: true,
-                    onFinished: _finishOutbreak,
-                  ),
-                  _Phase.dialogue || _Phase.playing when game != null => Stack(
-                    fit: StackFit.expand,
-                    children: <Widget>[
-                      GameWidget<StepboundGame>(
-                        key: const ValueKey<String>('stepbound-game'),
-                        game: game,
+      // Browsers only start sound after a tap: the first one lets it play.
+      home: Listener(
+        onPointerDown: (_) => _audio.unlock(),
+        child: AudioScope(audio: _audio, child: _surface(game)),
+      ),
+    );
+  }
+
+  Widget _surface(StepboundGame? game) {
+    return ColoredBox(
+      key: const ValueKey<String>('stepbound-game-surface'),
+      color: const Color(0xff111718),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final scale = IntegerResolutionViewport.scaleFor(
+            constraints.maxWidth,
+            constraints.maxHeight,
+          );
+          return Center(
+            child: SizedBox(
+              width: IntegerResolutionViewport.virtualWidth * scale,
+              height: IntegerResolutionViewport.virtualHeight * scale,
+              child: switch (_phase) {
+                _Phase.menu => MainMenu(
+                  saves: _saves,
+                  onNewGame: (slot) => unawaited(_newGame(slot)),
+                  onLoad: _loadGame,
+                ),
+                _Phase.story => StoryIntro(onFinished: _finishIntro),
+                _Phase.title => TitleSplash(onFinished: _finishTitle),
+                _Phase.outbreak => StoryIntro(
+                  key: const ValueKey<String>('outbreak-story'),
+                  scenes: outbreakScenes,
+                  fadeOutAtEnd: true,
+                  onFinished: _finishOutbreak,
+                ),
+                _Phase.dialogue || _Phase.playing when game != null => Stack(
+                  fit: StackFit.expand,
+                  children: <Widget>[
+                    GameWidget<StepboundGame>(
+                      key: const ValueKey<String>('stepbound-game'),
+                      game: game,
+                    ),
+                    if (_phase == _Phase.dialogue) ...<Widget>[
+                      GameplayDialogue(onFinished: _finishDialogue),
+                      const BlackFade(
+                        key: ValueKey<String>('gameplay-fade-in'),
+                        toBlack: false,
                       ),
-                      if (_phase == _Phase.dialogue) ...<Widget>[
-                        GameplayDialogue(onFinished: _finishDialogue),
-                        const BlackFade(
-                          key: ValueKey<String>('gameplay-fade-in'),
-                          toBlack: false,
-                        ),
-                      ] else
-                        // Hidden whenever a text box is on screen, so the
-                        // buttons never show through it.
-                        ValueListenableBuilder<List<TutorialLine>?>(
-                          valueListenable: game.prompt,
-                          builder: (context, lines, _) => lines == null
-                              ? TouchControls(game: game)
-                              : const SizedBox.shrink(),
-                        ),
-                      if (_phase == _Phase.playing)
-                        ValueListenableBuilder<List<TutorialLine>?>(
-                          valueListenable: game.prompt,
-                          builder: (context, lines, _) {
-                            if (lines == null) {
-                              return const SizedBox.shrink();
-                            }
-                            return GameplayDialogue(
-                              // A fresh state for every prompt restarts it
-                              // from its first line.
-                              key: ObjectKey(lines),
-                              lines: <DialogueLine>[
-                                for (final line in lines)
-                                  DialogueLine(
-                                    speaker: line.speaker,
-                                    text: line.text,
-                                    portrait: line.portrait,
-                                  ),
-                              ],
-                              onFinished: game.dismissPrompt,
-                            );
-                          },
-                        ),
-                      ValueListenableBuilder<bool>(
-                        valueListenable: game.gameOver,
-                        builder: (context, isGameOver, _) {
-                          if (!isGameOver) {
+                    ] else
+                      // Hidden whenever a text box is on screen, so the
+                      // buttons never show through it.
+                      ValueListenableBuilder<List<TutorialLine>?>(
+                        valueListenable: game.prompt,
+                        builder: (context, lines, _) => lines == null
+                            ? TouchControls(game: game)
+                            : const SizedBox.shrink(),
+                      ),
+                    if (_phase == _Phase.playing)
+                      ValueListenableBuilder<List<TutorialLine>?>(
+                        valueListenable: game.prompt,
+                        builder: (context, lines, _) {
+                          if (lines == null) {
                             return const SizedBox.shrink();
                           }
-                          return _GameOverOverlay(
-                            fromSave: _hasSave,
-                            onRestart: () => unawaited(_restartGame()),
-                            onMenu: _backToMenu,
+                          return GameplayDialogue(
+                            // A fresh state for every prompt restarts it
+                            // from its first line.
+                            key: ObjectKey(lines),
+                            lines: <DialogueLine>[
+                              for (final line in lines)
+                                DialogueLine(
+                                  speaker: line.speaker,
+                                  text: line.text,
+                                  portrait: line.portrait,
+                                ),
+                            ],
+                            onFinished: game.dismissPrompt,
                           );
                         },
                       ),
-                    ],
-                  ),
-                  _ => const SizedBox.shrink(),
-                },
-              ),
-            );
-          },
-        ),
+                    ValueListenableBuilder<bool>(
+                      valueListenable: game.gameOver,
+                      builder: (context, isGameOver, _) {
+                        if (!isGameOver) {
+                          return const SizedBox.shrink();
+                        }
+                        return _GameOverOverlay(
+                          fromSave: _hasSave,
+                          onRestart: () => unawaited(_restartGame()),
+                          onMenu: _backToMenu,
+                        );
+                      },
+                    ),
+                  ],
+                ),
+                _ => const SizedBox.shrink(),
+              },
+            ),
+          );
+        },
       ),
     );
   }
@@ -313,6 +356,7 @@ final class _GameOverOverlayState extends State<_GameOverOverlay> {
                   ),
                   onPressed: () {
                     _timer?.cancel();
+                    AudioScope.of(context).play(Sfx.uiClick);
                     widget.onRestart();
                   },
                   child: Text(
@@ -334,6 +378,7 @@ final class _GameOverOverlayState extends State<_GameOverOverlay> {
                   ),
                   onPressed: () {
                     _timer?.cancel();
+                    AudioScope.of(context).play(Sfx.uiClick);
                     widget.onMenu();
                   },
                   child: const Text(

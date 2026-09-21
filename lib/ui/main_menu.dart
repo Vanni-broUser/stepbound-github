@@ -1,14 +1,17 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/save/save_game.dart';
+import 'package:stepbound/ui/audio_scope.dart';
 import 'package:stepbound/ui/blood_decor.dart';
 
-enum _MenuPage { home, newGame, load }
+enum _MenuPage { home, newGame, load, credits }
 
 /// The first screen: the Stepbound sign from the title card, then a new
-/// game in one of the four slots or a saved game to resume.
+/// game in one of the four slots or a saved game to resume, the sound
+/// switch and the credits.
 final class MainMenu extends StatefulWidget {
   const MainMenu({
     required this.saves,
@@ -60,6 +63,11 @@ final class _MainMenuState extends State<MainMenu> {
     _page = page;
     _confirming = null;
   });
+
+  void _toggleAudio() {
+    final audio = AudioScope.of(context);
+    setState(() => audio.muted = !audio.muted);
+  }
 
   void _pickNewGameSlot(int slot) {
     if (_slots[slot - 1] != null && _confirming != slot) {
@@ -137,6 +145,39 @@ final class _MainMenuState extends State<MainMenu> {
           label: 'CARICA PARTITA',
           unit: unit,
           onPressed: hasSaves ? () => _open(_MenuPage.load) : null,
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            _MenuButton(
+              key: const ValueKey<String>('menu-audio'),
+              label: AudioScope.of(context).muted ? 'AUDIO: NO' : 'AUDIO: SÌ',
+              unit: unit,
+              compact: true,
+              width: 84,
+              onPressed: _toggleAudio,
+            ),
+            SizedBox(width: 4 * unit),
+            _MenuButton(
+              key: const ValueKey<String>('menu-credits'),
+              label: 'CREDITI',
+              unit: unit,
+              compact: true,
+              width: 84,
+              onPressed: () => _open(_MenuPage.credits),
+            ),
+          ],
+        ),
+      ],
+      _MenuPage.credits => <Widget>[
+        _MenuHeading(text: 'CREDITI', unit: unit),
+        _Credits(unit: unit),
+        _MenuButton(
+          key: const ValueKey<String>('menu-back'),
+          label: 'INDIETRO',
+          unit: unit,
+          compact: true,
+          onPressed: () => _open(_MenuPage.home),
         ),
       ],
       _MenuPage.newGame || _MenuPage.load => <Widget>[
@@ -234,6 +275,7 @@ final class _MenuButton extends StatelessWidget {
     required this.onPressed,
     this.compact = false,
     this.warning = false,
+    this.width,
     super.key,
   });
 
@@ -242,6 +284,9 @@ final class _MenuButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool compact;
   final bool warning;
+
+  /// In virtual pixels; by default as wide as the main buttons.
+  final double? width;
 
   @override
   Widget build(BuildContext context) {
@@ -253,7 +298,12 @@ final class _MenuButton extends StatelessWidget {
       label: label,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: onPressed,
+        onTap: onPressed == null
+            ? null
+            : () {
+                AudioScope.of(context).play(Sfx.uiClick);
+                onPressed!();
+              },
         child: Opacity(
           opacity: enabled ? 1 : 0.4,
           child: BloodOverlay(
@@ -267,7 +317,7 @@ final class _MenuButton extends StatelessWidget {
               color: rim,
             ),
             child: Container(
-              width: (compact ? 172 : 190) * unit,
+              width: (width ?? (compact ? 172 : 190)) * unit,
               padding: EdgeInsets.symmetric(
                 horizontal: 8 * unit,
                 vertical: (compact ? 4 : 6) * unit,
@@ -295,6 +345,41 @@ final class _MenuButton extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Who made the music and the sounds, as their licences ask.
+final class _Credits extends StatelessWidget {
+  const _Credits({required this.unit});
+
+  final double unit;
+
+  @override
+  Widget build(BuildContext context) {
+    final style = TextStyle(
+      color: const Color(0xffe8dccb),
+      fontFamily: 'monospace',
+      fontSize: 6.5 * unit,
+      height: 1.35,
+      decoration: TextDecoration.none,
+    );
+    return Padding(
+      key: const ValueKey<String>('menu-credits-page'),
+      padding: EdgeInsets.symmetric(vertical: 3 * unit),
+      child: Column(
+        children: <Widget>[
+          Text('MUSICA', style: style.copyWith(color: BloodColors.bright)),
+          for (final credit in musicCredits)
+            Text(
+              '"${credit.title}" - ${credit.author} - ${credit.licence}',
+              textAlign: TextAlign.center,
+              style: style,
+            ),
+          SizedBox(height: 3 * unit),
+          Text(effectsCredit, textAlign: TextAlign.center, style: style),
+        ],
       ),
     );
   }

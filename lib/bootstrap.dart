@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:stepbound/app.dart';
+import 'package:stepbound/game/audio/player_audio.dart';
 
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -9,5 +10,5 @@ Future<void> bootstrap() async {
     DeviceOrientation.landscapeRight,
   ]);
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-  runApp(const StepboundApp());
+  runApp(StepboundApp(audio: PlayerAudio()));
 }
