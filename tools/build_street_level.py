@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
-"""Bake the background of the tutorial street level.
+"""Bake the backgrounds of the tutorial street and of the north district.
 
 Reads the ASCII rows from lib/core/levels/street_level.dart (between the
-`level-rows-start` / `level-rows-end` markers) and paints one 16x16 tile per
-glyph in 3/4 view: roofs, south-facing facades, sidewalks with curbs, roads
-with centre lines and zebra crossings, wrecked cars, traffic lights, bins and
-corpses. Fires, backpacks and characters are NOT baked: the game draws and
-animates them on top. Only scorch marks and the objects that burn are painted.
+`level-rows-start` / `level-rows-end` and `north-rows-start` /
+`north-rows-end` markers) and paints one 16x16 tile per glyph in 3/4 view:
+roofs, south-facing facades and shops, sidewalks with curbs, roads with
+centre lines and zebra crossings, a paved square with its fountain, a
+parking lot and the hypermarket, wrecked cars, traffic lights, bins and
+corpses. Fires, the barracks flag, backpacks and characters are NOT baked:
+the game draws and animates them on top. Only scorch marks and the objects
+that burn are painted.
 
 Run from the repository root:  python tools/build_street_level.py
 """
 from __future__ import annotations
 
+import math
 import os
 import random
 import re
@@ -21,10 +25,11 @@ from PIL import Image, ImageDraw
 TILE = 16
 LEVEL_DART = os.path.join("lib", "core", "levels", "street_level.dart")
 OUTPUT = os.path.join("assets", "levels", "street_01.png")
+NORTH_OUTPUT = os.path.join("assets", "levels", "north_district.png")
 
 ROAD_GLYPHS = set(".-|ZV")
 WALK_GLYPHS = set("=")
-BUILDING_GLYPHS = set("BHfK")
+BUILDING_GLYPHS = set("BHfKMG")
 FACADE_GLYPHS = set("Hf")
 
 ASPHALT = (44, 46, 52)
@@ -44,6 +49,12 @@ SHOP_DARK = (30, 26, 26)
 PANE = (34, 40, 56)
 PANE_LIT = (230, 150, 60)
 PANE_BROKEN = (14, 12, 14)
+PAVING = (120, 112, 100)
+PAVING_ALT = (108, 102, 92)
+PAVING_JOINT = (84, 78, 72)
+WOOD = (122, 92, 60)
+WOOD_DARK = (86, 62, 40)
+NAIL = (40, 36, 34)
 SCORCH = (20, 16, 16)
 BLOOD = (92, 14, 14)
 BLOOD_DARK = (60, 10, 10)
@@ -60,9 +71,10 @@ SKIN = [(200, 160, 130), (150, 110, 84), (180, 190, 150)]
 HAIR = [(40, 30, 26), (90, 70, 40), (20, 20, 22)]
 OUTLINE = (16, 12, 14)
 
-# Shops along the first street, by band top row: (first column, width, kind).
-# They are decorations: every one is wrecked and shut.
-STOREFRONTS = {
+# Shops along a street, by band top row: (first column, width, kind).
+# They are decorations: every one is wrecked and shut. The rest of a band
+# with shops gets ordinary houses.
+STREET_STOREFRONTS = {
     38: [
         (4, 5, "kebab"),
         (9, 4, "alimentari"),
@@ -72,14 +84,24 @@ STOREFRONTS = {
         (34, 6, "burger"),
     ],
 }
+NORTH_STOREFRONTS = {
+    27: [(38, 7, "barsport")],
+    30: [
+        (63, 6, "elettronica"),
+        (70, 5, "kebab2"),
+    ],
+}
 
 # 3x5 pixel font for shop signs.
 FONT = {
     "A": ("010", "101", "111", "101", "101"),
     "B": ("110", "101", "110", "101", "110"),
     "C": ("011", "100", "100", "100", "011"),
+    "D": ("110", "101", "101", "101", "110"),
     "E": ("111", "100", "110", "100", "111"),
+    "F": ("111", "100", "110", "100", "100"),
     "G": ("011", "100", "101", "101", "011"),
+    "H": ("101", "101", "111", "101", "101"),
     "I": ("111", "010", "010", "010", "111"),
     "K": ("101", "101", "110", "101", "101"),
     "L": ("100", "100", "100", "100", "111"),
@@ -91,8 +113,14 @@ FONT = {
     "S": ("011", "100", "010", "001", "110"),
     "T": ("111", "010", "010", "010", "010"),
     "U": ("101", "101", "101", "101", "111"),
+    "V": ("101", "101", "101", "101", "010"),
     "Z": ("111", "001", "010", "100", "111"),
     " ": ("000", "000", "000", "000", "000"),
+    "0": ("010", "101", "101", "101", "010"),
+    "5": ("111", "100", "110", "001", "110"),
+    "%": ("101", "001", "010", "100", "101"),
+    "-": ("000", "000", "111", "000", "000"),
+    "!": ("010", "010", "010", "000", "010"),
 }
 
 
@@ -100,16 +128,19 @@ def text_width(text: str) -> int:
     return len(text) * 4 - 1
 
 
-def paint_text(d, x, y, text, colour, missing=()):
-    """Draws `text` with the 3x5 font; letters whose index is in `missing`
-    have fallen off the sign."""
+def paint_text(d, x, y, text, colour, missing=(), scale=1, tilted=()):
+    """Draws `text` with the 3x5 font, `scale` pixels per dot; letters whose
+    index is in `missing` have fallen off the sign, the ones in `tilted`
+    hang crooked from a single screw."""
     for i, letter in enumerate(text):
         if i in missing:
             continue
         for row, bits in enumerate(FONT[letter]):
             for col, bit in enumerate(bits):
                 if bit == "1":
-                    rect(d, x + i * 4 + col, y + row, 1, 1, colour)
+                    drop = (col * scale) // 2 if i in tilted else 0
+                    rect(d, x + (i * 4 + col) * scale, y + row * scale + drop,
+                         scale, scale, colour)
 
 
 def read_rows(marker: str = "level-rows") -> list[str]:
@@ -125,8 +156,9 @@ def rect(d: ImageDraw.ImageDraw, x, y, w, h, c) -> None:
 
 
 class Level:
-    def __init__(self, rows: list[str]):
+    def __init__(self, rows: list[str], storefronts=None):
         self.rows = rows
+        self.storefronts = storefronts or {}
         self.height = len(rows)
         self.width = len(rows[0])
 
@@ -142,13 +174,16 @@ class Level:
         return self.at(x, y) in BUILDING_GLYPHS
 
     def surface(self, x: int, y: int) -> str:
-        """Floor under a prop or actor: the most common floor around it."""
+        """Floor under a prop or actor: the most common floor around it
+        (`=` sidewalk, `.` road, `P` paving, `L` parking, `Y` stairs)."""
         glyph = self.at(x, y)
         if glyph in WALK_GLYPHS:
             return "="
         if glyph in ROAD_GLYPHS:
             return "."
-        votes = {"=": 0, ".": 0}
+        if glyph in "PLY":
+            return glyph
+        votes = {"=": 0, ".": 0, "P": 0, "L": 0, "Y": 0}
         for dx in (-1, 0, 1):
             for dy in (-1, 0, 1):
                 g = self.at(x + dx, y + dy)
@@ -156,6 +191,8 @@ class Level:
                     votes["="] += 1 + (dy == 0)
                 elif g in ROAD_GLYPHS:
                     votes["."] += 1 + (dy == 0)
+                elif g in "PLY":
+                    votes[g] += 1 + (dy == 0)
         return max(votes, key=votes.get)
 
 
@@ -247,6 +284,35 @@ def paint_sidewalk(d, rng, level, x, y):
         rect(d, px + 2, py, 1, TILE, CURB_SHADOW)
 
 
+def paint_paving(d, rng, x, y):
+    """Stone slabs of the square, two per tile, a few cracked or missing."""
+    px, py = x * TILE, y * TILE
+    rect(d, px, py, TILE, TILE, PAVING if (x + y) % 2 else PAVING_ALT)
+    rect(d, px, py, TILE, 1, PAVING_JOINT)
+    rect(d, px + (0 if y % 2 else 8), py, 1, TILE, PAVING_JOINT)
+    rect(d, px + (8 if y % 2 else 0), py + 8, 1, 8, PAVING_JOINT)
+    rect(d, px, py + 8, TILE, 1, PAVING_JOINT)
+    if rng.random() < 0.15:
+        cx, cy = px + rng.randrange(2, 10), py + rng.randrange(2, 10)
+        for i in range(5):
+            rect(d, cx + i, cy + (i % 3), 1, 1, PAVING_JOINT)
+    if rng.random() < 0.015:
+        rect(d, px + 9, py + 1, 7, 7, (70, 66, 60))  # a slab has come away
+        rect(d, px + 10, py + 2, 5, 5, (58, 52, 46))
+
+
+def paint_parking(d, rng, level, x, y):
+    """Asphalt of the car park with white stall lines; every third row is a
+    driving aisle."""
+    paint_road(d, rng, level, x, y)
+    px, py = x * TILE, y * TILE
+    if y % 3 != 2:
+        rect(d, px, py + 1, 1, 14, (176, 172, 160))
+    else:
+        for i in range(0, 16, 8):
+            rect(d, px + i + 2, py + 7, 4, 2, (176, 172, 160))
+
+
 # -------------------------------------------------------------- buildings
 
 
@@ -305,37 +371,18 @@ def paint_roof_block(d, rng, level, sx, sy, sw, sh):
 def paint_facades(d, rng, level):
     for x0, width, top, bottom in column_runs(level, FACADE_GLYPHS):
         py0, h = top * TILE, (bottom - top + 1) * TILE
-        shops = [s for s in STOREFRONTS.get(top, []) if x0 <= s[0] < x0 + width]
-        if shops:
-            for sx, sw, kind in shops:
-                paint_storefront(d, rng, sx * TILE, py0, sw * TILE, h, kind)
-            continue
-        for sx, sw in segments(x0, width, rng):
-            px, w = sx * TILE, sw * TILE
-            wall, trim = FACADES[rng.randrange(len(FACADES))]
-            rect(d, px, py0, w, h, wall)
-            rect(d, px, py0, w, 3, trim)
-            rect(d, px + w - 1, py0, 1, h, trim)
-            shop_h = 14 if h >= 64 else 0
-            for wy in range(py0 + 8, py0 + h - shop_h - 12, 14):
-                for wx in range(px + 5, px + w - 8, 12):
-                    roll = rng.random()
-                    pane = PANE if roll > 0.25 else (PANE_LIT if roll > 0.12 else PANE_BROKEN)
-                    rect(d, wx - 1, wy - 1, 8, 10, trim)
-                    rect(d, wx, wy, 6, 8, pane)
-                    if pane == PANE_BROKEN:
-                        rect(d, wx + 1, wy + 1, 2, 3, PANE)
-            if shop_h:
-                shop_top = py0 + h - shop_h
-                rect(d, px + 3, shop_top, w - 6, shop_h, SHOP_DARK)
-                rect(d, px + 3, shop_top + 4, w - 6, 1, (48, 40, 40))
-                for i in range(0, w - 6, 4):
-                    torn = (i * 7 + sx) % 5 == 0
-                    rect(d, px + 3 + i, shop_top - 4, 4, 2 if torn else 4 + (i * 5 % 3),
-                         RED if (i // 4) % 2 else CREAM)
-            else:  # short facade: a plain door at the bottom
-                rect(d, px + w // 2 - 6, py0 + h - 14, 12, 14, (50, 36, 30))
-                rect(d, px + w // 2 - 4, py0 + h - 12, 8, 1, (80, 60, 50))
+        shops = [s for s in level.storefronts.get(top, []) if x0 <= s[0] < x0 + width]
+        houses = []
+        x = x0
+        for sx, sw, kind in sorted(shops):
+            paint_storefront(d, rng, sx * TILE, py0, sw * TILE, h, kind)
+            if sx > x:
+                houses.append((x, sx - x))
+            x = sx + sw
+        if not shops or x < x0 + width:
+            houses.append((x, x0 + width - x))
+        for hx, hw in houses:
+            paint_houses(d, rng, hx, hw, py0, h)
     # burning windows: scorched frame, the flame itself is animated in game
     for y in range(level.height):
         for x in range(level.width):
@@ -346,6 +393,79 @@ def paint_facades(d, rng, level):
                 rect(d, px + 3, py + 13, 10, 2, (40, 36, 36))
 
 
+def paint_houses(d, rng, x0, width, py0, h):
+    """Ordinary buildings along a band: windows upstairs; tall ones have a
+    shut shop downstairs, short ones a street door, often boarded up."""
+    for sx, sw in segments(x0, width, rng):
+        px, w = sx * TILE, sw * TILE
+        wall, trim = FACADES[rng.randrange(len(FACADES))]
+        rect(d, px, py0, w, h, wall)
+        rect(d, px, py0, w, 3, trim)
+        rect(d, px + w - 1, py0, 1, h, trim)
+        shop_h = 14 if h >= 64 else 0
+        for wy in range(py0 + 8, py0 + h - shop_h - 12, 14):
+            for wx in range(px + 5, px + w - 8, 12):
+                roll = rng.random()
+                pane = PANE if roll > 0.25 else (PANE_LIT if roll > 0.12 else PANE_BROKEN)
+                rect(d, wx - 1, wy - 1, 8, 10, trim)
+                rect(d, wx, wy, 6, 8, pane)
+                if pane == PANE_BROKEN:
+                    rect(d, wx + 1, wy + 1, 2, 3, PANE)
+        if shop_h:
+            shop_top = py0 + h - shop_h
+            rect(d, px + 3, shop_top, w - 6, shop_h, SHOP_DARK)
+            rect(d, px + 3, shop_top + 4, w - 6, 1, (48, 40, 40))
+            for i in range(0, w - 6, 4):
+                torn = (i * 7 + sx) % 5 == 0
+                rect(d, px + 3 + i, shop_top - 4, 4, 2 if torn else 4 + (i * 5 % 3),
+                     RED if (i // 4) % 2 else CREAM)
+        else:  # short facade: a street door at the bottom
+            door_x, door_y = px + w // 2 - 6, py0 + h - 14
+            rect(d, door_x - 1, door_y - 1, 14, 15, trim)
+            rect(d, door_x, door_y, 12, 14, (50, 36, 30))
+            rect(d, door_x + 2, door_y + 2, 8, 1, (80, 60, 50))
+            roll = rng.random()
+            if roll < 0.65:
+                paint_boarded_door(d, rng, door_x, door_y, 12, 14)
+            elif roll < 0.8:  # kicked in: dark hall and a bloody hand
+                rect(d, door_x + 1, door_y + 1, 10, 13, (16, 12, 14))
+                rect(d, door_x + 9, door_y + 1, 3, 13, (70, 50, 40))
+                rect(d, door_x - 3, door_y + 5, 3, 3, BLOOD)
+                rect(d, door_x - 4, door_y + 4, 1, 2, BLOOD)
+            if w >= 64 and rng.random() < 0.5:  # a boarded window too
+                paint_boards(d, px + 5, py0 + 8, 6, 8)
+            detail = rng.random()
+            if detail < 0.3:  # air conditioner hanging off the wall
+                ax = px + w - 14
+                rect(d, ax, py0 + 18, 9, 6, (180, 180, 174))
+                rect(d, ax + 1, py0 + 19, 5, 4, (120, 120, 116))
+                rect(d, ax + 4, py0 + 24, 1, 5, (60, 60, 62))
+            elif detail < 0.55:  # graffiti along the ground floor
+                gx = px + 3
+                for i in range(0, min(w - 20, 18), 2):
+                    rect(d, gx + i, py0 + h - 8 + (i % 4) // 2, 2, 1, (60, 150, 170))
+                rect(d, gx + 1, py0 + h - 5, min(w - 22, 14), 1, (190, 60, 150))
+            elif detail < 0.75:  # a balcony with its railing
+                bx = px + 4
+                rect(d, bx, py0 + 17, 14, 1, (60, 60, 62))
+                for i in range(0, 14, 3):
+                    rect(d, bx + i, py0 + 14, 1, 4, (60, 60, 62))
+                rect(d, bx, py0 + 14, 14, 1, (60, 60, 62))
+
+
+def paint_boarded_door(d, rng, x, y, w, h):
+    """Planks nailed across a door: three crooked boards and a brace."""
+    for i, by in enumerate((y + 2, y + 6, y + 10)):
+        tilt = rng.choice((-1, 0, 1))
+        colour = WOOD if i % 2 == 0 else (136, 104, 70)
+        for bx in range(-2, w + 2):
+            rect(d, x + bx, by + (tilt * bx) // w, 1, 3, colour)
+        rect(d, x - 1, by + 1, 1, 1, NAIL)
+        rect(d, x + w, by + 1 + tilt, 1, 1, NAIL)
+    for i in range(h - 2):
+        rect(d, x + 1 + i * (w - 3) // (h - 2), y + 1 + i, 2, 1, WOOD_DARK)
+
+
 SHOPS = {
     # kind: (wall, trim, board, letters, sign text, missing letters)
     "kebab": ((150, 132, 104), (110, 94, 72), (150, 34, 26), (246, 206, 70), "KEBAB", ()),
@@ -354,6 +474,9 @@ SHOPS = {
     "bar": ((70, 84, 96), (50, 60, 70), (70, 44, 30), (236, 214, 160), "BAR", ()),
     "abbigliamento": ((120, 104, 120), (84, 70, 86), (60, 40, 90), (236, 226, 240), "ABBIGLIAMENTO", (3, 9)),
     "burger": ((140, 126, 96), (100, 88, 64), (170, 30, 28), (250, 200, 50), "BURGER", ()),
+    "elettronica": ((84, 90, 104), (58, 62, 74), (26, 46, 96), (120, 220, 240), "ELETTRONICA", (4,)),
+    "kebab2": ((122, 112, 92), (88, 78, 62), (36, 92, 58), (250, 226, 120), "KEBAB", (2,)),
+    "barsport": ((104, 86, 70), (70, 56, 46), (30, 60, 110), (240, 210, 90), "BAR SPORT", (5,)),
 }
 
 
@@ -370,6 +493,32 @@ def paint_shutter(d, x, y, w, h, drop):
     rect(d, x + 3, y + 6, min(w - 6, 10), 1, (190, 60, 150))
 
 
+def paint_torn_awning(d, rng, x, y, w):
+    """Striped café awning, ripped and sagging, rags hanging off it."""
+    for i in range(0, w, 4):
+        colour = (180, 40, 36) if (i // 4) % 2 else (226, 218, 196)
+        drop = 0 if rng.random() < 0.7 else rng.randint(2, 6)
+        rect(d, x + i, y, 4, 5 + drop, colour)
+        if rng.random() < 0.25:
+            rect(d, x + i, y + 1, 4, 3, (30, 26, 26))  # a hole
+    rect(d, x, y - 1, w, 1, (60, 60, 62))
+    rect(d, x + w // 3, y + 4, 1, 6, (60, 60, 62))  # a broken strut
+
+
+def paint_smashed_display(d, x, y, w, h):
+    """Shop window with its glass smashed in: looted shelves and a couple of
+    dead screens still on display."""
+    rect(d, x, y, w, h, (14, 16, 22))
+    rect(d, x, y + h - 3, w, 1, (60, 60, 64))  # shelf
+    for i, sx in enumerate(range(x + 1, x + w - 5, 7)):
+        rect(d, sx, y + h - 9, 6, 6, (40, 42, 48))
+        rect(d, sx + 1, y + h - 8, 4, 4, (26, 40, 52) if i % 2 else (10, 12, 16))
+        rect(d, sx + 2, y + h - 7, 1, 2, (160, 200, 220))  # crack
+    for i in range(0, w, 3):  # glass teeth still in the frame
+        rect(d, x + i, y, 1, 1 + (i * 7) % 4, (150, 180, 200))
+        rect(d, x + i + 1, y + h - 1, 1, 1, (150, 180, 200))
+
+
 def paint_boards(d, x, y, w, h):
     """Planks nailed across a smashed window."""
     rect(d, x, y, w, h, (20, 22, 28))
@@ -384,7 +533,7 @@ def paint_boards(d, x, y, w, h):
 
 def paint_icon(d, kind, x, y):
     """8x8 icon on the sign, top-left at (x, y)."""
-    if kind == "kebab":
+    if kind.startswith("kebab"):
         rect(d, x + 3, y, 1, 8, (170, 170, 170))
         for i, wdt in enumerate((2, 4, 5, 5, 4, 3)):
             rect(d, x + 4 - wdt // 2, y + 1 + i, wdt, 1, (150, 90, 40) if i % 2 else (190, 120, 60))
@@ -393,7 +542,7 @@ def paint_icon(d, kind, x, y):
         rect(d, x + 2, y + 2, 4, 4, (200, 60, 40))
         rect(d, x + 3, y + 3, 1, 1, (250, 240, 220))
         rect(d, x + 5, y + 4, 1, 1, (70, 120, 50))
-    elif kind == "bar":
+    elif kind.startswith("bar"):
         rect(d, x + 1, y + 3, 5, 4, (240, 236, 226))
         rect(d, x + 6, y + 4, 1, 2, (240, 236, 226))
         rect(d, x + 2, y + 3, 3, 1, (110, 70, 40))
@@ -408,6 +557,15 @@ def paint_icon(d, kind, x, y):
         rect(d, x + 1, y + 3, 6, 4, (150, 110, 60))
         rect(d, x + 2, y + 1, 2, 2, (200, 50, 40))
         rect(d, x + 4, y + 2, 2, 2, (240, 200, 60))
+    elif kind == "elettronica":  # an old television set
+        rect(d, x, y + 1, 8, 6, (60, 64, 70))
+        rect(d, x + 1, y + 2, 5, 4, (120, 220, 240))
+        rect(d, x + 2, y + 3, 2, 1, (230, 250, 255))
+        rect(d, x + 6, y + 2, 1, 1, (200, 60, 40))
+        rect(d, x + 2, y, 1, 1, (160, 160, 160))
+        rect(d, x + 5, y, 1, 1, (160, 160, 160))
+        rect(d, x + 1, y + 7, 1, 1, (40, 40, 44))
+        rect(d, x + 6, y + 7, 1, 1, (40, 40, 44))
     elif kind == "abbigliamento":
         rect(d, x + 3, y, 2, 1, (200, 200, 200))
         rect(d, x + 1, y + 2, 6, 1, (200, 200, 200))
@@ -452,10 +610,17 @@ def paint_storefront(d, rng, px, py0, w, h, kind):
     window_w = (w - 8 - door_w) // 2
     paint_shutter(d, door_x, shop_top + 2, door_w, 15, 15)
     for wx in (px + 3, door_x + door_w + 1):
-        if kind in ("kebab", "bar", "burger"):
+        if kind in ("kebab", "kebab2", "bar", "burger"):
             paint_boards(d, wx, shop_top + 2, window_w, 12)
+        elif kind in ("elettronica", "barsport"):
+            paint_smashed_display(d, wx, shop_top + 2, window_w, 12)
         else:
             paint_shutter(d, wx, shop_top + 2, window_w, 12, 8 + rng.randrange(4))
+    if kind == "barsport":
+        paint_torn_awning(d, rng, px + 2, shop_top - 3, w - 4)
+        for _ in range(8):  # grime and splashes on the wall
+            rect(d, px + rng.randrange(2, w - 6), py0 + rng.randrange(4, h - 6),
+                 rng.randint(2, 5), rng.randint(1, 3), rng.choice(((60, 48, 40), BLOOD_DARK)))
     # scorch marks licking up from the shop
     for _ in range(3):
         sx = px + rng.randrange(3, w - 6)
@@ -466,6 +631,8 @@ def paint_storefront(d, rng, px, py0, w, h, kind):
 def paint_barracks(d, level):
     """Carabinieri barracks: cream facade, dark blue sign with the flaming
     grenade, barred windows and a wide-open front door spilling light."""
+    if not any("K" in row for row in level.rows):
+        return
     cells = [(x, y) for y in range(level.height) for x in range(level.width)
              if level.at(x, y) in "KE" and level.at(x, y + 1) not in "BK"
              or level.at(x, y) == "K"]
@@ -486,8 +653,6 @@ def paint_barracks(d, level):
     rect(d, sx + 1, py + 7, sign_w - 2, 9, (24, 34, 72))
     paint_text(d, sx + 16, py + 9, "CARABINIERI", (240, 240, 236))
     paint_emblem(d, sx + 3, py + 4)
-    # Italian flag on a pole standing on the roof, torn to rags
-    paint_torn_flag(d, px + w - 30, py - 3)
     # barred windows
     door_x = next(x for x in range(level.width) for y in range(level.height)
                   if level.at(x, y) == "E") * TILE
@@ -519,59 +684,6 @@ def paint_barracks(d, level):
     rect(d, dx + 6, py + h, 12, 3, (130, 40, 36))
 
 
-# Rows of the torn tricolour, 21x13: G green, W white, R red, g/w/r their
-# scorched shades, `.` a hole or a missing rag.
-TORN_FLAG = (
-    "GGGGGGGWWWWWWWRRRRRRr",
-    "GGGGGGGWWWWWWWRRRRr..",
-    "GGGGGGGWWWWwWWRRRRRRr",
-    "GGGGGGGWWW.WWWRRRr...",
-    "GGGGGGgWWWWWwWRRRRr..",
-    "GGGGGGGWWWWWW.Rr.....",
-    "GGGGGGGWW..WWWRRRRRr.",
-    "GGGgGGGWWWWWWWRRRR...",
-    "GGGGGGGWWWWWWwRr.....",
-    "GGGGGGWWWWWWW.RRr....",
-    "GGGGgG.WWW.WWW.R.....",
-    "GGG.G..WW...W........",
-    "G.G....W.............",
-)
-FLAG_COLOURS = {
-    "G": (38, 122, 58),
-    "g": (24, 60, 34),
-    "W": (226, 220, 204),
-    "w": (120, 112, 100),
-    "R": (184, 38, 36),
-    "r": (90, 24, 22),
-}
-
-
-def paint_torn_flag(d, base_x, base_y):
-    """Flagpole rising from the roof at (base_x, base_y) with a tattered,
-    scorched tricolour hanging off it: ragged fly end, holes, loose threads
-    and a gentle ripple in the cloth."""
-    top = base_y - 34
-    rect(d, base_x - 2, base_y - 1, 5, 2, (70, 66, 64))  # mount on the roof
-    rect(d, base_x - 1, base_y - 2, 3, 1, (96, 92, 88))
-    rect(d, base_x + 1, base_y, 8, 1, (40, 38, 40))  # pole shadow
-    rect(d, base_x, top, 1, base_y - top, (150, 150, 146))
-    rect(d, base_x + 1, top + 1, 1, base_y - top - 1, (78, 78, 76))
-    rect(d, base_x - 1, top - 2, 3, 2, (200, 170, 70))  # finial
-    for row, line in enumerate(TORN_FLAG):
-        for col, glyph in enumerate(line):
-            if glyph == ".":
-                continue
-            ripple = 1 if (col // 5) % 2 else 0
-            d.point((base_x + 2 + col, top + 1 + row + ripple),
-                    fill=FLAG_COLOURS[glyph])
-    # loose threads hanging from the torn edge
-    for tx, ty, length, glyph in ((1, 13, 2, "G"), (8, 13, 2, "W"),
-                                  (12, 12, 3, "W"), (16, 11, 2, "r")):
-        ripple = 1 if (tx // 5) % 2 else 0
-        rect(d, base_x + 2 + tx, top + 1 + ty + ripple, 1, length,
-             FLAG_COLOURS[glyph])
-
-
 def paint_emblem(d, x, y):
     """Flaming grenade, 11x13, top-left at (x, y)."""
     flame = [(250, 210, 80), (230, 120, 40), (200, 60, 30)]
@@ -598,7 +710,364 @@ def paint_back_passage(d, level):
             rect(d, px + 3, py + 10, 10, 2, (66, 62, 58))
 
 
+# ------------------------------------------------------------ hypermarket
+
+
+def paint_hypermarket(d, rng, level):
+    """Multi-storey hypermarket at the end of the north road: clad in grey
+    panels, two floors of ribbon windows over a smashed glass entrance, a
+    giant sign missing half its letters and advertising hoardings ripped to
+    shreds, one of them on a frame up on the roof."""
+    cells = [(x, y) for y in range(level.height) for x in range(level.width)
+             if level.at(x, y) == "M"]
+    if not cells:
+        return
+    xs = [x for x, _ in cells]
+    ys = [y for _, y in cells]
+    px, py = min(xs) * TILE, min(ys) * TILE
+    w, h = (max(xs) - min(xs) + 1) * TILE, (max(ys) - min(ys) + 1) * TILE
+    panel, panel_dark, trim = (150, 150, 146), (118, 118, 116), (84, 84, 86)
+    rect(d, px, py, w, h, panel)
+    for bx in range(px, px + w, 8):  # cladding seams
+        rect(d, bx, py, 1, h, panel_dark)
+    rect(d, px, py, w, 5, trim)  # parapet
+    rect(d, px, py + 5, w, 1, (60, 60, 62))
+    # ribbon windows on the two upper floors, panes smashed here and there
+    ground = py + h - 26
+    for floor, wy in enumerate(range(py + 28, ground - 14, 18)):
+        rect(d, px + 4, wy - 1, w - 8, 12, trim)
+        for wx in range(px + 5, px + w - 8, 8):
+            roll = rng.random()
+            pane = (40, 50, 64) if roll > 0.35 else (PANE_BROKEN if roll > 0.1 else PANE_LIT)
+            rect(d, wx, wy, 7, 10, pane)
+            if pane == PANE_BROKEN:
+                rect(d, wx + 1, wy, 2, 3, (90, 110, 130))
+                rect(d, wx + 4, wy + 7, 2, 3, (90, 110, 130))
+            else:
+                rect(d, wx + 1, wy + 1, 1, 3, (90, 110, 130))
+        # soot streaks from a fire on the upper floor
+        if floor == 0:
+            for sx in (px + w // 3, px + w // 3 + 9):
+                rect(d, sx, wy - 9, 7, 9, (60, 58, 58))
+                rect(d, sx + 2, wy - 14, 3, 5, (80, 78, 76))
+    # giant sign across the top: letters fallen off or hanging crooked
+    sign_text = "IPERMERCATO"
+    sign_w = text_width(sign_text) * 2 + 12
+    sx = px + (w - sign_w) // 2
+    rect(d, sx, py + 7, sign_w, 16, OUTLINE)
+    rect(d, sx + 1, py + 8, sign_w - 2, 14, (150, 26, 30))
+    paint_text(d, sx + 6, py + 10, sign_text, (250, 236, 200),
+               missing=(2, 7), scale=2, tilted=(9,))
+    for wire_x in (sx + 6 + 2 * 8 + 2, sx + 6 + 7 * 8 + 2):  # bare wires
+        rect(d, wire_x, py + 12, 1, 6, (40, 40, 44))
+        rect(d, wire_x + 1, py + 17, 1, 3, (40, 40, 44))
+    rect(d, sx + sign_w - 20, py + 8, 1, 14, OUTLINE)  # cracks
+    rect(d, sx + 30, py + 14, 8, 1, OUTLINE)
+    # ground floor: a canopy over the smashed glass entrance
+    door_w = 48
+    door_x = px + (w - door_w) // 2
+    rect(d, px, ground - 2, w, 2, trim)
+    rect(d, door_x - 6, ground - 6, door_w + 12, 5, (40, 110, 70))  # canopy
+    for i in range(0, door_w + 12, 6):
+        rect(d, door_x - 6 + i, ground - 1, 3, 2 + (i * 5) % 4, (40, 110, 70))
+    rect(d, door_x - 6, ground - 6, door_w + 12, 1, (70, 150, 100))
+    rect(d, door_x, ground, door_w, 26, (12, 12, 16))
+    for i, gx in enumerate(range(door_x + 1, door_x + door_w, 12)):
+        rect(d, gx, ground + 1, 11, 25, (30, 40, 52))
+        rect(d, gx + 3, ground + 4 + i % 3, 5, 12, (12, 12, 16))  # hole
+        for t in range(0, 11, 3):  # glass teeth
+            rect(d, gx + t, ground + 3 + (t * 5) % 7, 1, 2, (150, 180, 200))
+    rect(d, door_x + door_w // 2, ground, 1, 26, trim)
+    # shop windows either side, papered over with torn special offers
+    for wx in (px + 8, door_x + door_w + 12):
+        ww = door_x - 12 - px - 8 if wx == px + 8 else px + w - 8 - wx
+        rect(d, wx, ground + 2, ww, 20, (22, 24, 30))
+        for i, ox in enumerate(range(wx, wx + ww - 15, 16)):
+            rect(d, ox, ground + 2, 1, 20, trim)
+            roll = rng.random()
+            if roll < 0.3:
+                paint_poster(d, rng, ox + 2, ground + 4, 12, 14, i)
+            elif roll < 0.6:
+                paint_smashed_display(d, ox + 1, ground + 3, 15, 18)
+            elif roll < 0.8:
+                paint_boards(d, ox + 1, ground + 3, 15, 18)
+            else:
+                rect(d, ox + 3, ground + 4, 2, 8, (60, 70, 86))  # reflection
+    # advertising hoardings on the wall, ripped
+    paint_hoarding(d, rng, px + 10, py + 7, 40, 17, "SCONTI -50%")
+    paint_hoarding(d, rng, px + w - 52, py + 7, 42, 17, "OFFERTE!")
+    # a billboard on a frame up on the roof, its poster in shreds
+    bx, bw = px + w - 150, 70
+    for post in (bx + 8, bx + bw - 10):
+        rect(d, post, py - 6, 2, 8, (60, 60, 62))
+    rect(d, bx, py - 28, bw, 22, (50, 50, 54))
+    paint_hoarding(d, rng, bx + 2, py - 26, bw - 4, 18, "HIPER SCONTI")
+    rect(d, bx, py - 29, bw, 1, (80, 80, 84))
+    # scorch and graffiti on the plinth
+    for gx in range(px + 12, px + w - 12, 34):
+        rect(d, gx, py + h - 5, 10, 1, (190, 60, 150))
+        rect(d, gx + 2, py + h - 4, 8, 1, (60, 150, 170))
+
+
+def paint_poster(d, rng, x, y, w, h, i):
+    """Paper poster, half torn away."""
+    colours = [(230, 200, 60), (220, 70, 50), (240, 236, 220)]
+    rect(d, x, y, w, h, colours[i % 3])
+    rect(d, x + 2, y + 2, w - 4, 3, (170, 30, 30) if i % 3 != 1 else (250, 240, 200))
+    for tx in range(0, w, 2):  # ragged tear across the bottom
+        top = y + h // 2 + rng.randrange(h // 2)
+        rect(d, x + tx, top, 2, y + h - top, (22, 24, 30))
+
+
+def paint_hoarding(d, rng, x, y, w, h, text):
+    """Advertising panel: frame, faded poster with its slogan, strips of
+    paper peeled off and hanging down, bare board showing through."""
+    rect(d, x - 1, y - 1, w + 2, h + 2, OUTLINE)
+    rect(d, x, y, w, h, (70, 66, 60))  # bare board
+    rect(d, x, y, w, h - 4, (226, 196, 70))
+    rect(d, x, y + h - 6, w, 2, (200, 60, 40))
+    if text_width(text) <= w - 4:
+        paint_text(d, x + (w - text_width(text)) // 2, y + 3, text, (170, 30, 30),
+                   missing=(len(text) // 2,))
+    for _ in range(max(2, w // 10)):  # torn away chunks
+        tx, tw = x + rng.randrange(w - 6), rng.randint(3, 8)
+        top = y + rng.randrange(h // 2)
+        rect(d, tx, top, tw, y + h - top, (70, 66, 60))
+        rect(d, tx + 1, y + h, 2, rng.randint(3, 7), (226, 196, 70))  # dangling strip
+
+
+# --------------------------------------------------------------- hospital
+
+
+def paint_hospital(d, rng, level):
+    """The hospital at the end of the west road: pale plastered block, rows
+    of windows (some with sheets begging for help), a red cross, the
+    OSPEDALE sign and the emergency entrance, its glass doors smeared with
+    blood."""
+    cells = [(x, y) for y in range(level.height) for x in range(level.width)
+             if level.at(x, y) == "G"]
+    if not cells:
+        return
+    xs = [x for x, _ in cells]
+    ys = [y for _, y in cells]
+    px, py = min(xs) * TILE, min(ys) * TILE
+    w, h = (max(xs) - min(xs) + 1) * TILE, (max(ys) - min(ys) + 1) * TILE
+    wall, wall_dark, trim = (206, 212, 204), (170, 178, 170), (120, 130, 126)
+    rect(d, px, py, w, h, wall)
+    rect(d, px, py, w, 5, trim)
+    rect(d, px, py + 5, w, 1, (90, 96, 94))
+    for bx in range(px + 31, px + w, 32):  # structural pillars
+        rect(d, bx, py + 6, 3, h - 6, wall_dark)
+    # sign and red cross at the top
+    text = "OSPEDALE"
+    tw = text_width(text) * 2
+    sx = px + (w - tw) // 2 + 10
+    rect(d, sx - 16, py + 8, tw + 22, 14, (240, 240, 236))
+    rect(d, sx - 16, py + 21, tw + 22, 1, trim)
+    paint_text(d, sx, py + 10, text, (40, 70, 140), missing=(4,), scale=2)
+    rect(d, sx - 13, py + 12, 8, 2, (200, 30, 30))  # the cross
+    rect(d, sx - 10, py + 9, 2, 8, (200, 30, 30))
+    rect(d, sx - 14, py + 11, 10, 4, (200, 30, 30))
+    rect(d, sx - 11, py + 8, 4, 10, (200, 30, 30))
+    # floors of windows, some shattered, some with sheets hung out
+    ground = py + h - 30
+    sheets = 0
+    for wy in range(py + 28, ground - 12, 16):
+        for wx in range(px + 6, px + w - 10, 12):
+            roll = rng.random()
+            pane = (60, 80, 96) if roll > 0.3 else (PANE_BROKEN if roll > 0.1 else PANE_LIT)
+            rect(d, wx - 1, wy - 1, 9, 12, trim)
+            rect(d, wx, wy, 7, 10, pane)
+            if pane == PANE_BROKEN:
+                rect(d, wx + 1, wy + 7, 5, 1, BLOOD)
+            if sheets < 3 and rng.random() < 0.07:
+                sheets += 1
+                rect(d, wx - 1, wy + 3, 9, 16, (236, 234, 226))
+                rect(d, wx, wy + 6, 7, 1, (150, 30, 30))
+                rect(d, wx + 1, wy + 9, 5, 1, (150, 30, 30))
+                rect(d, wx + 2, wy + 12, 3, 1, (150, 30, 30))
+    # emergency entrance at the bottom centre
+    door_w = 60
+    dx = px + (w - door_w) // 2
+    rect(d, dx - 6, ground - 8, door_w + 12, 7, (200, 36, 32))  # canopy
+    paint_text(d, dx + (door_w - text_width("PRONTO SOCCORSO")) // 2, ground - 7,
+               "PRONTO SOCCORSO", (250, 246, 236))
+    rect(d, dx - 6, ground - 1, door_w + 12, 1, (120, 20, 20))
+    rect(d, dx, ground, door_w, 30, (14, 14, 18))
+    for gx in range(dx + 1, dx + door_w, 11):
+        rect(d, gx, ground + 1, 10, 29, (40, 52, 62))
+        rect(d, gx + 2, ground + 4, 6, 14, (14, 14, 18))  # smashed pane
+        rect(d, gx + 1, ground + 18, 3, 8, BLOOD)  # smeared hands
+        rect(d, gx + 5, ground + 14, 2, 10, BLOOD_DARK)
+    rect(d, dx - 8, ground + 14, 6, 16, (200, 200, 196))  # a stretcher on end
+    rect(d, dx - 7, ground + 16, 4, 12, (236, 236, 230))
+    rect(d, dx + door_w + 3, ground + 6, 4, 24, (60, 60, 64))  # drip stand
+    rect(d, dx + door_w + 1, ground + 6, 8, 1, (60, 60, 64))
+
+
+def paint_stairs(d, level, x, y):
+    """A step of the hospital's wide staircase, with a handrail at the ends
+    and a nosing shadow on every step."""
+    px, py = x * TILE, y * TILE
+    rect(d, px, py, TILE, TILE, (176, 172, 162))
+    rect(d, px, py + 6, TILE, 2, (136, 132, 124))  # nosing shadow
+    rect(d, px, py + 8, TILE, 7, (160, 156, 146))
+    rect(d, px, py + 14, TILE, 2, (126, 122, 114))
+    if level.surface(x - 1, y) != "Y" or level.is_building(x - 1, y):
+        rect(d, px, py, 2, TILE, (70, 72, 76))
+    if level.surface(x + 1, y) != "Y" or level.is_building(x + 1, y):
+        rect(d, px + 14, py, 2, TILE, (70, 72, 76))
+    if (x * 7 + y * 3) % 5 == 0:
+        rect(d, px + 4, py + 10, 5, 2, BLOOD)
+
+
 # ------------------------------------------------------------------ props
+
+
+def paint_ambulance(d, px, py):
+    """Ambulance crashed and abandoned, side-on over two tiles."""
+    x, y = px - 1, py + 15
+    rect(d, x + 2, y - 1, 32, 2, (24, 24, 28))
+    rect(d, x + 2, y - 15, 30, 13, (230, 230, 224))
+    rect(d, x + 24, y - 12, 7, 5, (40, 60, 70))  # windscreen
+    rect(d, x + 2, y - 8, 30, 2, (200, 36, 32))  # stripe
+    rect(d, x + 9, y - 14, 2, 6, (200, 36, 32))  # cross
+    rect(d, x + 7, y - 12, 6, 2, (200, 36, 32))
+    rect(d, x + 16, y - 17, 5, 2, (40, 80, 200))  # beacon
+    rect(d, x + 2, y - 3, 30, 1, (150, 150, 146))
+    for wx in (x + 5, x + 23):
+        rect(d, wx, y - 3, 6, 4, (18, 18, 20))
+        rect(d, wx + 2, y - 2, 2, 2, (70, 70, 74))
+    rect(d, x + 3, y - 14, 5, 8, (20, 20, 24))  # back doors hanging open
+    rect(d, x + 14, y - 6, 6, 3, BLOOD)
+
+
+def paint_cafe_table(d, px, py):
+    """Round café table, dirty, with a knocked-over glass."""
+    rect(d, px + 3, py + 14, 11, 2, (30, 30, 34))
+    rect(d, px + 7, py + 8, 2, 7, (60, 60, 64))
+    rect(d, px + 2, py + 5, 12, 4, (190, 186, 176))
+    rect(d, px + 3, py + 4, 10, 1, (216, 212, 200))
+    rect(d, px + 4, py + 6, 3, 1, (100, 70, 40))  # spilled drink
+    rect(d, px + 10, py + 5, 2, 1, (180, 200, 210))
+
+
+def paint_chair(d, px, py, toppled):
+    """Plastic café chair, most of them knocked over."""
+    colour, dark = (226, 222, 210), (160, 156, 146)
+    rect(d, px + 3, py + 14, 10, 1, (30, 30, 34))
+    if toppled:
+        rect(d, px + 2, py + 9, 12, 3, colour)
+        rect(d, px + 2, py + 12, 2, 2, dark)
+        rect(d, px + 11, py + 5, 2, 5, dark)
+        rect(d, px + 7, py + 6, 2, 3, dark)
+        return
+    rect(d, px + 4, py + 3, 8, 5, colour)
+    rect(d, px + 4, py + 8, 8, 2, dark)
+    rect(d, px + 4, py + 10, 1, 4, dark)
+    rect(d, px + 11, py + 10, 1, 4, dark)
+
+
+def paint_fountain(image, rng, px, py, size):
+    """Round fountain filling a size x size block: stone rim, murky water
+    stained with blood, a headless statue on its pedestal."""
+    d = ImageDraw.Draw(image)
+    r = size * TILE // 2 - 1
+    cx, cy = px + size * TILE // 2, py + size * TILE // 2
+    d.ellipse([cx - r, cy - r + 4, cx + r, cy + r], fill=(40, 38, 40))  # shadow
+    d.ellipse([cx - r, cy - r, cx + r, cy + r - 3], fill=(168, 160, 146))
+    d.ellipse([cx - r + 4, cy - r + 3, cx + r - 4, cy + r - 6], fill=(126, 118, 108))
+    d.ellipse([cx - r + 7, cy - r + 6, cx + r - 7, cy + r - 9], fill=(42, 62, 58))
+    d.ellipse([cx - r + 14, cy - r + 12, cx - 2, cy + 2], fill=(52, 76, 70))
+    d.ellipse([cx + 6, cy + 3, cx + r - 12, cy + r - 16], fill=(90, 20, 20))  # blood
+    rect(d, cx + 10, cy + 6, 7, 3, (120, 26, 24))
+    for i in range(0, 360, 30):  # rim blocks
+        bx = cx + int((r - 2) * math.cos(math.radians(i)))
+        by = cy - 1 + int((r - 3) * math.sin(math.radians(i)))
+        rect(d, bx, by, 1, 2, (120, 114, 104))
+    rect(d, cx - r + 1, cy - 4, 5, 4, (70, 66, 60))  # chipped rim
+    rect(d, cx + r - 8, cy - r + 8, 4, 5, (70, 66, 60))
+    # basin in the middle, pedestal and a statue with its head knocked off
+    d.ellipse([cx - 12, cy - 6, cx + 12, cy + 8], fill=(150, 144, 132))
+    d.ellipse([cx - 9, cy - 4, cx + 9, cy + 5], fill=(42, 62, 58))
+    rect(d, cx - 4, cy - 10, 9, 12, (150, 144, 132))
+    rect(d, cx - 4, cy, 9, 2, (100, 96, 88))
+    rect(d, cx - 3, cy - 26, 7, 16, (180, 174, 160))
+    rect(d, cx - 5, cy - 23, 2, 8, (160, 154, 140))  # arms
+    rect(d, cx + 4, cy - 25, 2, 5, (160, 154, 140))
+    rect(d, cx - 2, cy - 27, 5, 1, (120, 114, 104))  # broken neck
+    rect(d, cx - 1, cy - 20, 3, 6, (140, 134, 122))
+    rect(d, cx + 16, cy - 12, 5, 4, (180, 174, 160))  # the head, in the water
+    rect(d, cx + 17, cy - 11, 1, 1, (60, 56, 52))
+    rect(d, cx - 3, cy - 22, 2, 3, BLOOD)  # handprint on the statue
+    for _ in range(10):  # floating rubbish
+        rect(d, cx + rng.randrange(-r + 10, r - 12), cy + rng.randrange(-r + 10, r - 14),
+             2, 1, rng.choice(DEBRIS))
+
+
+def paint_tree(d, rng, px, py):
+    """Dead tree in a square stone planter, bare branches over the tile."""
+    rect(d, px + 1, py + 13, 15, 2, (30, 30, 34))
+    rect(d, px + 1, py + 5, 14, 9, (140, 134, 122))
+    rect(d, px + 2, py + 6, 12, 6, (60, 46, 36))  # soil
+    rect(d, px + 1, py + 12, 14, 2, (110, 104, 94))
+    trunk = (70, 54, 42)
+    rect(d, px + 7, py - 8, 2, 16, trunk)
+    for bx, by, length, step in ((3, -6, 5, -1), (9, -10, 5, 1), (5, -14, 4, -1),
+                                 (8, -16, 3, 1), (10, -4, 4, 1)):
+        for i in range(length):
+            rect(d, px + bx + i * step if step > 0 else px + bx + 4 - i,
+                 py + by - i // 2, 1, 1, trunk)
+    for _ in range(4):  # the last dry leaves
+        rect(d, px + rng.randrange(2, 14), py - rng.randrange(4, 17), 1, 1, (120, 90, 50))
+
+
+def paint_bench(d, px, py):
+    """Park bench over two tiles, one slat snapped."""
+    rect(d, px + 1, py + 14, 30, 2, (30, 30, 34))
+    for lx in (px + 3, px + 27):
+        rect(d, lx, py + 9, 2, 6, (50, 50, 54))
+    wood, dark = (130, 96, 60), (92, 66, 42)
+    rect(d, px + 1, py + 3, 30, 2, wood)  # backrest
+    rect(d, px + 1, py + 6, 30, 2, dark)
+    rect(d, px + 1, py + 9, 30, 2, wood)  # seat
+    rect(d, px + 1, py + 11, 30, 1, dark)
+    rect(d, px + 16, py + 9, 4, 3, (30, 30, 34))  # snapped slat
+    rect(d, px + 2, py + 2, 1, 10, (50, 50, 54))
+    rect(d, px + 29, py + 2, 1, 10, (50, 50, 54))
+
+
+def paint_trolley(d, px, py, tipped=False):
+    """Abandoned shopping trolley."""
+    wire, dark = (170, 172, 176), (96, 98, 104)
+    rect(d, px + 2, py + 14, 12, 1, (24, 24, 28))
+    if tipped:
+        rect(d, px + 2, py + 6, 11, 8, dark)
+        for i in range(3, 13, 3):
+            rect(d, px + i, py + 6, 1, 8, wire)
+        rect(d, px + 2, py + 6, 11, 1, wire)
+        rect(d, px + 13, py + 4, 2, 2, (40, 40, 44))
+        rect(d, px + 13, py + 11, 2, 2, (40, 40, 44))
+        return
+    rect(d, px + 3, py + 4, 10, 7, dark)
+    for i in range(4, 13, 3):
+        rect(d, px + i, py + 4, 1, 7, wire)
+    rect(d, px + 3, py + 4, 10, 1, wire)
+    rect(d, px + 3, py + 11, 10, 1, wire)
+    rect(d, px + 12, py + 2, 3, 1, (200, 40, 40))  # handle
+    rect(d, px + 4, py + 13, 2, 2, (30, 30, 34))
+    rect(d, px + 11, py + 13, 2, 2, (30, 30, 34))
+
+
+def paint_road_block(d, px, py):
+    """Concrete barrier blocking the road, striped red and white."""
+    rect(d, px, py + 14, 16, 2, (24, 24, 28))
+    rect(d, px, py + 5, 16, 10, (150, 148, 140))
+    rect(d, px, py + 5, 16, 2, (184, 182, 172))
+    rect(d, px + 1, py + 12, 14, 2, (110, 108, 102))
+    for i in range(0, 16, 6):
+        rect(d, px + i, py + 8, 3, 3, (190, 40, 36))
+    rect(d, px + 5, py + 6, 1, 4, (90, 88, 84))  # crack
 
 
 def paint_car(d, px, py, body, burnt=False, flipped=False):
@@ -741,8 +1210,12 @@ def paint_debris(d, rng, px, py):
 
 
 def main() -> None:
-    level = Level(read_rows())
-    rng = random.Random(20260921)
+    bake(Level(read_rows(), STREET_STOREFRONTS), random.Random(20260921), OUTPUT)
+    bake(Level(read_rows("north-rows"), NORTH_STOREFRONTS), random.Random(1861),
+         NORTH_OUTPUT)
+
+
+def bake(level: Level, rng: random.Random, output: str) -> None:
     image = Image.new("RGB", (level.width * TILE, level.height * TILE), ASPHALT)
     d = ImageDraw.Draw(image)
 
@@ -750,14 +1223,23 @@ def main() -> None:
         for x in range(level.width):
             if level.is_building(x, y):
                 continue
-            if level.surface(x, y) == "=":
+            surface = level.surface(x, y)
+            if surface == "Y":
+                paint_stairs(d, level, x, y)
+            elif surface == "=":
                 paint_sidewalk(d, rng, level, x, y)
+            elif surface == "P":
+                paint_paving(d, rng, x, y)
+            elif surface == "L":
+                paint_parking(d, rng, level, x, y)
             else:
                 paint_road(d, rng, level, x, y)
 
     paint_roofs(d, rng, level)
     paint_facades(d, rng, level)
     paint_barracks(d, level)
+    paint_hypermarket(d, rng, level)
+    paint_hospital(d, rng, level)
     paint_back_passage(d, level)
 
     car_colors = [(140, 40, 36), (70, 96, 130), (180, 170, 150), (60, 110, 80)]
@@ -776,6 +1258,26 @@ def main() -> None:
                 paint_bin(d, px, py)
             elif glyph == "S":
                 paint_campfire(d, px, py)
+            elif glyph == "O" and level.at(x - 1, y) != "O" and level.at(x, y - 1) != "O":
+                size = 1
+                while level.at(x + size, y) == "O":
+                    size += 1
+                paint_fountain(image, rng, px, py, size)
+            elif glyph == "n" and level.at(x - 1, y) != "n":
+                paint_bench(d, px, py)
+            elif glyph == "y":
+                paint_trolley(d, px, py, tipped=(x + y) % 2 == 0)
+            elif glyph == "J":
+                paint_road_block(d, px, py)
+            elif glyph == "a" and level.at(x - 1, y) != "a":
+                paint_ambulance(d, px, py)
+            elif glyph == "Q":
+                paint_cafe_table(d, px, py)
+            elif glyph == "q":
+                paint_chair(d, px, py, toppled=(x + y) % 3 != 0)
+                for _ in range(3):  # litter around the terrace
+                    rect(d, px + rng.randrange(14), py + rng.randrange(14), 2, 1,
+                         rng.choice(DEBRIS))
             elif glyph in "CXU" and level.at(x - 1, y) != glyph:
                 color = car_colors[color_index % len(car_colors)]
                 color_index += 1
@@ -789,17 +1291,19 @@ def main() -> None:
         for x in range(level.width):
             if level.at(x, y) == "T":
                 paint_traffic_light(d, x * TILE, y * TILE)
+            elif level.at(x, y) == "A":
+                paint_tree(d, rng, x * TILE, y * TILE)
 
     # scattered small debris over the walkable area
     for _ in range(level.width * level.height // 3):
         x = rng.randrange(level.width * TILE)
         y = rng.randrange(level.height * TILE)
-        if level.at(x // TILE, y // TILE) in ROAD_GLYPHS | WALK_GLYPHS | {":"}:
+        if level.at(x // TILE, y // TILE) in ROAD_GLYPHS | WALK_GLYPHS | set(":PL"):
             rect(d, x, y, rng.randint(1, 3), 1, rng.choice(DEBRIS))
 
-    os.makedirs(os.path.dirname(OUTPUT), exist_ok=True)
-    image.save(OUTPUT, optimize=True)
-    print(f"{OUTPUT}: {image.size[0]}x{image.size[1]}")
+    os.makedirs(os.path.dirname(output), exist_ok=True)
+    image.save(output, optimize=True)
+    print(f"{output}: {image.size[0]}x{image.size[1]}")
 
 
 if __name__ == "__main__":

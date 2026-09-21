@@ -336,8 +336,8 @@ void main() {
     final saves = MemorySaveRepository();
     final world = createStreetWorld();
     world.player.component<PositionComponent>().position = const GridPoint(
-      20,
-      6,
+      16,
+      30,
     );
     await saves.save(
       SaveGame(
@@ -370,7 +370,7 @@ void main() {
         .currentGame;
     expect(
       game.simulation.player.component<PositionComponent>().position,
-      const GridPoint(20, 6),
+      const GridPoint(16, 30),
     );
   });
 

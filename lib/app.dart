@@ -64,7 +64,7 @@ final class _StepboundAppState extends State<StepboundApp> {
   }
 
   StepboundGame _gameFrom(SaveGame save) => StepboundGame(
-    world: WorldState.fromJson(save.world),
+    world: restoreStreetWorld(save.world),
     tutorialState: save.tutorial,
     unlocked: <HudElement>{
       for (final name in save.hud)
