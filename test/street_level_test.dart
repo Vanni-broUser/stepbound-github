@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/core/core.dart';
 
@@ -156,5 +158,32 @@ void main() {
     expect(count(FireKind.car), 3);
     expect(count(FireKind.bin), 3);
     expect(count(FireKind.window), 5);
+  });
+
+  test('resting at the camp beyond the barracks asks the game to save', () {
+    final world = createStreetWorld();
+    final camp = world.campfires.single;
+    expect(campfireNames()[camp], 'Accampamento dietro la caserma');
+    expect(world.map.tileAt(camp).isWalkable, isFalse);
+    world.player.component<PositionComponent>()
+      ..position = camp.step(Direction.west)
+      ..facing = Direction.east;
+    final events = const TurnScheduler().advance(world, const InteractAction());
+    expect(events.whereType<CampfireUsedEvent>().single.at, camp);
+  });
+
+  test('the whole world survives a save and a load', () {
+    final world = createStreetWorld();
+    world.pickups[ammoBackpackId]!
+      ..active = false
+      ..collected = true;
+    world.player.component<AmmoComponent>().loaded = 2;
+    final restored = WorldState.fromJson(
+      jsonDecode(jsonEncode(world.toJson())) as Map<String, Object?>,
+    );
+    expect(restored.toJson(), world.toJson());
+    expect(restored.campfires, world.campfires);
+    expect(restored.portals.length, world.portals.length);
+    expect(restored.pickups[ammoBackpackId]!.collected, isTrue);
   });
 }

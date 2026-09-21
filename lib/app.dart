@@ -2,22 +2,29 @@ import 'dart:async';
 
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/input/touch_controls.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/save/save_game.dart';
 import 'package:stepbound/ui/black_fade.dart';
 import 'package:stepbound/ui/blood_decor.dart';
 import 'package:stepbound/ui/gameplay_dialogue.dart';
+import 'package:stepbound/ui/main_menu.dart';
 import 'package:stepbound/ui/story_intro.dart';
 import 'package:stepbound/ui/title_splash.dart';
 
-/// Opening flow: story scenes, title card, then the protagonist talks over
-/// the game before the controls appear.
-enum _Phase { story, title, outbreak, dialogue, playing }
+/// The main menu first; a new game then plays the story scenes, the title
+/// card and the protagonist's line before the controls appear, while a
+/// loaded game goes straight to playing.
+enum _Phase { menu, story, title, outbreak, dialogue, playing }
 
 final class StepboundApp extends StatefulWidget {
-  const StepboundApp({super.key});
+  const StepboundApp({this.saves, super.key});
+
+  /// Where the four save slots live; the device storage when null.
+  final SaveRepository? saves;
 
   @override
   State<StepboundApp> createState() => _StepboundAppState();
@@ -25,9 +32,62 @@ final class StepboundApp extends StatefulWidget {
 
 final class _StepboundAppState extends State<StepboundApp> {
   static const int baseSeed = 20260920;
+  late final SaveRepository _saves =
+      widget.saves ?? PreferencesSaveRepository();
   StepboundGame? _game;
-  _Phase _phase = _Phase.story;
+  _Phase _phase = _Phase.menu;
   int _restartCount = 0;
+
+  /// The slot this game saves into at campfires.
+  int _slot = 1;
+
+  /// Whether the current slot holds a campfire save to resume after dying.
+  bool _hasSave = false;
+
+  Future<void> _newGame(int slot) async {
+    await _saves.clear(slot);
+    setState(() {
+      _slot = slot;
+      _hasSave = false;
+      _restartCount = 0;
+      _phase = _Phase.story;
+    });
+  }
+
+  void _loadGame(SaveGame save) {
+    setState(() {
+      _slot = save.slot;
+      _hasSave = true;
+      _game = _gameFrom(save);
+      _phase = _Phase.playing;
+    });
+  }
+
+  StepboundGame _gameFrom(SaveGame save) => StepboundGame(
+    world: WorldState.fromJson(save.world),
+    tutorialState: save.tutorial,
+    unlocked: <HudElement>{
+      for (final name in save.hud)
+        for (final element in HudElement.values)
+          if (element.name == name) element,
+    },
+    onRest: _store,
+  );
+
+  /// Called by the game when Mario rests at a campfire.
+  Future<void> _store(GameSnapshot snapshot) async {
+    await _saves.save(
+      SaveGame(
+        slot: _slot,
+        savedAt: DateTime.now(),
+        place: snapshot.place,
+        world: snapshot.world,
+        tutorial: snapshot.tutorial,
+        hud: snapshot.hud,
+      ),
+    );
+    _hasSave = true;
+  }
 
   void _finishIntro() {
     setState(() => _phase = _Phase.title);
@@ -40,7 +100,7 @@ final class _StepboundAppState extends State<StepboundApp> {
   void _finishOutbreak() {
     setState(() {
       _phase = _Phase.dialogue;
-      _game = StepboundGame()..inputLocked = true;
+      _game = StepboundGame(onRest: _store)..inputLocked = true;
     });
   }
 
@@ -51,10 +111,26 @@ final class _StepboundAppState extends State<StepboundApp> {
     });
   }
 
-  void _restartGame() {
+  /// After dying: back to the last campfire if there is one, otherwise the
+  /// start of the level.
+  Future<void> _restartGame() async {
+    final save = _hasSave ? await _saves.load(_slot) : null;
+    if (!mounted) {
+      return;
+    }
     setState(() {
       _restartCount += 1;
-      _game = StepboundGame(seed: baseSeed + _restartCount);
+      _game = save != null
+          ? _gameFrom(save)
+          : StepboundGame(seed: baseSeed + _restartCount, onRest: _store);
+      _phase = _Phase.playing;
+    });
+  }
+
+  void _backToMenu() {
+    setState(() {
+      _game = null;
+      _phase = _Phase.menu;
     });
   }
 
@@ -82,6 +158,11 @@ final class _StepboundAppState extends State<StepboundApp> {
                 width: IntegerResolutionViewport.virtualWidth * scale,
                 height: IntegerResolutionViewport.virtualHeight * scale,
                 child: switch (_phase) {
+                  _Phase.menu => MainMenu(
+                    saves: _saves,
+                    onNewGame: (slot) => unawaited(_newGame(slot)),
+                    onLoad: _loadGame,
+                  ),
                   _Phase.story => StoryIntro(onFinished: _finishIntro),
                   _Phase.title => TitleSplash(onFinished: _finishTitle),
                   _Phase.outbreak => StoryIntro(
@@ -104,7 +185,14 @@ final class _StepboundAppState extends State<StepboundApp> {
                           toBlack: false,
                         ),
                       ] else
-                        TouchControls(game: game),
+                        // Hidden whenever a text box is on screen, so the
+                        // buttons never show through it.
+                        ValueListenableBuilder<List<TutorialLine>?>(
+                          valueListenable: game.prompt,
+                          builder: (context, lines, _) => lines == null
+                              ? TouchControls(game: game)
+                              : const SizedBox.shrink(),
+                        ),
                       if (_phase == _Phase.playing)
                         ValueListenableBuilder<List<TutorialLine>?>(
                           valueListenable: game.prompt,
@@ -134,7 +222,11 @@ final class _StepboundAppState extends State<StepboundApp> {
                           if (!isGameOver) {
                             return const SizedBox.shrink();
                           }
-                          return _GameOverOverlay(onRestart: _restartGame);
+                          return _GameOverOverlay(
+                            fromSave: _hasSave,
+                            onRestart: () => unawaited(_restartGame()),
+                            onMenu: _backToMenu,
+                          );
                         },
                       ),
                     ],
@@ -151,16 +243,23 @@ final class _StepboundAppState extends State<StepboundApp> {
 }
 
 final class _GameOverOverlay extends StatefulWidget {
-  const _GameOverOverlay({required this.onRestart});
+  const _GameOverOverlay({
+    required this.fromSave,
+    required this.onRestart,
+    required this.onMenu,
+  });
 
+  /// True when the restart goes back to the last campfire.
+  final bool fromSave;
   final VoidCallback onRestart;
+  final VoidCallback onMenu;
 
   @override
   State<_GameOverOverlay> createState() => _GameOverOverlayState();
 }
 
 final class _GameOverOverlayState extends State<_GameOverOverlay> {
-  static const autoRestartSeconds = 4;
+  static const autoRestartSeconds = 60;
   Timer? _timer;
   int _secondsLeft = autoRestartSeconds;
 
@@ -200,7 +299,7 @@ final class _GameOverOverlayState extends State<_GameOverOverlay> {
               children: <Widget>[
                 // Grows with the view, like the dialogue text.
                 BloodyTitle('GAME OVER', fontSize: 34 * unit),
-                SizedBox(height: 34 * unit),
+                SizedBox(height: 4 * unit),
                 TextButton(
                   key: const ValueKey<String>('restart-button'),
                   style: TextButton.styleFrom(
@@ -217,10 +316,31 @@ final class _GameOverOverlayState extends State<_GameOverOverlay> {
                     widget.onRestart();
                   },
                   child: Text(
-                    'RICOMINCIA ($_secondsLeft)',
+                    widget.fromSave
+                        ? 'RIPRENDI DAL FALÒ ($_secondsLeft)'
+                        : 'RICOMINCIA ($_secondsLeft)',
                     style: const TextStyle(
                       fontFamily: 'monospace',
                       fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                SizedBox(height: 6 * unit),
+                TextButton(
+                  key: const ValueKey<String>('menu-button'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xffd8cfbf),
+                  ),
+                  onPressed: () {
+                    _timer?.cancel();
+                    widget.onMenu();
+                  },
+                  child: const Text(
+                    'MENÙ PRINCIPALE',
+                    style: TextStyle(
+                      fontFamily: 'monospace',
+                      fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
                   ),

@@ -21,21 +21,39 @@ import 'package:stepbound/game/render/pixel_palette.dart';
 import 'package:stepbound/game/render/screen_fade_component.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
 
+/// What a campfire save stores: the simulation, the tutorial's progress,
+/// the unlocked controls and the name of the place.
+typedef GameSnapshot = ({
+  Map<String, Object?> world,
+  Map<String, Object?> tutorial,
+  List<String> hud,
+  String place,
+});
+
 final class StepboundGame extends FlameGame
     with KeyboardEvents
     implements TutorialHost {
-  StepboundGame({int seed = 20260920})
-    : simulation = createStreetWorld(seed: seed),
-      super(
-        camera: CameraComponent(
-          viewport: FixedResolutionViewport(
-            resolution: Vector2(
-              IntegerResolutionViewport.virtualWidth,
-              IntegerResolutionViewport.virtualHeight,
-            ),
-          ),
-        ),
-      ) {
+  /// A new game, or one resumed from a save: [world] and `tutorialState`
+  /// come from `SaveGame`, [unlocked] lists the touch controls already
+  /// earned. [onRest] stores the snapshot taken at a campfire.
+  StepboundGame({
+    int seed = 20260920,
+    WorldState? world,
+    this._tutorialState,
+    Set<HudElement> unlocked = const <HudElement>{},
+    this.onRest,
+  }) : simulation = world ?? createStreetWorld(seed: seed),
+       hud = ValueNotifier<Set<HudElement>>(Set<HudElement>.of(unlocked)),
+       super(
+         camera: CameraComponent(
+           viewport: FixedResolutionViewport(
+             resolution: Vector2(
+               IntegerResolutionViewport.virtualWidth,
+               IntegerResolutionViewport.virtualHeight,
+             ),
+           ),
+         ),
+       ) {
     final ammo = simulation.player.component<AmmoComponent>();
     ammoLoaded = ValueNotifier<int>(ammo.loaded);
   }
@@ -57,9 +75,16 @@ final class StepboundGame extends FlameGame
 
   /// Touch controls unlocked so far by the tutorial (the arrows are always
   /// available).
-  final ValueNotifier<Set<HudElement>> hud = ValueNotifier<Set<HudElement>>(
-    const <HudElement>{},
-  );
+  final ValueNotifier<Set<HudElement>> hud;
+
+  /// Saves the progress when the player rests at a campfire.
+  final Future<void> Function(GameSnapshot snapshot)? onRest;
+  final Map<String, Object?>? _tutorialState;
+  final Map<GridPoint, FireComponent> _campfires = <GridPoint, FireComponent>{};
+
+  /// Counts down Mario's rest by the fire before the game is saved.
+  double _restLeft = 0;
+  GridPoint? _restingAt;
 
   /// Tutorial text currently shown over the game, if any.
   final ValueNotifier<List<TutorialLine>?> prompt =
@@ -106,6 +131,10 @@ final class StepboundGame extends FlameGame
         PickupComponent(pickup: pickup),
     ]);
     tutorial = TutorialDirector(world: simulation, host: this);
+    final tutorialState = _tutorialState;
+    if (tutorialState != null) {
+      tutorial.restore(tutorialState);
+    }
     for (final entity in simulation.entities.values) {
       final component = CharacterComponent(entity: entity);
       _characters[entity.id] = component;
@@ -148,6 +177,7 @@ final class StepboundGame extends FlameGame
     _routeNewEvents();
     _updateGameOverCountdown(dt);
     tutorial.update(dt, turnAnimating: presentation.isAnimating);
+    _updateRest(dt);
     _updateHeldDirection(dt);
     _syncPresentation();
     _updateCamera(dt);
@@ -205,6 +235,15 @@ final class StepboundGame extends FlameGame
             flameHeight: 12,
             seed: seed++,
           ),
+          FireKind.campfire => _campfires[spot.tile] = FireComponent(
+            base: Vector2(
+              spot.tile.x * tileSize + tileSize / 2,
+              spot.tile.y * tileSize + 11,
+            ),
+            halfWidth: 3,
+            flameHeight: 9,
+            seed: seed++,
+          ),
         },
     ];
   }
@@ -217,6 +256,8 @@ final class StepboundGame extends FlameGame
     tutorial.onEvents(presentation.lastEvents);
     for (final event in presentation.lastEvents) {
       switch (event) {
+        case CampfireUsedEvent(:final at):
+          _startRest(at);
         case TeleportedEvent():
           _addWithoutWaiting(
             camera.viewport,
@@ -310,6 +351,48 @@ final class StepboundGame extends FlameGame
     _characters[zombie.id] = component;
     _addWithoutWaiting(world, component);
   }
+
+  @override
+  bool isUnlocked(HudElement element) => hud.value.contains(element);
+
+  /// Mario kneels by the fire, which roars up; the game is saved when the
+  /// moment is over.
+  void _startRest(GridPoint campfire) {
+    _heldDirection = null;
+    presentation.clearBuffer();
+    aiming.value = false;
+    inputLocked = true;
+    _restingAt = campfire;
+    _restLeft = CharacterComponent.restDuration;
+    _campfires[campfire]?.flare();
+    _characters[playerId]?.playRest(_playerFacing());
+  }
+
+  void _updateRest(double dt) {
+    if (_restingAt == null) {
+      return;
+    }
+    _restLeft -= dt;
+    if (_restLeft > 0) {
+      return;
+    }
+    final campfire = _restingAt!;
+    _restingAt = null;
+    unawaited(_save(campfire));
+  }
+
+  Future<void> _save(GridPoint campfire) async {
+    await onRest?.call(snapshot(place: campfireNames()[campfire] ?? ''));
+    showPrompt(const <TutorialLine>[TutorialLine(TutorialDirector.saved)]);
+  }
+
+  /// The whole game as it is now, ready to be saved.
+  GameSnapshot snapshot({required String place}) => (
+    world: simulation.toJson(),
+    tutorial: tutorial.toJson(),
+    hud: <String>[for (final element in hud.value) element.name],
+    place: place,
+  );
 
   @override
   void unlock(HudElement element) {

@@ -6,7 +6,7 @@ import 'package:stepbound/core/core.dart' hide PositionComponent;
 import 'package:stepbound/core/entities/components.dart' as simulation;
 import 'package:stepbound/game/render/pixel_palette.dart';
 
-enum CharacterAction { none, fire, hit, bite, death, pickup }
+enum CharacterAction { none, fire, hit, bite, death, pickup, rest }
 
 final class CharacterComponent extends PositionComponent {
   CharacterComponent({required this.entity})
@@ -19,6 +19,7 @@ final class CharacterComponent extends PositionComponent {
   static const double alertDuration = 1.2;
   static const double pickupDuration = 0.6;
   static const double emergeDuration = 0.9;
+  static const double restDuration = 1.5;
 
   final Entity entity;
   ui.Image? _atlas;
@@ -115,6 +116,14 @@ final class CharacterComponent extends PositionComponent {
       return;
     }
     _startAction(CharacterAction.pickup, rowFor(facing), pickupDuration);
+  }
+
+  /// Kneel by a campfire to warm up, then stand again.
+  void playRest(Direction facing) {
+    if (_pickupAtlas == null || _action == CharacterAction.death) {
+      return;
+    }
+    _startAction(CharacterAction.rest, rowFor(facing), restDuration);
   }
 
   void playHit(Direction facing) {
@@ -222,6 +231,16 @@ final class CharacterComponent extends PositionComponent {
           _actionRow,
           (progress * 6).floor().clamp(0, 5),
         );
+      case CharacterAction.rest when _pickupAtlas != null:
+        // Kneel (pick_0, pick_1), stay down warming up, rise (pick_0, idle).
+        final progress = (_actionElapsed / actionDuration).clamp(0, 1);
+        final column = switch (progress) {
+          < 0.12 => 0,
+          < 0.82 => 1,
+          < 0.92 => 0,
+          _ => 5,
+        };
+        _drawCell(canvas, _pickupAtlas!, _actionRow, column);
       case CharacterAction.hit when _hitAtlas != null:
         final progress = (_actionElapsed / actionDuration).clamp(0, 1);
         _drawCell(canvas, _hitAtlas!, _actionRow, (progress * 3).floor());

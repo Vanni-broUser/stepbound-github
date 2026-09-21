@@ -597,6 +597,21 @@ def paint_car_vertical(d, px, py, body, burnt=False):
             rect(d, px + 2 + (i * 5 % 10), bottom - 25 + i, 3, 2, (26, 24, 24))
 
 
+def paint_campfire(d, px, py):
+    """A camp's fire pit: ring of stones, crossed logs, ash. The flame is
+    animated in game."""
+    rect(d, px + 1, py + 13, 14, 2, (24, 24, 28))  # shadow
+    for sx, sy in ((2, 9), (5, 7), (9, 7), (12, 9), (13, 12), (2, 12), (5, 14), (10, 14)):
+        rect(d, px + sx, py + sy, 3, 2, (120, 116, 108))
+        rect(d, px + sx, py + sy, 3, 1, (156, 152, 142))
+    rect(d, px + 4, py + 10, 8, 4, (40, 36, 34))  # ash bed
+    rect(d, px + 3, py + 11, 10, 2, (110, 72, 40))  # logs
+    rect(d, px + 6, py + 9, 2, 5, (92, 60, 34))
+    rect(d, px + 9, py + 9, 2, 5, (130, 86, 48))
+    rect(d, px + 6, py + 12, 4, 1, (230, 120, 40))  # embers
+    rect(d, px + 8, py + 13, 1, 1, (255, 200, 90))
+
+
 def paint_bin(d, px, py):
     rect(d, px + 3, py + 15, 11, 1, (24, 24, 28))
     rect(d, px + 3, py + 6, 10, 10, (58, 64, 58))
@@ -709,6 +724,8 @@ def main() -> None:
                 paint_corpse_pile(image, rng, px, py)
             elif glyph == "F":
                 paint_bin(d, px, py)
+            elif glyph == "S":
+                paint_campfire(d, px, py)
             elif glyph in "CXU" and level.at(x - 1, y) != glyph:
                 color = car_colors[color_index % len(car_colors)]
                 color_index += 1
