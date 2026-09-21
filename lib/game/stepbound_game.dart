@@ -8,6 +8,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/anim/turn_presentation_controller.dart';
+import 'package:stepbound/game/audio/game_audio.dart';
+import 'package:stepbound/game/audio/sound.dart';
+import 'package:stepbound/game/audio/soundscape.dart';
 import 'package:stepbound/game/render/aim_line_component.dart';
 import 'package:stepbound/game/render/character_component.dart';
 import 'package:stepbound/game/render/debug_overlay.dart';
@@ -35,14 +38,17 @@ final class StepboundGame extends FlameGame
     implements TutorialHost {
   /// A new game, or one resumed from a save: [world] and `tutorialState`
   /// come from `SaveGame`, [unlocked] lists the touch controls already
-  /// earned. [onRest] stores the snapshot taken at a campfire.
+  /// earned. [onRest] stores the snapshot taken at a campfire. Without
+  /// [audio] the game is silent.
   StepboundGame({
     int seed = 20260920,
     WorldState? world,
     this._tutorialState,
     Set<HudElement> unlocked = const <HudElement>{},
     this.onRest,
+    GameAudio? audio,
   }) : simulation = world ?? createStreetWorld(seed: seed),
+       audio = audio ?? SilentAudio(),
        hud = ValueNotifier<Set<HudElement>>(Set<HudElement>.of(unlocked)),
        super(
          camera: CameraComponent(
@@ -66,6 +72,8 @@ final class StepboundGame extends FlameGame
   static const double entranceHoldSeconds = 2.2;
 
   final WorldState simulation;
+  final GameAudio audio;
+  late final Soundscape soundscape = Soundscape(world: simulation);
   late final TurnPresentationController presentation;
   late final DebugWorldOverlay debugOverlay;
   final Map<String, CharacterComponent> _characters =
@@ -178,6 +186,15 @@ final class StepboundGame extends FlameGame
     _updateHeldDirection(dt);
     _syncPresentation();
     _updateCamera(dt);
+    Soundscape.apply(
+      audio,
+      soundscape.update(
+        dt,
+        indoor: _currentRegion().indoor,
+        resting: _restingAt != null,
+        gameOver: gameOver.value,
+      ),
+    );
     final ammo = simulation.player.component<AmmoComponent>();
     if (ammoLoaded.value != ammo.loaded) {
       ammoLoaded.value = ammo.loaded;
@@ -246,6 +263,12 @@ final class StepboundGame extends FlameGame
     }
     _processedTurn = presentation.turnCount;
     tutorial.onEvents(presentation.lastEvents);
+    for (final cue in <SfxCue>[
+      ...soundscape.soundsFor(presentation.lastEvents),
+      ...soundscape.idleMoans(),
+    ]) {
+      audio.play(cue.sfx, volume: cue.volume);
+    }
     for (final event in presentation.lastEvents) {
       switch (event) {
         case CampfireUsedEvent(:final at):
@@ -367,6 +390,7 @@ final class StepboundGame extends FlameGame
   void spawnZombie(Entity zombie) {
     simulation.entities[zombie.id] = zombie;
     final component = CharacterComponent(entity: zombie)..playEmerge();
+    audio.play(Sfx.zombieAlert);
     _characters[zombie.id] = component;
     _addWithoutWaiting(world, component);
   }
@@ -438,6 +462,7 @@ final class StepboundGame extends FlameGame
     _gameOverCountdown -= dt;
     if (_gameOverCountdown <= 0) {
       gameOver.value = true;
+      audio.play(Sfx.gameOver);
     }
   }
 

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
+import 'package:stepbound/ui/audio_scope.dart';
 import 'package:stepbound/ui/black_fade.dart';
 import 'package:stepbound/ui/blood_decor.dart';
 
@@ -87,6 +89,7 @@ final class _StoryIntroState extends State<StoryIntro> {
     if (_fadingOut) {
       return;
     }
+    AudioScope.of(context).play(Sfx.dialogue);
     setState(() {
       if (!_showText) {
         _showText = true;

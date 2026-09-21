@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:stepbound/game/audio/sound.dart';
+import 'package:stepbound/ui/audio_scope.dart';
 import 'package:stepbound/ui/story_intro.dart';
 
 /// One line spoken over the gameplay view, with the speaker's portrait
@@ -50,6 +52,7 @@ final class _GameplayDialogueState extends State<GameplayDialogue> {
   int _index = 0;
 
   void _advance() {
+    AudioScope.of(context).play(Sfx.dialogue);
     if (_index + 1 < widget.lines.length) {
       setState(() => _index += 1);
       return;
