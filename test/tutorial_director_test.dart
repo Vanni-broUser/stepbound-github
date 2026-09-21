@@ -41,6 +41,9 @@ final class _FakeHost implements TutorialHost {
 
   @override
   void unlock(HudElement element) => unlocked.add(element);
+
+  @override
+  bool isUnlocked(HudElement element) => unlocked.contains(element);
 }
 
 void main() {
@@ -215,5 +218,56 @@ void main() {
       ]);
     }
     expect(host.spawned, isEmpty);
+  });
+
+  test('the accident backpack teaches interaction if it is seen first', () {
+    host.visible.add(world.pickups[accidentBackpackId]!.position);
+    settle();
+    expect(host.shown.single.map((line) => line.text), <String>[
+      TutorialDirector.backpackLesson,
+      TutorialDirector.interactLesson,
+    ]);
+    host
+      ..dismiss()
+      ..visible.add(world.pickups[ammoBackpackId]!.position);
+    settle();
+    expect(host.shown, hasLength(1), reason: 'taught only once');
+    expect(host.unlocked, contains(HudElement.interact));
+  });
+
+  test('hints have no speaker; only people are named', () {
+    host.visible.add(world.pickups[ammoBackpackId]!.position);
+    settle();
+    expect(host.shown.single.every((line) => line.speaker == null), isTrue);
+  });
+
+  test('the first camp teaches saving, with the button if still missing', () {
+    host.visible.add(world.campfires.single);
+    settle();
+    expect(host.shown.single.map((line) => line.text), <String>[
+      TutorialDirector.campLesson,
+      TutorialDirector.interactLesson,
+    ]);
+    host.dismiss();
+    expect(host.unlocked, contains(HudElement.interact));
+  });
+
+  test('a player who already interacts only hears about the camps', () {
+    host
+      ..unlocked.add(HudElement.interact)
+      ..visible.add(world.campfires.single);
+    settle();
+    expect(host.shown.single.single.text, TutorialDirector.campLesson);
+  });
+
+  test('its progress survives a save', () {
+    director.onEvents(<WorldEvent>[
+      AlertedEvent(entityId: tutorialZombieId, at: zombiePosition()),
+    ]);
+    final saved = director.toJson();
+    final restored = TutorialDirector(world: world, host: _FakeHost())
+      ..restore(saved);
+    expect(restored.toJson(), saved);
+    expect(saved['zombieLesson'], isTrue);
   });
 }

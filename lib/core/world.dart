@@ -44,7 +44,9 @@ final class WorldState {
     Iterable<Pickup> pickups = const <Pickup>[],
     Map<String, GridRect> alertTriggers = const <String, GridRect>{},
     Map<GridPoint, Portal> portals = const <GridPoint, Portal>{},
+    Iterable<GridPoint> campfires = const <GridPoint>[],
   }) : portals = Map<GridPoint, Portal>.unmodifiable(portals),
+       campfires = Set<GridPoint>.unmodifiable(campfires),
        entities = <String, Entity>{
          for (final entity in entities) entity.id: entity,
        },
@@ -70,6 +72,8 @@ final class WorldState {
         const <String, Object?>{};
     final encodedPortals =
         json['portals'] as List<Object?>? ?? const <Object?>[];
+    final encodedCampfires =
+        json['campfires'] as List<Object?>? ?? const <Object?>[];
     return WorldState(
       map: TileMap.fromJson(json['map']! as Map<String, Object?>),
       entities: encodedEntities.map(
@@ -91,6 +95,9 @@ final class WorldState {
         for (final entry in encodedTriggers.entries)
           entry.key: GridRect.fromJson(entry.value! as Map<String, Object?>),
       },
+      campfires: encodedCampfires.map(
+        (point) => GridPoint.fromJson(point! as Map<String, Object?>),
+      ),
       portals: <GridPoint, Portal>{
         for (final encoded in encodedPortals.cast<Map<String, Object?>>())
           GridPoint.fromJson(encoded['at']! as Map<String, Object?>):
@@ -111,6 +118,9 @@ final class WorldState {
 
   /// Doors that move the player to another place (e.g. inside a building).
   final Map<GridPoint, Portal> portals;
+
+  /// Camps where the player can rest and save.
+  final Set<GridPoint> campfires;
   final String playerId;
   final SeededRandom random;
   final List<NoisePulse> _pendingNoises;
@@ -235,6 +245,7 @@ final class WorldState {
       for (final entry in alertTriggers.entries)
         entry.key: entry.value.toJson(),
     },
+    'campfires': <Object?>[for (final point in campfires) point.toJson()],
     'portals': <Object?>[
       for (final entry in portals.entries)
         <String, Object?>{'at': entry.key.toJson(), ...entry.value.toJson()},

@@ -27,6 +27,7 @@ import 'package:stepbound/core/world.dart';
 ///   of corpses, `F` burning bin, `T` traffic light: obstacles you can see
 ///   and shoot over.
 /// - `:` debris (walkable but noisy), `d` a lone corpse (walkable).
+/// - `S` a camp with a campfire: rest there to save (an obstacle).
 /// - `@` player, `w` wanderer.
 /// - Backpacks: `1` two rounds, there from the start; `2` four rounds by the
 ///   accident, waiting there from the start (the zombie guards it).
@@ -39,7 +40,7 @@ const List<String> streetLevelRows = <String>[
   'BBBBHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHBBBB',
   'BBBB===============================F====BBBB',
   'BBBB....CC.......................:......BBBB',
-  'BBBB-.-.-.-.-.-.-.-.:.-.-.-.-.-.-.-.-.-.BBBB',
+  'BBBB-.-.-.-.-.-.-.-.:S-.-.-.-.-.-.-.-.-.BBBB',
   'BBBB........................XX..........BBBB',
   'BBBB====================================BBBB',
   'BBBBBBBBBBBBBBBBeBBBBBBBBBBBBBBBBBBBBBBBBBBB',
@@ -174,10 +175,23 @@ const String gunBackpackId = 'backpack-gun';
 /// even if it is not looking that way.
 const GridRect tutorialZombieTrigger = GridRect(14, 43, 23, 49);
 
+/// Camps where the player can save, and what a save there is called.
+const Map<String, String> _campNames = <String, String>{
+  'S': 'Accampamento dietro la caserma',
+};
+
+/// Campfires on the street, by tile, with the name shown in the save slots.
+Map<GridPoint, String> campfireNames() => <GridPoint, String>{
+  for (var y = 0; y < streetLevelRows.length; y++)
+    for (var x = 0; x < streetLevelRows[y].length; x++)
+      if (_campNames.containsKey(streetLevelRows[y][x]))
+        GridPoint(x, y): _campNames[streetLevelRows[y][x]]!,
+};
+
 /// The forecourt in front of the barracks: reaching it makes Mario speak.
 const GridRect barracksForecourt = GridRect(13, 17, 19, 18);
 
-enum FireKind { car, bin, window }
+enum FireKind { car, bin, window, campfire }
 
 /// Where an animated fire burns, in tile coordinates of its tile (the left
 /// or top tile for a car).
@@ -201,7 +215,15 @@ final class LightSpot {
 
 TileKind _streetKind(String glyph) => switch (glyph) {
   'B' || 'H' || 'f' || 'K' => TileKind.wall,
-  'C' || 'X' || 'U' || 'v' || 'k' || 'D' || 'F' || 'T' => TileKind.obstacle,
+  'C' ||
+  'X' ||
+  'U' ||
+  'v' ||
+  'k' ||
+  'D' ||
+  'F' ||
+  'T' ||
+  'S' => TileKind.obstacle,
   ':' => TileKind.debris,
   _ => TileKind.floor,
 };
@@ -224,6 +246,7 @@ List<FireSpot> streetFireSpots({List<String> rows = streetLevelRows}) {
       final spot = switch (glyph) {
         'F' => FireSpot(GridPoint(x, y), FireKind.bin),
         'f' => FireSpot(GridPoint(x, y), FireKind.window),
+        'S' => FireSpot(GridPoint(x, y), FireKind.campfire),
         _ when carStart => FireSpot(GridPoint(x, y), FireKind.car),
         _ when verticalCarStart => FireSpot(
           GridPoint(x, y),
@@ -371,6 +394,7 @@ WorldState createStreetWorld({int seed = 20260920}) {
       tutorialZombieId: tutorialZombieTrigger,
     },
     portals: _portals(),
+    campfires: campfireNames().keys,
     playerId: 'player',
     random: SeededRandom(seed),
   );

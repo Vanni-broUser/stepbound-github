@@ -2,14 +2,16 @@ import 'package:stepbound/core/core.dart';
 
 /// A line shown in the dialogue box over the gameplay.
 final class TutorialLine {
-  const TutorialLine(this.text, {this.speaker = 'Tutorial', this.portrait});
+  /// A hint or system message: no name over the box.
+  const TutorialLine(this.text, {this.speaker, this.portrait});
 
   /// A line spoken by Mario, with his portrait over the box.
   const TutorialLine.mario(this.text)
     : speaker = 'Mario Rossi',
       portrait = 'assets/story/portrait_mario.png';
 
-  final String speaker;
+  /// Set only when a person is talking.
+  final String? speaker;
   final String text;
   final String? portrait;
 }
@@ -37,6 +39,9 @@ abstract interface class TutorialHost {
 
   /// Adds a zombie that comes out of the dark.
   void spawnZombie(Entity zombie);
+
+  /// Whether the player can already use the interact button.
+  bool isUnlocked(HudElement element);
 
   void unlock(HudElement element);
 }
@@ -76,6 +81,9 @@ final class TutorialDirector {
   static const String barracksReached =
       "Ecco, ce l'ho fatta! La caserma dei carabinieri";
   static const String barracksSafe = 'Questo sarà un posto sicuro?';
+  static const String campLesson =
+      'Usa gli accampamenti per salvare i tuoi progressi';
+  static const String saved = 'Salvataggio completato';
   static const String carabiniereLesson =
       'Gli zombi carabinieri possono raggiungerti a due celle di distanza '
       'grazie al loro manganello';
@@ -105,7 +113,31 @@ final class TutorialDirector {
   bool _barracksLinesQueued = false;
   bool _carabinieriOut = false;
   bool _carabiniereLessonQueued = false;
+  bool _campLessonQueued = false;
   int _stepsInside = 0;
+
+  /// What has already happened, to be saved with the game.
+  Map<String, Object?> toJson() => <String, Object?>{
+    'zombieLesson': _zombieLessonQueued,
+    'backpackLesson': _backpackLessonQueued,
+    'barracksLines': _barracksLinesQueued,
+    'carabinieriOut': _carabinieriOut,
+    'carabiniereLesson': _carabiniereLessonQueued,
+    'campLesson': _campLessonQueued,
+    'stepsInside': _stepsInside,
+  };
+
+  /// Restores [toJson]; anything missing counts as not happened yet.
+  void restore(Map<String, Object?> json) {
+    bool flag(String key) => json[key] as bool? ?? false;
+    _zombieLessonQueued = flag('zombieLesson');
+    _backpackLessonQueued = flag('backpackLesson');
+    _barracksLinesQueued = flag('barracksLines');
+    _carabinieriOut = flag('carabinieriOut');
+    _carabiniereLessonQueued = flag('carabiniereLesson');
+    _campLessonQueued = flag('campLesson');
+    _stepsInside = json['stepsInside'] as int? ?? 0;
+  }
 
   /// "Non hai una pistola" only while the player really has none.
   static String ammoFound(int rounds, {required bool hasGun}) => hasGun
@@ -197,6 +229,7 @@ final class TutorialDirector {
   void update(double dt, {required bool turnAnimating}) {
     _checkBackpackSeen();
     _checkBarracksReached();
+    _checkCampSeen();
     if (_queue.isEmpty || host.isPromptVisible || turnAnimating) {
       return;
     }
@@ -210,14 +243,16 @@ final class TutorialDirector {
     host.showPrompt(next.lines, onDismissed: next.onDismissed);
   }
 
+  /// Teaches backpacks at the first one the player sees, whichever it is:
+  /// slipping past the first zombie can lead to the accident one first.
   void _checkBackpackSeen() {
     if (_backpackLessonQueued) {
       return;
     }
-    final backpack = world.pickups[ammoBackpackId];
-    if (backpack == null ||
-        !backpack.active ||
-        !host.isTileVisible(backpack.position)) {
+    final seen = world.pickups.values.any(
+      (backpack) => backpack.active && host.isTileVisible(backpack.position),
+    );
+    if (!seen) {
       return;
     }
     _backpackLessonQueued = true;
@@ -226,6 +261,25 @@ final class TutorialDirector {
         const <TutorialLine>[
           TutorialLine(backpackLesson),
           TutorialLine(interactLesson),
+        ],
+        delay: reactionDelay,
+        onDismissed: () => host.unlock(HudElement.interact),
+      ),
+    );
+  }
+
+  void _checkCampSeen() {
+    if (_campLessonQueued || !world.campfires.any(host.isTileVisible)) {
+      return;
+    }
+    _campLessonQueued = true;
+    // A player who never picked a backpack still needs the button.
+    final needsInteract = !host.isUnlocked(HudElement.interact);
+    _queue.add(
+      _QueuedPrompt(
+        <TutorialLine>[
+          const TutorialLine(campLesson),
+          if (needsInteract) const TutorialLine(interactLesson),
         ],
         delay: reactionDelay,
         onDismissed: () => host.unlock(HudElement.interact),

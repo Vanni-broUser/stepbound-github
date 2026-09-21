@@ -32,10 +32,30 @@ final class FireComponent extends PositionComponent {
   final Paint _paint = Paint()..isAntiAlias = false;
   double _time = 0;
 
+  static const double flareDuration = 1.4;
+  double _flareLeft = 0;
+
+  /// Makes the fire roar up for a moment, throwing sparks.
+  void flare() {
+    _flareLeft = flareDuration;
+  }
+
+  /// 1 at rest, up to 2 at the peak of a flare.
+  double get _boost {
+    if (_flareLeft <= 0) {
+      return 1;
+    }
+    final t = 1 - _flareLeft / flareDuration;
+    return 1 + math.sin(t * math.pi);
+  }
+
   @override
   void update(double dt) {
     super.update(dt);
     _time += dt;
+    if (_flareLeft > 0) {
+      _flareLeft -= dt;
+    }
   }
 
   /// Smooth pseudo-noise in 0..1 for a flame column at time [t].
@@ -85,7 +105,8 @@ final class FireComponent extends PositionComponent {
     for (var column = -halfWidth; column <= halfWidth; column++) {
       final edge = column.abs() / (halfWidth + 1);
       final shape = 1 - edge * edge * 0.85;
-      final height = flameHeight * shape * (0.45 + 0.55 * _flicker(column, t));
+      final height =
+          flameHeight * _boost * shape * (0.45 + 0.55 * _flicker(column, t));
       for (var layer = 0; layer < _layers.length; layer++) {
         // Inner layers are shorter and only burn near the centre.
         final layerShare = 1 - layer * 0.2;
@@ -113,7 +134,7 @@ final class FireComponent extends PositionComponent {
   }
 
   void _renderEmbers(Canvas canvas, double t) {
-    const count = 4;
+    final count = _flareLeft > 0 ? 14 : 4;
     for (var i = 0; i < count; i++) {
       final progress = (t * 0.8 + i / count + seed * 0.13) % 1;
       final x = math.sin(progress * 7 + i * 2.1 + seed) * halfWidth;

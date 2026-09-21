@@ -10,14 +10,13 @@ final class DialogueLine {
     this.portrait = marioPortrait,
   });
 
-  /// A tutorial hint: no portrait.
-  const DialogueLine.tutorial(this.text)
-    : speaker = 'Tutorial',
-      portrait = null;
+  /// A hint or narration: no name over the box and no portrait.
+  const DialogueLine.tutorial(this.text) : speaker = null, portrait = null;
 
   static const String marioPortrait = 'assets/story/portrait_mario.png';
 
-  final String speaker;
+  /// Shown over the text only when a person is talking.
+  final String? speaker;
   final String? portrait;
   final String text;
 }

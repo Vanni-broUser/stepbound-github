@@ -80,6 +80,11 @@ final class InteractAction extends PlayerAction {
       return;
     }
 
+    if (world.campfires.contains(target)) {
+      world.emit(CampfireUsedEvent(at: target));
+      return;
+    }
+
     final pickup = world.pickupAt(target);
     if (pickup != null) {
       pickup

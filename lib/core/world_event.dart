@@ -19,6 +19,7 @@ sealed class WorldEvent {
       'alerted' => AlertedEvent.fromJson(json),
       'pickedUp' => PickedUpEvent.fromJson(json),
       'teleported' => TeleportedEvent.fromJson(json),
+      'campfireUsed' => CampfireUsedEvent.fromJson(json),
       _ => throw FormatException('Unknown world event: ${json['type']}'),
     };
   }
@@ -289,6 +290,28 @@ final class AlertedEvent extends WorldEvent {
   Map<String, Object?> toJson() => <String, Object?>{
     'type': 'alerted',
     'entityId': entityId,
+    'at': at.toJson(),
+  };
+}
+
+/// The player rested at a campfire: the game saves the progress.
+final class CampfireUsedEvent extends WorldEvent {
+  const CampfireUsedEvent({required this.at});
+
+  factory CampfireUsedEvent.fromJson(Map<String, Object?> json) {
+    return CampfireUsedEvent(
+      at: GridPoint.fromJson(json['at']! as Map<String, Object?>),
+    );
+  }
+
+  final GridPoint at;
+
+  @override
+  String get description => 'player rests at the campfire $at';
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+    'type': 'campfireUsed',
     'at': at.toJson(),
   };
 }

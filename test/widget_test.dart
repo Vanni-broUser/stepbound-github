@@ -5,17 +5,33 @@ import 'package:stepbound/app.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/save/save_game.dart';
 import 'package:stepbound/ui/black_fade.dart';
 import 'package:stepbound/ui/gameplay_dialogue.dart';
 import 'package:stepbound/ui/story_intro.dart';
 import 'package:stepbound/ui/title_splash.dart';
 
+/// Opens the app on the main menu and starts a new game in slot 1.
+Future<SaveRepository> _startNewGame(
+  WidgetTester tester, {
+  SaveRepository? saves,
+}) async {
+  final repository = saves ?? MemorySaveRepository();
+  await tester.pumpWidget(StepboundApp(saves: repository));
+  await tester.pump();
+  await tester.tap(find.byKey(const ValueKey<String>('menu-new-game')));
+  await tester.pump();
+  await tester.tap(find.byKey(const ValueKey<String>('menu-slot-1')));
+  await tester.pump();
+  await tester.pump();
+  return repository;
+}
+
 /// Two taps per scene (image, then text) across the three intro scenes.
 const int _introTapCount = 6;
 
 Future<void> _pumpAppThroughIntro(WidgetTester tester) async {
-  await tester.pumpWidget(const StepboundApp());
-  await tester.pump();
+  await _startNewGame(tester);
   final intro = find.byKey(const ValueKey<String>('story-intro'));
   for (var i = 0; i < _introTapCount; i++) {
     await tester.tap(intro);
@@ -87,8 +103,7 @@ void main() {
   testWidgets('intro scenes reveal text on tap, then advance to the next', (
     tester,
   ) async {
-    await tester.pumpWidget(const StepboundApp());
-    await tester.pump();
+    await _startNewGame(tester);
     final intro = find.byKey(const ValueKey<String>('story-intro'));
     expect(intro, findsOneWidget);
     expect(find.byKey(const ValueKey<String>('story-text')), findsNothing);
@@ -120,8 +135,7 @@ void main() {
 
   testWidgets('title card fades in and out, the outbreak scenes play, then the '
       'protagonist speaks before the controls appear', (tester) async {
-    await tester.pumpWidget(const StepboundApp());
-    await tester.pump();
+    await _startNewGame(tester);
     final intro = find.byKey(const ValueKey<String>('story-intro'));
     for (var i = 0; i < _introTapCount; i++) {
       await tester.tap(intro);
@@ -188,8 +202,7 @@ void main() {
   });
 
   testWidgets('tapping the title card skips to its fade out', (tester) async {
-    await tester.pumpWidget(const StepboundApp());
-    await tester.pump();
+    await _startNewGame(tester);
     final intro = find.byKey(const ValueKey<String>('story-intro'));
     for (var i = 0; i < _introTapCount; i++) {
       await tester.tap(intro);
@@ -277,5 +290,139 @@ void main() {
         findsNothing,
       );
     });
+  });
+
+  testWidgets('the game opens on the main menu with the Stepbound sign', (
+    tester,
+  ) async {
+    await tester.pumpWidget(StepboundApp(saves: MemorySaveRepository()));
+    await tester.pump();
+    expect(find.byKey(const ValueKey<String>('main-menu')), findsOneWidget);
+    expect(find.text('NUOVA PARTITA'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('story-intro')), findsNothing);
+    // Nothing saved yet: the load button does nothing.
+    await tester.tap(find.byKey(const ValueKey<String>('menu-load')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey<String>('menu-slot-1')), findsNothing);
+  });
+
+  testWidgets('a saved slot is resumed straight into the game', (tester) async {
+    final saves = MemorySaveRepository();
+    final world = createStreetWorld();
+    world.player.component<PositionComponent>().position = const GridPoint(
+      20,
+      6,
+    );
+    await saves.save(
+      SaveGame(
+        slot: 3,
+        savedAt: DateTime(2026, 9, 21, 17, 5),
+        place: 'Accampamento dietro la caserma',
+        world: world.toJson(),
+        tutorial: const <String, Object?>{'zombieLesson': true},
+        hud: const <String>['interact', 'ammo'],
+      ),
+    );
+    await tester.pumpWidget(StepboundApp(saves: saves));
+    await tester.pump();
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey<String>('menu-load')));
+    await tester.pump();
+    expect(find.textContaining('Accampamento dietro la caserma'), findsOne);
+    expect(find.textContaining('21/09/2026 17:05'), findsOne);
+    await tester.tap(find.byKey(const ValueKey<String>('menu-slot-3')));
+    await tester.pump();
+
+    expect(find.byType(GameWidget<StepboundGame>), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('story-intro')), findsNothing);
+    expect(find.byKey(const ValueKey<String>('touch-interact')), findsOne);
+    expect(find.byKey(const ValueKey<String>('touch-shoot')), findsNothing);
+    final game = tester
+        .state<GameWidgetState<StepboundGame>>(
+          find.byType(GameWidget<StepboundGame>),
+        )
+        .currentGame;
+    expect(
+      game.simulation.player.component<PositionComponent>().position,
+      const GridPoint(20, 6),
+    );
+  });
+
+  testWidgets('starting over a used slot asks for confirmation first', (
+    tester,
+  ) async {
+    final saves = MemorySaveRepository();
+    await saves.save(
+      SaveGame(
+        slot: 1,
+        savedAt: DateTime(2026),
+        place: 'Accampamento dietro la caserma',
+        world: createStreetWorld().toJson(),
+        tutorial: const <String, Object?>{},
+        hud: const <String>[],
+      ),
+    );
+    await tester.pumpWidget(StepboundApp(saves: saves));
+    await tester.pump();
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey<String>('menu-new-game')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey<String>('menu-slot-1')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey<String>('story-intro')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey<String>('menu-slot-1-confirm')));
+    await tester.pump();
+    await tester.pump();
+    expect(find.byKey(const ValueKey<String>('story-intro')), findsOneWidget);
+    expect(await saves.load(1), isNull, reason: 'the old save is wiped');
+  });
+
+  testWidgets('the controls disappear while a text box is on screen', (
+    tester,
+  ) async {
+    final saves = MemorySaveRepository();
+    await saves.save(
+      SaveGame(
+        slot: 1,
+        savedAt: DateTime(2026),
+        place: 'Accampamento dietro la caserma',
+        world: createStreetWorld().toJson(),
+        tutorial: const <String, Object?>{},
+        hud: const <String>['interact', 'ammo', 'shoot'],
+      ),
+    );
+    await tester.pumpWidget(StepboundApp(saves: saves));
+    await tester.pump();
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey<String>('menu-load')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey<String>('menu-slot-1')));
+    await tester.pump();
+    final game = tester
+        .state<GameWidgetState<StepboundGame>>(
+          find.byType(GameWidget<StepboundGame>),
+        )
+        .currentGame;
+    const controls = <String>[
+      'touch-up',
+      'touch-shoot',
+      'touch-interact',
+      'touch-ammo',
+    ];
+    for (final key in controls) {
+      expect(find.byKey(ValueKey<String>(key)), findsOneWidget);
+    }
+
+    game.showPrompt(const <TutorialLine>[TutorialLine('Un messaggio')]);
+    await tester.pump();
+    for (final key in controls) {
+      expect(find.byKey(ValueKey<String>(key)), findsNothing, reason: key);
+    }
+
+    await tester.tap(find.byKey(const ValueKey<String>('gameplay-dialogue')));
+    await tester.pump();
+    for (final key in controls) {
+      expect(find.byKey(ValueKey<String>(key)), findsOneWidget);
+    }
   });
 }

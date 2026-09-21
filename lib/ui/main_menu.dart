@@ -1,0 +1,301 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:stepbound/game/render/integer_resolution_viewport.dart';
+import 'package:stepbound/save/save_game.dart';
+import 'package:stepbound/ui/blood_decor.dart';
+
+enum _MenuPage { home, newGame, load }
+
+/// The first screen: the Stepbound sign from the title card, then a new
+/// game in one of the four slots or a saved game to resume.
+final class MainMenu extends StatefulWidget {
+  const MainMenu({
+    required this.saves,
+    required this.onNewGame,
+    required this.onLoad,
+    super.key,
+  });
+
+  static const String logo = 'assets/story/logo.png';
+
+  /// The city collapsing, from the story: the title card itself carries a
+  /// "loading" caption.
+  static const String background = 'assets/story/scene_collapse.jpg';
+
+  final SaveRepository saves;
+
+  /// Starts the story; the game will save in the given slot.
+  final void Function(int slot) onNewGame;
+  final void Function(SaveGame save) onLoad;
+
+  @override
+  State<MainMenu> createState() => _MainMenuState();
+}
+
+final class _MainMenuState extends State<MainMenu> {
+  _MenuPage _page = _MenuPage.home;
+  List<SaveGame?> _slots = List<SaveGame?>.filled(
+    SaveRepository.slotCount,
+    null,
+  );
+
+  /// Slot waiting for the "overwrite?" answer.
+  int? _confirming;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_refresh());
+  }
+
+  Future<void> _refresh() async {
+    final slots = await widget.saves.all();
+    if (mounted) {
+      setState(() => _slots = slots);
+    }
+  }
+
+  void _open(_MenuPage page) => setState(() {
+    _page = page;
+    _confirming = null;
+  });
+
+  void _pickNewGameSlot(int slot) {
+    if (_slots[slot - 1] != null && _confirming != slot) {
+      setState(() => _confirming = slot);
+      return;
+    }
+    widget.onNewGame(slot);
+  }
+
+  static String _date(DateTime time) {
+    String two(int value) => value.toString().padLeft(2, '0');
+    return '${two(time.day)}/${two(time.month)}/${time.year} '
+        '${two(time.hour)}:${two(time.minute)}';
+  }
+
+  String _slotLabel(int slot) {
+    final save = _slots[slot - 1];
+    if (save == null) {
+      return 'SLOT $slot\nvuoto';
+    }
+    return 'SLOT $slot  ${_date(save.savedAt)}\n${save.place}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final unit = constraints.maxHeight.isFinite
+            ? constraints.maxHeight / IntegerResolutionViewport.virtualHeight
+            : 1.0;
+        return Stack(
+          key: const ValueKey<String>('main-menu'),
+          fit: StackFit.expand,
+          children: <Widget>[
+            Image.asset(MainMenu.background, fit: BoxFit.cover),
+            const ColoredBox(color: Color(0xd8080506)),
+            Padding(
+              padding: EdgeInsets.all(8 * unit),
+              child: Column(
+                children: <Widget>[
+                  Image.asset(
+                    MainMenu.logo,
+                    height:
+                        constraints.maxHeight *
+                        (_page == _MenuPage.home ? 0.32 : 0.22),
+                    fit: BoxFit.contain,
+                  ),
+                  SizedBox(height: 6 * unit),
+                  Expanded(
+                    child: Center(
+                      child: SingleChildScrollView(child: _buttons(unit)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buttons(double unit) {
+    final hasSaves = _slots.any((save) => save != null);
+    final buttons = switch (_page) {
+      _MenuPage.home => <Widget>[
+        _MenuButton(
+          key: const ValueKey<String>('menu-new-game'),
+          label: 'NUOVA PARTITA',
+          unit: unit,
+          onPressed: () => _open(_MenuPage.newGame),
+        ),
+        _MenuButton(
+          key: const ValueKey<String>('menu-load'),
+          label: 'CARICA PARTITA',
+          unit: unit,
+          onPressed: hasSaves ? () => _open(_MenuPage.load) : null,
+        ),
+      ],
+      _MenuPage.newGame || _MenuPage.load => <Widget>[
+        _MenuHeading(
+          text: _page == _MenuPage.newGame
+              ? 'SCEGLI DOVE SALVARE'
+              : 'SCEGLI UN SALVATAGGIO',
+          unit: unit,
+        ),
+        // Two by two, so all four slots fit on a phone in landscape.
+        Wrap(
+          spacing: 5 * unit,
+          runSpacing: 5 * unit,
+          alignment: WrapAlignment.center,
+          children: <Widget>[
+            for (var slot = 1; slot <= SaveRepository.slotCount; slot++)
+              _slotButton(slot, unit),
+          ],
+        ),
+        _MenuButton(
+          key: const ValueKey<String>('menu-back'),
+          label: 'INDIETRO',
+          unit: unit,
+          compact: true,
+          onPressed: () => _open(_MenuPage.home),
+        ),
+      ],
+    };
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        for (final button in buttons)
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: 2.5 * unit),
+            child: button,
+          ),
+      ],
+    );
+  }
+
+  Widget _slotButton(int slot, double unit) {
+    if (_confirming == slot) {
+      return _MenuButton(
+        key: ValueKey<String>('menu-slot-$slot-confirm'),
+        label: 'SOVRASCRIVERE LO SLOT $slot?\nTOCCA ANCORA PER CONFERMARE',
+        unit: unit,
+        compact: true,
+        warning: true,
+        onPressed: () => _pickNewGameSlot(slot),
+      );
+    }
+    final save = _slots[slot - 1];
+    return _MenuButton(
+      key: ValueKey<String>('menu-slot-$slot'),
+      label: _slotLabel(slot),
+      unit: unit,
+      compact: true,
+      onPressed: switch (_page) {
+        _MenuPage.newGame => () => _pickNewGameSlot(slot),
+        _ when save != null => () => widget.onLoad(save),
+        _ => null,
+      },
+    );
+  }
+}
+
+final class _MenuHeading extends StatelessWidget {
+  const _MenuHeading({required this.text, required this.unit});
+
+  final String text;
+  final double unit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: TextStyle(
+        color: BloodColors.bright,
+        fontFamily: 'monospace',
+        fontSize: 11 * unit,
+        fontWeight: FontWeight.bold,
+        letterSpacing: 1.5 * unit,
+        decoration: TextDecoration.none,
+      ),
+    );
+  }
+}
+
+/// Dark plate with a blood-red rim and a couple of drips, like the in-game
+/// buttons and dialogue boxes.
+final class _MenuButton extends StatelessWidget {
+  const _MenuButton({
+    required this.label,
+    required this.unit,
+    required this.onPressed,
+    this.compact = false,
+    this.warning = false,
+    super.key,
+  });
+
+  final String label;
+  final double unit;
+  final VoidCallback? onPressed;
+  final bool compact;
+  final bool warning;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onPressed != null;
+    final rim = warning ? BloodColors.bright : BloodColors.fresh;
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: label,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onPressed,
+        child: Opacity(
+          opacity: enabled ? 1 : 0.4,
+          child: BloodOverlay(
+            painter: BloodPainter(
+              band: 2.5 * unit,
+              cornerRadius: 4 * unit,
+              drips: <BloodDrip>[
+                BloodDrip(0.12, 7 * unit, 2.6 * unit),
+                BloodDrip(0.83, 10 * unit, 3 * unit),
+              ],
+              color: rim,
+            ),
+            child: Container(
+              width: (compact ? 172 : 190) * unit,
+              padding: EdgeInsets.symmetric(
+                horizontal: 8 * unit,
+                vertical: (compact ? 4 : 6) * unit,
+              ),
+              decoration: BoxDecoration(
+                color: warning
+                    ? const Color(0xee3a0c0c)
+                    : const Color(0xe6140c0c),
+                border: Border.all(color: rim, width: 1.5 * unit),
+                borderRadius: BorderRadius.circular(4 * unit),
+              ),
+              child: Text(
+                label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: const Color(0xffe8dccb),
+                  fontFamily: 'monospace',
+                  fontSize: (compact ? 7.5 : 11) * unit,
+                  fontWeight: FontWeight.bold,
+                  height: 1.3,
+                  letterSpacing: (compact ? 0.4 : 1.5) * unit,
+                  decoration: TextDecoration.none,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
