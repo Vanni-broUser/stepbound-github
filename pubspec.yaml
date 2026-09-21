@@ -22,5 +22,6 @@ flutter:
   assets:
     - assets/balance/
     - assets/sprites/
+    - assets/story/
     - assets/tiles/
     - assets/palette.gpl

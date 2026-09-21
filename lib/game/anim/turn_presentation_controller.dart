@@ -31,9 +31,11 @@ final class TurnPresentationController {
   List<WorldEvent> _lastEvents = const <WorldEvent>[];
   double _elapsed = 0;
   bool _isAnimating = false;
+  int _turnCount = 0;
 
   bool get isAnimating => _isAnimating;
   int get bufferedActionCount => _buffer.length;
+  int get turnCount => _turnCount;
   double get progress =>
       _isAnimating ? (_elapsed / turnDuration).clamp(0, 1) : 1;
   List<WorldEvent> get lastEvents => List<WorldEvent>.unmodifiable(_lastEvents);
@@ -86,6 +88,7 @@ final class TurnPresentationController {
 
   void _start(PlayerAction action) {
     _lastEvents = scheduler.advance(world, action);
+    _turnCount += 1;
     _movements
       ..clear()
       ..addEntries(

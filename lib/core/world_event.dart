@@ -16,6 +16,7 @@ sealed class WorldEvent {
       'died' => DiedEvent.fromJson(json),
       'shot' => ShotEvent.fromJson(json),
       'dryFired' => DryFiredEvent.fromJson(json),
+      'alerted' => AlertedEvent.fromJson(json),
       _ => throw FormatException('Unknown world event: ${json['type']}'),
     };
   }
@@ -263,6 +264,30 @@ final class DryFiredEvent extends WorldEvent {
   Map<String, Object?> toJson() => <String, Object?>{
     'type': 'dryFired',
     'entityId': entityId,
+  };
+}
+
+final class AlertedEvent extends WorldEvent {
+  const AlertedEvent({required this.entityId, required this.at});
+
+  factory AlertedEvent.fromJson(Map<String, Object?> json) {
+    return AlertedEvent(
+      entityId: json['entityId']! as String,
+      at: GridPoint.fromJson(json['at']! as Map<String, Object?>),
+    );
+  }
+
+  final String entityId;
+  final GridPoint at;
+
+  @override
+  String get description => '$entityId spots the player at $at';
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+    'type': 'alerted',
+    'entityId': entityId,
+    'at': at.toJson(),
   };
 }
 

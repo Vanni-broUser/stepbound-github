@@ -102,6 +102,38 @@ void main() {
       const GridPoint(3, 1),
     );
   });
+
+  test('a zombie raises the alert once when it first spots the player', () {
+    final world = corridorWorld(EntityKind.sprinter);
+    world.entities['zombie']!.component<PositionComponent>().facing =
+        Direction.west;
+
+    final firstTurn = const TurnScheduler().advance(world, const WaitAction());
+    expect(firstTurn.whereType<AlertedEvent>(), hasLength(1));
+
+    final secondTurn = const TurnScheduler().advance(world, const WaitAction());
+    expect(secondTurn.whereType<AlertedEvent>(), isEmpty);
+  });
+
+  test('an adjacent zombie turns to face the player before biting', () {
+    final world = corridorWorld(
+      EntityKind.sprinter,
+      zombiePosition: const GridPoint(2, 1),
+    );
+    world.entities['zombie']!.component<PositionComponent>().facing =
+        Direction.north;
+
+    const TurnScheduler().advance(world, const WaitAction());
+
+    expect(
+      world.entities['zombie']!.component<PositionComponent>().facing,
+      Direction.west,
+    );
+    expect(
+      world.player.component<HealthComponent>().current,
+      lessThan(world.player.component<HealthComponent>().maximum),
+    );
+  });
 }
 
 int _xAfterWaits(EntityKind kind, int waits) {

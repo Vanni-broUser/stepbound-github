@@ -16,14 +16,24 @@ final class ZombieAi {
     final playerPosition = world.player.component<PositionComponent>().position;
 
     if (zombiePosition.position.manhattanDistanceTo(playerPosition) == 1) {
+      zombiePosition.facing = _directionBetween(
+        zombiePosition.position,
+        playerPosition,
+      );
       _attackPlayer(world, zombie);
       return;
     }
 
     final hearing = zombie.component<HearingComponent>();
+    final wasAware = hearing.lastHeard != null;
     final seesPlayer = _canSeePlayer(world, zombie);
     if (seesPlayer) {
       hearing.lastHeard = playerPosition;
+      if (!wasAware) {
+        world.emit(
+          AlertedEvent(entityId: zombie.id, at: zombiePosition.position),
+        );
+      }
     }
     final target = seesPlayer ? playerPosition : hearing.lastHeard;
     if (target == null) {

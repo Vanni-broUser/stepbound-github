@@ -6,14 +6,46 @@ import 'package:stepbound/core/core.dart' hide PositionComponent;
 import 'package:stepbound/core/entities/components.dart' as simulation;
 import 'package:stepbound/game/render/pixel_palette.dart';
 
+enum CharacterAction { none, fire, hit, bite, death }
+
 final class CharacterComponent extends PositionComponent {
   CharacterComponent({required this.entity})
     : super(size: Vector2(16, 24), anchor: Anchor.bottomCenter, priority: 20);
 
+  static const double fireDuration = 0.21;
+  static const double hitDuration = 0.18;
+  static const double biteDuration = 0.28;
+  static const double deathDuration = 0.45;
+  static const double alertDuration = 0.8;
+
   final Entity entity;
   ui.Image? _atlas;
+  ui.Image? _gunAtlas;
+  ui.Image? _hitAtlas;
+  ui.Image? _biteAtlas;
+  ui.Image? _deathAtlas;
   double animationProgress = 1;
+  double _breathElapsed = 0;
+  double _alertElapsed = alertDuration;
   bool isMoving = false;
+
+  CharacterAction _action = CharacterAction.none;
+  double _actionElapsed = 0;
+  double actionDuration = 0;
+  int _actionRow = 0;
+
+  /// True while the player should hold the drawn-pistol stance.
+  bool aiming = false;
+
+  bool get isDying => _action == CharacterAction.death;
+
+  static int rowFor(Direction direction) => switch (direction) {
+    Direction.south => 0,
+    Direction.west => 1,
+    Direction.east => 2,
+    Direction.north => 3,
+  };
+
   final ui.Paint _paint = ui.Paint()
     ..isAntiAlias = false
     ..filterQuality = ui.FilterQuality.none;
@@ -21,11 +53,31 @@ final class CharacterComponent extends PositionComponent {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    final name = _atlasName(entity.kind);
-    final assetPath = 'assets/sprites/$name.png';
     final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
-    if (!manifest.listAssets().contains(assetPath)) {
-      return;
+    final assets = manifest.listAssets();
+    final name = _atlasName(entity.kind);
+    _atlas = await _loadImage(assets, 'assets/sprites/$name.png');
+    if (entity.kind == EntityKind.player) {
+      _gunAtlas = await _loadImage(
+        assets,
+        'assets/sprites/protagonist_gun.png',
+      );
+    } else {
+      _hitAtlas = await _loadImage(assets, 'assets/sprites/${name}_hit.png');
+      _biteAtlas = await _loadImage(assets, 'assets/sprites/${name}_bite.png');
+      _deathAtlas = await _loadImage(
+        assets,
+        'assets/sprites/${name}_death.png',
+      );
+    }
+  }
+
+  Future<ui.Image?> _loadImage(
+    Iterable<String> assets,
+    String assetPath,
+  ) async {
+    if (!assets.contains(assetPath)) {
+      return null;
     }
     final data = await rootBundle.load(assetPath);
     final bytes = data.buffer.asUint8List(
@@ -36,35 +88,143 @@ final class CharacterComponent extends PositionComponent {
     final frame = await codec.getNextFrame();
     codec.dispose();
     final loaded = frame.image;
-    if (loaded.width >= 96 && loaded.height >= 96) {
-      _atlas = loaded;
+    if (loaded.width < 96 || loaded.height < 96) {
+      return null;
+    }
+    return loaded;
+  }
+
+  void playFire(Direction facing) {
+    if (_gunAtlas == null || _action == CharacterAction.death) {
+      return;
+    }
+    _startAction(CharacterAction.fire, rowFor(facing), fireDuration);
+  }
+
+  void playHit(Direction facing) {
+    if (_hitAtlas == null || _action == CharacterAction.death) {
+      return;
+    }
+    _startAction(CharacterAction.hit, rowFor(facing), hitDuration);
+  }
+
+  void playBite(Direction facing) {
+    if (_biteAtlas == null || _action == CharacterAction.death) {
+      return;
+    }
+    _startAction(CharacterAction.bite, rowFor(facing), biteDuration);
+  }
+
+  void playDeath(Direction facing) {
+    if (_deathAtlas == null) {
+      return;
+    }
+    _startAction(CharacterAction.death, rowFor(facing), deathDuration);
+  }
+
+  void _startAction(CharacterAction action, int row, double duration) {
+    _action = action;
+    _actionRow = row;
+    _actionElapsed = 0;
+    actionDuration = duration;
+  }
+
+  /// Shows the comic-style "!" balloon above the head.
+  void playAlert() {
+    _alertElapsed = 0;
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    _breathElapsed += dt;
+    if (_alertElapsed < alertDuration) {
+      _alertElapsed += dt;
+    }
+    if (_action == CharacterAction.none) {
+      return;
+    }
+    _actionElapsed += dt;
+    if (_actionElapsed >= actionDuration && _action != CharacterAction.death) {
+      _action = CharacterAction.none;
     }
   }
 
   @override
   void render(ui.Canvas canvas) {
+    if (_action == CharacterAction.death) {
+      final atlas = _deathAtlas;
+      if (atlas == null) {
+        return;
+      }
+      if (_actionElapsed >= actionDuration) {
+        return;
+      }
+      final progress = _actionElapsed / actionDuration;
+      final column = (progress * 6).floor().clamp(0, 5);
+      _drawCell(canvas, atlas, _actionRow, column);
+      return;
+    }
     if (!entity.isAlive) {
+      return;
+    }
+    final facing = entity.component<simulation.PositionComponent>().facing;
+    final row = rowFor(facing);
+    switch (_action) {
+      case CharacterAction.fire when _gunAtlas != null:
+        final progress = (_actionElapsed / actionDuration).clamp(0, 1);
+        _drawCell(canvas, _gunAtlas!, _actionRow, 3 + (progress * 3).floor());
+      case CharacterAction.hit when _hitAtlas != null:
+        final progress = (_actionElapsed / actionDuration).clamp(0, 1);
+        _drawCell(canvas, _hitAtlas!, _actionRow, (progress * 3).floor());
+      case CharacterAction.bite when _biteAtlas != null:
+        final progress = (_actionElapsed / actionDuration).clamp(0, 1);
+        _drawCell(canvas, _biteAtlas!, _actionRow, (progress * 4).floor());
+      case _:
+        _renderBase(canvas, row);
+    }
+    if (_alertElapsed < alertDuration) {
+      _drawAlertBalloon(canvas);
+    }
+  }
+
+  void _drawAlertBalloon(ui.Canvas canvas) {
+    final rise = (_alertElapsed / alertDuration * 2).floorToDouble();
+    canvas
+      ..save()
+      ..translate(0, rise);
+    _paint.color = const ui.Color(0xff100c0c);
+    canvas
+      ..drawRect(const ui.Rect.fromLTWH(8, -9, 8, 8), _paint)
+      ..drawRect(const ui.Rect.fromLTWH(10, -1, 1, 2), _paint);
+    _paint.color = PixelPalette.bone;
+    canvas.drawRect(const ui.Rect.fromLTWH(9, -8, 6, 6), _paint);
+    _paint.color = PixelPalette.brickRed;
+    canvas
+      ..drawRect(const ui.Rect.fromLTWH(11, -7, 2, 2), _paint)
+      ..drawRect(const ui.Rect.fromLTWH(11, -4, 2, 1), _paint)
+      ..restore();
+  }
+
+  void _renderBase(ui.Canvas canvas, int row) {
+    final gunAtlas = _gunAtlas;
+    if (aiming && gunAtlas != null) {
+      final breathe = (_breathElapsed * 1.6).floor() % 2;
+      _drawCell(canvas, gunAtlas, row, breathe);
       return;
     }
     final atlas = _atlas;
     if (atlas != null) {
-      _renderAtlas(canvas, atlas);
+      final column = isMoving
+          ? 2 + (animationProgress * 4).floor().clamp(0, 3)
+          : (animationProgress * 2).floor().clamp(0, 1);
+      _drawCell(canvas, atlas, row, column);
     } else {
       _renderPrototype(canvas);
     }
   }
 
-  void _renderAtlas(ui.Canvas canvas, ui.Image atlas) {
-    final facing = entity.component<simulation.PositionComponent>().facing;
-    final row = switch (facing) {
-      Direction.south => 0,
-      Direction.west => 1,
-      Direction.east => 2,
-      Direction.north => 3,
-    };
-    final column = isMoving
-        ? 2 + (animationProgress * 4).floor().clamp(0, 3)
-        : (animationProgress * 2).floor().clamp(0, 1);
+  void _drawCell(ui.Canvas canvas, ui.Image atlas, int row, int column) {
     canvas.drawImageRect(
       atlas,
       ui.Rect.fromLTWH(column * 16, row * 24, 16, 24),
