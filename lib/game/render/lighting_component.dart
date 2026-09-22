@@ -18,6 +18,10 @@ final class LightingComponent extends Component {
 
   /// The lit room, in world pixels.
   final ui.Rect area;
+
+  /// Cleared by the game while the room is out of the camera's view: its
+  /// darkness is a full-room layer, costly to compose every frame.
+  bool onScreen = true;
   final List<LightSpot> lights;
 
   /// Feet of the player, in world pixels.
@@ -76,6 +80,9 @@ final class LightingComponent extends Component {
 
   @override
   void render(ui.Canvas canvas) {
+    if (!onScreen) {
+      return;
+    }
     canvas
       ..saveLayer(area, ui.Paint())
       ..drawRect(area, _dark);

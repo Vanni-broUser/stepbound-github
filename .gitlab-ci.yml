@@ -17,9 +17,14 @@ stages:
 variables:
   PUB_CACHE: "$CI_PROJECT_DIR/.pub-cache"
 
+# Tutti i job girano sui runner `test`, come nelle pipeline degli altri
+# progetti; quelli di packaging dichiarano i propri runner locali
+# (gitlab/package.yml), che sostituiscono questi.
 default:
   image: ghcr.io/cirruslabs/flutter:3.44.0
   interruptible: true
+  tags:
+    - test
   before_script:
     - flutter config --no-analytics
     - flutter pub get

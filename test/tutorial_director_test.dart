@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/core/core.dart';
+import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
 
 final class _FakeHost implements TutorialHost {
@@ -59,6 +60,7 @@ void main() {
   late WorldState world;
   late _FakeHost host;
   late TutorialDirector director;
+  late Progress progress;
 
   GridPoint zombiePosition() =>
       world.entities[tutorialZombieId]!.component<PositionComponent>().position;
@@ -79,9 +81,10 @@ void main() {
       );
 
   setUp(() {
-    world = createStreetWorld();
+    world = createTutorialWorld();
     host = _FakeHost();
-    director = TutorialDirector(world: world, host: host);
+    progress = Progress();
+    director = TutorialDirector(world: world, host: host, progress: progress);
   });
 
   test('the zombie lesson follows its alert, framing the zombie', () {
@@ -93,18 +96,15 @@ void main() {
     expect(host.shown, isEmpty, reason: 'the balloon shows first');
     expect(host.focus, tutorialZombieId);
     settle();
-    expect(host.shown.single.single.text, TutorialDirector.zombieLesson);
-    expect(
-      host.shown.single.single.portrait,
-      TutorialDirector.wandererPortrait,
-    );
+    expect(host.shown.single.single.text, StreetScript.zombieLesson);
+    expect(host.shown.single.single.portrait, StreetScript.wandererPortrait);
     host.dismiss();
     expect(host.focus, isNull);
   });
 
   test('the first carabiniere to notice the player gets its own lesson', () {
     final zombies = <Entity>[
-      for (final (index, spawn) in carabiniereSpawns().indexed)
+      for (final (index, spawn) in carabiniereSpawns.indexed)
         createCarabiniere('carabiniere-$index', spawn),
     ];
     for (final zombie in zombies) {
@@ -118,8 +118,8 @@ void main() {
     expect(host.focus, zombies.first.id);
     settle();
     final line = host.shown.single.single;
-    expect(line.text, TutorialDirector.carabiniereLesson);
-    expect(line.portrait, TutorialDirector.carabinierePortrait);
+    expect(line.text, BarracksScript.carabiniereLesson);
+    expect(line.portrait, BarracksScript.carabinierePortrait);
     host.dismiss();
 
     director.onEvents(<WorldEvent>[alert(zombies.last)]);
@@ -128,10 +128,7 @@ void main() {
   });
 
   test('a carabiniere that only heard Mario still gets its lesson', () {
-    final zombie = createCarabiniere(
-      'carabiniere-0',
-      carabiniereSpawns().first,
-    );
+    final zombie = createCarabiniere('carabiniere-0', carabiniereSpawns.first);
     world.entities[zombie.id] = zombie;
     settle();
     expect(host.shown, isEmpty, reason: 'not aware of Mario yet');
@@ -139,7 +136,7 @@ void main() {
     zombie.component<HearingComponent>().lastHeard = const GridPoint(0, 0);
     settle();
     expect(host.focus, zombie.id);
-    expect(host.shown.single.single.text, TutorialDirector.carabiniereLesson);
+    expect(host.shown.single.single.text, BarracksScript.carabiniereLesson);
   });
 
   test('the carabinieri in the hospital hordes never give the lesson', () {
@@ -162,19 +159,22 @@ void main() {
     expect(host.focus, isNull);
   });
 
-  test('the zombie types met so far are known, for the camp', () {
-    expect(director.knownZombies, isEmpty);
+  test('the zombie types met are recorded in the progress', () {
+    expect(progress.knownZombies, isEmpty);
     director.onEvents(<WorldEvent>[
       AlertedEvent(entityId: tutorialZombieId, at: zombiePosition()),
     ]);
-    expect(director.knownZombies, <EntityKind>{EntityKind.wanderer});
-    final inside = GridPoint(barracksOrigin.x + 10, barracksOrigin.y + 13);
-    for (var i = 0; i < TutorialDirector.stepsBeforeCarabinieri; i++) {
+    expect(progress.knownZombies, <EntityKind>{EntityKind.wanderer});
+    final inside = GridPoint(
+      place(PlaceId.barracks).origin.x + 10,
+      place(PlaceId.barracks).origin.y + 13,
+    );
+    for (var i = 0; i < BarracksScript.stepsBeforeCarabinieri; i++) {
       director.onEvents(<WorldEvent>[
         MovedEvent(entityId: world.playerId, from: inside, to: inside),
       ]);
     }
-    expect(director.knownZombies, <EntityKind>{
+    expect(progress.knownZombies, <EntityKind>{
       EntityKind.wanderer,
       EntityKind.carabiniere,
     });
@@ -183,21 +183,20 @@ void main() {
     );
     host.visible.add(sprinter.component<PositionComponent>().position);
     settle();
-    expect(director.knownZombies, contains(EntityKind.sprinter));
-    final restored = TutorialDirector(world: world, host: _FakeHost())
-      ..restore(director.toJson());
-    expect(restored.knownZombies, director.knownZombies);
+    expect(progress.knownZombies, contains(EntityKind.sprinter));
+    final restored = Progress.fromJson(progress.toJson());
+    expect(restored.knownZombies, progress.knownZombies);
   });
 
-  test("Luigi's scene counts as seen once played", () {
-    expect(director.luigiSceneSeen, isFalse);
-    final trigger = luigiSceneTrigger();
+  test("Luigi's scene becomes a memory once played", () {
+    expect(progress.memories, isEmpty);
+    final trigger = luigiSceneTrigger;
     world.player.component<PositionComponent>().position = GridPoint(
       trigger.left + 1,
       trigger.top,
     );
     settle();
-    expect(director.luigiSceneSeen, isTrue);
+    expect(progress.memories, <StoryMemory>{StoryMemory.luigiTrapped});
   });
 
   test('prompts wait for the turn animation to finish', () {
@@ -216,8 +215,8 @@ void main() {
     host.visible.add(world.pickups[ammoBackpackId]!.position);
     settle();
     expect(host.shown.last.map((line) => line.text), <String>[
-      TutorialDirector.backpackLesson,
-      TutorialDirector.interactLesson,
+      BackpacksScript.backpackLesson,
+      BackpacksScript.interactLesson,
     ]);
     expect(host.unlocked, isEmpty, reason: 'unlocked when the text closes');
     host.dismiss();
@@ -245,8 +244,8 @@ void main() {
     director.onEvents(<WorldEvent>[pickedUp(gunBackpackId, gun: true)]);
     settle();
     expect(host.shown.last.map((line) => line.text), <String>[
-      TutorialDirector.gunFound,
-      TutorialDirector.shootLesson,
+      BackpacksScript.gunFound,
+      BackpacksScript.shootLesson,
     ]);
     expect(host.unlocked, isNot(contains(HudElement.shoot)));
     host.dismiss();
@@ -261,32 +260,35 @@ void main() {
     settle();
     final lines = host.shown.single;
     expect(lines.map((line) => line.text), <String>[
-      TutorialDirector.barracksReached,
-      TutorialDirector.barracksSafe,
+      BarracksScript.barracksReached,
+      BarracksScript.barracksSafe,
     ]);
     expect(lines.every((line) => line.speaker == 'Mario Rossi'), isTrue);
     expect(lines.first.portrait, isNotNull);
   });
 
   test('a few steps inside, the carabinieri come out of the dark', () {
-    final inside = GridPoint(barracksOrigin.x + 10, barracksOrigin.y + 13);
+    final inside = GridPoint(
+      place(PlaceId.barracks).origin.x + 10,
+      place(PlaceId.barracks).origin.y + 13,
+    );
     MovedEvent step() => MovedEvent(
       entityId: world.playerId,
       from: inside.step(Direction.south),
       to: inside,
     );
-    for (var i = 1; i < TutorialDirector.stepsBeforeCarabinieri; i++) {
+    for (var i = 1; i < BarracksScript.stepsBeforeCarabinieri; i++) {
       director.onEvents(<WorldEvent>[step()]);
     }
     expect(host.spawned, isEmpty);
     director.onEvents(<WorldEvent>[step()]);
-    expect(host.spawned, hasLength(carabiniereSpawns().length));
+    expect(host.spawned, hasLength(carabiniereSpawns.length));
     expect(
       host.spawned.every((zombie) => zombie.kind == EntityKind.carabiniere),
       isTrue,
     );
     director.onEvents(<WorldEvent>[step()]);
-    expect(host.spawned, hasLength(carabiniereSpawns().length));
+    expect(host.spawned, hasLength(carabiniereSpawns.length));
   });
 
   test('steps outside do not count', () {
@@ -306,8 +308,8 @@ void main() {
     host.visible.add(world.pickups[accidentBackpackId]!.position);
     settle();
     expect(host.shown.single.map((line) => line.text), <String>[
-      TutorialDirector.backpackLesson,
-      TutorialDirector.interactLesson,
+      BackpacksScript.backpackLesson,
+      BackpacksScript.interactLesson,
     ]);
     host
       ..dismiss()
@@ -327,8 +329,8 @@ void main() {
     host.visible.add(world.campfires.single);
     settle();
     expect(host.shown.single.map((line) => line.text), <String>[
-      TutorialDirector.campLesson,
-      TutorialDirector.interactLesson,
+      NorthDistrictScript.campLesson,
+      BackpacksScript.interactLesson,
     ]);
     host.dismiss();
     expect(host.unlocked, contains(HudElement.interact));
@@ -339,7 +341,7 @@ void main() {
       ..unlocked.add(HudElement.interact)
       ..visible.add(world.campfires.single);
     settle();
-    expect(host.shown.single.single.text, TutorialDirector.campLesson);
+    expect(host.shown.single.single.text, NorthDistrictScript.campLesson);
   });
 
   test('its progress survives a save', () {
@@ -347,10 +349,13 @@ void main() {
       AlertedEvent(entityId: tutorialZombieId, at: zombiePosition()),
     ]);
     final saved = director.toJson();
-    final restored = TutorialDirector(world: world, host: _FakeHost())
-      ..restore(saved);
+    final restored = TutorialDirector(
+      world: world,
+      host: _FakeHost(),
+      progress: Progress(),
+    )..restore(saved);
     expect(restored.toJson(), saved);
-    expect(saved['zombieLesson'], isTrue);
+    expect((saved['street']! as Map<String, Object?>)['zombieLesson'], isTrue);
   });
 
   test('the first sprinter in sight is framed and its pace explained', () {
@@ -364,8 +369,8 @@ void main() {
     settle();
     expect(host.focus, sprinter.id);
     final line = host.shown.single.single;
-    expect(line.text, TutorialDirector.sprinterLesson);
-    expect(line.portrait, TutorialDirector.sprinterPortrait);
+    expect(line.text, NorthDistrictScript.sprinterLesson);
+    expect(line.portrait, NorthDistrictScript.sprinterPortrait);
     expect(line.speaker, isNull);
     host.dismiss();
     expect(host.focus, isNull);
@@ -385,10 +390,10 @@ void main() {
 
     test('a few steps inside, a voice calls and Mario answers', () {
       final hall = GridPoint(
-        mallGroundBounds.left + 10,
-        mallGroundBounds.top + 10,
+        place(PlaceId.mallGround).bounds.left + 10,
+        place(PlaceId.mallGround).bounds.top + 10,
       );
-      for (var i = 0; i < TutorialDirector.stepsBeforeVoice - 1; i++) {
+      for (var i = 0; i < MallScript.stepsBeforeVoice - 1; i++) {
         stepTo(hall.step(Direction.north));
         settle();
       }
@@ -396,26 +401,26 @@ void main() {
       stepTo(hall);
       settle();
       final lines = host.shown.single;
-      expect(lines.first.speaker, TutorialDirector.mysteryVoice);
-      expect(lines.first.text, TutorialDirector.helpCall);
+      expect(lines.first.speaker, MallScript.mysteryVoice);
+      expect(lines.first.text, MallScript.helpCall);
       expect(lines.last.speaker, 'Mario Rossi');
       expect(lines.last.portrait, isNotNull);
-      expect(lines.last.text, TutorialDirector.someoneAlive);
+      expect(lines.last.text, MallScript.someoneAlive);
     });
 
     test("the shutter plays Luigi's scene, then zombies come in", () {
-      final trigger = luigiSceneTrigger();
+      final trigger = luigiSceneTrigger;
       stepTo(GridPoint(trigger.left + 2, trigger.bottom));
       settle();
       final frames = host.cutscenes.single;
       expect(frames.map((frame) => frame.speaker), <String>[
-        TutorialDirector.luigi,
-        TutorialDirector.luigi,
+        MallScript.luigi,
+        MallScript.luigi,
         'Zombi',
       ]);
       expect(host.spawned, isEmpty);
       host.onCutsceneFinished!();
-      expect(host.spawned, hasLength(mallHordeSpawns().length));
+      expect(host.spawned, hasLength(mallHordeSpawns.length));
       expect(host.spawned.map((zombie) => zombie.kind).toSet(), <EntityKind>{
         EntityKind.wanderer,
       });
@@ -425,10 +430,10 @@ void main() {
 
     test('working the panel lifts the shutter and says so', () {
       director.onEvents(<WorldEvent>[
-        ControlUsedEvent(at: mallPanelTile(), opened: luigiBars()),
+        ControlUsedEvent(at: mallPanelTile, opened: luigiBars),
       ]);
       settle();
-      expect(host.shown.single.single.text, TutorialDirector.shutterOpened);
+      expect(host.shown.single.single.text, MallScript.shutterOpened);
     });
   });
 }

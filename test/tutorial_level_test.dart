@@ -17,28 +17,28 @@ void main() {
   });
 
   test('the player starts unarmed with no bullets', () {
-    final ammo = createStreetWorld().player.component<AmmoComponent>();
+    final ammo = createTutorialWorld().player.component<AmmoComponent>();
     expect(ammo.hasGun, isFalse);
     expect(ammo.loaded, 0);
     expect(ammo.reserve, 0);
   });
 
   test('the crossroads opens north and east but not south', () {
-    final map = createStreetWorld().map;
+    final map = createTutorialWorld().map;
     expect(map.tileAt(const GridPoint(16, 30)).isWalkable, isTrue);
     expect(map.tileAt(const GridPoint(30, 46)).isWalkable, isTrue);
     expect(map.tileAt(const GridPoint(16, 50)).isWalkable, isFalse);
   });
 
   test('the streets end against buildings, the north one at the barracks', () {
-    final map = createStreetWorld().map;
+    final map = createTutorialWorld().map;
     expect(map.tileAt(const GridPoint(3, 46)).isWalkable, isFalse);
     expect(map.tileAt(const GridPoint(40, 46)).isWalkable, isFalse);
     expect(map.tileAt(const GridPoint(15, 16)).isWalkable, isFalse);
     expect(map.tileAt(const GridPoint(16, 16)).isWalkable, isTrue);
   });
 
-  List<Entity> zombiesIn(WorldState world, LevelRegion region) => world
+  List<Entity> zombiesIn(WorldState world, Place region) => world
       .entities
       .values
       .where(
@@ -51,8 +51,8 @@ void main() {
       .toList();
 
   test('the only zombie on the street waits east of the crossroads', () {
-    final world = createStreetWorld();
-    final zombies = zombiesIn(world, levelRegions.first);
+    final world = createTutorialWorld();
+    final zombies = zombiesIn(world, place(PlaceId.street));
     expect(zombies, hasLength(1));
     expect(zombies.single.id, tutorialZombieId);
     final position = zombies.single.component<PositionComponent>().position;
@@ -61,12 +61,15 @@ void main() {
   });
 
   String northGlyph(GridPoint point) =>
-      northDistrictRows[point.y - northDistrictOrigin.y][point.x -
-          northDistrictOrigin.x];
+      northDistrictRows[point.y -
+          place(PlaceId.northDistrict).origin.y][point.x -
+          place(PlaceId.northDistrict).origin.x];
 
   test('two zombies wander by the fountain in the north district square', () {
-    final world = createStreetWorld();
-    final byFountain = zombiesIn(world, levelRegions[1]).where((zombie) {
+    final world = createTutorialWorld();
+    final byFountain = zombiesIn(world, place(PlaceId.northDistrict)).where((
+      zombie,
+    ) {
       final position = zombie.component<PositionComponent>().position;
       return Direction.values.any(
         (direction) => northGlyph(position.step(direction)) == 'O',
@@ -77,15 +80,15 @@ void main() {
 
   test('hordes of wanderers and carabinieri block the way to the '
       'hospital', () {
-    final world = createStreetWorld();
+    final world = createTutorialWorld();
     // The square, in the north district's own tiles.
     final square = GridRect(
-      northDistrictOrigin.x + 38,
-      northDistrictOrigin.y + 30,
-      northDistrictOrigin.x + 58,
-      northDistrictOrigin.y + 42,
+      place(PlaceId.northDistrict).origin.x + 38,
+      place(PlaceId.northDistrict).origin.y + 30,
+      place(PlaceId.northDistrict).origin.x + 58,
+      place(PlaceId.northDistrict).origin.y + 42,
     );
-    final hordes = zombiesIn(world, levelRegions[1]).where(
+    final hordes = zombiesIn(world, place(PlaceId.northDistrict)).where(
       (zombie) =>
           zombie.component<PositionComponent>().position.x < square.left,
     );
@@ -100,7 +103,7 @@ void main() {
     expect(carabinieri.length, inInclusiveRange(3, hordes.length ~/ 4));
     expect(
       carabinieri.map((zombie) => zombie.id).toSet().intersection(<String>{
-        for (var i = 0; i < carabiniereSpawns().length; i++) 'carabiniere-$i',
+        for (var i = 0; i < carabiniereSpawns.length; i++) 'carabiniere-$i',
       }),
       isEmpty,
       reason: 'the barracks spawns its own carabinieri later',
@@ -115,22 +118,23 @@ void main() {
     // The hospital has no door to go through.
     final hospital = world.portals.keys.where(
       (tile) =>
-          levelRegions[1].bounds.contains(tile) && northGlyph(tile) == 'G',
+          place(PlaceId.northDistrict).bounds.contains(tile) &&
+          northGlyph(tile) == 'G',
     );
     expect(hospital, isEmpty);
   });
 
   test('zombies are beyond the simulation radius of the other places', () {
-    final world = createStreetWorld();
+    final world = createTutorialWorld();
     final spots = <GridPoint>[
       for (final entity in world.entities.values)
         if (entity.kind != EntityKind.player)
           entity.component<PositionComponent>().position,
-      ...carabiniereSpawns(),
-      ...mallHordeSpawns(),
+      ...carabiniereSpawns,
+      ...mallHordeSpawns,
     ];
     for (final spot in spots) {
-      for (final region in levelRegions) {
+      for (final region in tutorialPlaces) {
         final bounds = region.bounds;
         if (bounds.contains(spot)) {
           continue;
@@ -153,19 +157,19 @@ void main() {
 
   test('backpacks: ammo on the street and by the accident, pistol in the '
       'barracks', () {
-    final pickups = createStreetWorld().pickups;
+    final pickups = createTutorialWorld().pickups;
     expect(pickups[ammoBackpackId]!.active, isTrue);
     expect(pickups[ammoBackpackId]!.ammo, 2);
     expect(pickups[accidentBackpackId]!.active, isTrue);
     expect(pickups[accidentBackpackId]!.ammo, 4);
     final gun = pickups[gunBackpackId]!;
     expect(gun.gun, isTrue);
-    expect(levelRegions.last.indoor, isTrue);
-    expect(levelRegions.last.bounds.contains(gun.position), isTrue);
+    expect(place(PlaceId.barracks).indoor, isTrue);
+    expect(place(PlaceId.barracks).bounds.contains(gun.position), isTrue);
   });
 
   test('interacting with a backpack collects its content', () {
-    final world = createStreetWorld();
+    final world = createTutorialWorld();
     final backpack = world.pickups[ammoBackpackId]!;
     world.player.component<PositionComponent>()
       ..position = backpack.position.step(Direction.south)
@@ -189,7 +193,7 @@ void main() {
   });
 
   test('without the pistol the player cannot shoot', () {
-    final world = createStreetWorld();
+    final world = createTutorialWorld();
     world.player.component<AmmoComponent>().loaded = 2;
     final events = const TurnScheduler().advance(world, const ShootAction());
     expect(events.whereType<DryFiredEvent>(), hasLength(1));
@@ -197,7 +201,7 @@ void main() {
   });
 
   test('stepping into the crossroads alerts the zombie at once', () {
-    final world = createStreetWorld();
+    final world = createTutorialWorld();
     world.player.component<PositionComponent>().position = const GridPoint(
       13,
       45,
@@ -227,10 +231,11 @@ void main() {
       return world.player.component<PositionComponent>().position;
     }
 
-    bool inside(GridPoint tile) => levelRegions.last.bounds.contains(tile);
+    bool inside(GridPoint tile) =>
+        place(PlaceId.barracks).bounds.contains(tile);
 
     test('the front door leads inside the barracks and back out', () {
-      final world = createStreetWorld();
+      final world = createTutorialWorld();
       final inDoor = walk(world, const GridPoint(16, 17), Direction.north);
       expect(inside(inDoor), isTrue);
       final outDoor = walk(world, inDoor, Direction.south);
@@ -238,31 +243,33 @@ void main() {
     });
 
     test('the back door opens on the street of the north district', () {
-      final world = createStreetWorld();
+      final world = createTutorialWorld();
       final backDoor = world.portals.keys.firstWhere(
-        (tile) => inside(tile) && tile.y == barracksOrigin.y + 2,
+        (tile) =>
+            inside(tile) && tile.y == place(PlaceId.barracks).origin.y + 2,
       );
       final out = walk(world, backDoor.step(Direction.south), Direction.north);
-      expect(levelRegions[1].bounds.contains(out), isTrue);
+      expect(place(PlaceId.northDistrict).bounds.contains(out), isTrue);
       expect(world.map.tileAt(out).isWalkable, isTrue);
       final back = walk(world, out, Direction.south);
       expect(back, backDoor.step(Direction.south));
     });
 
     test('the south road of the square goes down to the harbour and back', () {
-      final world = createStreetWorld();
-      final harbour = levelRegions.firstWhere(
+      final world = createTutorialWorld();
+      final harbour = tutorialPlaces.firstWhere(
         (region) => region.name == harbourName,
       );
       expect(harbour.cardImage, harbourCardImage);
       // The centre line of the road, one step before its last row.
       final road = GridPoint(
-        northDistrictOrigin.x + northDistrictRows.last.indexOf('|'),
-        northDistrictOrigin.y + northDistrictRows.length - 2,
+        place(PlaceId.northDistrict).origin.x +
+            northDistrictRows.last.indexOf('|'),
+        place(PlaceId.northDistrict).origin.y + northDistrictRows.length - 2,
       );
       final down = walk(world, road, Direction.south);
       expect(harbour.bounds.contains(down), isTrue);
-      expect(down.y, harbourOrigin.y + 1);
+      expect(down.y, place(PlaceId.harbour).origin.y + 1);
       expect(
         world.player.component<PositionComponent>().facing,
         Direction.south,
@@ -274,18 +281,21 @@ void main() {
 
   test('a sprinter prowls the middle of the car park, the backpack is '
       'further west', () {
-    final world = createStreetWorld();
+    final world = createTutorialWorld();
     final sprinters = zombiesIn(
       world,
-      levelRegions[1],
+      place(PlaceId.northDistrict),
     ).where((zombie) => zombie.kind == EntityKind.sprinter);
     final sprinter = sprinters.single.component<PositionComponent>().position;
     final backpack = world.pickups[parkingBackpackId]!.position;
-    final carPark = northDistrictRows[sprinter.y - northDistrictOrigin.y];
+    final carPark =
+        northDistrictRows[sprinter.y - place(PlaceId.northDistrict).origin.y];
     expect(carPark.contains('L'), isTrue);
     // Straight ahead of the road up from the square, so framing it with
     // Mario never swings the camera west to the backpack.
-    final road = northDistrictOrigin.x + northDistrictRows.last.indexOf('|');
+    final road =
+        place(PlaceId.northDistrict).origin.x +
+        northDistrictRows.last.indexOf('|');
     expect((sprinter.x - road).abs(), lessThanOrEqualTo(1));
     expect(road - backpack.x, greaterThanOrEqualTo(12));
   });
@@ -304,36 +314,41 @@ void main() {
     GridPoint northTile(String glyph) {
       final y = northDistrictRows.indexWhere((row) => row.contains(glyph));
       return GridPoint(
-        northDistrictOrigin.x + northDistrictRows[y].indexOf(glyph),
-        northDistrictOrigin.y + y,
+        place(PlaceId.northDistrict).origin.x +
+            northDistrictRows[y].indexOf(glyph),
+        place(PlaceId.northDistrict).origin.y + y,
       );
     }
 
     test('its open entrance leads to the ground floor and back', () {
-      final world = createStreetWorld();
+      final world = createTutorialWorld();
       final door = northTile('m');
       final inside = walk(world, door.step(Direction.south), Direction.north);
-      final ground = levelRegions.firstWhere(
-        (region) => region.bounds == mallGroundBounds,
+      final ground = tutorialPlaces.firstWhere(
+        (region) => region.bounds == place(PlaceId.mallGround).bounds,
       );
       expect(ground.indoor, isTrue);
       expect(ground.lights, isNotEmpty);
-      expect(mallGroundBounds.contains(inside), isTrue);
+      expect(place(PlaceId.mallGround).bounds.contains(inside), isTrue);
       final out = walk(world, inside, Direction.south);
       expect(out, door.step(Direction.south));
     });
 
     test('the stairs join the two floors', () {
-      final world = createStreetWorld();
+      final world = createTutorialWorld();
       final up = GridPoint(
-        mallGroundOrigin.x + mallGroundRows[2].indexOf('U'),
-        mallGroundOrigin.y + 2,
+        place(PlaceId.mallGround).origin.x + mallGroundRows[2].indexOf('U'),
+        place(PlaceId.mallGround).origin.y + 2,
       );
       final upstairs = walk(world, up, Direction.north);
-      expect(upstairs.x, greaterThanOrEqualTo(mallFirstOrigin.x));
       expect(
-        mallFirstRows[upstairs.y - mallFirstOrigin.y][upstairs.x -
-            mallFirstOrigin.x],
+        upstairs.x,
+        greaterThanOrEqualTo(place(PlaceId.mallFirst).origin.x),
+      );
+      expect(
+        mallFirstRows[upstairs.y -
+            place(PlaceId.mallFirst).origin.y][upstairs.x -
+            place(PlaceId.mallFirst).origin.x],
         'D',
       );
       final downstairs = walk(world, upstairs, Direction.north);
@@ -341,16 +356,16 @@ void main() {
     });
 
     test('the panel beyond the gate lifts the shutter in front of Luigi', () {
-      final world = createStreetWorld();
-      final bars = luigiBars();
-      final luigi = luigiTile();
+      final world = createTutorialWorld();
+      final bars = luigiBars;
+      final luigi = luigiTile;
       expect(luigi.y, lessThan(bars.top));
       expect(bars.left <= luigi.x && luigi.x <= bars.right, isTrue);
       final shutter = GridPoint(bars.left, bars.top);
       expect(world.map.tileAt(shutter).isWalkable, isFalse);
       expect(world.map.tileAt(shutter).blocksSight, isFalse);
 
-      final panel = mallPanelTile();
+      final panel = mallPanelTile;
       world.player.component<PositionComponent>()
         ..position = panel.step(Direction.south)
         ..facing = Direction.north;
@@ -362,7 +377,7 @@ void main() {
       expect(world.map.tileAt(shutter).isWalkable, isTrue);
       expect(world.controls, isEmpty);
       // The horde comes between the shutter and the panel.
-      for (final spawn in mallHordeSpawns()) {
+      for (final spawn in mallHordeSpawns) {
         expect(spawn.x, greaterThan(bars.right));
         expect(spawn.x, lessThanOrEqualTo(panel.x + 2));
       }
@@ -370,43 +385,52 @@ void main() {
 
     test('a backpack with two rounds waits at the far corner of the car '
         'park', () {
-      final backpack = createStreetWorld().pickups[parkingBackpackId]!;
+      final backpack = createTutorialWorld().pickups[parkingBackpackId]!;
       expect(backpack.ammo, 2);
       expect(backpack.active, isTrue);
       final row = northDistrictRows[backpack.position.y];
-      expect(row[backpack.position.x - northDistrictOrigin.x - 1], '=');
+      expect(
+        row[backpack.position.x - place(PlaceId.northDistrict).origin.x - 1],
+        '=',
+      );
     });
   });
 
   test('the harbour ends at the parapet over the sea', () {
-    final map = createStreetWorld().map;
+    final map = createTutorialWorld().map;
     final parapet = harbourRows.indexWhere((row) => row.startsWith('R'));
     for (var x = 0; x < harbourRows.first.length; x++) {
-      final below = GridPoint(harbourOrigin.x + x, harbourOrigin.y + parapet);
+      final below = GridPoint(
+        place(PlaceId.harbour).origin.x + x,
+        place(PlaceId.harbour).origin.y + parapet,
+      );
       expect(map.tileAt(below).isWalkable, isFalse);
       expect(map.tileAt(below).blocksSight, isFalse);
     }
   });
 
   test('the barracks has lamps and two carabinieri waiting in the dark', () {
-    expect(barracksLights(), isNotEmpty);
-    expect(barracksLights().where((light) => light.flickers), isNotEmpty);
-    expect(carabiniereSpawns(), hasLength(2));
-    final world = createStreetWorld();
-    for (final spawn in carabiniereSpawns()) {
+    expect(place(PlaceId.barracks).lights, isNotEmpty);
+    expect(
+      place(PlaceId.barracks).lights.where((light) => light.flickers),
+      isNotEmpty,
+    );
+    expect(carabiniereSpawns, hasLength(2));
+    final world = createTutorialWorld();
+    for (final spawn in carabiniereSpawns) {
       expect(world.map.tileAt(spawn).isWalkable, isTrue);
     }
   });
 
   test('the carabiniere in the middle steps south into the lamp light', () {
-    final world = createStreetWorld();
+    final world = createTutorialWorld();
     // Mario a few steps past the front door, where the carabinieri come out.
     world.player.component<PositionComponent>().position = GridPoint(
-      barracksOrigin.x + 10,
-      barracksOrigin.y + 11,
+      place(PlaceId.barracks).origin.x + 10,
+      place(PlaceId.barracks).origin.y + 11,
     );
-    final spawn = carabiniereSpawns().firstWhere(
-      (tile) => tile.x == barracksOrigin.x + 10,
+    final spawn = carabiniereSpawns.firstWhere(
+      (tile) => tile.x == place(PlaceId.barracks).origin.x + 10,
     );
     final carabiniere = createCarabiniere('carabiniere-0', spawn);
     world.entities[carabiniere.id] = carabiniere;
@@ -419,7 +443,7 @@ void main() {
       }
       before = position.position;
     }
-    bool lit(GridPoint tile) => barracksLights().any(
+    bool lit(GridPoint tile) => place(PlaceId.barracks).lights.any(
       (light) =>
           (light.tile.x - tile.x).abs() + (light.tile.y - tile.y).abs() <= 1,
     );
@@ -436,16 +460,16 @@ void main() {
     () {
       int count(List<FireSpot> spots, FireKind kind) =>
           spots.where((s) => s.kind == kind).length;
-      final street = streetFireSpots();
+      final street = streetFireSpots;
       expect(count(street, FireKind.car), 2);
       expect(count(street, FireKind.bin), 2);
       expect(count(street, FireKind.window), 3);
-      final all = outdoorFireSpots();
+      final all = outdoorFireSpots;
       expect(count(all, FireKind.car), 7);
       expect(count(all, FireKind.bin), 8);
       expect(count(all, FireKind.window), 11);
       expect(count(all, FireKind.campfire), 1);
-      final north = levelRegions[1].bounds;
+      final north = place(PlaceId.northDistrict).bounds;
       expect(
         all
             .where((spot) => spot.kind == FireKind.campfire)
@@ -456,11 +480,11 @@ void main() {
   );
 
   test('the camp burns at the closed east end of the north street', () {
-    final world = createStreetWorld();
+    final world = createTutorialWorld();
     final camp = world.campfires.single;
     final (x, y) = (
-      camp.x - northDistrictOrigin.x,
-      camp.y - northDistrictOrigin.y,
+      camp.x - place(PlaceId.northDistrict).origin.x,
+      camp.y - place(PlaceId.northDistrict).origin.y,
     );
     final row = northDistrictRows[y];
     expect(row.indexOf('B', x), lessThan(x + 4), reason: 'a dead end');
@@ -468,15 +492,15 @@ void main() {
   });
 
   test('the flagpole stands on the barracks forecourt', () {
-    final pole = flagpoleTile();
+    final pole = flagpoleTile;
     expect(barracksForecourt.contains(pole), isTrue);
-    expect(createStreetWorld().map.tileAt(pole).isWalkable, isFalse);
+    expect(createTutorialWorld().map.tileAt(pole).isWalkable, isFalse);
   });
 
   test('resting at the camp beyond the barracks asks the game to save', () {
-    final world = createStreetWorld();
+    final world = createTutorialWorld();
     final camp = world.campfires.single;
-    expect(campfireNames()[camp], 'Accampamento dietro la caserma');
+    expect(campfireNames[camp], 'Accampamento dietro la caserma');
     expect(world.map.tileAt(camp).isWalkable, isFalse);
     world.player.component<PositionComponent>()
       ..position = camp.step(Direction.west)
@@ -485,55 +509,76 @@ void main() {
     expect(events.whereType<CampfireUsedEvent>().single.at, camp);
   });
 
-  test('a save from before the north district is moved onto it', () {
-    final old = createStreetWorld().toJson();
-    // The old layout: a smaller map, the camp on the street behind the
-    // barracks and Mario resting beside it.
-    old['map'] = TileMap(
-      width: 106,
-      height: 52,
-      tiles: List<Tile>.filled(106 * 52, const Tile(TileKind.floor)),
-    ).toJson();
-    old['campfires'] = <Object?>[const GridPoint(21, 7).toJson()];
-    final entities = (old['entities']! as List<Object?>)
-        .cast<Map<String, Object?>>()
-        .where((entity) => entity['id'] == 'player')
-        .toList();
-    old['entities'] = entities;
+  group('saves', () {
+    Map<String, Object?> throughStorage(Map<String, Object?> json) =>
+        jsonDecode(jsonEncode(json)) as Map<String, Object?>;
 
-    final world = restoreStreetWorld(
-      jsonDecode(jsonEncode(old)) as Map<String, Object?>,
-    );
-    final current = createStreetWorld();
-    expect(world.map.width, current.map.width);
-    expect(world.campfires, current.campfires);
-    final position = world.player.component<PositionComponent>();
-    expect(world.map.tileAt(position.position).isWalkable, isTrue);
-    expect(
-      position.position.step(position.facing),
-      world.campfires.single,
-      reason: 'Mario faces the camp he rested at',
-    );
-    expect(world.entities.keys, unorderedEquals(current.entities.keys));
-  });
+    test('store what changed, not the whole map: a few kilobytes', () {
+      final world = createTutorialWorld();
+      final save = jsonEncode(saveTutorialWorld(world));
+      expect(save.length, lessThan(40 * 1024));
+      expect(saveTutorialWorld(world).containsKey('map'), isFalse);
+      expect(saveTutorialWorld(world)['mapChanges'], isEmpty);
+    });
 
-  test('a save on the current layout is resumed as it was', () {
-    final world = createStreetWorld();
-    world.player.component<PositionComponent>().position = const GridPoint(
-      16,
-      30,
-    );
-    final restored = restoreStreetWorld(
-      jsonDecode(jsonEncode(world.toJson())) as Map<String, Object?>,
-    );
-    expect(
-      restored.player.component<PositionComponent>().position,
-      const GridPoint(16, 30),
-    );
+    test('zombies killed or moved, backpacks collected, the lifted shutter '
+        'and Mario all survive a save and a load', () {
+      final world = createTutorialWorld();
+      final zombies = world.entities.values
+          .where((entity) => entity.kind != EntityKind.player)
+          .toList();
+      final killed = zombies[0];
+      final moved = zombies[1];
+      killed.component<HealthComponent>().current = 0;
+      final movedTo = moved.component<PositionComponent>().position.step(
+        Direction.north,
+      );
+      moved.component<PositionComponent>()
+        ..position = movedTo
+        ..facing = Direction.north;
+      world.pickups[ammoBackpackId]!
+        ..active = false
+        ..collected = true;
+      final panel = mallPanelTile;
+      world.player.component<PositionComponent>()
+        ..position = panel.step(Direction.south)
+        ..facing = Direction.north;
+      world.player.component<AmmoComponent>().loaded = 3;
+      const InteractAction().resolve(world);
+      final shutter = GridPoint(luigiBars.left, luigiBars.top);
+      expect(world.map.tileAt(shutter).isWalkable, isTrue);
+
+      final save = throughStorage(saveTutorialWorld(world));
+      expect(
+        save['mapChanges'],
+        hasLength(luigiBars.right - luigiBars.left + 1),
+      );
+      final restored = restoreTutorialWorld(save);
+
+      expect(restored.entities[killed.id]!.isAlive, isFalse);
+      expect(
+        restored.entities[moved.id]!.component<PositionComponent>().position,
+        movedTo,
+      );
+      expect(
+        restored.entities[moved.id]!.component<PositionComponent>().facing,
+        Direction.north,
+      );
+      expect(restored.pickups[ammoBackpackId]!.collected, isTrue);
+      expect(restored.pickups[ammoBackpackId]!.active, isFalse);
+      expect(restored.map.tileAt(shutter).isWalkable, isTrue);
+      expect(restored.controls, isEmpty);
+      expect(
+        restored.player.component<PositionComponent>().position,
+        panel.step(Direction.south),
+      );
+      expect(restored.player.component<AmmoComponent>().loaded, 3);
+      expect(restored.map.width, world.map.width);
+    });
   });
 
   test('the whole world survives a save and a load', () {
-    final world = createStreetWorld();
+    final world = createTutorialWorld();
     world.pickups[ammoBackpackId]!
       ..active = false
       ..collected = true;

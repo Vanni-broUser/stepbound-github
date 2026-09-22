@@ -1,0 +1,53 @@
+/// Inside the hypermarket, two floors in the barracks' style (rooms on a
+/// dark background):
+/// - `x` darkness, `W` shopfronts along the back wall, `w` front wall (on
+///   the first floor, the railing over the atrium), `I` shop partition, `S`
+///   shelves at the back of a shop, `Q` the anti-theft control panel:
+///   walls.
+/// - `E` entrance from the car park, `U` stairs up, `D` stairs down: doors.
+/// - `P` planter, `T` abandoned trolley, `K` kiosk, `BBB` bench, `G` gate
+///   post, `H` the shutter's bars, `L` Luigi behind them: obstacles.
+/// - `.` floor, `o` floor of a shop, `d` floor of the service area beyond
+///   the gate, `g` the gate standing open, `:` litter (noisy), `b` blood,
+///   `*` ceiling lamp, `+` flickering lamp, `c` where the zombies come in
+///   through the gate.
+// mall-ground-rows-start
+const List<String> mallGroundRows = <String>[
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  'xWWWWWWWWWWWWWWWWWWWWWWWUUUWWx',
+  'xWWWWWWWWWWWWWWWWWWWWWWWUUUWWx',
+  'x....:......*.........:.....bx',
+  'x..PP....TT......PP.........:x',
+  'x......*.......:.......*.....x',
+  'x.KK.......BBB.......KK......x',
+  'x......:...........b.........x',
+  'x..PP.......*...T......PP....x',
+  'x...:...................:....x',
+  'x..........BBB.....*.........x',
+  'x....*..........:.......P....x',
+  'x.T.........................Tx',
+  'x.......:.....*..............x',
+  'xwwwwwwwwwwwwwEEEwwwwwwwwwwwwx',
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+];
+// mall-ground-rows-end
+
+// mall-first-rows-start
+const List<String> mallFirstRows = <String>[
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  'xxxxxxxxxxxISSSSSIxxxxxxxxxxxxxxxxxx',
+  'xxxxxxxxxxxIoooooIxxxxxxxxxxxxxxxxxx',
+  'xWDDDWWWWWWIooLooIWWWWWWWWWWWWWWWWWx',
+  'xWDDDWWWWWWIHHHHHIWWWWWWWWWWWWWWQWWx',
+  'x......:............*......Gdddddddx',
+  'x..P....*.............T....gddcddcdx',
+  'x.........BBB.....KK.......gdcdddddx',
+  'x...*..........P........:..gddd+cddx',
+  'x.....T.......*.....bBBB...gddcddcdx',
+  'x..........*.............P.gdcdddddx',
+  'x..KK............:.........gdddcdddx',
+  'x..................*.......Gdddddddx',
+  'xwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwx',
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+];
+// mall-first-rows-end

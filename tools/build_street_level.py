@@ -2,16 +2,16 @@
 """Bake the backgrounds of the tutorial street, the north district and the
 harbour.
 
-Reads the ASCII rows from lib/core/levels/street_level.dart (between the
-`level-rows-start` / `level-rows-end`, `north-rows-start` /
-`north-rows-end` and `harbour-rows-start` / `harbour-rows-end` markers) and paints one 16x16 tile per glyph in 3/4 view:
-roofs, south-facing facades and shops, sidewalks with curbs, roads with
-centre lines and zebra crossings, a paved square with its fountain, a
-parking lot and the hypermarket, the seafront with its parapet, palms and
-murky water, wrecked cars, traffic lights, bins and
-corpses. Fires, the barracks flag, backpacks and characters are NOT baked:
-the game draws and animates them on top. Only scorch marks and the objects
-that burn are painted.
+Reads the ASCII rows from the place files in lib/core/levels/tutorial
+(between the `level-rows-start` / `level-rows-end`, `north-rows-start` /
+`north-rows-end` and `harbour-rows-start` / `harbour-rows-end` markers)
+and paints one 16x16 tile per glyph in 3/4 view: roofs, south-facing
+facades and shops, sidewalks with curbs, roads with centre lines and zebra
+crossings, a paved square with its fountain, a parking lot and the
+hypermarket, the seafront with its parapet, palms and murky water, wrecked
+cars, traffic lights, bins and corpses. Fires, the barracks flag,
+backpacks and characters are NOT baked: the game draws and animates them
+on top. Only scorch marks and the objects that burn are painted.
 
 Run from the repository root:  python tools/build_street_level.py
 """
@@ -25,7 +25,7 @@ import re
 from PIL import Image, ImageDraw
 
 TILE = 16
-LEVEL_DART = os.path.join("lib", "core", "levels", "street_level.dart")
+LEVELS_DIR = os.path.join("lib", "core", "levels", "tutorial")
 OUTPUT = os.path.join("assets", "levels", "first_street.png")
 NORTH_OUTPUT = os.path.join("assets", "levels", "north_district.png")
 HARBOUR_OUTPUT = os.path.join("assets", "levels", "harbour.png")
@@ -164,10 +164,15 @@ def paint_text(d, x, y, text, colour, missing=(), scale=1, tilted=()):
 
 
 def read_rows(marker: str = "level-rows") -> list[str]:
-    with open(LEVEL_DART, encoding="utf-8") as source:
-        text = source.read()
-    block = text.split(f"// {marker}-start", 1)[1].split(f"// {marker}-end", 1)[0]
-    return re.findall(r"'([^']+)'", block)
+    """The ASCII rows between `// <marker>-start` and `// <marker>-end`, in
+    whichever place file of lib/core/levels/tutorial holds them."""
+    for name in sorted(os.listdir(LEVELS_DIR)):
+        with open(os.path.join(LEVELS_DIR, name), encoding="utf-8") as source:
+            text = source.read()
+        if f"// {marker}-start" in text:
+            block = text.split(f"// {marker}-start", 1)[1].split(f"// {marker}-end", 1)[0]
+            return re.findall(r"'([^']+)'", block)
+    raise ValueError(f"no rows marked {marker} in {LEVELS_DIR}")
 
 
 def rect(d: ImageDraw.ImageDraw, x, y, w, h, c) -> None:

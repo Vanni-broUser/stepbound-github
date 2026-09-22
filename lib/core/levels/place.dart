@@ -1,0 +1,156 @@
+import 'package:stepbound/core/grid/grid_point.dart';
+import 'package:stepbound/core/grid/tile.dart';
+import 'package:stepbound/core/items/pickup.dart';
+import 'package:stepbound/core/world.dart';
+
+/// Every place of the game, so code can name the one it means.
+enum PlaceId { street, barracks, northDistrict, harbour, mallGround, mallFirst }
+
+/// What the glyphs of a place's ASCII map mean for movement and sight: the
+/// ones in [walls] block both, the ones in [obstacles] block movement but
+/// not sight (a wreck you can shoot over), the ones in [debris] are
+/// walkable but noisy. Anything else is floor.
+final class Legend {
+  const Legend({
+    required this.walls,
+    required this.obstacles,
+    this.debris = ':',
+  });
+
+  final String walls;
+  final String obstacles;
+  final String debris;
+
+  TileKind kindOf(String glyph) {
+    if (walls.contains(glyph)) {
+      return TileKind.wall;
+    }
+    if (obstacles.contains(glyph)) {
+      return TileKind.obstacle;
+    }
+    if (debris.contains(glyph)) {
+      return TileKind.debris;
+    }
+    return TileKind.floor;
+  }
+}
+
+/// A ceiling lamp, or daylight through a door, inside a building.
+final class LightSpot {
+  const LightSpot(this.tile, {this.flickers = false});
+
+  final GridPoint tile;
+  final bool flickers;
+}
+
+/// A place as a level describes it: its ASCII [rows], what they mean, its
+/// baked [background]. Indoors (a room on a dark background) it is lit by
+/// its lamps, `*` (steady) and `+` (flickering), and by daylight at the
+/// [daylight] glyphs. A place with a [cardImage] is announced, on the way
+/// in, by that picture and its [name] between two fades to black.
+final class PlaceSpec {
+  const PlaceSpec({
+    required this.id,
+    required this.rows,
+    required this.legend,
+    required this.background,
+    this.indoor = false,
+    this.daylight = '',
+    this.name,
+    this.cardImage,
+  });
+
+  final PlaceId id;
+  final List<String> rows;
+  final Legend legend;
+  final String background;
+  final bool indoor;
+  final String daylight;
+  final String? name;
+  final String? cardImage;
+}
+
+/// A place laid on the level's grid at [origin].
+final class Place {
+  Place(this.spec, this.origin);
+
+  final PlaceSpec spec;
+
+  /// Top-left tile on the shared grid.
+  final GridPoint origin;
+
+  PlaceId get id => spec.id;
+  List<String> get rows => spec.rows;
+  String get background => spec.background;
+  bool get indoor => spec.indoor;
+  String? get name => spec.name;
+  String? get cardImage => spec.cardImage;
+
+  int get width => rows.first.length;
+  int get height => rows.length;
+
+  late final GridRect bounds = GridRect(
+    origin.x,
+    origin.y,
+    origin.x + width - 1,
+    origin.y + height - 1,
+  );
+
+  /// Every tile on the shared grid, with its glyph.
+  Iterable<(GridPoint, String)> get glyphs sync* {
+    for (var y = 0; y < height; y++) {
+      for (var x = 0; x < width; x++) {
+        yield (GridPoint(origin.x + x, origin.y + y), rows[y][x]);
+      }
+    }
+  }
+
+  TileKind kindOf(String glyph) => spec.legend.kindOf(glyph);
+
+  /// The tiles showing [glyph], row by row.
+  List<GridPoint> tilesOf(String glyph) => <GridPoint>[
+    for (final (tile, found) in glyphs)
+      if (found == glyph) tile,
+  ];
+
+  /// The one tile showing [glyph].
+  GridPoint tileOf(String glyph) => tilesOf(glyph).single;
+
+  /// The top row of a door drawn with [glyph], west to east.
+  List<GridPoint> doorRow(String glyph) {
+    final tiles = tilesOf(glyph);
+    return tiles.where((tile) => tile.y == tiles.first.y).toList();
+  }
+
+  /// The walkable tiles of the place's row [y], west to east.
+  List<GridPoint> walkableRow(int y) => <GridPoint>[
+    for (var x = 0; x < width; x++)
+      if (Tile(kindOf(rows[y][x])).isWalkable)
+        GridPoint(origin.x + x, origin.y + y),
+  ];
+
+  /// Indoors, the lamps and the daylight at the doors; none outdoors.
+  late final List<LightSpot> lights = <LightSpot>[
+    if (indoor)
+      for (final (tile, glyph) in glyphs)
+        if (glyph == '*' || spec.daylight.contains(glyph))
+          LightSpot(tile)
+        else if (glyph == '+')
+          LightSpot(tile, flickers: true),
+  ];
+}
+
+/// Lays [specs] left to right on one grid, top-aligned, each farther from
+/// the others than the simulation reaches: what happens in one place never
+/// wakes the zombies of another. Places are joined by doors and roads.
+List<Place> layOutPlaces(List<PlaceSpec> specs) {
+  const gap = WorldState.simulationRadius + 2;
+  final places = <Place>[];
+  var x = 0;
+  for (final spec in specs) {
+    final place = Place(spec, GridPoint(x, 0));
+    places.add(place);
+    x += place.width + gap;
+  }
+  return places;
+}

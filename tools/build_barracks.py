@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Bake the inside of the carabinieri barracks.
 
-Reads the `barracks-rows` block of lib/core/levels/street_level.dart and
+Reads the `barracks-rows` block of lib/core/levels/tutorial/barracks.dart and
 paints a Pokemon-Emerald-style interior: the room floats on a black
 background, the back wall shows its face with the emblem, notice boards and
 shelves, and the floor is cluttered with desks, counters, cabinets and

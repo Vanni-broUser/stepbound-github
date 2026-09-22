@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:stepbound/core/core.dart';
+import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
 import 'package:stepbound/ui/blood_decor.dart';
@@ -75,39 +76,20 @@ final List<ZombieCard> zombieCards = <ZombieCard>[
     ),
 ];
 
-/// A story scene that can be watched again at a camp once it has been
-/// seen.
-final class Memory {
-  const Memory({
-    required this.title,
-    required this.scenes,
-    this.inHypermarket = false,
-  });
-
-  final String title;
-  final List<StoryScene> scenes;
-
-  /// Luigi's scene: only once it has really been played.
-  final bool inHypermarket;
-}
-
-/// The memories in the order they are lived.
-final List<Memory> memories = <Memory>[
-  const Memory(title: 'Il telegiornale', scenes: introScenes),
-  const Memory(title: 'La notte del contagio', scenes: outbreakScenes),
-  Memory(
-    title: 'Luigi al centro commerciale',
-    inHypermarket: true,
-    scenes: <StoryScene>[
-      for (final frame in TutorialDirector.luigiScene)
-        StoryScene(
-          image: frame.image,
-          speaker: frame.speaker,
-          text: frame.text,
-        ),
-    ],
-  ),
-];
+/// The pictures and lines of each memory.
+final Map<StoryMemory, List<StoryScene>> memoryScenes =
+    <StoryMemory, List<StoryScene>>{
+      StoryMemory.newsBroadcast: introScenes,
+      StoryMemory.outbreakNight: outbreakScenes,
+      StoryMemory.luigiTrapped: <StoryScene>[
+        for (final frame in MallScript.luigiScene)
+          StoryScene(
+            image: frame.image,
+            speaker: frame.speaker,
+            text: frame.text,
+          ),
+      ],
+    };
 
 enum _CampPage { home, zombies, confirmRestart }
 
@@ -115,8 +97,7 @@ enum _CampPage { home, zombies, confirmRestart }
 /// the zombie types met so far, or watch the story scenes seen so far.
 final class CampMenu extends StatefulWidget {
   const CampMenu({
-    required this.knownZombies,
-    required this.luigiSceneSeen,
+    required this.progress,
     required this.onSave,
     required this.onRestartLevel,
     required this.onClose,
@@ -124,8 +105,8 @@ final class CampMenu extends StatefulWidget {
     super.key,
   });
 
-  final Set<EntityKind> knownZombies;
-  final bool luigiSceneSeen;
+  /// The zombie types met and the story scenes seen so far.
+  final Progress progress;
   final Future<void> Function() onSave;
   final VoidCallback onRestartLevel;
   final VoidCallback onClose;
@@ -145,17 +126,15 @@ final class _CampMenuState extends State<CampMenu> {
   int _selectedZombie = 0;
   bool _watchingMemories = false;
 
-  bool _unlocked(Memory memory) =>
-      !memory.inHypermarket || widget.luigiSceneSeen;
-
-  /// Every story scene seen so far, one after the other.
+  /// Every story scene seen so far, one after the other, in the order
+  /// they were lived.
   List<StoryScene> get _seenScenes => <StoryScene>[
-    for (final memory in memories)
-      if (_unlocked(memory)) ...memory.scenes,
+    for (final memory in StoryMemory.values)
+      if (widget.progress.memories.contains(memory)) ...memoryScenes[memory]!,
   ];
 
   bool _known(ZombieCard card) =>
-      card.kind != null && widget.knownZombies.contains(card.kind);
+      card.kind != null && widget.progress.knownZombies.contains(card.kind);
 
   Future<void> _save() async {
     setState(() => _saving = true);
