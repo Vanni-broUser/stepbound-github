@@ -89,6 +89,14 @@ memoryScenes = <StoryMemory, List<StoryScene>>{
     for (final frame in MallScript.reunionScene)
       StoryScene(image: frame.image, speaker: frame.speaker, text: frame.text),
   ],
+  StoryMemory.priestMet: <StoryScene>[
+    for (final frame in PriestScript.meetingScene)
+      StoryScene(image: frame.image, speaker: frame.speaker, text: frame.text),
+  ],
+  StoryMemory.priestErrand: <StoryScene>[
+    for (final frame in PriestScript.dealScene)
+      StoryScene(image: frame.image, speaker: frame.speaker, text: frame.text),
+  ],
 };
 
 enum _CampPage { home, zombies, confirmRestart }
@@ -126,11 +134,12 @@ final class _CampMenuState extends State<CampMenu> {
   int _selectedZombie = 0;
   bool _watchingMemories = false;
 
-  /// Every story scene seen so far, one after the other, in the order
-  /// they were lived.
+  /// Every story scene seen so far, one after the other, in the order they
+  /// were lived: the harbour and the hypermarket can be played in either
+  /// order, and half of one before the other, so the memories are replayed
+  /// as [Progress.memories] holds them, not as the enum lists them.
   List<StoryScene> get _seenScenes => <StoryScene>[
-    for (final memory in StoryMemory.values)
-      if (widget.progress.memories.contains(memory)) ...memoryScenes[memory]!,
+    for (final memory in widget.progress.memories) ...memoryScenes[memory]!,
   ];
 
   bool _known(ZombieCard card) =>

@@ -4,12 +4,14 @@ import 'package:stepbound/game/tutorial/scripts/backpacks_script.dart';
 import 'package:stepbound/game/tutorial/scripts/barracks_script.dart';
 import 'package:stepbound/game/tutorial/scripts/mall_script.dart';
 import 'package:stepbound/game/tutorial/scripts/north_district_script.dart';
+import 'package:stepbound/game/tutorial/scripts/priest_script.dart';
 import 'package:stepbound/game/tutorial/scripts/street_script.dart';
 
 export 'package:stepbound/game/tutorial/scripts/backpacks_script.dart';
 export 'package:stepbound/game/tutorial/scripts/barracks_script.dart';
 export 'package:stepbound/game/tutorial/scripts/mall_script.dart';
 export 'package:stepbound/game/tutorial/scripts/north_district_script.dart';
+export 'package:stepbound/game/tutorial/scripts/priest_script.dart';
 export 'package:stepbound/game/tutorial/scripts/street_script.dart';
 
 /// A line shown in the dialogue box over the gameplay.
@@ -26,6 +28,12 @@ final class TutorialLine {
   const TutorialLine.luigi(this.text)
     : speaker = 'Luigi Rovaga',
       portrait = 'assets/story/portrait_luigi.png';
+
+  /// A line spoken by the priest of the Duomo, with his portrait over the
+  /// box.
+  const TutorialLine.priest(this.text)
+    : speaker = PriestScript.priest,
+      portrait = 'assets/story/portrait_priest.png';
 
   /// Set only when a person is talking.
   final String? speaker;
@@ -68,6 +76,10 @@ abstract interface class TutorialHost {
 
   /// Adds a zombie that comes out of the dark.
   void spawnZombie(Entity zombie);
+
+  /// Cuts down the zombies with those ids where they stand, someone else's
+  /// doing: Luigi with his axe once the shutter is up.
+  void killZombies(Iterable<String> zombieIds);
 
   /// Whether the player can already use the interact button.
   bool isUnlocked(HudElement element);
@@ -123,9 +135,9 @@ abstract class TutorialScript {
 }
 
 /// Runs the tutorial's scripts and shows their prompts one after the
-/// other: the backpacks, the first street, the barracks, the north district
-/// and the hypermarket. It records what the player comes to know in
-/// [progress].
+/// other: the backpacks, the first street, the barracks, the north
+/// district, the hypermarket and the Duomo. It records what the player
+/// comes to know in [progress].
 final class TutorialDirector {
   TutorialDirector({
     required this.world,
@@ -138,6 +150,7 @@ final class TutorialDirector {
       BarracksScript(this),
       NorthDistrictScript(this),
       MallScript(this),
+      PriestScript(this),
     ];
   }
 

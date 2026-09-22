@@ -31,7 +31,7 @@ export 'package:stepbound/core/levels/tutorial/street.dart';
 /// (mall.dart).
 const Legend outdoorLegend = Legend(
   walls: 'BHfKMGW',
-  obstacles: 'CXUvkDFTSOyJQaAnI~RNbp',
+  obstacles: 'CXUvkDFTSOyJQaAnI~RNbpx',
   debris: ':q',
 );
 const Legend barracksLegend = Legend(walls: 'xWQNSIw', obstacles: 'TCAh');
@@ -219,6 +219,49 @@ final List<FireSpot> outdoorFireSpots = <FireSpot>[
 /// Where the carabinieri zombies come out in the barracks.
 final List<GridPoint> carabiniereSpawns = _barracks.tilesOf('c');
 
+/// Where Don Angelo waits, on the sagrato just beyond the churchyard gate.
+final GridPoint priestTile = _harbour.tileOf('s');
+
+/// The two zombies pressed against the gate, west to east: the priest asks
+/// Mario to get rid of them before he will talk.
+final List<GridPoint> priestZombieTiles = _harbour.tilesOf('t');
+
+/// Their ids, `priest-zombie-0` and `priest-zombie-1`.
+const String priestZombiePrefix = 'priest-zombie-';
+
+/// The alley between the seafront road and the churchyard gate: standing
+/// here is standing in front of Don Angelo.
+final GridRect priestGateFront = () {
+  final alley = _harbour.tilesOf('x');
+  return GridRect(
+    alley.first.x,
+    alley.first.y + 1,
+    alley.last.x,
+    alley.last.y + 2,
+  );
+}();
+
+/// Coming this close to the alley is close enough for Don Angelo to hail
+/// Mario: the alley itself and the whole width of the seafront road in
+/// front of it, sidewalk to sidewalk, so he calls out whichever side of
+/// the road Mario walks down.
+final GridRect priestSceneTrigger = () {
+  final rows = _harbour.rows;
+  final x = priestGateFront.left - _harbour.origin.x;
+  // From the sidewalk under the palazzi, across the lanes, down to the
+  // sidewalk along the promenade.
+  var y = priestGateFront.bottom - _harbour.origin.y + 1;
+  do {
+    y++;
+  } while (rows[y][x] != '=');
+  return GridRect(
+    priestGateFront.left - 2,
+    priestGateFront.top,
+    priestGateFront.right + 2,
+    _harbour.origin.y + y,
+  );
+}();
+
 /// Where Luigi is stuck, behind the shutter of a shop on the first floor.
 final GridPoint luigiTile = _mallFirst.tileOf('L');
 
@@ -383,7 +426,7 @@ WorldState createTutorialWorld({int seed = 20260920}) {
               hasGun: false,
             ),
           );
-        case 'w' || 'z' || 'u' || 'r':
+        case 'w' || 'z' || 'u' || 'r' || 't':
           final kind = switch (glyph) {
             'z' => EntityKind.sprinter,
             'u' => EntityKind.brute,
@@ -392,13 +435,18 @@ WorldState createTutorialWorld({int seed = 20260920}) {
           };
           final index = zombieCounts[kind] ?? 0;
           zombieCounts[kind] = index + 1;
+          final priestIndex = priestZombieTiles.indexOf(point);
           entities.add(
             factory.zombie(
               // The barracks' carabinieri, spawned later, are
-              // `carabiniere-<n>`: the ones on the street keep apart.
-              id: kind == EntityKind.carabiniere
-                  ? 'street-carabiniere-$index'
-                  : '${kind.name}-$index',
+              // `carabiniere-<n>`: the ones on the street keep apart, and
+              // so do the two the priest wants gone.
+              id: switch (glyph) {
+                't' => '$priestZombiePrefix$priestIndex',
+                _ when kind == EntityKind.carabiniere =>
+                  'street-carabiniere-$index',
+                _ => '${kind.name}-$index',
+              },
               kind: kind,
               position: point,
             ),

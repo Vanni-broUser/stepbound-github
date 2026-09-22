@@ -1,8 +1,17 @@
 import 'package:stepbound/core/core.dart';
 
 /// Story scenes that can be watched again at a camp once they have been
-/// seen, in the order they are lived.
-enum StoryMemory { newsBroadcast, outbreakNight, luigiTrapped, luigiRescued }
+/// seen. The harbour and the hypermarket can be played in either order, so
+/// what counts is not this list's order but the order they were
+/// remembered in: see [Progress.memories].
+enum StoryMemory {
+  newsBroadcast,
+  outbreakNight,
+  luigiTrapped,
+  luigiRescued,
+  priestMet,
+  priestErrand,
+}
 
 /// What the player has come to know over the whole game: the zombie types
 /// met and the story scenes seen. Unlike the tutorial's lessons, which
@@ -35,6 +44,10 @@ final class Progress {
   );
 
   final Set<EntityKind> knownZombies;
+
+  /// The scenes seen so far, in the order they were lived: a `Set` keeps
+  /// what was put in it first, and a save writes and reads it in that same
+  /// order, so the camp replays them as the player met them.
   final Set<StoryMemory> memories;
 
   void meet(EntityKind kind) => knownZombies.add(kind);

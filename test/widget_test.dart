@@ -18,9 +18,10 @@ import 'package:stepbound/ui/title_splash.dart';
 Future<SaveRepository> _startNewGame(
   WidgetTester tester, {
   SaveRepository? saves,
+  GameAudio? audio,
 }) async {
   final repository = saves ?? MemorySaveRepository();
-  await tester.pumpWidget(StepboundApp(saves: repository));
+  await tester.pumpWidget(StepboundApp(saves: repository, audio: audio));
   await tester.pump();
   await tester.tap(find.byKey(const ValueKey<String>('menu-new-game')));
   await tester.pump();
@@ -45,8 +46,11 @@ Future<void> _waitForGame(WidgetTester tester) async {
 }
 
 /// From inside `tester.runAsync`, like everything that loads the game.
-Future<void> _pumpAppThroughIntro(WidgetTester tester) async {
-  await _startNewGame(tester);
+Future<void> _pumpAppThroughIntro(
+  WidgetTester tester, {
+  GameAudio? audio,
+}) async {
+  await _startNewGame(tester, audio: audio);
   final intro = find.byKey(const ValueKey<String>('story-intro'));
   for (var i = 0; i < _introTapCount; i++) {
     await tester.tap(intro);
@@ -84,8 +88,11 @@ Future<void> _pumpBlackFade(WidgetTester tester) async {
 }
 
 /// Only from inside `tester.runAsync`.
-Future<StepboundGame> _pumpReadyGame(WidgetTester tester) async {
-  await _pumpAppThroughIntro(tester);
+Future<StepboundGame> _pumpReadyGame(
+  WidgetTester tester, {
+  GameAudio? audio,
+}) async {
+  await _pumpAppThroughIntro(tester, audio: audio);
   final gameState = tester.state<GameWidgetState<StepboundGame>>(
     find.byType(GameWidget<StepboundGame>),
   );
@@ -283,7 +290,8 @@ void main() {
     tester,
   ) {
     return tester.runAsync(() async {
-      final game = await _pumpReadyGame(tester);
+      final audio = SilentAudio();
+      final game = await _pumpReadyGame(tester, audio: audio);
 
       final player = game.simulation.player;
       expect(
@@ -314,11 +322,19 @@ void main() {
         findsOneWidget,
       );
 
+      expect(audio.played, contains(Sfx.gameOver));
+      expect(audio.stopped, isEmpty);
+
       await tester.tap(find.byKey(const ValueKey<String>('restart-button')));
       await tester.pump();
       expect(
         find.byKey(const ValueKey<String>('game-over-overlay')),
         findsNothing,
+      );
+      expect(
+        audio.stopped,
+        contains(Sfx.gameOver),
+        reason: 'the sting is cut: it must not play on over the new game',
       );
     });
   });

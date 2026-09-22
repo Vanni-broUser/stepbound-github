@@ -28,7 +28,10 @@
 /// - Park: `g` grass, floor; `p` broken playground ride, an obstacle.
 /// - `h` door of the Bar Arcobaleno, `j` where the hypermarket's fire exit
 ///   lands behind it: doors.
-/// - Zombies: `w` wanderer, `z` sprinter, `u` brute, `r` carabiniere.
+/// - Duomo: `x` the churchyard gate, an obstacle you can see through; `s`
+///   where Don Angelo waits behind it (floor, he is drawn in game).
+/// - Zombies: `w` wanderer, `z` sprinter, `u` brute, `r` carabiniere; `t`
+///   the two wanderers outside the churchyard gate.
 /// - `@` player, `w` wanderer.
 /// - Backpacks: `1` two rounds, there from the start; `2` four rounds by the
 ///   accident, waiting there from the start (the zombie guards it); `4` two

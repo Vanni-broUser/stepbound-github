@@ -260,8 +260,14 @@ final class _StepboundAppState extends State<StepboundApp> {
     ),
     GameOverCover() => _GameOverOverlay(
       fromSave: _hasSave,
-      onRestart: () => unawaited(_restartGame()),
-      onMenu: _backToMenu,
+      onRestart: () {
+        _audio.stop(Sfx.gameOver);
+        unawaited(_restartGame());
+      },
+      onMenu: () {
+        _audio.stop(Sfx.gameOver);
+        _backToMenu();
+      },
     ),
   };
 

@@ -8,8 +8,9 @@ Reads the ASCII rows from the place files in lib/core/levels/tutorial
 and paints one 16x16 tile per glyph in 3/4 view: roofs, south-facing
 facades and shops, sidewalks with curbs, roads with centre lines and zebra
 crossings, a paved square with its fountain, a parking lot and the
-hypermarket, the seafront with its parapet, palms and murky water, wrecked
-cars, traffic lights, bins and corpses. Fires, the barracks flag,
+hypermarket, the seafront with its parapet, palms and murky water, the
+Duomo behind its churchyard gate, wrecked cars, traffic lights, bins and
+corpses. Fires, the barracks flag,
 backpacks and characters are NOT baked: the game draws and animates them
 on top. Only scorch marks and the objects that burn are painted.
 
@@ -107,10 +108,10 @@ NORTH_STOREFRONTS = {
     ],
 }
 HARBOUR_STOREFRONTS = {
-    1: [(65, 5, "arcobaleno")],  # up the alley, its door `h` at column 67
-    9: [
-        (44, 6, "gelateria"),
-        (68, 6, "pescheria"),  # past the alley, with the palazzi east of it
+    7: [(75, 5, "arcobaleno")],  # up the alley, its door `h` at column 77
+    15: [
+        (54, 6, "gelateria"),
+        (78, 6, "pescheria"),  # past the alley, with the palazzi east of it
     ],
 }
 RAINBOW = [(220, 60, 50), (240, 150, 50), (240, 220, 70), (90, 190, 80),
@@ -1475,6 +1476,36 @@ def paint_road_block(d, px, py):
     rect(d, px + 5, py + 6, 1, 4, (90, 88, 84))  # crack
 
 
+def paint_gate(d, level, px, py, x, y):
+    """The churchyard gate of the Duomo, across the alley: wrought iron
+    railings between two stone piers, the leaves chained shut. Painted in
+    its own tile, so whoever stands behind it is drawn over it in game."""
+    iron, shine, rust = (38, 38, 42), (92, 94, 100), (122, 74, 44)
+    rect(d, px, py + 13, 16, 3, shade(PAVING, -30))  # the threshold slab
+    left_pier = level.at(x - 1, y) != "x"
+    right_pier = level.at(x + 1, y) != "x"
+    for bx in range(px + (5 if left_pier else 0), px + (11 if right_pier else 16), 3):
+        rect(d, bx, py + 1, 2, 13, iron)
+        rect(d, bx, py + 1, 1, 13, shine)
+        rect(d, bx, py, 2, 1, iron)  # spear finial
+    rect(d, px, py + 3, 16, 2, iron)  # top rail
+    rect(d, px, py + 3, 16, 1, shine)
+    rect(d, px, py + 9, 16, 1, iron)  # mid rail
+    if left_pier or right_pier:
+        sx = px if left_pier else px + 11
+        rect(d, sx, py - 1, 5, 17, OLD_TOWN_STONE[0])
+        rect(d, sx, py - 1, 5, 2, shade(OLD_TOWN_STONE[0], 16))
+        rect(d, sx + 4, py - 1, 1, 17, shade(OLD_TOWN_STONE[0], -40))
+        rect(d, sx, py + 5, 5, 1, shade(OLD_TOWN_STONE[0], -26))
+        rect(d, sx, py + 11, 5, 1, shade(OLD_TOWN_STONE[0], -26))
+    else:  # the chain and padlock where the two leaves meet
+        rect(d, px + 7, py + 2, 2, 12, iron)
+        for cy in range(py + 5, py + 12, 2):
+            rect(d, px + 5, cy, 6, 1, rust)
+        rect(d, px + 6, py + 7, 4, 4, shade(rust, 22))
+        rect(d, px + 7, py + 8, 2, 2, iron)
+
+
 def paint_car(d, px, py, body, burnt=False, flipped=False):
     """Side-on car filling two tiles, wheels on the tile bottom."""
     x, y = px - 1, py + 15
@@ -1887,6 +1918,8 @@ def bake(level: Level, rng: random.Random, output: str) -> None:
                 paint_trolley(d, px, py, tipped=(x + y) % 2 == 0)
             elif glyph == "J":
                 paint_road_block(d, px, py)
+            elif glyph == "x":
+                paint_gate(d, level, px, py, x, y)
             elif glyph == "a" and level.at(x - 1, y) != "a":
                 paint_ambulance(d, px, py)
             elif glyph == "Q":
