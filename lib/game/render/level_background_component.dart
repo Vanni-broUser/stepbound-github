@@ -13,6 +13,10 @@ final class LevelBackgroundComponent extends Component {
 
   final String assetPath;
   final ui.Offset offset;
+
+  /// Cleared by the game while the place is out of the camera's view, so
+  /// the far places' big images are not drawn every frame.
+  bool onScreen = true;
   ui.Image? _image;
   final ui.Paint _paint = ui.Paint()
     ..isAntiAlias = false
@@ -27,7 +31,7 @@ final class LevelBackgroundComponent extends Component {
   @override
   void render(ui.Canvas canvas) {
     final image = _image;
-    if (image != null) {
+    if (image != null && onScreen) {
       canvas.drawImage(image, offset, _paint);
     }
   }

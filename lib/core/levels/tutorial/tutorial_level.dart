@@ -1,0 +1,424 @@
+import 'dart:math' as math;
+
+import 'package:stepbound/core/entities/balance.dart';
+import 'package:stepbound/core/entities/entity.dart';
+import 'package:stepbound/core/entities/entity_factory.dart';
+import 'package:stepbound/core/grid/grid_point.dart';
+import 'package:stepbound/core/grid/tile.dart';
+import 'package:stepbound/core/grid/tile_map.dart';
+import 'package:stepbound/core/items/pickup.dart';
+import 'package:stepbound/core/levels/place.dart';
+import 'package:stepbound/core/levels/tutorial/barracks.dart';
+import 'package:stepbound/core/levels/tutorial/harbour.dart';
+import 'package:stepbound/core/levels/tutorial/mall.dart';
+import 'package:stepbound/core/levels/tutorial/north_district.dart';
+import 'package:stepbound/core/levels/tutorial/street.dart';
+import 'package:stepbound/core/seeded_random.dart';
+import 'package:stepbound/core/world.dart';
+
+export 'package:stepbound/core/levels/tutorial/barracks.dart';
+export 'package:stepbound/core/levels/tutorial/harbour.dart';
+export 'package:stepbound/core/levels/tutorial/mall.dart';
+export 'package:stepbound/core/levels/tutorial/north_district.dart';
+export 'package:stepbound/core/levels/tutorial/street.dart';
+
+/// The glyphs of the street, the north district and the harbour (see
+/// street.dart), of the barracks (barracks.dart) and of the hypermarket
+/// (mall.dart).
+const Legend outdoorLegend = Legend(
+  walls: 'BHfKMG',
+  obstacles: 'CXUvkDFTSOyJQaAnI~RNb',
+  debris: ':q',
+);
+const Legend barracksLegend = Legend(walls: 'xWQNSIw', obstacles: 'TCAh');
+const Legend mallLegend = Legend(walls: 'xWwISQ', obstacles: 'PTKBGHL');
+
+/// The card shown on the way into the harbour.
+const String harbourName = 'Porto e centro storico';
+const String harbourCardImage = 'assets/story/scene_harbour.jpg';
+
+/// The tutorial: the street where Mario wakes up, the inside of the
+/// carabinieri barracks, the north district behind it with the two floors
+/// of its hypermarket, and the harbour south of that. Backgrounds are baked
+/// by tools/build_street_level.py, build_barracks.py and build_mall.py.
+final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
+  PlaceSpec(
+    id: PlaceId.street,
+    rows: streetLevelRows,
+    legend: outdoorLegend,
+    background: 'assets/levels/first_street.png',
+  ),
+  PlaceSpec(
+    id: PlaceId.barracks,
+    rows: barracksRows,
+    legend: barracksLegend,
+    background: 'assets/levels/barracks.png',
+    indoor: true,
+    daylight: 'EO',
+  ),
+  PlaceSpec(
+    id: PlaceId.northDistrict,
+    rows: northDistrictRows,
+    legend: outdoorLegend,
+    background: 'assets/levels/north_district.png',
+  ),
+  PlaceSpec(
+    id: PlaceId.harbour,
+    rows: harbourRows,
+    legend: outdoorLegend,
+    background: 'assets/levels/harbour.png',
+    name: harbourName,
+    cardImage: harbourCardImage,
+  ),
+  PlaceSpec(
+    id: PlaceId.mallGround,
+    rows: mallGroundRows,
+    legend: mallLegend,
+    background: 'assets/levels/mall_ground.png',
+    indoor: true,
+    daylight: 'EU',
+  ),
+  PlaceSpec(
+    id: PlaceId.mallFirst,
+    rows: mallFirstRows,
+    legend: mallLegend,
+    background: 'assets/levels/mall_first.png',
+    indoor: true,
+    // The stairs, and the panel's screen.
+    daylight: 'DQL',
+  ),
+]);
+
+final Map<PlaceId, Place> _placesById = <PlaceId, Place>{
+  for (final place in tutorialPlaces) place.id: place,
+};
+
+Place place(PlaceId id) => _placesById[id]!;
+
+/// The place [tile] belongs to, if any.
+Place? placeAt(GridPoint tile) {
+  for (final place in tutorialPlaces) {
+    if (place.bounds.contains(tile)) {
+      return place;
+    }
+  }
+  return null;
+}
+
+final Place _street = place(PlaceId.street);
+final Place _barracks = place(PlaceId.barracks);
+final Place _north = place(PlaceId.northDistrict);
+final Place _harbour = place(PlaceId.harbour);
+final Place _mallGround = place(PlaceId.mallGround);
+final Place _mallFirst = place(PlaceId.mallFirst);
+
+Iterable<Place> get _outdoors => tutorialPlaces.where((place) => !place.indoor);
+
+/// The zombie waiting on the east arm of the crossroads.
+const String tutorialZombieId = 'wanderer-0';
+
+/// Backpack ids, see the glyph lists in street.dart and barracks.dart.
+const String ammoBackpackId = 'backpack-ammo';
+const String parkingBackpackId = 'backpack-parking';
+const String accidentBackpackId = 'backpack-accident';
+const String gunBackpackId = 'backpack-gun';
+
+/// Walking into the crossroads makes the tutorial zombie notice the player
+/// even if it is not looking that way.
+const GridRect tutorialZombieTrigger = GridRect(14, 43, 23, 49);
+
+/// The forecourt in front of the barracks: reaching it makes Mario speak.
+const GridRect barracksForecourt = GridRect(13, 17, 19, 18);
+
+/// Camps where the player can save, and what a save there is called.
+const Map<String, String> _campNames = <String, String>{
+  'S': 'Accampamento dietro la caserma',
+};
+
+/// Campfires, by tile, with the name shown in the save slots.
+final Map<GridPoint, String> campfireNames = <GridPoint, String>{
+  for (final place in _outdoors)
+    for (final (point, glyph) in place.glyphs)
+      if (_campNames.containsKey(glyph)) point: _campNames[glyph]!,
+};
+
+/// The flagpole planted on the forecourt, where the tricolour flies.
+final GridPoint flagpoleTile = _street.tileOf('I');
+
+enum FireKind { car, bin, window, campfire }
+
+/// Where an animated fire burns, in tile coordinates of its tile (the left
+/// or top tile for a car).
+final class FireSpot {
+  const FireSpot(this.tile, this.kind, {this.vertical = false});
+
+  final GridPoint tile;
+  final FireKind kind;
+
+  /// True for a car parked north-south.
+  final bool vertical;
+}
+
+List<FireSpot> _firesIn(Place place) {
+  final rows = place.rows;
+  final spots = <FireSpot>[];
+  for (var y = 0; y < rows.length; y++) {
+    for (var x = 0; x < rows[y].length; x++) {
+      final glyph = rows[y][x];
+      final tile = GridPoint(place.origin.x + x, place.origin.y + y);
+      final carStart = glyph == 'X' && (x == 0 || rows[y][x - 1] != 'X');
+      final verticalCarStart =
+          glyph == 'k' && (y == 0 || rows[y - 1][x] != 'k');
+      final spot = switch (glyph) {
+        'F' => FireSpot(tile, FireKind.bin),
+        'f' => FireSpot(tile, FireKind.window),
+        'S' => FireSpot(tile, FireKind.campfire),
+        _ when carStart => FireSpot(tile, FireKind.car),
+        _ when verticalCarStart => FireSpot(tile, FireKind.car, vertical: true),
+        _ => null,
+      };
+      if (spot != null) {
+        spots.add(spot);
+      }
+    }
+  }
+  return spots;
+}
+
+/// Fires burning on the first street.
+final List<FireSpot> streetFireSpots = _firesIn(_street);
+
+/// Fires of every outdoor place.
+final List<FireSpot> outdoorFireSpots = <FireSpot>[
+  for (final place in _outdoors) ..._firesIn(place),
+];
+
+/// Where the carabinieri zombies come out in the barracks.
+final List<GridPoint> carabiniereSpawns = _barracks.tilesOf('c');
+
+/// Where Luigi is stuck, behind the shutter of a shop on the first floor.
+final GridPoint luigiTile = _mallFirst.tileOf('L');
+
+/// The shutter's bars, which the control panel lifts.
+final GridRect luigiBars = () {
+  final bars = _mallFirst.tilesOf('H');
+  return GridRect(bars.first.x, bars.first.y, bars.last.x, bars.last.y);
+}();
+
+/// Walking up to the shutter (the two rows of corridor in front of it)
+/// starts Luigi's scene.
+final GridRect luigiSceneTrigger = GridRect(
+  luigiBars.left - 1,
+  luigiBars.bottom + 1,
+  luigiBars.right + 1,
+  luigiBars.bottom + 2,
+);
+
+/// The anti-theft control panel beyond the gate.
+final GridPoint mallPanelTile = _mallFirst.tileOf('Q');
+
+/// Where the zombies come in through the gate after Luigi's warning.
+final List<GridPoint> mallHordeSpawns = _mallFirst.tilesOf('c');
+
+/// Doors [from] one place [to] another, tile by tile in order: stepping on
+/// a tile of [from] lands on the tile of [to] one step towards [facing].
+Map<GridPoint, Portal> _pairedDoors(
+  List<GridPoint> from,
+  List<GridPoint> to,
+  Direction facing,
+) {
+  assert(from.length == to.length, 'doors of different widths');
+  return <GridPoint, Portal>{
+    for (var i = 0; i < from.length; i++)
+      from[i]: Portal(to: to[i].step(facing), facing: facing),
+  };
+}
+
+/// Every door, both ways:
+/// - the barracks' front door on the street and its back door onto the
+///   north district;
+/// - the road leaving the bottom of the north district, which is the one
+///   entering the top of the harbour;
+/// - the hypermarket's entrance from the car park, and its stairs between
+///   the two floors (both flights climb into the back wall: the lower step
+///   of each flight is where Mario lands).
+Map<GridPoint, Portal> _portals() {
+  final northEdge = _north.walkableRow(_north.height - 1);
+  final harbourEdge = _harbour.walkableRow(0);
+  final mallDoor = _north.doorRow('m');
+  final entrance = _mallGround.doorRow('E');
+  final up = _mallGround.doorRow('U');
+  final down = _mallFirst.doorRow('D');
+  return <GridPoint, Portal>{
+    ..._pairedDoors(
+      <GridPoint>[_street.tileOf('E')],
+      <GridPoint>[_barracks.tileOf('E')],
+      Direction.north,
+    ),
+    ..._pairedDoors(
+      <GridPoint>[_barracks.tileOf('E')],
+      <GridPoint>[_street.tileOf('E')],
+      Direction.south,
+    ),
+    ..._pairedDoors(
+      <GridPoint>[_barracks.tileOf('O')],
+      <GridPoint>[_north.tileOf('e')],
+      Direction.north,
+    ),
+    ..._pairedDoors(
+      <GridPoint>[_north.tileOf('e')],
+      <GridPoint>[_barracks.tileOf('O')],
+      Direction.south,
+    ),
+    ..._pairedDoors(northEdge, harbourEdge, Direction.south),
+    ..._pairedDoors(harbourEdge, northEdge, Direction.north),
+    ..._pairedDoors(mallDoor, entrance, Direction.north),
+    ..._pairedDoors(entrance, mallDoor, Direction.south),
+    ..._pairedDoors(up, down, Direction.south),
+    ..._pairedDoors(down, up, Direction.south),
+  };
+}
+
+/// The level as the player finds it at the start: the map of every place,
+/// Mario on the street, the zombies, the backpacks, the doors, the camp and
+/// the panel.
+WorldState createTutorialWorld({int seed = 20260920}) {
+  final factory = EntityFactory(BalanceConfig.standard());
+  final entities = <Entity>[];
+  final pickups = <Pickup>[];
+  final width = tutorialPlaces
+      .map((place) => place.bounds.right + 1)
+      .reduce(math.max);
+  final height = tutorialPlaces
+      .map((place) => place.bounds.bottom + 1)
+      .reduce(math.max);
+  final kinds = List<TileKind>.filled(width * height, TileKind.wall);
+  final zombieCounts = <EntityKind, int>{};
+
+  for (final place in tutorialPlaces) {
+    for (final (point, glyph) in place.glyphs) {
+      kinds[point.y * width + point.x] = place.kindOf(glyph);
+    }
+  }
+  for (final place in _outdoors) {
+    for (final (point, glyph) in place.glyphs) {
+      switch (glyph) {
+        case '@':
+          // The tutorial starts unarmed and without bullets.
+          entities.add(
+            factory.player(
+              id: 'player',
+              position: point,
+              health: 1,
+              loadedAmmo: 0,
+              reserveAmmo: 0,
+              hasGun: false,
+            ),
+          );
+        case 'w' || 'z' || 'u' || 'r':
+          final kind = switch (glyph) {
+            'z' => EntityKind.sprinter,
+            'u' => EntityKind.brute,
+            'r' => EntityKind.carabiniere,
+            _ => EntityKind.wanderer,
+          };
+          final index = zombieCounts[kind] ?? 0;
+          zombieCounts[kind] = index + 1;
+          entities.add(
+            factory.zombie(
+              // The barracks' carabinieri, spawned later, are
+              // `carabiniere-<n>`: the ones on the street keep apart.
+              id: kind == EntityKind.carabiniere
+                  ? 'street-carabiniere-$index'
+                  : '${kind.name}-$index',
+              kind: kind,
+              position: point,
+            ),
+          );
+        case '1':
+          pickups.add(Pickup(id: ammoBackpackId, position: point, ammo: 2));
+        case '2':
+          pickups.add(Pickup(id: accidentBackpackId, position: point, ammo: 4));
+        case '4':
+          pickups.add(Pickup(id: parkingBackpackId, position: point, ammo: 2));
+      }
+    }
+  }
+  pickups.add(
+    Pickup(id: gunBackpackId, position: _barracks.tileOf('3'), gun: true),
+  );
+
+  return WorldState(
+    map: TileMap(
+      width: width,
+      height: height,
+      tiles: <Tile>[for (final kind in kinds) Tile(kind)],
+    ),
+    entities: entities,
+    pickups: pickups,
+    alertTriggers: const <String, GridRect>{
+      tutorialZombieId: tutorialZombieTrigger,
+    },
+    portals: _portals(),
+    campfires: campfireNames.keys,
+    controls: <GridPoint, GridRect>{mallPanelTile: luigiBars},
+    playerId: 'player',
+    random: SeededRandom(seed),
+  );
+}
+
+/// The world as a save stores it: everything that can change (Mario, the
+/// zombies, dead or alive, wherever they stand, the backpacks and whether
+/// they were collected, the panels), but of the map only the tiles that
+/// differ from the level's (the lifted shutter): the level rebuilds the
+/// rest. The dark gaps between places made a full map most of a save.
+Map<String, Object?> saveTutorialWorld(WorldState world) {
+  final level = createTutorialWorld().map;
+  final map = world.map;
+  return <String, Object?>{
+    ...world.toJson(includeMap: false),
+    'mapChanges': <Object?>[
+      for (var y = 0; y < map.height; y++)
+        for (var x = 0; x < map.width; x++)
+          if (level.tileAt(GridPoint(x, y)).kind !=
+              map.tileAt(GridPoint(x, y)).kind)
+            <String, Object?>{
+              'x': x,
+              'y': y,
+              'kind': map.tileAt(GridPoint(x, y)).kind.name,
+            },
+    ],
+  };
+}
+
+/// A world resumed from a [saveTutorialWorld] save: the level's map with
+/// the saved changes, and everything else as it was.
+WorldState restoreTutorialWorld(Map<String, Object?> json) {
+  final map = createTutorialWorld().map;
+  for (final change
+      in (json['mapChanges']! as List<Object?>).cast<Map<String, Object?>>()) {
+    map.setTile(
+      GridPoint(change['x']! as int, change['y']! as int),
+      Tile(TileKind.values.byName(change['kind']! as String)),
+    );
+  }
+  return WorldState.fromJson(json, map: map);
+}
+
+/// A wanderer coming in through the hypermarket's gate at [position],
+/// looking west down the corridor.
+Entity createMallZombie(String id, GridPoint position) {
+  return EntityFactory(
+    BalanceConfig.standard(),
+  ).zombie(id: id, kind: EntityKind.wanderer, position: position);
+}
+
+/// A carabiniere zombie coming out of the dark at [position].
+Entity createCarabiniere(String id, GridPoint position) {
+  return EntityFactory(BalanceConfig.standard()).zombie(
+    id: id,
+    kind: EntityKind.carabiniere,
+    position: position,
+    facing: Direction.south,
+  );
+}

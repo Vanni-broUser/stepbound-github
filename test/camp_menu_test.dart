@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/core/core.dart';
+import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/ui/camp_menu.dart';
 import 'package:stepbound/ui/story_intro.dart';
 
@@ -29,8 +30,14 @@ void main() {
       MaterialApp(
         home: CampMenu(
           key: ValueKey<Object>((known, luigi)),
-          knownZombies: known,
-          luigiSceneSeen: luigi,
+          progress: Progress(
+            knownZombies: known,
+            memories: <StoryMemory>[
+              StoryMemory.newsBroadcast,
+              StoryMemory.outbreakNight,
+              if (luigi) StoryMemory.luigiTrapped,
+            ],
+          ),
           onSave: () async => saves++,
           onRestartLevel: () => restarts++,
           onClose: () => closes++,

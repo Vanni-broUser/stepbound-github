@@ -19,7 +19,7 @@ typedef SfxCue = ({Sfx sfx, double volume});
 /// player of its own, so tests can drive it tick by tick.
 final class Soundscape {
   Soundscape({required this.world, Iterable<FireSpot>? fires, Random? random})
-    : fires = List<FireSpot>.unmodifiable(fires ?? streetFireSpots()),
+    : fires = List<FireSpot>.unmodifiable(fires ?? streetFireSpots),
       _random = random ?? Random();
 
   /// Tiles within which a zombie that knows where Mario is turns the music.

@@ -63,7 +63,9 @@ final class WorldState {
     }
   }
 
-  factory WorldState.fromJson(Map<String, Object?> json) {
+  /// A world from [toJson]. A [map] given here is used instead of the one
+  /// in [json], which a save may leave out (see `saveTutorialWorld`).
+  factory WorldState.fromJson(Map<String, Object?> json, {TileMap? map}) {
     final encodedEntities = json['entities']! as List<Object?>;
     final encodedNoises = json['pendingNoises']! as List<Object?>;
     final encodedEvents = json['events']! as List<Object?>;
@@ -79,7 +81,7 @@ final class WorldState {
     final encodedControls =
         json['controls'] as List<Object?>? ?? const <Object?>[];
     return WorldState(
-      map: TileMap.fromJson(json['map']! as Map<String, Object?>),
+      map: map ?? TileMap.fromJson(json['map']! as Map<String, Object?>),
       entities: encodedEntities.map(
         (entity) => Entity.fromJson(entity! as Map<String, Object?>),
       ),
@@ -162,7 +164,12 @@ final class WorldState {
     return null;
   }
 
-  Iterable<Entity> actorsInSimulationRadius({int radius = 40}) sync* {
+  /// Tiles (Manhattan) around the player within which actors take turns.
+  static const int simulationRadius = 40;
+
+  Iterable<Entity> actorsInSimulationRadius({
+    int radius = simulationRadius,
+  }) sync* {
     final playerPosition = player.component<PositionComponent>().position;
     for (final entity in entities.values) {
       if (entity.kind == EntityKind.player || !entity.isAlive) {
@@ -244,8 +251,10 @@ final class WorldState {
     }
   }
 
-  Map<String, Object?> toJson() => <String, Object?>{
-    'map': map.toJson(),
+  /// Everything, [map] included unless [includeMap] is false: a save of a
+  /// known level only stores how its map differs from the level's.
+  Map<String, Object?> toJson({bool includeMap = true}) => <String, Object?>{
+    if (includeMap) 'map': map.toJson(),
     'entities': entities.values.map((entity) => entity.toJson()).toList(),
     'playerId': playerId,
     'randomState': random.state,

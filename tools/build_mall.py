@@ -2,7 +2,7 @@
 """Bake the two floors of the hypermarket.
 
 Reads the `mall-ground-rows` and `mall-first-rows` blocks of
-lib/core/levels/street_level.dart and paints them in the barracks' style:
+lib/core/levels/tutorial/mall.dart and paints them in the barracks' style:
 the rooms float on a black background, shopfronts with their signs run
 along the back wall, the floor is glossy tiles littered with trolleys,
 planters, kiosks and benches. Upstairs, Luigi's grocery sits behind its

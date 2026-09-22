@@ -5,6 +5,7 @@ import 'package:stepbound/app.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/game_audio.dart';
 import 'package:stepbound/game/audio/sound.dart';
+import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
 import 'package:stepbound/save/save_game.dart';
@@ -306,7 +307,7 @@ void main() {
       expect(player.component<HealthComponent>().current, 0);
 
       await tester.pump(const Duration(seconds: 1));
-      expect(game.gameOver.value, isTrue);
+      expect(game.cover.value, isA<GameOverCover>());
       await tester.pump();
       expect(
         find.byKey(const ValueKey<String>('game-over-overlay')),
@@ -337,7 +338,7 @@ void main() {
 
       stepNorth();
       final inside = position.position;
-      expect(levelRegions.last.bounds.contains(inside), isTrue);
+      expect(place(PlaceId.barracks).bounds.contains(inside), isTrue);
 
       stepNorth();
       expect(position.position, inside, reason: 'still on the threshold');
@@ -348,21 +349,39 @@ void main() {
     });
   });
 
+  testWidgets('only the place in view is drawn', (tester) {
+    return tester.runAsync(() async {
+      final game = await _pumpReadyGame(tester);
+      game.update(1 / 30);
+      expect(game.drawnPlaces, <String>[place(PlaceId.street).background]);
+
+      game.simulation.player.component<PositionComponent>()
+        ..position = const GridPoint(16, 17)
+        ..facing = Direction.north;
+      game
+        ..pressDirection(Direction.north)
+        ..releaseDirection(Direction.north)
+        ..update(0.3);
+      expect(game.drawnPlaces, <String>[place(PlaceId.barracks).background]);
+    });
+  });
+
   testWidgets('the harbour stays unseen until its card has gone black', (
     tester,
   ) {
     return tester.runAsync(() async {
       final game = await _pumpReadyGame(tester);
       final road = GridPoint(
-        northDistrictOrigin.x + northDistrictRows.last.indexOf('|'),
-        northDistrictOrigin.y + northDistrictRows.length - 2,
+        place(PlaceId.northDistrict).origin.x +
+            northDistrictRows.last.indexOf('|'),
+        place(PlaceId.northDistrict).origin.y + northDistrictRows.length - 2,
       );
       game.simulation.player.component<PositionComponent>()
         ..position = road
         ..facing = Direction.south;
       game.update(1);
-      final north = levelRegions[1].bounds;
-      final harbour = levelRegions.firstWhere(
+      final north = place(PlaceId.northDistrict).bounds;
+      final harbour = tutorialPlaces.firstWhere(
         (region) => region.name == harbourName,
       );
       bool cameraIn(GridRect bounds) {
@@ -378,7 +397,7 @@ void main() {
       for (var i = 0; i < 30; i++) {
         game.update(1 / 30);
       }
-      expect(game.locationCard.value?.name, harbourName);
+      expect((game.cover.value! as PlaceCardCover).name, harbourName);
       expect(
         harbour.bounds.contains(
           game.simulation.player.component<PositionComponent>().position,
@@ -388,7 +407,7 @@ void main() {
       expect(cameraIn(north), isTrue, reason: 'still fading to black');
 
       game
-        ..locationCardBlack()
+        ..placeCardBlack()
         ..update(1 / 30);
       expect(cameraIn(harbour.bounds), isTrue);
     });
@@ -400,9 +419,9 @@ void main() {
       final game = await _pumpReadyGame(tester);
       // Teleported to the camp: its lessons count as given already.
       game.tutorial.restore(const <String, Object?>{
-        'campLesson': true,
-        'backpackLesson': true,
-        'zombieLesson': true,
+        'north': <String, Object?>{'campLesson': true},
+        'backpacks': <String, Object?>{'lesson': true},
+        'street': <String, Object?>{'zombieLesson': true},
       });
       final camp = game.simulation.campfires.single;
       game.simulation.player.component<PositionComponent>()
@@ -414,7 +433,7 @@ void main() {
       for (var i = 0; i < 60; i++) {
         game.update(1 / 20);
       }
-      expect(game.atCamp.value, isTrue);
+      expect(game.cover.value, isA<CampCover>());
       await tester.pump();
       expect(find.byKey(const ValueKey<String>('camp-menu')), findsOneWidget);
       expect(find.byKey(const ValueKey<String>('touch-up')), findsNothing);
@@ -422,7 +441,7 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey<String>('camp-close')));
       await tester.pump();
-      expect(game.atCamp.value, isFalse);
+      expect(game.cover.value, isNull);
       expect(game.inputLocked, isFalse);
       expect(find.byKey(const ValueKey<String>('touch-up')), findsOneWidget);
     });
@@ -444,7 +463,7 @@ void main() {
 
   testWidgets('a saved slot is resumed straight into the game', (tester) async {
     final saves = MemorySaveRepository();
-    final world = createStreetWorld();
+    final world = createTutorialWorld();
     world.player.component<PositionComponent>().position = const GridPoint(
       16,
       30,
@@ -454,8 +473,13 @@ void main() {
         slot: 3,
         savedAt: DateTime(2026, 9, 21, 17, 5),
         place: 'Accampamento dietro la caserma',
-        world: world.toJson(),
-        tutorial: const <String, Object?>{'zombieLesson': true},
+        world: saveTutorialWorld(world),
+        tutorial: const <String, Object?>{
+          'street': <String, Object?>{'zombieLesson': true},
+        },
+        progress: Progress(
+          knownZombies: <EntityKind>[EntityKind.wanderer],
+        ).toJson(),
         hud: const <String>['interact', 'ammo'],
       ),
     );
@@ -493,8 +517,9 @@ void main() {
         slot: 1,
         savedAt: DateTime(2026),
         place: 'Accampamento dietro la caserma',
-        world: createStreetWorld().toJson(),
+        world: saveTutorialWorld(createTutorialWorld()),
         tutorial: const <String, Object?>{},
+        progress: Progress.newGame().toJson(),
         hud: const <String>[],
       ),
     );
@@ -517,15 +542,20 @@ void main() {
       'and plays the story from the first picture', (tester) {
     return tester.runAsync(() async {
       final saves = MemorySaveRepository();
-      final world = createStreetWorld();
+      final world = createTutorialWorld();
       world.player.component<AmmoComponent>().loaded = 5;
       await saves.save(
         SaveGame(
           slot: 1,
           savedAt: DateTime(2026),
           place: 'Accampamento dietro la caserma',
-          world: world.toJson(),
-          tutorial: const <String, Object?>{'zombieLesson': true},
+          world: saveTutorialWorld(world),
+          tutorial: const <String, Object?>{
+            'street': <String, Object?>{'zombieLesson': true},
+          },
+          progress: Progress(
+            knownZombies: <EntityKind>[EntityKind.wanderer],
+          ).toJson(),
           hud: const <String>['interact', 'ammo', 'shoot'],
         ),
       );
@@ -543,7 +573,7 @@ void main() {
             find.byType(GameWidget<StepboundGame>),
           )
           .currentGame;
-      game.atCamp.value = true;
+      game.cover.value = const CampCover();
       // By the fire: its crackle, the music hushed.
       audio
         ..setAmbience(Ambience.fire, 0.8)
@@ -571,12 +601,15 @@ void main() {
       final saved = (await saves.load(1))!;
       expect(saved.place, 'Inizio del livello');
       expect(saved.tutorial, isEmpty);
+      final progress = Progress.fromJson(saved.progress);
+      expect(progress.knownZombies, isEmpty, reason: 'it had met a wanderer');
+      expect(progress.memories, Progress.newGame().memories);
       expect(saved.hud, isEmpty);
-      final restored = restoreStreetWorld(saved.world);
+      final restored = restoreTutorialWorld(saved.world);
       expect(restored.player.component<AmmoComponent>().loaded, 0);
       expect(
         restored.player.component<PositionComponent>().position,
-        createStreetWorld().player.component<PositionComponent>().position,
+        createTutorialWorld().player.component<PositionComponent>().position,
       );
     });
   });
@@ -590,8 +623,9 @@ void main() {
         slot: 1,
         savedAt: DateTime(2026),
         place: 'Accampamento dietro la caserma',
-        world: createStreetWorld().toJson(),
+        world: saveTutorialWorld(createTutorialWorld()),
         tutorial: const <String, Object?>{},
+        progress: Progress.newGame().toJson(),
         hud: const <String>['interact', 'ammo', 'shoot'],
       ),
     );

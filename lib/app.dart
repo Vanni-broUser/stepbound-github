@@ -6,6 +6,7 @@ import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/game_audio.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/input/touch_controls.dart';
+import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
@@ -104,8 +105,9 @@ final class _StepboundAppState extends State<StepboundApp> {
   }
 
   StepboundGame _gameFrom(SaveGame save) => StepboundGame(
-    world: restoreStreetWorld(save.world),
+    world: restoreTutorialWorld(save.world),
     tutorialState: save.tutorial,
+    progress: Progress.fromJson(save.progress),
     unlocked: <HudElement>{
       for (final name in save.hud)
         for (final element in HudElement.values)
@@ -124,6 +126,7 @@ final class _StepboundAppState extends State<StepboundApp> {
         place: snapshot.place,
         world: snapshot.world,
         tutorial: snapshot.tutorial,
+        progress: snapshot.progress,
         hud: snapshot.hud,
       ),
     );
@@ -185,8 +188,9 @@ final class _StepboundAppState extends State<StepboundApp> {
         slot: _slot,
         savedAt: DateTime.now(),
         place: levelStartPlace,
-        world: createStreetWorld().toJson(),
+        world: saveTutorialWorld(createTutorialWorld()),
         tutorial: const <String, Object?>{},
+        progress: Progress.newGame().toJson(),
         hud: const <String>[],
       ),
     );
@@ -217,6 +221,49 @@ final class _StepboundAppState extends State<StepboundApp> {
       _playStoryAudio();
     }
   }
+
+  /// What is drawn over the game for [cover]: the touch controls when
+  /// nothing covers it.
+  Widget _coverOf(StepboundGame game, GameCover? cover) => switch (cover) {
+    null => TouchControls(game: game),
+    PromptCover(:final lines) => GameplayDialogue(
+      // A fresh state for every prompt restarts it from its first line.
+      key: ObjectKey(cover),
+      lines: <DialogueLine>[
+        for (final line in lines)
+          DialogueLine(
+            speaker: line.speaker,
+            text: line.text,
+            portrait: line.portrait,
+          ),
+      ],
+      onFinished: game.dismissPrompt,
+    ),
+    CutsceneCover(:final frames) => GameCutscene(
+      key: ObjectKey(cover),
+      frames: frames,
+      onFinished: game.finishCutscene,
+    ),
+    PlaceCardCover(:final name, :final image) => LocationCard(
+      key: ObjectKey(cover),
+      name: name,
+      image: image,
+      onBlack: game.placeCardBlack,
+      onFinished: game.dismissPlaceCard,
+    ),
+    CampCover() => CampMenu(
+      progress: game.progress,
+      onSave: game.saveAtCamp,
+      onRestartLevel: () => unawaited(_restartLevel()),
+      onClose: game.leaveCamp,
+      onMemories: (playing) => _watchMemories(game, playing: playing),
+    ),
+    GameOverCover() => _GameOverOverlay(
+      fromSave: _hasSave,
+      onRestart: () => unawaited(_restartGame()),
+      onMenu: _backToMenu,
+    ),
+  };
 
   /// What a save made by starting the level over is called in the slots.
   static const String levelStartPlace = 'Inizio del livello';
@@ -298,92 +345,11 @@ final class _StepboundAppState extends State<StepboundApp> {
                         toBlack: false,
                       ),
                     ] else
-                      // Hidden whenever a text box is on screen, so the
-                      // buttons never show through it.
-                      ValueListenableBuilder<List<TutorialLine>?>(
-                        valueListenable: game.prompt,
-                        builder: (context, lines, _) =>
-                            ValueListenableBuilder<bool>(
-                              valueListenable: game.atCamp,
-                              // Also gone while the camp menu is open.
-                              builder: (context, atCamp, _) =>
-                                  lines == null && !atCamp
-                                  ? TouchControls(game: game)
-                                  : const SizedBox.shrink(),
-                            ),
+                      // Whatever covers the game, or else the controls.
+                      ValueListenableBuilder<GameCover?>(
+                        valueListenable: game.cover,
+                        builder: (context, cover, _) => _coverOf(game, cover),
                       ),
-                    if (_phase == _Phase.playing)
-                      ValueListenableBuilder<List<TutorialLine>?>(
-                        valueListenable: game.prompt,
-                        builder: (context, lines, _) {
-                          if (lines == null) {
-                            return const SizedBox.shrink();
-                          }
-                          return GameplayDialogue(
-                            // A fresh state for every prompt restarts it
-                            // from its first line.
-                            key: ObjectKey(lines),
-                            lines: <DialogueLine>[
-                              for (final line in lines)
-                                DialogueLine(
-                                  speaker: line.speaker,
-                                  text: line.text,
-                                  portrait: line.portrait,
-                                ),
-                            ],
-                            onFinished: game.dismissPrompt,
-                          );
-                        },
-                      ),
-                    ValueListenableBuilder<bool>(
-                      valueListenable: game.atCamp,
-                      builder: (context, atCamp, _) => atCamp
-                          ? CampMenu(
-                              knownZombies: game.tutorial.knownZombies,
-                              luigiSceneSeen: game.tutorial.luigiSceneSeen,
-                              onSave: game.saveAtCamp,
-                              onRestartLevel: () => unawaited(_restartLevel()),
-                              onClose: game.leaveCamp,
-                              onMemories: (playing) =>
-                                  _watchMemories(game, playing: playing),
-                            )
-                          : const SizedBox.shrink(),
-                    ),
-                    ValueListenableBuilder<PlayingCutscene?>(
-                      valueListenable: game.cutscene,
-                      builder: (context, cutscene, _) => cutscene == null
-                          ? const SizedBox.shrink()
-                          : GameCutscene(
-                              key: ObjectKey(cutscene),
-                              frames: cutscene.frames,
-                              onFinished: game.finishCutscene,
-                            ),
-                    ),
-                    ValueListenableBuilder<PlaceCard?>(
-                      valueListenable: game.locationCard,
-                      builder: (context, card, _) => card == null
-                          ? const SizedBox.shrink()
-                          : LocationCard(
-                              key: ObjectKey(card),
-                              name: card.name,
-                              image: card.image,
-                              onBlack: game.locationCardBlack,
-                              onFinished: game.dismissLocationCard,
-                            ),
-                    ),
-                    ValueListenableBuilder<bool>(
-                      valueListenable: game.gameOver,
-                      builder: (context, isGameOver, _) {
-                        if (!isGameOver) {
-                          return const SizedBox.shrink();
-                        }
-                        return _GameOverOverlay(
-                          fromSave: _hasSave,
-                          onRestart: () => unawaited(_restartGame()),
-                          onMenu: _backToMenu,
-                        );
-                      },
-                    ),
                     // The loading picture instead of a black screen while
                     // the maps and sprites load.
                     LoadingCover(

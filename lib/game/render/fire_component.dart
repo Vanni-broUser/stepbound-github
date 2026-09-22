@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flame/components.dart';
+import 'package:stepbound/core/core.dart' hide PositionComponent;
 
 /// Animated pixel-art fire: flickering tongues of flame, a pulsing glow,
 /// rising embers and a column of smoke drifting with the wind. The
@@ -14,6 +15,46 @@ final class FireComponent extends PositionComponent {
     this.seed = 0,
     this.smoke = true,
   }) : super(position: base, priority: 25);
+
+  /// The fire of a level's [spot], sized and placed for what burns there.
+  factory FireComponent.at(FireSpot spot, {int seed = 0, double tile = 16}) {
+    final left = spot.tile.x * tile;
+    final top = spot.tile.y * tile;
+    return switch (spot.kind) {
+      // A car parked north-south burns on its roof, mid-way down.
+      FireKind.car when spot.vertical => FireComponent(
+        base: Vector2(left + tile / 2, top + 12),
+        halfWidth: 4,
+        flameHeight: 13,
+        seed: seed,
+      ),
+      // Burning car: wide fire centred on the two-tile wreck's roof.
+      FireKind.car => FireComponent(
+        base: Vector2(left + tile, top + 4),
+        halfWidth: 6,
+        flameHeight: 14,
+        seed: seed,
+      ),
+      FireKind.bin => FireComponent(
+        base: Vector2(left + tile / 2, top + 6),
+        halfWidth: 3,
+        flameHeight: 9,
+        seed: seed,
+      ),
+      FireKind.window => FireComponent(
+        base: Vector2(left + tile / 2, top + 13),
+        halfWidth: 4,
+        flameHeight: 12,
+        seed: seed,
+      ),
+      FireKind.campfire => FireComponent(
+        base: Vector2(left + tile / 2, top + 11),
+        halfWidth: 3,
+        flameHeight: 9,
+        seed: seed,
+      ),
+    };
+  }
 
   final int halfWidth;
   final double flameHeight;
