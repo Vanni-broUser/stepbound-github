@@ -54,6 +54,9 @@ final class PlayerAudio implements GameAudio {
   final Map<Ambience, _Channel> _ambience = <Ambience, _Channel>{};
   final Map<String, Future<AudioPool>> _pools = <String, Future<AudioPool>>{};
 
+  /// How to cut short the last copy of each effect still playing.
+  final Map<Sfx, StopFunction> _stoppers = <Sfx, StopFunction>{};
+
   Timer? _fader;
   bool _muted = false;
   bool _paused = false;
@@ -168,12 +171,19 @@ final class PlayerAudio implements GameAudio {
     final level = (sfx.volume * volume).clamp(0.0, 1.0);
     unawaited(
       _guard(
-        _pool(
-          file,
-          voices: sfx.voices,
-        ).then((pool) => pool.start(volume: level)),
+        _pool(file, voices: sfx.voices).then((pool) async {
+          _stoppers[sfx] = await pool.start(volume: level);
+        }),
       ),
     );
+  }
+
+  @override
+  void stop(Sfx sfx) {
+    final stopper = _stoppers.remove(sfx);
+    if (stopper != null) {
+      unawaited(_guard(stopper()));
+    }
   }
 
   Future<AudioPool> _pool(String file, {required int voices}) =>

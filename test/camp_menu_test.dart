@@ -18,6 +18,7 @@ void main() {
       EntityKind.carabiniere,
     },
     bool luigi = false,
+    List<StoryMemory>? memories,
   }) async {
     saves = 0;
     restarts = 0;
@@ -29,14 +30,16 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: CampMenu(
-          key: ValueKey<Object>((known, luigi)),
+          key: ValueKey<Object>((known, luigi, memories)),
           progress: Progress(
             knownZombies: known,
-            memories: <StoryMemory>[
-              StoryMemory.newsBroadcast,
-              StoryMemory.outbreakNight,
-              if (luigi) StoryMemory.luigiTrapped,
-            ],
+            memories:
+                memories ??
+                <StoryMemory>[
+                  StoryMemory.newsBroadcast,
+                  StoryMemory.outbreakNight,
+                  if (luigi) StoryMemory.luigiTrapped,
+                ],
           ),
           onSave: () async => saves++,
           onRestartLevel: () => restarts++,
@@ -145,6 +148,30 @@ void main() {
     expect(
       tester.widget<StoryIntro>(find.byType(StoryIntro)).scenes.length,
       introScenes.length + outbreakScenes.length + 3,
+    );
+  });
+
+  testWidgets('memories are replayed in the order they were lived, not in '
+      'the order of the enum', (tester) async {
+    // The Duomo met before the hypermarket, and its second half after it.
+    const lived = <StoryMemory>[
+      StoryMemory.newsBroadcast,
+      StoryMemory.outbreakNight,
+      StoryMemory.priestMet,
+      StoryMemory.luigiTrapped,
+      StoryMemory.priestErrand,
+    ];
+    await pumpMenu(tester, memories: lived);
+    await tap(tester, 'camp-memories');
+    expect(
+      tester
+          .widget<StoryIntro>(find.byType(StoryIntro))
+          .scenes
+          .map((scene) => scene.text),
+      <String>[
+        for (final memory in lived)
+          for (final scene in memoryScenes[memory]!) scene.text,
+      ],
     );
   });
 

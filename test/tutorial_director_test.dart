@@ -40,6 +40,11 @@ final class _FakeHost implements TutorialHost {
   @override
   void spawnZombie(Entity zombie) => spawned.add(zombie);
 
+  final List<String> killed = <String>[];
+
+  @override
+  void killZombies(Iterable<String> zombieIds) => killed.addAll(zombieIds);
+
   @override
   void unlock(HudElement element) => unlocked.add(element);
 
@@ -444,22 +449,67 @@ void main() {
       expect(host.shown.single.single.text, MallScript.shutterOpened);
     });
 
-    test('clearing the horde plays the reunion, then Luigi leaves for the '
-        'station', () {
+    /// The scene at the shutter, then the horde between Mario and the
+    /// panel he has to reach.
+    void releaseTheHorde() {
       final trigger = luigiSceneTrigger;
       stepTo(GridPoint(trigger.left + 2, trigger.bottom));
       settle();
       host.onCutsceneFinished!();
       expect(host.spawned, isNotEmpty);
-
       for (final zombie in host.spawned) {
         world.entities[zombie.id] = zombie;
-        zombie.component<HealthComponent>().current = 0;
       }
+    }
+
+    /// The panel, and the news of the shutter read.
+    void liftTheShutter() {
       director.onEvents(<WorldEvent>[
-        for (final zombie in host.spawned) DiedEvent(zombie.id),
+        ControlUsedEvent(at: mallPanelTile, opened: luigiBars),
       ]);
       settle();
+      expect(host.shown.last.single.text, MallScript.shutterOpened);
+      host.dismiss();
+      settle();
+    }
+
+    test('the shutter, not the deaths of the horde, is what frees Luigi', () {
+      releaseTheHorde();
+      // Killing them all would take every round Mario can pick up on the
+      // way here -- the street's two, the accident's four, the car park's
+      // two -- none of them fired at anything else, and none missed. The
+      // story cannot hang on that.
+      const roundsOnTheWay = 2 + 4 + 2;
+      expect(host.spawned.length, greaterThanOrEqualTo(roundsOnTheWay));
+
+      // Mario slips past them to the panel without firing a shot.
+      liftTheShutter();
+      expect(host.cutscenes, hasLength(2), reason: 'the reunion plays anyway');
+      expect(
+        host.spawned.every((zombie) => zombie.isAlive),
+        isTrue,
+        reason: 'they are all still on their feet',
+      );
+      host.onCutsceneFinished!();
+      expect(
+        host.killed.toSet(),
+        host.spawned.map((zombie) => zombie.id).toSet(),
+        reason: 'Luigi sees off what is left of them, as his line says',
+      );
+    });
+
+    test('lifting the shutter plays the reunion, then Luigi leaves for the '
+        'station', () {
+      releaseTheHorde();
+      // Mario does shoot a couple of them on the way to the panel.
+      for (final zombie in host.spawned.take(2)) {
+        zombie.component<HealthComponent>().current = 0;
+        director.onEvents(<WorldEvent>[DiedEvent(zombie.id)]);
+      }
+      settle();
+      expect(host.cutscenes, hasLength(1), reason: 'Luigi is still shut in');
+
+      liftTheShutter();
 
       expect(host.cutscenes, hasLength(2));
       final reunion = host.cutscenes.last;
@@ -471,6 +521,11 @@ void main() {
       expect(progress.memories, contains(StoryMemory.luigiRescued));
 
       host.onCutsceneFinished!();
+      expect(
+        host.killed,
+        host.spawned.skip(2).map((zombie) => zombie.id),
+        reason: 'Luigi finishes the ones Mario left',
+      );
       settle();
       final lines = host.shown.last;
       expect(lines, hasLength(2));
@@ -484,6 +539,214 @@ void main() {
       expect(host.luigiSent, 0);
       host.dismiss();
       expect(host.luigiSent, 1);
+    });
+  });
+
+  group('Duomo', () {
+    void walkTo(GridPoint to) =>
+        world.player.component<PositionComponent>().position = to;
+
+    /// The seafront road right in front of the churchyard alley.
+    GridPoint onTheSeafront() =>
+        GridPoint(priestGateFront.left + 1, priestSceneTrigger.bottom - 1);
+
+    /// In the alley, right at the gate.
+    GridPoint atTheGate() =>
+        GridPoint(priestGateFront.left + 1, priestGateFront.bottom);
+
+    void killTheZombiesAtTheGate() {
+      for (var i = 0; i < priestZombieTiles.length; i++) {
+        world.entities['$priestZombiePrefix$i']!
+                .component<HealthComponent>()
+                .current =
+            0;
+      }
+    }
+
+    /// Walks up, watches the meeting scene and hears Don Angelo out.
+    void meetThePriest() {
+      walkTo(onTheSeafront());
+      settle();
+      host.onCutsceneFinished!();
+      settle();
+      host.dismiss();
+    }
+
+    test('walking the seafront plays the meeting, then he asks for the gate '
+        'to be cleared', () {
+      walkTo(onTheSeafront());
+      settle();
+      expect(host.shown, isEmpty, reason: 'the pictures come first');
+      final frames = host.cutscenes.single;
+      expect(frames.map((frame) => frame.speaker), <String>[
+        PriestScript.priest,
+        'Mario Rossi',
+        PriestScript.priest,
+      ]);
+      expect(frames.map((frame) => frame.image), <String>[
+        PriestScript.gateScene,
+        PriestScript.seafrontScene,
+        PriestScript.gateScene,
+      ]);
+      expect(progress.memories, <StoryMemory>{StoryMemory.priestMet});
+
+      host.onCutsceneFinished!();
+      settle();
+      final line = host.shown.single.single;
+      expect(line.text, PriestScript.clearThemOut);
+      expect(line.speaker, PriestScript.priest);
+      expect(line.portrait, PriestScript.priestPortrait);
+      expect(
+        host.isPromptVisible,
+        isTrue,
+        reason:
+            'no controls until it is '
+            'read',
+      );
+      host.dismiss();
+      settle();
+      expect(host.cutscenes, hasLength(1), reason: 'the scene plays once');
+    });
+
+    test('standing at the gate with the zombies still there says nothing', () {
+      meetThePriest();
+      walkTo(atTheGate());
+      settle();
+      expect(host.cutscenes, hasLength(1));
+    });
+
+    test(
+      'killing them plays the deal, then he sends Mario for the incense',
+      () {
+        meetThePriest();
+        killTheZombiesAtTheGate();
+        walkTo(atTheGate());
+        settle();
+
+        expect(host.cutscenes, hasLength(2));
+        final deal = host.cutscenes.last;
+        expect(deal.map((frame) => frame.speaker), <String>[
+          'Mario Rossi',
+          PriestScript.priest,
+          'Mario Rossi',
+          PriestScript.priest,
+        ]);
+        expect(
+          deal.every((frame) => frame.image == PriestScript.dealSceneImage),
+          isTrue,
+          reason: 'the same picture behind all four lines',
+        );
+        expect(progress.memories, <StoryMemory>[
+          StoryMemory.priestMet,
+          StoryMemory.priestErrand,
+        ]);
+
+        host.onCutsceneFinished!();
+        settle();
+        final lines = host.shown.last;
+        expect(lines.map((line) => line.text), <String>[
+          PriestScript.incenseLine,
+          PriestScript.whereLine,
+          PriestScript.everyTwoStreetsLine,
+        ]);
+        expect(lines.map((line) => line.speaker), <String>[
+          PriestScript.priest,
+          'Mario Rossi',
+          PriestScript.priest,
+        ]);
+        expect(lines.every((line) => line.portrait != null), isTrue);
+        final priest = director.scripts.whereType<PriestScript>().single;
+        expect(priest.errandGiven, isFalse, reason: 'not until it is read');
+        host.dismiss();
+        expect(priest.errandGiven, isTrue);
+      },
+    );
+
+    test('luring them far enough away is as good as killing them', () {
+      meetThePriest();
+      for (var i = 0; i < priestZombieTiles.length; i++) {
+        final zombie = world.entities['$priestZombiePrefix$i']!;
+        zombie.component<HearingComponent>().hunting = false;
+        zombie.component<PositionComponent>().position = GridPoint(
+          priestGateFront.left + PriestScript.safeDistance + 1,
+          priestSceneTrigger.bottom,
+        );
+      }
+      walkTo(atTheGate());
+      settle();
+      expect(host.cutscenes, hasLength(2));
+    });
+
+    test('one of them still hunting Mario keeps the priest quiet', () {
+      meetThePriest();
+      final zombies = <Entity>[
+        for (var i = 0; i < priestZombieTiles.length; i++)
+          world.entities['$priestZombiePrefix$i']!,
+      ];
+      for (final zombie in zombies) {
+        zombie
+          ..component<HearingComponent>().hunting = false
+          ..component<PositionComponent>().position = GridPoint(
+            priestGateFront.left + PriestScript.safeDistance + 1,
+            priestSceneTrigger.bottom,
+          );
+      }
+      zombies.first.component<HearingComponent>().hunting = true;
+      walkTo(atTheGate());
+      settle();
+      expect(host.cutscenes, hasLength(1));
+    });
+
+    test('a save between the two halves resumes where the priest left off', () {
+      meetThePriest();
+      // Resting at a camp and loading again: a new director, restored.
+      final saved = director.toJson();
+      final resumed = TutorialDirector(
+        world: world,
+        host: host = _FakeHost(),
+        progress: progress,
+      )..restore(saved);
+      director = resumed;
+
+      killTheZombiesAtTheGate();
+      walkTo(atTheGate());
+      settle();
+      expect(
+        host.cutscenes.single.last.text,
+        PriestScript.dealScene.last.text,
+        reason: 'the deal still plays after the reload',
+      );
+      expect(progress.memories, contains(StoryMemory.priestErrand));
+    });
+
+    test('the Duomo and the hypermarket are remembered in the order they '
+        'were lived', () {
+      meetThePriest();
+
+      // Off to the hypermarket in the middle of the errand.
+      world.player.component<PositionComponent>().position = GridPoint(
+        luigiSceneTrigger.left + 1,
+        luigiSceneTrigger.top,
+      );
+      settle();
+      host.onCutsceneFinished!();
+      settle();
+
+      // Back to the harbour to finish it.
+      killTheZombiesAtTheGate();
+      walkTo(atTheGate());
+      settle();
+
+      expect(progress.memories, <StoryMemory>[
+        StoryMemory.priestMet,
+        StoryMemory.luigiTrapped,
+        StoryMemory.priestErrand,
+      ]);
+      expect(
+        Progress.fromJson(progress.toJson()).memories.toList(),
+        progress.memories.toList(),
+        reason: 'a save keeps that order',
+      );
     });
   });
 }

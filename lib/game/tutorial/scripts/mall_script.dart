@@ -5,7 +5,9 @@ import 'package:stepbound/game/tutorial/tutorial_director.dart';
 /// The hypermarket: a few steps in, a voice calls for help and Mario
 /// answers; upstairs, walking up to the shutter where Luigi is stuck plays
 /// his scene, then zombies pour in through the gate, between Mario and the
-/// panel that lifts the shutter.
+/// panel that lifts the shutter. Getting to the panel through them is what
+/// saves Luigi: out of his shop, with his axe, he sees off whatever is
+/// left of the horde himself.
 final class MallScript extends TutorialScript {
   MallScript(super.director);
 
@@ -69,11 +71,14 @@ final class MallScript extends TutorialScript {
   /// How far Luigi's shouting carries: the zombies come in after it.
   static const int hordeCallRadius = 30;
 
+  /// The ids of the zombies that come in through the gate.
+  static const String hordePrefix = 'mall-zombie-';
+
   int _stepsInside = 0;
   bool _voiceHeard = false;
   bool _luigiScenePlayed = false;
   bool _hordeOut = false;
-  bool _hordeCleared = false;
+  bool _shutterOpen = false;
   bool _reunionPlayed = false;
   bool _luigiGone = false;
 
@@ -100,18 +105,22 @@ final class MallScript extends TutorialScript {
           );
         }
       case ControlUsedEvent():
-        say(TutorialPrompt(const <TutorialLine>[TutorialLine(shutterOpened)]));
-      case DiedEvent(entityId: final id)
-          when _hordeOut && !_hordeCleared && id.startsWith('mall-zombie-'):
-        _checkHordeCleared();
+        // The scene follows, so the flag waits for the box to be read:
+        // otherwise the pictures would cover the news of the shutter.
+        say(
+          TutorialPrompt(const <TutorialLine>[
+            TutorialLine(shutterOpened),
+          ], onDismissed: () => _shutterOpen = true),
+        );
       case _:
         break;
     }
   }
 
   /// Walking up to the shutter plays Luigi's scene once the step is over;
-  /// the zombies come in when it ends. Once the horde is cleared, Luigi's
-  /// reunion with Mario plays and he agrees to meet again at the station.
+  /// the zombies come in when it ends. Lifting the shutter frees him:
+  /// their reunion plays, he cuts down what is left of the horde, and he
+  /// agrees to meet again at the station.
   @override
   void update({required bool turnAnimating}) {
     if (!_luigiScenePlayed) {
@@ -125,13 +134,13 @@ final class MallScript extends TutorialScript {
       }
       return;
     }
-    if (_hordeCleared &&
+    if (_shutterOpen &&
         !_reunionPlayed &&
         !turnAnimating &&
         !host.isPromptVisible) {
       _reunionPlayed = true;
       progress.remember(StoryMemory.luigiRescued);
-      host.playCutscene(reunionScene, onFinished: _startTrustDialogue);
+      host.playCutscene(reunionScene, onFinished: _luigiTakesOver);
     }
   }
 
@@ -145,7 +154,7 @@ final class MallScript extends TutorialScript {
     var index = 0;
     for (final spawn in mallHordeSpawns) {
       if (!occupied.contains(spawn)) {
-        host.spawnZombie(createMallZombie('mall-zombie-${index++}', spawn));
+        host.spawnZombie(createMallZombie('$hordePrefix${index++}', spawn));
       }
     }
     world.emitNoise(
@@ -155,14 +164,14 @@ final class MallScript extends TutorialScript {
     );
   }
 
-  /// True once every zombie of the horde is dead.
-  void _checkHordeCleared() {
-    final cleared = world.entities.values
-        .where((entity) => entity.id.startsWith('mall-zombie-'))
-        .every((entity) => !entity.isAlive);
-    if (cleared) {
-      _hordeCleared = true;
-    }
+  /// What the reunion's first picture shows: free at last, Luigi puts down
+  /// whatever Mario left of the horde. Then he talks.
+  void _luigiTakesOver() {
+    host.killZombies(<String>[
+      for (final entity in world.entities.values)
+        if (entity.id.startsWith(hordePrefix) && entity.isAlive) entity.id,
+    ]);
+    _startTrustDialogue();
   }
 
   /// Luigi trusts Mario with his plan, then leaves to wait at the station.
@@ -187,7 +196,7 @@ final class MallScript extends TutorialScript {
     'voice': _voiceHeard,
     'luigiScene': _luigiScenePlayed,
     'horde': _hordeOut,
-    'hordeCleared': _hordeCleared,
+    'shutter': _shutterOpen,
     'reunion': _reunionPlayed,
     'luigiGone': _luigiGone,
   };
@@ -198,7 +207,7 @@ final class MallScript extends TutorialScript {
     _voiceHeard = json['voice'] as bool? ?? false;
     _luigiScenePlayed = json['luigiScene'] as bool? ?? false;
     _hordeOut = json['horde'] as bool? ?? false;
-    _hordeCleared = json['hordeCleared'] as bool? ?? false;
+    _shutterOpen = json['shutter'] as bool? ?? false;
     _reunionPlayed = json['reunion'] as bool? ?? false;
     _luigiGone = json['luigiGone'] as bool? ?? false;
   }

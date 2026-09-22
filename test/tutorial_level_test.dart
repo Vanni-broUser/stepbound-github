@@ -544,6 +544,133 @@ void main() {
         reason: 'the boat is alongside the end of the pier',
       );
     });
+
+    test('the seafront road runs on west past the Duomo before the road '
+        'block closes it', () {
+      final duomo = harbourRows.indexWhere((row) => row.contains('W'));
+      final west = harbourRows[duomo].indexOf('W');
+      final road = harbourRows.indexWhere((row) => row.contains('J'));
+      final block = harbourRows[road].indexOf('J');
+      expect(
+        block,
+        lessThan(west),
+        reason: 'the road goes further west than the church itself',
+      );
+      final world = createTutorialWorld();
+      for (var x = block + 1; x < west; x++) {
+        expect(
+          world.map.tileAt(at(x, road)).isWalkable,
+          isTrue,
+          reason: 'the seafront road at column $x',
+        );
+      }
+    });
+
+    test('the Duomo stands back from the road: a two-cell alley climbs to '
+        'its gate, then opens into the T of the sagrato', () {
+      final world = createTutorialWorld();
+      final gate = harbourRows.indexWhere((row) => row.contains('x'));
+      final alley = harbourRows[gate].indexOf('x');
+      final alleyWidth = priestGateFront.right - priestGateFront.left + 1;
+      expect(harbourRows[gate].lastIndexOf('x') - alley + 1, alleyWidth);
+
+      // Two cells of alley between the sidewalk and the gate.
+      expect(priestGateFront.top, at(alley, gate + 1).y);
+      expect(priestGateFront.bottom, at(alley, gate + 2).y);
+      for (var y = priestGateFront.top; y <= priestGateFront.bottom; y++) {
+        for (var x = alley; x < alley + alleyWidth; x++) {
+          expect(
+            world.map.tileAt(GridPoint(at(x, 0).x, y)).isWalkable,
+            isTrue,
+            reason: 'the alley at $x,$y',
+          );
+        }
+        expect(
+          world.map.tileAt(GridPoint(at(alley - 1, 0).x, y)).isWalkable,
+          isFalse,
+          reason: 'palazzi close the alley on the west',
+        );
+        expect(
+          world.map
+              .tileAt(GridPoint(at(alley + alleyWidth, 0).x, y))
+              .isWalkable,
+          isFalse,
+          reason: 'and on the east',
+        );
+      }
+      expect(
+        world.map.tileAt(at(alley, gate + 3)).isWalkable,
+        isTrue,
+        reason: 'the sidewalk of the seafront road at the alley mouth',
+      );
+
+      // Past the gate the sagrato spreads both ways, wide as the church.
+      final front =
+          harbourRows[harbourRows.lastIndexWhere((row) => row.contains('W'))];
+      final west = front.indexOf('W');
+      final east = front.lastIndexOf('W');
+      expect(west, lessThan(alley));
+      expect(east, greaterThan(alley + alleyWidth - 1));
+      for (var x = west; x <= east; x++) {
+        expect(
+          world.map.tileAt(at(x, gate - 1)).isWalkable,
+          isTrue,
+          reason: 'the sagrato in front of the church at column $x',
+        );
+      }
+      expect(world.map.tileAt(at(west - 1, gate - 1)).isWalkable, isFalse);
+      expect(world.map.tileAt(at(east + 1, gate - 1)).isWalkable, isFalse);
+    });
+
+    test('the gate shuts the alley, Don Angelo behind it and two wanderers '
+        'before it', () {
+      final world = createTutorialWorld();
+      for (var x = priestGateFront.left; x <= priestGateFront.right; x++) {
+        final gate = GridPoint(x, priestGateFront.top - 1);
+        expect(world.map.tileAt(gate).isWalkable, isFalse);
+        expect(
+          world.map.tileAt(gate).blocksSight,
+          isFalse,
+          reason: 'railings: Mario and the priest can see each other',
+        );
+      }
+      expect(priestTile.y, lessThan(priestGateFront.top));
+      expect(world.map.tileAt(priestTile).isWalkable, isTrue);
+
+      expect(priestZombieTiles, hasLength(2));
+      for (final (index, tile) in priestZombieTiles.indexed) {
+        expect(priestGateFront.contains(tile), isTrue);
+        final zombie = world.entities['$priestZombiePrefix$index']!;
+        expect(zombie.kind, EntityKind.wanderer);
+        expect(zombie.component<PositionComponent>().position, tile);
+      }
+    });
+
+    test('Don Angelo hails Mario from anywhere on the seafront road in '
+        'front of the alley', () {
+      final world = createTutorialWorld();
+      final gate = harbourRows.indexWhere((row) => row.contains('x'));
+      final road = <GridPoint>[
+        for (var y = gate + 3; y < harbourRows.length; y++)
+          if (harbourRows[y][harbourRows[gate].indexOf('x')] == '=')
+            at(harbourRows[gate].indexOf('x'), y),
+      ];
+      expect(road, hasLength(2), reason: 'a sidewalk either side of the road');
+      for (var y = road.first.y; y <= road.last.y; y++) {
+        final lane = GridPoint(road.first.x, y);
+        expect(world.map.tileAt(lane).isWalkable, isTrue);
+        expect(
+          priestSceneTrigger.contains(lane),
+          isTrue,
+          reason: 'walking the seafront at row $y',
+        );
+      }
+      expect(
+        priestSceneTrigger.contains(GridPoint(road.first.x, road.last.y + 1)),
+        isFalse,
+        reason: 'the promenade beyond the sidewalk is already too far',
+      );
+    });
   });
 
   test('the barracks has lamps and two carabinieri waiting in the dark', () {

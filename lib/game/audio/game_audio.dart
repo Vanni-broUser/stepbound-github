@@ -23,6 +23,11 @@ abstract interface class GameAudio {
 
   void play(Sfx sfx, {double volume = 1});
 
+  /// Cuts [sfx] short if it is still playing. Only the long ones need it:
+  /// the game over sting would otherwise play on over the game that
+  /// starts again.
+  void stop(Sfx sfx);
+
   /// A tap happened: browsers only let sound start after one, so what they
   /// refused earlier is started again.
   void unlock();
@@ -46,6 +51,7 @@ final class SilentAudio implements GameAudio {
   double musicLevel = 1;
   final Map<Ambience, double> ambience = <Ambience, double>{};
   final List<Sfx> played = <Sfx>[];
+  final List<Sfx> stopped = <Sfx>[];
 
   @override
   void playMusic(Music? music) => this.music = music;
@@ -62,6 +68,9 @@ final class SilentAudio implements GameAudio {
 
   @override
   void play(Sfx sfx, {double volume = 1}) => played.add(sfx);
+
+  @override
+  void stop(Sfx sfx) => stopped.add(sfx);
 
   @override
   void unlock() {}

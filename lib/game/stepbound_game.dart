@@ -21,6 +21,7 @@ import 'package:stepbound/game/render/flag_component.dart';
 import 'package:stepbound/game/render/follow_camera.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/game/render/mall_props.dart';
+import 'package:stepbound/game/render/npc_component.dart';
 import 'package:stepbound/game/render/pickup_component.dart';
 import 'package:stepbound/game/render/pixel_palette.dart';
 import 'package:stepbound/game/render/place_layers.dart';
@@ -103,7 +104,7 @@ final class StepboundGame extends FlameGame
   final Map<String, CharacterComponent> _characters =
       <String, CharacterComponent>{};
   final Map<GridPoint, FireComponent> _campfires = <GridPoint, FireComponent>{};
-  LuigiComponent? _luigi;
+  NpcComponent? _luigi;
 
   MallScript get _mallScript => tutorial.scripts.whereType<MallScript>().first;
 
@@ -179,7 +180,10 @@ final class StepboundGame extends FlameGame
       ),
       for (final pickup in simulation.pickups.values)
         PickupComponent(pickup: pickup),
-      if (!_mallScript.luigiGone) _luigi = LuigiComponent(tile: luigiTile),
+      if (!_mallScript.luigiGone)
+        _luigi = NpcComponent(asset: NpcComponent.luigiAsset, tile: luigiTile),
+      // Don Angelo never leaves his churchyard: he is there from the start.
+      NpcComponent(asset: NpcComponent.priestAsset, tile: priestTile),
       ShutterComponent(bars: luigiBars, map: simulation.map),
       PanelGlintComponent(panel: mallPanelTile, world: simulation),
     ]);
@@ -477,6 +481,19 @@ final class StepboundGame extends FlameGame
     audio.play(Sfx.zombieAlert);
     _characters[zombie.id] = component;
     _addWithoutWaiting(world, component);
+  }
+
+  @override
+  void killZombies(Iterable<String> zombieIds) {
+    for (final id in zombieIds) {
+      final zombie = simulation.entities[id];
+      if (zombie == null || !zombie.isAlive) {
+        continue;
+      }
+      zombie.component<HealthComponent>().current = 0;
+      _characters[id]?.playDeath(_facingOf(id));
+      audio.play(Sfx.zombieDeath, volume: 0.7);
+    }
   }
 
   @override
