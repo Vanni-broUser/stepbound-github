@@ -5,11 +5,12 @@
 /// bake the backgrounds, so keep the two in sync):
 /// - `B` roof, `H` facade, `f` facade with a burning window, `K` facade of
 ///   the barracks, `M` facade of the hypermarket, `G` facade of the
-///   hospital: walls.
+///   hospital, `W` the Duomo on the harbour: walls.
 /// - `E` barracks front door, `e` passage through its back, `m` the
 ///   hypermarket's open entrance: doors.
 /// - `=` sidewalk; `.` road; `-` and `|` road with a horizontal or vertical
-///   centre line; `Z` and `V` zebra crossings: floor.
+///   centre line; `c` where a centre line bends from west to south; `Z`
+///   and `V` zebra crossings: floor.
 /// - `CC` car, `XX` burning car, `UU` overturned car (horizontal pairs),
 ///   `v`/`k` car / burning car parked north-south (vertical pairs), `D` pile
 ///   of corpses, `F` burning bin, `T` traffic light: obstacles you can see
@@ -22,12 +23,17 @@
 ///   shopping trolley, `J` concrete road block, `Q` café table, `aa`
 ///   crashed ambulance: obstacles. `q` toppled chair: debris (noisy).
 /// - Seafront: `~` sea, `R` stone parapet, `N` palm in its planter, `bb`
-///   half-sunk rowboat: obstacles you can see over.
+///   half-sunk rowboat: obstacles you can see over. `l` wooden pier and
+///   `o` deck of a moored rowboat: floor.
+/// - Park: `g` grass, floor; `p` broken playground ride, an obstacle.
+/// - `h` door of the Bar Arcobaleno, `j` where the hypermarket's fire exit
+///   lands behind it: doors.
 /// - Zombies: `w` wanderer, `z` sprinter, `u` brute, `r` carabiniere.
 /// - `@` player, `w` wanderer.
 /// - Backpacks: `1` two rounds, there from the start; `2` four rounds by the
 ///   accident, waiting there from the start (the zombie guards it); `4` two
-///   rounds at the far corner of the hypermarket's car park.
+///   rounds at the far corner of the hypermarket's car park; `5` four
+///   rounds on the rowboat moored at the harbour's second pier.
 // level-rows-start
 const List<String> streetLevelRows = <String>[
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',

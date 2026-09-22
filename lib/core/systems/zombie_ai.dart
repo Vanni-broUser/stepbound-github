@@ -7,12 +7,15 @@ import 'package:stepbound/core/world_event.dart';
 final class ZombieAi {
   const ZombieAi();
 
-  /// Runs every tick, before the zombie's energy is checked. When it first
-  /// spots the player (by sight or by walking into its alert trigger) it
-  /// raises the alert and gets to act on this very tick, so it steps
+  /// Runs every tick, before the zombie's energy is checked. Each time it
+  /// starts going after the player (by sight, by smell, or by walking into
+  /// its alert trigger) it raises the alert, even if it had lost him or was
+  /// only following a noise, and gets to act on this very tick, so it steps
   /// towards the player at once instead of after a full wait.
   void perceive(WorldState world, Entity zombie) {
+    final hearing = zombie.component<HearingComponent>();
     if (!zombie.isAlive || !world.player.isAlive) {
+      hearing.hunting = false;
       return;
     }
     final playerPosition = world.player.component<PositionComponent>().position;
@@ -21,17 +24,17 @@ final class ZombieAi {
     if (!triggered &&
         !_canSeePlayer(world, zombie) &&
         !_isTracking(world, zombie)) {
+      hearing.hunting = false;
       return;
     }
     if (triggered) {
       world.alertTriggers.remove(zombie.id);
     }
-    final hearing = zombie.component<HearingComponent>();
-    final wasAware = hearing.lastHeard != null;
     hearing.lastHeard = playerPosition;
-    if (wasAware) {
+    if (hearing.hunting) {
       return;
     }
+    hearing.hunting = true;
     world.emit(
       AlertedEvent(
         entityId: zombie.id,

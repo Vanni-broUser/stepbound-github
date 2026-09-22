@@ -189,6 +189,44 @@ void main() {
     expect(secondTurn.whereType<AlertedEvent>(), isEmpty);
   });
 
+  test('a zombie that lost the player raises the alert again when it finds '
+      'him', () {
+    final world = corridor(34, kind: EntityKind.wanderer, zombieX: 5);
+    final zombie = world.entities['zombie']!;
+    zombie.component<PositionComponent>().facing = Direction.west;
+    final player = world.player.component<PositionComponent>();
+    final start = player.position;
+
+    var events = const TurnScheduler().advance(world, const WaitAction());
+    expect(events.whereType<AlertedEvent>(), hasLength(1));
+
+    // Mario gets far down the corridor: the zombie loses him, though it
+    // still heads to where it saw him last.
+    player.position = const GridPoint(32, 1);
+    const TurnScheduler().advance(world, const WaitAction());
+    final hearing = zombie.component<HearingComponent>();
+    expect(hearing.hunting, isFalse);
+    expect(hearing.lastHeard, isNotNull);
+
+    // He comes back in sight: a new alert.
+    player.position = start;
+    events = const TurnScheduler().advance(world, const WaitAction());
+    expect(events.whereType<AlertedEvent>(), hasLength(1));
+    expect(hearing.hunting, isTrue);
+  });
+
+  test('a zombie drawn by a noise still raises the alert when it sees the '
+      'player', () {
+    final world = corridorWorld(EntityKind.wanderer);
+    final zombie = world.entities['zombie']!;
+    // A shot somewhere: it heads there, aware but not after Mario yet.
+    zombie.component<HearingComponent>().lastHeard = const GridPoint(1, 1);
+    zombie.component<PositionComponent>().facing = Direction.west;
+
+    final events = const TurnScheduler().advance(world, const WaitAction());
+    expect(events.whereType<AlertedEvent>(), hasLength(1));
+  });
+
   test('an adjacent zombie turns to face the player before biting', () {
     final world = corridorWorld(
       EntityKind.sprinter,

@@ -8,17 +8,21 @@ import 'package:stepbound/core/grid/tile.dart';
 import 'package:stepbound/core/grid/tile_map.dart';
 import 'package:stepbound/core/items/pickup.dart';
 import 'package:stepbound/core/levels/place.dart';
+import 'package:stepbound/core/levels/tutorial/bar_arcobaleno.dart';
 import 'package:stepbound/core/levels/tutorial/barracks.dart';
 import 'package:stepbound/core/levels/tutorial/harbour.dart';
 import 'package:stepbound/core/levels/tutorial/mall.dart';
+import 'package:stepbound/core/levels/tutorial/mall_north_street.dart';
 import 'package:stepbound/core/levels/tutorial/north_district.dart';
 import 'package:stepbound/core/levels/tutorial/street.dart';
 import 'package:stepbound/core/seeded_random.dart';
 import 'package:stepbound/core/world.dart';
 
+export 'package:stepbound/core/levels/tutorial/bar_arcobaleno.dart';
 export 'package:stepbound/core/levels/tutorial/barracks.dart';
 export 'package:stepbound/core/levels/tutorial/harbour.dart';
 export 'package:stepbound/core/levels/tutorial/mall.dart';
+export 'package:stepbound/core/levels/tutorial/mall_north_street.dart';
 export 'package:stepbound/core/levels/tutorial/north_district.dart';
 export 'package:stepbound/core/levels/tutorial/street.dart';
 
@@ -26,12 +30,13 @@ export 'package:stepbound/core/levels/tutorial/street.dart';
 /// street.dart), of the barracks (barracks.dart) and of the hypermarket
 /// (mall.dart).
 const Legend outdoorLegend = Legend(
-  walls: 'BHfKMG',
-  obstacles: 'CXUvkDFTSOyJQaAnI~RNb',
+  walls: 'BHfKMGW',
+  obstacles: 'CXUvkDFTSOyJQaAnI~RNbp',
   debris: ':q',
 );
 const Legend barracksLegend = Legend(walls: 'xWQNSIw', obstacles: 'TCAh');
 const Legend mallLegend = Legend(walls: 'xWwISQ', obstacles: 'PTKBGHL');
+const Legend barLegend = Legend(walls: 'xWw', obstacles: 'KTJ', debris: ':q');
 
 /// The card shown on the way into the harbour.
 const String harbourName = 'Porto e centro storico';
@@ -76,7 +81,8 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     legend: mallLegend,
     background: 'assets/levels/mall_ground.png',
     indoor: true,
-    daylight: 'EU',
+    // The entrance, the stairs, and daylight through the fire exit.
+    daylight: 'EUX',
   ),
   PlaceSpec(
     id: PlaceId.mallFirst,
@@ -86,6 +92,20 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     indoor: true,
     // The stairs, and the panel's screen.
     daylight: 'DQL',
+  ),
+  PlaceSpec(
+    id: PlaceId.mallNorthStreet,
+    rows: mallNorthStreetRows,
+    legend: outdoorLegend,
+    background: 'assets/levels/mall_north_street.png',
+  ),
+  PlaceSpec(
+    id: PlaceId.barArcobaleno,
+    rows: barArcobalenoRows,
+    legend: barLegend,
+    background: 'assets/levels/bar_arcobaleno.png',
+    indoor: true,
+    daylight: 'E',
   ),
 ]);
 
@@ -111,6 +131,8 @@ final Place _north = place(PlaceId.northDistrict);
 final Place _harbour = place(PlaceId.harbour);
 final Place _mallGround = place(PlaceId.mallGround);
 final Place _mallFirst = place(PlaceId.mallFirst);
+final Place _mallNorthStreet = place(PlaceId.mallNorthStreet);
+final Place _bar = place(PlaceId.barArcobaleno);
 
 Iterable<Place> get _outdoors => tutorialPlaces.where((place) => !place.indoor);
 
@@ -122,6 +144,7 @@ const String ammoBackpackId = 'backpack-ammo';
 const String parkingBackpackId = 'backpack-parking';
 const String accidentBackpackId = 'backpack-accident';
 const String gunBackpackId = 'backpack-gun';
+const String boatBackpackId = 'backpack-boat';
 
 /// Walking into the crossroads makes the tutorial zombie notice the player
 /// even if it is not looking that way.
@@ -220,6 +243,27 @@ final GridPoint mallPanelTile = _mallFirst.tileOf('Q');
 /// Where the zombies come in through the gate after Luigi's warning.
 final List<GridPoint> mallHordeSpawns = _mallFirst.tilesOf('c');
 
+/// The stairs down, where Luigi heads once he trusts Mario and leaves the
+/// shop: down to the ground floor and out through its fire exit, off
+/// screen.
+final GridPoint luigiStairsDown = _mallFirst.doorRow('D').first;
+
+/// The path Luigi walks once he leaves the shop: down through the open
+/// shutter, along the corridor, then down the stairs and out of sight.
+final List<GridPoint> luigiExitPath = <GridPoint>[
+  GridPoint(luigiTile.x, luigiSceneTrigger.top),
+  GridPoint(luigiStairsDown.x, luigiSceneTrigger.top),
+  luigiStairsDown,
+];
+
+/// The fire exit at the far west end of the ground floor's corridor, past
+/// its second row of shops: the only way in or out of the car park behind
+/// the hypermarket.
+final GridPoint mallExitTile = _mallGround.tileOf('X');
+
+/// Where the fire exit lands, in the car park behind the hypermarket.
+final GridPoint mallNorthStreetEntry = _mallNorthStreet.tileOf('j');
+
 /// Doors [from] one place [to] another, tile by tile in order: stepping on
 /// a tile of [from] lands on the tile of [to] one step towards [facing].
 Map<GridPoint, Portal> _pairedDoors(
@@ -241,7 +285,11 @@ Map<GridPoint, Portal> _pairedDoors(
 ///   entering the top of the harbour;
 /// - the hypermarket's entrance from the car park, and its stairs between
 ///   the two floors (both flights climb into the back wall: the lower step
-///   of each flight is where Mario lands).
+///   of each flight is where Mario lands);
+/// - the fire exit at the end of the ground floor's west corridor, onto
+///   the car park behind the hypermarket, cut off from the rest of the
+///   north district;
+/// - the door of the Bar Arcobaleno, up the harbour's alley.
 Map<GridPoint, Portal> _portals() {
   final northEdge = _north.walkableRow(_north.height - 1);
   final harbourEdge = _harbour.walkableRow(0);
@@ -276,6 +324,26 @@ Map<GridPoint, Portal> _portals() {
     ..._pairedDoors(entrance, mallDoor, Direction.south),
     ..._pairedDoors(up, down, Direction.south),
     ..._pairedDoors(down, up, Direction.south),
+    ..._pairedDoors(
+      <GridPoint>[mallExitTile],
+      <GridPoint>[mallNorthStreetEntry],
+      Direction.north,
+    ),
+    ..._pairedDoors(
+      <GridPoint>[mallNorthStreetEntry],
+      <GridPoint>[mallExitTile],
+      Direction.east,
+    ),
+    ..._pairedDoors(
+      <GridPoint>[_harbour.tileOf('h')],
+      <GridPoint>[_bar.tileOf('E')],
+      Direction.north,
+    ),
+    ..._pairedDoors(
+      <GridPoint>[_bar.tileOf('E')],
+      <GridPoint>[_harbour.tileOf('h')],
+      Direction.south,
+    ),
   };
 }
 
@@ -341,6 +409,8 @@ WorldState createTutorialWorld({int seed = 20260920}) {
           pickups.add(Pickup(id: accidentBackpackId, position: point, ammo: 4));
         case '4':
           pickups.add(Pickup(id: parkingBackpackId, position: point, ammo: 2));
+        case '5':
+          pickups.add(Pickup(id: boatBackpackId, position: point, ammo: 4));
       }
     }
   }

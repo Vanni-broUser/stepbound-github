@@ -61,16 +61,23 @@ WALLS = set("xWwISQ")
 # Shopfronts along the back wall, by first column: (width, sign, board,
 # letters, front). Front is "glass", "shutter", "smashed" or "boards".
 GROUND_SHOPS = {
-    1: (6, "ELETTRONICA", (26, 46, 96), (120, 220, 240), "smashed"),
-    7: (5, "SCARPE", (60, 60, 64), (240, 200, 90), "shutter"),
-    12: (6, "PROFUMERIA", (120, 60, 110), (246, 226, 240), "glass"),
-    18: (6, "BAR", (70, 44, 30), (236, 214, 160), "boards"),
+    # The west corridor's own row, wall to wall.
+    1: (6, "TABACCHI", (150, 130, 40), (250, 240, 190), "boards"),
+    7: (6, "OTTICA", (30, 80, 110), (220, 240, 250), "smashed"),
+    13: (6, "GIOCATTOLI", (170, 50, 60), (250, 230, 120), "shutter"),
+    19: (6, "LIBRERIA", (60, 90, 50), (236, 240, 220), "smashed"),
+    # The hall's, east of the corridor.
+    27: (6, "ELETTRONICA", (26, 46, 96), (120, 220, 240), "smashed"),
+    33: (5, "SCARPE", (60, 60, 64), (240, 200, 90), "shutter"),
+    38: (6, "PROFUMERIA", (120, 60, 110), (246, 226, 240), "glass"),
+    44: (6, "BAR", (70, 44, 30), (236, 214, 160), "boards"),
 }
 FIRST_SHOPS = {
     5: (6, "FARMACIA", (30, 120, 70), (236, 250, 236), "shutter"),
     18: (6, "ABBIGLIAMENTO", (60, 40, 90), (236, 226, 240), "smashed"),
     24: (3, "PANIFICIO", (150, 100, 50), (250, 236, 200), "boards"),
 }
+
 
 
 class Room:
@@ -194,6 +201,16 @@ def paint_back_wall(d, room, shops, rng):
         for _ in range(3):  # soot and scratches
             rect(d, px + rng.randrange(2, width - 6), py0 + rng.randrange(0, 8),
                  rng.randint(3, 6), 1, (60, 56, 56))
+
+
+def paint_exit(d, x, y):
+    """The fire exit in the west wall at the end of the corridor: daylight
+    spilling in around a push-bar door seen edge on."""
+    px, py = x * TILE, y * TILE
+    rect(d, px, py, TILE, TILE, (150, 160, 140))
+    rect(d, px + 1, py + 1, 12, 14, (54, 46, 34))
+    rect(d, px + 2, py + 2, 10, 12, (74, 62, 46))
+    rect(d, px + 10, py + 5, 2, 6, (150, 150, 60))  # push bar
 
 
 def paint_partition(d, room, x, y):
@@ -407,6 +424,8 @@ def bake(room: Room, shops, rng, output, railing):
                 paint_entrance(d, x, y, room.at(x - 1, y) != "E", room.at(x + 1, y) != "E")
             elif glyph in "UD":
                 paint_stairs(d, room, x, y)
+            elif glyph == "X":
+                paint_exit(d, x, y)
             elif glyph == "Q":
                 paint_panel(d, x, y)
             elif glyph == ":":

@@ -22,6 +22,11 @@ final class TutorialLine {
     : speaker = 'Mario Rossi',
       portrait = 'assets/story/portrait_mario.png';
 
+  /// A line spoken by Luigi, with his portrait over the box.
+  const TutorialLine.luigi(this.text)
+    : speaker = 'Luigi Rovaga',
+      portrait = 'assets/story/portrait_luigi.png';
+
   /// Set only when a person is talking.
   final String? speaker;
   final String text;
@@ -72,6 +77,10 @@ abstract interface class TutorialHost {
   /// Fades to black and plays [frames] like the intro story, then fades
   /// back to the game and calls [onFinished].
   void playCutscene(List<CutsceneFrame> frames, {void Function()? onFinished});
+
+  /// Luigi walks off through the shop's open shutter and vanishes, once he
+  /// has agreed to meet Mario again; calls [onFinished] once he is gone.
+  void sendLuigiAway({void Function()? onFinished});
 }
 
 /// Lines waiting their turn: they show [delay] seconds after the previous

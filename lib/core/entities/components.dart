@@ -125,7 +125,7 @@ final class VisionComponent extends EntityComponent {
 }
 
 final class HearingComponent extends EntityComponent {
-  HearingComponent({required this.range, this.lastHeard});
+  HearingComponent({required this.range, this.lastHeard, this.hunting = false});
 
   factory HearingComponent.fromJson(Map<String, Object?> json) {
     final encodedPoint = json['lastHeard'];
@@ -134,11 +134,20 @@ final class HearingComponent extends EntityComponent {
       lastHeard: encodedPoint == null
           ? null
           : GridPoint.fromJson(encodedPoint as Map<String, Object?>),
+      hunting: json['hunting']! as bool,
     );
   }
 
   final int range;
+
+  /// Where the zombie last saw or heard something worth going to: set, it
+  /// is aware and heads there, even when it has lost the player.
   GridPoint? lastHeard;
+
+  /// True while the zombie is after the player himself (sees or smells
+  /// him), not just checking a spot: each time it turns true, it raises the
+  /// alert.
+  bool hunting;
 
   @override
   String get type => 'hearing';
@@ -148,6 +157,7 @@ final class HearingComponent extends EntityComponent {
     'type': type,
     'range': range,
     'lastHeard': lastHeard?.toJson(),
+    'hunting': hunting,
   };
 }
 

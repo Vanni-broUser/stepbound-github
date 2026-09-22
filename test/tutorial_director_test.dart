@@ -54,6 +54,14 @@ final class _FakeHost implements TutorialHost {
     cutscenes.add(frames);
     onCutsceneFinished = onFinished;
   }
+
+  int luigiSent = 0;
+
+  @override
+  void sendLuigiAway({void Function()? onFinished}) {
+    luigiSent++;
+    onFinished?.call();
+  }
 }
 
 void main() {
@@ -434,6 +442,48 @@ void main() {
       ]);
       settle();
       expect(host.shown.single.single.text, MallScript.shutterOpened);
+    });
+
+    test('clearing the horde plays the reunion, then Luigi leaves for the '
+        'station', () {
+      final trigger = luigiSceneTrigger;
+      stepTo(GridPoint(trigger.left + 2, trigger.bottom));
+      settle();
+      host.onCutsceneFinished!();
+      expect(host.spawned, isNotEmpty);
+
+      for (final zombie in host.spawned) {
+        world.entities[zombie.id] = zombie;
+        zombie.component<HealthComponent>().current = 0;
+      }
+      director.onEvents(<WorldEvent>[
+        for (final zombie in host.spawned) DiedEvent(zombie.id),
+      ]);
+      settle();
+
+      expect(host.cutscenes, hasLength(2));
+      final reunion = host.cutscenes.last;
+      expect(reunion.map((frame) => frame.speaker), <String>[
+        MallScript.luigi,
+        'Mario Rossi',
+        MallScript.luigi,
+      ]);
+      expect(progress.memories, contains(StoryMemory.luigiRescued));
+
+      host.onCutsceneFinished!();
+      settle();
+      final lines = host.shown.last;
+      expect(lines, hasLength(2));
+      for (final line in lines) {
+        expect(line.speaker, MallScript.luigi);
+        expect(line.portrait, isNotNull);
+      }
+      expect(lines.first.text, MallScript.trustLine);
+      expect(lines.last.text, MallScript.meetAtStationLine);
+
+      expect(host.luigiSent, 0);
+      host.dismiss();
+      expect(host.luigiSent, 1);
     });
   });
 }
