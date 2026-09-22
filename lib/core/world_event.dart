@@ -1,4 +1,5 @@
 import 'package:stepbound/core/grid/grid_point.dart';
+import 'package:stepbound/core/items/pickup.dart';
 
 sealed class WorldEvent {
   const WorldEvent();
@@ -20,6 +21,7 @@ sealed class WorldEvent {
       'pickedUp' => PickedUpEvent.fromJson(json),
       'teleported' => TeleportedEvent.fromJson(json),
       'campfireUsed' => CampfireUsedEvent.fromJson(json),
+      'controlUsed' => ControlUsedEvent.fromJson(json),
       _ => throw FormatException('Unknown world event: ${json['type']}'),
     };
   }
@@ -313,6 +315,31 @@ final class CampfireUsedEvent extends WorldEvent {
   Map<String, Object?> toJson() => <String, Object?>{
     'type': 'campfireUsed',
     'at': at.toJson(),
+  };
+}
+
+/// The player worked a control panel: the bars in [opened] are gone.
+final class ControlUsedEvent extends WorldEvent {
+  const ControlUsedEvent({required this.at, required this.opened});
+
+  factory ControlUsedEvent.fromJson(Map<String, Object?> json) {
+    return ControlUsedEvent(
+      at: GridPoint.fromJson(json['at']! as Map<String, Object?>),
+      opened: GridRect.fromJson(json['opened']! as Map<String, Object?>),
+    );
+  }
+
+  final GridPoint at;
+  final GridRect opened;
+
+  @override
+  String get description => 'player works the control panel at $at';
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+    'type': 'controlUsed',
+    'at': at.toJson(),
+    'opened': opened.toJson(),
   };
 }
 

@@ -15,16 +15,18 @@ import 'package:stepbound/core/seeded_random.dart';
 import 'package:stepbound/core/world.dart';
 
 /// The tutorial: the street where Mario wakes up, the inside of the
-/// carabinieri barracks and the north district behind it, laid out on one
-/// grid. Each place sits beyond the simulation radius of the others,
-/// surrounded by darkness; doors carry the player between them.
+/// carabinieri barracks, the north district behind it with the two floors
+/// of its hypermarket, and the harbour south of that, laid out on one grid.
+/// Each place sits beyond the simulation radius of the others, surrounded
+/// by darkness; doors, roads and stairs carry the player between them.
 ///
 /// Street glyphs (tools/build_street_level.py reads these rows to bake the
 /// background images, so keep the two in sync):
 /// - `B` roof, `H` facade, `f` facade with a burning window, `K` facade of
 ///   the barracks, `M` facade of the hypermarket, `G` facade of the
 ///   hospital: walls.
-/// - `E` barracks front door, `e` passage through its back: doors.
+/// - `E` barracks front door, `e` passage through its back, `m` the
+///   hypermarket's open entrance: doors.
 /// - `=` sidewalk; `.` road; `-` and `|` road with a horizontal or vertical
 ///   centre line; `Z` and `V` zebra crossings: floor.
 /// - `CC` car, `XX` burning car, `UU` overturned car (horizontal pairs),
@@ -38,10 +40,13 @@ import 'package:stepbound/core/world.dart';
 ///   fountain, `A` dead tree in its planter, `n` bench, `y` abandoned
 ///   shopping trolley, `J` concrete road block, `Q` café table, `aa`
 ///   crashed ambulance: obstacles. `q` toppled chair: debris (noisy).
-/// - Zombies: `w` wanderer, `z` sprinter, `u` brute.
+/// - Seafront: `~` sea, `R` stone parapet, `N` palm in its planter, `bb`
+///   half-sunk rowboat: obstacles you can see over.
+/// - Zombies: `w` wanderer, `z` sprinter, `u` brute, `r` carabiniere.
 /// - `@` player, `w` wanderer.
 /// - Backpacks: `1` two rounds, there from the start; `2` four rounds by the
-///   accident, waiting there from the start (the zombie guards it).
+///   accident, waiting there from the start (the zombie guards it); `4` two
+///   rounds at the far corner of the hypermarket's car park.
 // level-rows-start
 const List<String> streetLevelRows = <String>[
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
@@ -102,9 +107,10 @@ const List<String> streetLevelRows = <String>[
 /// The north district, behind the barracks (same glyphs as the street): the
 /// street out of the barracks' back passage is closed to the east, where a
 /// camp burns; to the west it opens on a square with a fountain and a
-/// wrecked bar, from which roads lead south (blocked for now), north to a
-/// hypermarket and west to the hospital, whose road, forecourt and stairs
-/// are packed with hordes far too many to fight through.
+/// wrecked bar, from which roads lead south to the harbour, north to a
+/// hypermarket (a sprinter prowls the middle of its car park) and west to the hospital,
+/// whose road, forecourt and stairs are packed with hordes of wanderers,
+/// carabinieri among them, far too many to fight through.
 // north-rows-start
 const List<String> northDistrictRows = <String>[
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
@@ -116,13 +122,13 @@ const List<String> northDistrictRows = <String>[
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBMMMMMMMMMMMMMMMMMMMMMMMMMMBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBMMMMMMMMMMMMMMMMMMMMMMMMMMBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBMMMMMMMMMMMMMMMMMMMMMMMMMMBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBMMMMMMMMMMMMMMMMMMMMMMMMMMBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBMMMMMMMMMMMmmmMMMMMMMMMMMMBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB==========================BBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=LLLLLLLLLL:LLLLLyLLLLLLLLL=BBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=LLCCLLLLLLLLLLLLLLLLLLLyLL=BBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=LLLLLLLLLLLLLLLLLLLLLLLLLL=BBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=LLLLLLLLLLLLzLLLLLLLLLLLLL=BBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=LLLLLLyLLLLLLLLLLLLXXLLLvL=BBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=LLLLLLLLLLLLLLLLLLLLLLLLvL=BBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=4LLLLLLLLLLLLLLLLLLLLLLLvL=BBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBGGGGGGGGGGGGGGGGBBBBBBBBBBBBBBBBB============================BBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBGGGGGGGGGGGGGGGGBBBBBBBBBBBBBBBBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBGGGGGGGGGGGGGGGGBBBBBBBBBBBBBBBBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
@@ -131,18 +137,18 @@ const List<String> northDistrictRows = <String>[
   'BBGGGGGGGGGGGGGGGGBBBBBBBBBBBBBBBBBBBBBBBBBBB=..|.v=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBGGGGGGGGGGGGGGGGBBBBBBBBBBBBBBBBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBGGGGGGGGGGGGGGGGBBBBBBBBBBBBBBBBBBBBBBBBBBB=.:|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  'BBYYYYYYzYzYYYwYYYBBBBBBBBBBBBBBBBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBYYYYYYwYwYYYrYYYBBBBBBBBBBBBBBBBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBYYwYYYYwYYYwYYYYBBBBBBBBBBBBBBBBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  'BBYYYYwYYYYwYYYwYYBBBBBBBBBBBBBBBBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  'BBYYYYYwYzYYwYYYYYBBBBBBBBBBBBBBBBBBBBHHHHHHH=..|..=HHHHHHHBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBYYYYwYYYYwYYYrYYBBBBBBBBBBBBBBBBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBYYYYYwYwYYwYYYYYBBBBBBBBBBBBBBBBBBBBHHHHHHH=..|..=HHHHHHHBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBPwPPyPPPPPPPPPwPBBBBBBBBBBBBBBBBBBBBHHHHHfH=..|..=HHHHHHHBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBPPPPPPJJJJPPP:PPBBBBBBBBBBBBBBBBBBBBHHHHHHH=..|..=HHHHHHHBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  'BBPaaPPPPPwPPPPPwPHHHHHHHHHHHHHHHHHHHH========PPPPP========HHHHHHHHHHHHHHHHHHHHHHHHHHHHBBB',
-  'BBPPPPwPuPPPPaaPPPHHHHHHHHHHfHHHHHHHHH=Qq:PqPPPPPPPPPPPPPF=HHfHHHHHHHHHHHHHHHHHHHHHHHHHBBB',
-  'BBPPwDPPPwPPwPPwPPHHfHHHHHHHHHHHHHHHHH=qPPQP:PPPPPPPnnPPAP=HHHHHHHHHHHHHHHHHHHHHHHfHHHHBBB',
-  'BBPPPPPwPPPwPuPPPP===u=w==w============PPq:qPPPPPPPPPPPPPP===F=========================BBB',
+  'BBPaaPPPPPrPPPPPwPHHHHHHHHHHHHHHHHHHHH========PPPPP========HHHHHHHHHHHHHHHHHHHHHHHHHHHHBBB',
+  'BBPPPPwPwPPPPaaPPPHHHHHHHHHHfHHHHHHHHH=Qq:PqPPPPPPPPPPPPPF=HHfHHHHHHHHHHHHHHHHHHHHHHHHHBBB',
+  'BBPPwDPPPwPPrPPwPPHHfHHHHHHHHHHHHHHHHH=qPPQP:PPPPPPPnnPPAP=HHHHHHHHHHHHHHHHHHHHHHHfHHHHBBB',
+  'BBPPPPPwPPPwPwPPPP===w=r==w============PPq:qPPPPPPPPPPPPPP===F=========================BBB',
   'BB...................w.w..d............PQqPPPPOOOOOPPP:PPPP.....CC...............:...UUBBB',
-  'BB-.-.-.-.-.-.-.-.-.w.:.w.-w-.-.-.-.-.-qPPdPPwOOOOOPPPPPPPP.-.-.-.-:-.-.-.-.-.-.-.-.S.-BBB',
+  'BB-.-.-.-.-.-.-.-.-.w.:.w.-r-.-.-.-.-.-qPPdPPwOOOOOPPPPPPPP.-.-.-.-:-.-.-.-.-.-.-.-.S.-BBB',
   'BB....................w..w....XX.......PPdPPPPOOOOOPPPPPPPP..........XX.d..............BBB',
   'BB=================w====w==============PPPPPPPOOOOOwPPPPPP=====================F=======BBB',
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=PPPPPPPOOOOOPPPPPPP=BBBBBBBBBBBBBBBBeBBBBBBBBBBBBBB',
@@ -164,11 +170,52 @@ const List<String> northDistrictRows = <String>[
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBJJJJJJJBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
 ];
 // north-rows-end
+
+/// The harbour and the old town, south of the north district (same glyphs
+/// as the street): the road from the square comes down between the old
+/// town's palazzi to the seafront road, closed by road blocks to the east
+/// and west; beyond it the promenade with its palms, then the parapet and
+/// the murky sea, scummed with green, where rowboats rot half-sunk.
+// harbour-rows-start
+const List<String> harbourRows = <String>[
+  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBB=:.|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBB=..|.v=BBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBB=..|.v=BBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBB=.w|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBB=..|d.=BBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBBBHHHHHHHHHHHHHHHHHHHHHHHHH=..|..=HHHHHHHHHHHHHHHHHHHHHHHHBBBB',
+  'BBBBHHHHHfHHHHHHHHHHHHHHHHHHH=..|..=HHHHHHHHHHHHHHHHHHHHHHHHBBBB',
+  'BBBBHHHHHHHHHHHHHHHHHHHHHHHHH=..|..=HHHHHHHHHHHfHHHHHHHHHHHHBBBB',
+  'BBBBHHHHHHHHHHHHHHHHHHfHHHHHH=..|..=HHHHHHHHHHHHHHHHHHHHHHHHBBBB',
+  'BBBB==========F===============VVVVVT===============F========BBBB',
+  'BBBBJ.............CC.........Z.....Z........:..............JBBBB',
+  'BBBBJ.......w...........:....Z.....Z.......................JBBBB',
+  'BBBBJ-.-.-.-.-.-.-.-.-.-.-.-.Z.-.-.Z.-d-.-.-.-.-.-.-z-.-.-.JBBBB',
+  'BBBBJ...UU...................Z.....Z.........w.............JBBBB',
+  'BBBBJ...........d............Z.....Z....XX.................JBBBB',
+  'BBBB=======================F=====:==========================BBBB',
+  'BBBBPPPPNPPPPPPPPPNPPPwPPPP:PPPPPPPPPPNPPPPPPPPPNPPPPPPPPNPPBBBB',
+  'BBBBPPPPPPPPnnPPPPPPPPPPPPPPPPPDPPPPPwPPPPnnPPPPPPPPdPPPPPPPBBBB',
+  'RRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR',
+  '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~',
+  '~~~~~~~~~~~bb~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~',
+  '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~',
+  '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~',
+  '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bb~~~~~~~~~~~~~~~~~~~',
+  '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~',
+  '~~~~~~~~~~~~~~~~~~~~~~~~bb~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~',
+  '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~',
+];
+// harbour-rows-end
 
 /// Inside the barracks, Pokemon-Emerald style: a room on a dark background.
 /// - `x` darkness, `W` back wall, `Q` wall with the carabinieri emblem, `N`
@@ -201,11 +248,72 @@ const List<String> barracksRows = <String>[
 ];
 // barracks-rows-end
 
+/// Inside the hypermarket, two floors in the barracks' style (rooms on a
+/// dark background):
+/// - `x` darkness, `W` shopfronts along the back wall, `w` front wall (on
+///   the first floor, the railing over the atrium), `I` shop partition, `S`
+///   shelves at the back of a shop, `Q` the anti-theft control panel:
+///   walls.
+/// - `E` entrance from the car park, `U` stairs up, `D` stairs down: doors.
+/// - `P` planter, `T` abandoned trolley, `K` kiosk, `BBB` bench, `G` gate
+///   post, `H` the shutter's bars, `L` Luigi behind them: obstacles.
+/// - `.` floor, `o` floor of a shop, `d` floor of the service area beyond
+///   the gate, `g` the gate standing open, `:` litter (noisy), `b` blood,
+///   `*` ceiling lamp, `+` flickering lamp, `c` where the zombies come in
+///   through the gate.
+// mall-ground-rows-start
+const List<String> mallGroundRows = <String>[
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  'xWWWWWWWWWWWWWWWWWWWWWWWUUUWWx',
+  'xWWWWWWWWWWWWWWWWWWWWWWWUUUWWx',
+  'x....:......*.........:.....bx',
+  'x..PP....TT......PP.........:x',
+  'x......*.......:.......*.....x',
+  'x.KK.......BBB.......KK......x',
+  'x......:...........b.........x',
+  'x..PP.......*...T......PP....x',
+  'x...:...................:....x',
+  'x..........BBB.....*.........x',
+  'x....*..........:.......P....x',
+  'x.T.........................Tx',
+  'x.......:.....*..............x',
+  'xwwwwwwwwwwwwwEEEwwwwwwwwwwwwx',
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+];
+// mall-ground-rows-end
+
+// mall-first-rows-start
+const List<String> mallFirstRows = <String>[
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  'xxxxxxxxxxxISSSSSIxxxxxxxxxxxxxxxxxx',
+  'xxxxxxxxxxxIoooooIxxxxxxxxxxxxxxxxxx',
+  'xWDDDWWWWWWIooLooIWWWWWWWWWWWWWWWWWx',
+  'xWDDDWWWWWWIHHHHHIWWWWWWWWWWWWWWQWWx',
+  'x......:............*......Gdddddddx',
+  'x..P....*.............T....gddcddcdx',
+  'x.........BBB.....KK.......gdcdddddx',
+  'x...*..........P........:..gddd+cddx',
+  'x.....T.......*.....bBBB...gddcddcdx',
+  'x..........*.............P.gdcdddddx',
+  'x..KK............:.........gdddcdddx',
+  'x..................*.......Gdddddddx',
+  'xwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwx',
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+];
+// mall-first-rows-end
+
 /// Backgrounds baked by tools/build_street_level.py and
 /// tools/build_barracks.py.
-const String streetLevelBackground = 'assets/levels/street_01.png';
+const String streetLevelBackground = 'assets/levels/first_street.png';
 const String northDistrictBackground = 'assets/levels/north_district.png';
 const String barracksBackground = 'assets/levels/barracks.png';
+const String harbourBackground = 'assets/levels/harbour.png';
+const String mallGroundBackground = 'assets/levels/mall_ground.png';
+const String mallFirstBackground = 'assets/levels/mall_first.png';
+
+/// The card shown on the way into the harbour.
+const String harbourName = 'Porto e centro storico';
+const String harbourCardImage = 'assets/story/scene_harbour.jpg';
 
 /// Top-left tile of the barracks interior on the shared grid.
 const GridPoint barracksOrigin = GridPoint(84, 0);
@@ -215,6 +323,14 @@ const GridPoint barracksOrigin = GridPoint(84, 0);
 /// places.
 const GridPoint northDistrictOrigin = GridPoint(140, 0);
 
+/// Top-left tile of the harbour on the shared grid, east of the north
+/// district and beyond the simulation radius of its roads.
+const GridPoint harbourOrigin = GridPoint(270, 0);
+
+/// Top-left tiles of the hypermarket's two floors, further east still.
+const GridPoint mallGroundOrigin = GridPoint(360, 0);
+const GridPoint mallFirstOrigin = GridPoint(430, 0);
+
 const GridPoint _streetOrigin = GridPoint(0, 0);
 
 /// An area the camera stays inside, with its baked background.
@@ -223,13 +339,22 @@ final class LevelRegion {
     required this.bounds,
     required this.background,
     this.indoor = false,
+    this.name,
+    this.cardImage,
+    this.lights = const <LightSpot>[],
   });
 
   final GridRect bounds;
   final String background;
 
-  /// Indoor regions are dimly lit.
+  /// Indoor regions are dimly lit, only by their [lights].
   final bool indoor;
+  final List<LightSpot> lights;
+
+  /// A region with a card is announced, on the way in, by its picture and
+  /// [name] between two fades to black.
+  final String? name;
+  final String? cardImage;
 }
 
 GridRect _boundsOf(GridPoint origin, List<String> rows) => GridRect(
@@ -239,7 +364,8 @@ GridRect _boundsOf(GridPoint origin, List<String> rows) => GridRect(
   origin.y + rows.length - 1,
 );
 
-/// The street, the north district and, last, the barracks interior.
+/// The street, the north district, the harbour, the two floors of the
+/// hypermarket and, last, the barracks interior.
 final List<LevelRegion> levelRegions = <LevelRegion>[
   LevelRegion(
     bounds: _boundsOf(_streetOrigin, streetLevelRows),
@@ -250,9 +376,28 @@ final List<LevelRegion> levelRegions = <LevelRegion>[
     background: northDistrictBackground,
   ),
   LevelRegion(
+    bounds: _boundsOf(harbourOrigin, harbourRows),
+    background: harbourBackground,
+    name: harbourName,
+    cardImage: harbourCardImage,
+  ),
+  LevelRegion(
+    bounds: _boundsOf(mallGroundOrigin, mallGroundRows),
+    background: mallGroundBackground,
+    indoor: true,
+    lights: _roomLights(mallGroundOrigin, mallGroundRows, doors: 'EU'),
+  ),
+  LevelRegion(
+    bounds: _boundsOf(mallFirstOrigin, mallFirstRows),
+    background: mallFirstBackground,
+    indoor: true,
+    lights: _roomLights(mallFirstOrigin, mallFirstRows, doors: 'DQL'),
+  ),
+  LevelRegion(
     bounds: _boundsOf(barracksOrigin, barracksRows),
     background: barracksBackground,
     indoor: true,
+    lights: barracksLights(),
   ),
 ];
 
@@ -261,6 +406,7 @@ const String tutorialZombieId = 'wanderer-0';
 
 /// Backpack ids, see the glyph lists above.
 const String ammoBackpackId = 'backpack-ammo';
+const String parkingBackpackId = 'backpack-parking';
 const String accidentBackpackId = 'backpack-accident';
 const String gunBackpackId = 'backpack-gun';
 
@@ -285,10 +431,11 @@ Iterable<(GridPoint, String)> _glyphs(
   }
 }
 
-/// The outdoor places: the street and the north district.
+/// The outdoor places: the street, the north district and the harbour.
 Iterable<(GridPoint, String)> _outdoorGlyphs() sync* {
   yield* _glyphs(_streetOrigin, streetLevelRows);
   yield* _glyphs(northDistrictOrigin, northDistrictRows);
+  yield* _glyphs(harbourOrigin, harbourRows);
 }
 
 /// Campfires outdoors, by tile, with the name shown in the save slots.
@@ -343,8 +490,19 @@ TileKind _streetKind(String glyph) => switch (glyph) {
   'a' ||
   'A' ||
   'n' ||
-  'I' => TileKind.obstacle,
+  'I' ||
+  '~' ||
+  'R' ||
+  'N' ||
+  'b' => TileKind.obstacle,
   ':' || 'q' => TileKind.debris,
+  _ => TileKind.floor,
+};
+
+TileKind _mallKind(String glyph) => switch (glyph) {
+  'x' || 'W' || 'w' || 'I' || 'S' || 'Q' => TileKind.wall,
+  'P' || 'T' || 'K' || 'B' || 'G' || 'H' || 'L' => TileKind.obstacle,
+  ':' => TileKind.debris,
   _ => TileKind.floor,
 };
 
@@ -388,6 +546,7 @@ List<FireSpot> streetFireSpots({
 List<FireSpot> outdoorFireSpots() => <FireSpot>[
   ...streetFireSpots(),
   ...streetFireSpots(rows: northDistrictRows, origin: northDistrictOrigin),
+  ...streetFireSpots(rows: harbourRows, origin: harbourOrigin),
 ];
 
 Iterable<GridPoint> _barracksTiles(String glyphs) sync* {
@@ -397,6 +556,20 @@ Iterable<GridPoint> _barracksTiles(String glyphs) sync* {
     }
   }
 }
+
+/// Ceiling lamps (`*`, `+` flickering) of a room placed at [origin], plus
+/// the light coming through its [doors].
+List<LightSpot> _roomLights(
+  GridPoint origin,
+  List<String> rows, {
+  required String doors,
+}) => <LightSpot>[
+  for (final (tile, glyph) in _glyphs(origin, rows))
+    if (glyph == '*' || doors.contains(glyph))
+      LightSpot(tile)
+    else if (glyph == '+')
+      LightSpot(tile, flickers: true),
+];
 
 /// Ceiling lamps inside the barracks, on the shared grid.
 List<LightSpot> barracksLights() => <LightSpot>[
@@ -411,11 +584,125 @@ List<GridPoint> carabiniereSpawns() => _barracksTiles('c').toList();
 
 GridPoint _barracksTile(String glyph) => _barracksTiles(glyph).single;
 
+List<GridPoint> _tilesOf(GridPoint origin, List<String> rows, String glyph) =>
+    <GridPoint>[
+      for (final (tile, found) in _glyphs(origin, rows))
+        if (found == glyph) tile,
+    ];
+
+/// Where Luigi is stuck, behind the shutter of a shop on the first floor.
+GridPoint luigiTile() => _tilesOf(mallFirstOrigin, mallFirstRows, 'L').single;
+
+/// The shutter's bars, which the control panel lifts.
+GridRect luigiBars() {
+  final bars = _tilesOf(mallFirstOrigin, mallFirstRows, 'H');
+  return GridRect(bars.first.x, bars.first.y, bars.last.x, bars.last.y);
+}
+
+/// Walking up to the shutter (the two rows of corridor in front of it)
+/// starts Luigi's scene.
+GridRect luigiSceneTrigger() {
+  final bars = luigiBars();
+  return GridRect(
+    bars.left - 1,
+    bars.bottom + 1,
+    bars.right + 1,
+    bars.bottom + 2,
+  );
+}
+
+/// The anti-theft control panel beyond the gate.
+GridPoint mallPanelTile() =>
+    _tilesOf(mallFirstOrigin, mallFirstRows, 'Q').single;
+
+/// Where the zombies come in through the gate after Luigi's warning.
+List<GridPoint> mallHordeSpawns() =>
+    _tilesOf(mallFirstOrigin, mallFirstRows, 'c');
+
+/// The ground floor of the hypermarket, where a voice calls for help.
+GridRect get mallGroundBounds => _boundsOf(mallGroundOrigin, mallGroundRows);
+
+/// The inside of the carabinieri barracks.
+GridRect get barracksBounds => _boundsOf(barracksOrigin, barracksRows);
+
+/// Tiles of the top row of door [glyph] in [rows] at [origin], west to east.
+List<GridPoint> _doorRow(GridPoint origin, List<String> rows, String glyph) {
+  final tiles = _tilesOf(origin, rows, glyph);
+  final top = tiles.first.y;
+  return tiles.where((tile) => tile.y == top).toList();
+}
+
+/// Doors [from] one place [to] another, tile by tile in order: stepping on
+/// a tile of [from] lands on the tile of [to] one step towards [facing].
+Map<GridPoint, Portal> _pairedDoors(
+  List<GridPoint> from,
+  List<GridPoint> to,
+  Direction facing,
+) {
+  assert(from.length == to.length, 'doors of different widths');
+  return <GridPoint, Portal>{
+    for (var i = 0; i < from.length; i++)
+      from[i]: Portal(to: to[i].step(facing), facing: facing),
+  };
+}
+
+/// The hypermarket's entrance from the car park, and its stairs between
+/// the two floors (both flights climb into the back wall: the lower step
+/// of each flight is where Mario lands).
+Map<GridPoint, Portal> _mallPortals() {
+  final outside = _doorRow(northDistrictOrigin, northDistrictRows, 'm');
+  final entrance = _doorRow(mallGroundOrigin, mallGroundRows, 'E');
+  final up = _doorRow(mallGroundOrigin, mallGroundRows, 'U');
+  final down = _doorRow(mallFirstOrigin, mallFirstRows, 'D');
+  return <GridPoint, Portal>{
+    ..._pairedDoors(outside, entrance, Direction.north),
+    ..._pairedDoors(entrance, outside, Direction.south),
+    ..._pairedDoors(up, down, Direction.south),
+    ..._pairedDoors(down, up, Direction.south),
+  };
+}
+
 GridPoint _outdoorTile(String glyph) =>
     _outdoorGlyphs().firstWhere((tile) => tile.$2 == glyph).$1;
 
-/// Doors in both directions between the street, the barracks and the north
-/// district.
+/// The walkable tiles of row [y] of [rows], placed at [origin], west to
+/// east.
+List<GridPoint> _walkableRow(GridPoint origin, List<String> rows, int y) => [
+  for (var x = 0; x < rows[y].length; x++)
+    if (Tile(_streetKind(rows[y][x])).isWalkable)
+      GridPoint(origin.x + x, origin.y + y),
+];
+
+/// The road leaving the bottom of the north district is the one entering
+/// the top of the harbour: stepping on its last row carries Mario to the
+/// matching tile just inside the other place, and back.
+Map<GridPoint, Portal> _roadPortals() {
+  final northEdge = _walkableRow(
+    northDistrictOrigin,
+    northDistrictRows,
+    northDistrictRows.length - 1,
+  );
+  final harbourEdge = _walkableRow(harbourOrigin, harbourRows, 0);
+  assert(
+    northEdge.length == harbourEdge.length,
+    'the road must be as wide on both sides',
+  );
+  return <GridPoint, Portal>{
+    for (var i = 0; i < northEdge.length; i++) ...<GridPoint, Portal>{
+      northEdge[i]: Portal(
+        to: harbourEdge[i].step(Direction.south),
+        facing: Direction.south,
+      ),
+      harbourEdge[i]: Portal(
+        to: northEdge[i].step(Direction.north),
+        facing: Direction.north,
+      ),
+    },
+  };
+}
+
+/// Doors in both directions between the street, the barracks, the north
+/// district and the harbour.
 Map<GridPoint, Portal> _portals() {
   final frontDoor = _outdoorTile('E');
   final backPassage = _outdoorTile('e');
@@ -438,6 +725,8 @@ Map<GridPoint, Portal> _portals() {
       to: backDoor.step(Direction.south),
       facing: Direction.south,
     ),
+    ..._roadPortals(),
+    ..._mallPortals(),
   };
 }
 
@@ -466,17 +755,22 @@ WorldState createStreetWorld({int seed = 20260920}) {
             hasGun: false,
           ),
         );
-      case 'w' || 'z' || 'u':
+      case 'w' || 'z' || 'u' || 'r':
         final kind = switch (glyph) {
           'z' => EntityKind.sprinter,
           'u' => EntityKind.brute,
+          'r' => EntityKind.carabiniere,
           _ => EntityKind.wanderer,
         };
         final index = zombieCounts[kind] ?? 0;
         zombieCounts[kind] = index + 1;
         entities.add(
           factory.zombie(
-            id: '${kind.name}-$index',
+            // The barracks' carabinieri, spawned later, are
+            // `carabiniere-<n>`: the ones on the street keep apart.
+            id: kind == EntityKind.carabiniere
+                ? 'street-carabiniere-$index'
+                : '${kind.name}-$index',
             kind: kind,
             position: point,
           ),
@@ -485,7 +779,15 @@ WorldState createStreetWorld({int seed = 20260920}) {
         pickups.add(Pickup(id: ammoBackpackId, position: point, ammo: 2));
       case '2':
         pickups.add(Pickup(id: accidentBackpackId, position: point, ammo: 4));
+      case '4':
+        pickups.add(Pickup(id: parkingBackpackId, position: point, ammo: 2));
     }
+  }
+  for (final (point, glyph) in <(GridPoint, String)>[
+    ..._glyphs(mallGroundOrigin, mallGroundRows),
+    ..._glyphs(mallFirstOrigin, mallFirstRows),
+  ]) {
+    kinds[point.y * width + point.x] = _mallKind(glyph);
   }
   for (final (point, glyph) in _glyphs(barracksOrigin, barracksRows)) {
     kinds[point.y * width + point.x] = _barracksKind(glyph);
@@ -507,6 +809,7 @@ WorldState createStreetWorld({int seed = 20260920}) {
     },
     portals: _portals(),
     campfires: campfireNames().keys,
+    controls: <GridPoint, GridRect>{mallPanelTile(): luigiBars()},
     playerId: 'player',
     random: SeededRandom(seed),
   );
@@ -552,7 +855,16 @@ WorldState restoreStreetWorld(Map<String, Object?> json) {
     alertTriggers: saved.alertTriggers,
     portals: current.portals,
     campfires: current.campfires,
+    controls: current.controls,
   );
+}
+
+/// A wanderer coming in through the hypermarket's gate at [position],
+/// looking west down the corridor.
+Entity createMallZombie(String id, GridPoint position) {
+  return EntityFactory(
+    BalanceConfig.standard(),
+  ).zombie(id: id, kind: EntityKind.wanderer, position: position);
 }
 
 /// A carabiniere zombie coming out of the dark at [position].

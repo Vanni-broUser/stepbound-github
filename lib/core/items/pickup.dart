@@ -1,3 +1,4 @@
+import 'package:meta/meta.dart';
 import 'package:stepbound/core/grid/grid_point.dart';
 
 /// A backpack lying on the map. It blocks the tile it sits on, is collected
@@ -64,6 +65,7 @@ final class Portal {
 }
 
 /// Inclusive rectangle of tiles.
+@immutable
 final class GridRect {
   const GridRect(this.left, this.top, this.right, this.bottom);
 
@@ -84,6 +86,17 @@ final class GridRect {
       point.x <= right &&
       point.y >= top &&
       point.y <= bottom;
+
+  @override
+  bool operator ==(Object other) =>
+      other is GridRect &&
+      other.left == left &&
+      other.top == top &&
+      other.right == right &&
+      other.bottom == bottom;
+
+  @override
+  int get hashCode => Object.hash(left, top, right, bottom);
 
   Map<String, Object?> toJson() => <String, Object?>{
     'left': left,

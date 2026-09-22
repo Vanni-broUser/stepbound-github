@@ -1,14 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:stepbound/ui/loading_art.dart';
 
 /// Title card shown between the intro story and the tutorial: unlike the
 /// story scenes it fades in from black, holds, then fades back to black.
-/// A tap skips straight to the fade out.
+/// A tap skips straight to the fade out. The picture carries no text: the
+/// Stepbound logo is laid over its top and [caption] along its bottom.
 final class TitleSplash extends StatefulWidget {
   const TitleSplash({
     required this.onFinished,
-    this.image = 'assets/story/title_loading.jpg',
+    this.caption = 'Caricamento del tutorial',
     super.key,
   });
 
@@ -16,7 +18,7 @@ final class TitleSplash extends StatefulWidget {
   static const Duration hold = Duration(milliseconds: 2600);
   static const Duration total = Duration(milliseconds: 900 * 2 + 2600);
 
-  final String image;
+  final String caption;
   final VoidCallback onFinished;
 
   @override
@@ -83,11 +85,9 @@ final class _TitleSplashState extends State<TitleSplash>
         color: Colors.black,
         child: FadeTransition(
           opacity: _opacity,
-          child: Image.asset(
-            widget.image,
-            fit: BoxFit.cover,
-            width: double.infinity,
-            height: double.infinity,
+          child: LoadingArt(
+            caption: widget.caption,
+            captionKey: const ValueKey<String>('title-splash-caption'),
           ),
         ),
       ),

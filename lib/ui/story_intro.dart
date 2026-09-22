@@ -4,6 +4,7 @@ import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/ui/audio_scope.dart';
 import 'package:stepbound/ui/black_fade.dart';
 import 'package:stepbound/ui/blood_decor.dart';
+import 'package:stepbound/ui/main_menu.dart';
 
 /// One full-screen frame of the intro story with its dialogue line.
 final class StoryScene {
@@ -64,17 +65,21 @@ const List<StoryScene> outbreakScenes = <StoryScene>[
 /// Plays the intro story: each scene shows the bare image first, the next
 /// tap reveals the dialogue box, the tap after that moves to the next scene.
 /// With [fadeOutAtEnd] the last scene fades to black before [onFinished].
+/// With [onExit] an exit button stays in the corner, from the first picture
+/// on, to leave at any moment (watching a memory again at a camp).
 final class StoryIntro extends StatefulWidget {
   const StoryIntro({
     required this.onFinished,
     this.scenes = introScenes,
     this.fadeOutAtEnd = false,
+    this.onExit,
     super.key,
   });
 
   final List<StoryScene> scenes;
   final VoidCallback onFinished;
   final bool fadeOutAtEnd;
+  final VoidCallback? onExit;
 
   @override
   State<StoryIntro> createState() => _StoryIntroState();
@@ -130,6 +135,29 @@ final class _StoryIntroState extends State<StoryIntro> {
               Align(
                 alignment: Alignment.bottomCenter,
                 child: StoryTextBox(speaker: scene.speaker, text: scene.text),
+              ),
+            if (widget.onExit != null)
+              Align(
+                alignment: Alignment.topRight,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final unit = constraints.maxHeight.isFinite
+                        ? constraints.maxHeight /
+                              IntegerResolutionViewport.virtualHeight
+                        : 1.0;
+                    return Padding(
+                      padding: EdgeInsets.all(6 * unit),
+                      child: MenuButton(
+                        key: const ValueKey<String>('story-exit'),
+                        label: 'ESCI',
+                        unit: unit,
+                        compact: true,
+                        width: 44,
+                        onPressed: widget.onExit,
+                      ),
+                    );
+                  },
+                ),
               ),
             if (_fadingOut)
               BlackFade(
