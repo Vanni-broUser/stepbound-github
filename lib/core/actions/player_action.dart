@@ -85,6 +85,19 @@ final class InteractAction extends PlayerAction {
       return;
     }
 
+    final bars = world.controls.remove(target);
+    if (bars != null) {
+      for (var y = bars.top; y <= bars.bottom; y++) {
+        for (var x = bars.left; x <= bars.right; x++) {
+          world.map.setTile(GridPoint(x, y), const Tile(TileKind.floor));
+        }
+      }
+      world
+        ..emit(ControlUsedEvent(at: target, opened: bars))
+        ..emitNoise(origin: target, radius: 6, sourceEntityId: world.playerId);
+      return;
+    }
+
     final pickup = world.pickupAt(target);
     if (pickup != null) {
       pickup

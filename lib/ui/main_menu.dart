@@ -132,13 +132,13 @@ final class _MainMenuState extends State<MainMenu> {
     final hasSaves = _slots.any((save) => save != null);
     final buttons = switch (_page) {
       _MenuPage.home => <Widget>[
-        _MenuButton(
+        MenuButton(
           key: const ValueKey<String>('menu-new-game'),
           label: 'NUOVA PARTITA',
           unit: unit,
           onPressed: () => _open(_MenuPage.newGame),
         ),
-        _MenuButton(
+        MenuButton(
           key: const ValueKey<String>('menu-load'),
           label: 'CARICA PARTITA',
           unit: unit,
@@ -147,30 +147,30 @@ final class _MainMenuState extends State<MainMenu> {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            _MenuButton(
+            MenuButton(
               key: const ValueKey<String>('menu-audio'),
               label: AudioScope.of(context).muted ? 'AUDIO: NO' : 'AUDIO: SÌ',
               unit: unit,
               compact: true,
-              width: 84,
+              width: MenuButton.halfWidth,
               onPressed: _toggleAudio,
             ),
-            SizedBox(width: 4 * unit),
-            _MenuButton(
+            SizedBox(width: MenuButton.pairGap * unit),
+            MenuButton(
               key: const ValueKey<String>('menu-credits'),
               label: 'CREDITI',
               unit: unit,
               compact: true,
-              width: 84,
+              width: MenuButton.halfWidth,
               onPressed: () => _open(_MenuPage.credits),
             ),
           ],
         ),
       ],
       _MenuPage.credits => <Widget>[
-        _MenuHeading(text: 'CREDITI', unit: unit),
+        MenuHeading(text: 'CREDITI', unit: unit),
         _Credits(unit: unit),
-        _MenuButton(
+        MenuButton(
           key: const ValueKey<String>('menu-back'),
           label: 'INDIETRO',
           unit: unit,
@@ -179,7 +179,7 @@ final class _MainMenuState extends State<MainMenu> {
         ),
       ],
       _MenuPage.newGame || _MenuPage.load => <Widget>[
-        _MenuHeading(
+        MenuHeading(
           text: _page == _MenuPage.newGame
               ? 'SCEGLI DOVE SALVARE'
               : 'SCEGLI UN SALVATAGGIO',
@@ -195,7 +195,7 @@ final class _MainMenuState extends State<MainMenu> {
               _slotButton(slot, unit),
           ],
         ),
-        _MenuButton(
+        MenuButton(
           key: const ValueKey<String>('menu-back'),
           label: 'INDIETRO',
           unit: unit,
@@ -218,7 +218,7 @@ final class _MainMenuState extends State<MainMenu> {
 
   Widget _slotButton(int slot, double unit) {
     if (_confirming == slot) {
-      return _MenuButton(
+      return MenuButton(
         key: ValueKey<String>('menu-slot-$slot-confirm'),
         label: 'SOVRASCRIVERE LO SLOT $slot?\nTOCCA ANCORA PER CONFERMARE',
         unit: unit,
@@ -228,7 +228,7 @@ final class _MainMenuState extends State<MainMenu> {
       );
     }
     final save = _slots[slot - 1];
-    return _MenuButton(
+    return MenuButton(
       key: ValueKey<String>('menu-slot-$slot'),
       label: _slotLabel(slot),
       unit: unit,
@@ -242,8 +242,8 @@ final class _MainMenuState extends State<MainMenu> {
   }
 }
 
-final class _MenuHeading extends StatelessWidget {
-  const _MenuHeading({required this.text, required this.unit});
+final class MenuHeading extends StatelessWidget {
+  const MenuHeading({required this.text, required this.unit, super.key});
 
   final String text;
   final double unit;
@@ -266,8 +266,8 @@ final class _MenuHeading extends StatelessWidget {
 
 /// Dark plate with a blood-red rim and a couple of drips, like the in-game
 /// buttons and dialogue boxes.
-final class _MenuButton extends StatelessWidget {
-  const _MenuButton({
+final class MenuButton extends StatelessWidget {
+  const MenuButton({
     required this.label,
     required this.unit,
     required this.onPressed,
@@ -285,6 +285,13 @@ final class _MenuButton extends StatelessWidget {
 
   /// In virtual pixels; by default as wide as the main buttons.
   final double? width;
+
+  /// Every full-width button, narrow enough to leave the menu art visible
+  /// on both sides and as wide as a pair of [halfWidth] buttons, so their
+  /// edges line up.
+  static const double fullWidth = halfWidth * 2 + pairGap;
+  static const double halfWidth = 84;
+  static const double pairGap = 4;
 
   @override
   Widget build(BuildContext context) {
@@ -315,7 +322,7 @@ final class _MenuButton extends StatelessWidget {
               color: rim,
             ),
             child: Container(
-              width: (width ?? (compact ? 172 : 190)) * unit,
+              width: (width ?? fullWidth) * unit,
               padding: EdgeInsets.symmetric(
                 horizontal: 8 * unit,
                 vertical: (compact ? 4 : 6) * unit,

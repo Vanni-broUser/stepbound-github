@@ -44,6 +44,15 @@ final class _FakeHost implements TutorialHost {
 
   @override
   bool isUnlocked(HudElement element) => unlocked.contains(element);
+
+  final List<List<CutsceneFrame>> cutscenes = <List<CutsceneFrame>>[];
+  void Function()? onCutsceneFinished;
+
+  @override
+  void playCutscene(List<CutsceneFrame> frames, {void Function()? onFinished}) {
+    cutscenes.add(frames);
+    onCutsceneFinished = onFinished;
+  }
 }
 
 void main() {
@@ -116,6 +125,79 @@ void main() {
     director.onEvents(<WorldEvent>[alert(zombies.last)]);
     settle();
     expect(host.shown, hasLength(1), reason: 'only the first time');
+  });
+
+  test('a carabiniere that only heard Mario still gets its lesson', () {
+    final zombie = createCarabiniere(
+      'carabiniere-0',
+      carabiniereSpawns().first,
+    );
+    world.entities[zombie.id] = zombie;
+    settle();
+    expect(host.shown, isEmpty, reason: 'not aware of Mario yet');
+    // Papers underfoot: it hears him and comes, with no alert raised.
+    zombie.component<HearingComponent>().lastHeard = const GridPoint(0, 0);
+    settle();
+    expect(host.focus, zombie.id);
+    expect(host.shown.single.single.text, TutorialDirector.carabiniereLesson);
+  });
+
+  test('the carabinieri in the hospital hordes never give the lesson', () {
+    final hordes = world.entities.values
+        .where((zombie) => zombie.kind == EntityKind.carabiniere)
+        .toList();
+    expect(hordes, isNotEmpty);
+    for (final zombie in hordes) {
+      zombie.component<HearingComponent>().lastHeard = const GridPoint(0, 0);
+      host.visible.add(zombie.component<PositionComponent>().position);
+    }
+    director.onEvents(<WorldEvent>[
+      AlertedEvent(
+        entityId: hordes.first.id,
+        at: hordes.first.component<PositionComponent>().position,
+      ),
+    ]);
+    settle();
+    expect(host.shown, isEmpty);
+    expect(host.focus, isNull);
+  });
+
+  test('the zombie types met so far are known, for the camp', () {
+    expect(director.knownZombies, isEmpty);
+    director.onEvents(<WorldEvent>[
+      AlertedEvent(entityId: tutorialZombieId, at: zombiePosition()),
+    ]);
+    expect(director.knownZombies, <EntityKind>{EntityKind.wanderer});
+    final inside = GridPoint(barracksOrigin.x + 10, barracksOrigin.y + 13);
+    for (var i = 0; i < TutorialDirector.stepsBeforeCarabinieri; i++) {
+      director.onEvents(<WorldEvent>[
+        MovedEvent(entityId: world.playerId, from: inside, to: inside),
+      ]);
+    }
+    expect(director.knownZombies, <EntityKind>{
+      EntityKind.wanderer,
+      EntityKind.carabiniere,
+    });
+    final sprinter = world.entities.values.firstWhere(
+      (entity) => entity.kind == EntityKind.sprinter,
+    );
+    host.visible.add(sprinter.component<PositionComponent>().position);
+    settle();
+    expect(director.knownZombies, contains(EntityKind.sprinter));
+    final restored = TutorialDirector(world: world, host: _FakeHost())
+      ..restore(director.toJson());
+    expect(restored.knownZombies, director.knownZombies);
+  });
+
+  test("Luigi's scene counts as seen once played", () {
+    expect(director.luigiSceneSeen, isFalse);
+    final trigger = luigiSceneTrigger();
+    world.player.component<PositionComponent>().position = GridPoint(
+      trigger.left + 1,
+      trigger.top,
+    );
+    settle();
+    expect(director.luigiSceneSeen, isTrue);
   });
 
   test('prompts wait for the turn animation to finish', () {
@@ -269,5 +351,84 @@ void main() {
       ..restore(saved);
     expect(restored.toJson(), saved);
     expect(saved['zombieLesson'], isTrue);
+  });
+
+  test('the first sprinter in sight is framed and its pace explained', () {
+    final sprinter = world.entities.values.firstWhere(
+      (entity) => entity.kind == EntityKind.sprinter,
+    );
+    final at = sprinter.component<PositionComponent>().position;
+    settle();
+    expect(host.shown, isEmpty);
+    host.visible.add(at);
+    settle();
+    expect(host.focus, sprinter.id);
+    final line = host.shown.single.single;
+    expect(line.text, TutorialDirector.sprinterLesson);
+    expect(line.portrait, TutorialDirector.sprinterPortrait);
+    expect(line.speaker, isNull);
+    host.dismiss();
+    expect(host.focus, isNull);
+    settle();
+    expect(host.shown, hasLength(1), reason: 'the lesson is given once');
+  });
+
+  group('hypermarket', () {
+    void stepTo(GridPoint to) {
+      final position = world.player.component<PositionComponent>();
+      final from = position.position;
+      position.position = to;
+      director.onEvents(<WorldEvent>[
+        MovedEvent(entityId: world.playerId, from: from, to: to),
+      ]);
+    }
+
+    test('a few steps inside, a voice calls and Mario answers', () {
+      final hall = GridPoint(
+        mallGroundBounds.left + 10,
+        mallGroundBounds.top + 10,
+      );
+      for (var i = 0; i < TutorialDirector.stepsBeforeVoice - 1; i++) {
+        stepTo(hall.step(Direction.north));
+        settle();
+      }
+      expect(host.shown, isEmpty);
+      stepTo(hall);
+      settle();
+      final lines = host.shown.single;
+      expect(lines.first.speaker, TutorialDirector.mysteryVoice);
+      expect(lines.first.text, TutorialDirector.helpCall);
+      expect(lines.last.speaker, 'Mario Rossi');
+      expect(lines.last.portrait, isNotNull);
+      expect(lines.last.text, TutorialDirector.someoneAlive);
+    });
+
+    test("the shutter plays Luigi's scene, then zombies come in", () {
+      final trigger = luigiSceneTrigger();
+      stepTo(GridPoint(trigger.left + 2, trigger.bottom));
+      settle();
+      final frames = host.cutscenes.single;
+      expect(frames.map((frame) => frame.speaker), <String>[
+        TutorialDirector.luigi,
+        TutorialDirector.luigi,
+        'Zombi',
+      ]);
+      expect(host.spawned, isEmpty);
+      host.onCutsceneFinished!();
+      expect(host.spawned, hasLength(mallHordeSpawns().length));
+      expect(host.spawned.map((zombie) => zombie.kind).toSet(), <EntityKind>{
+        EntityKind.wanderer,
+      });
+      settle();
+      expect(host.cutscenes, hasLength(1), reason: 'the scene plays once');
+    });
+
+    test('working the panel lifts the shutter and says so', () {
+      director.onEvents(<WorldEvent>[
+        ControlUsedEvent(at: mallPanelTile(), opened: luigiBars()),
+      ]);
+      settle();
+      expect(host.shown.single.single.text, TutorialDirector.shutterOpened);
+    });
   });
 }

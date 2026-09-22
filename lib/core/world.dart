@@ -45,7 +45,9 @@ final class WorldState {
     Map<String, GridRect> alertTriggers = const <String, GridRect>{},
     Map<GridPoint, Portal> portals = const <GridPoint, Portal>{},
     Iterable<GridPoint> campfires = const <GridPoint>[],
-  }) : portals = Map<GridPoint, Portal>.unmodifiable(portals),
+    Map<GridPoint, GridRect> controls = const <GridPoint, GridRect>{},
+  }) : controls = Map<GridPoint, GridRect>.of(controls),
+       portals = Map<GridPoint, Portal>.unmodifiable(portals),
        campfires = Set<GridPoint>.unmodifiable(campfires),
        entities = <String, Entity>{
          for (final entity in entities) entity.id: entity,
@@ -74,6 +76,8 @@ final class WorldState {
         json['portals'] as List<Object?>? ?? const <Object?>[];
     final encodedCampfires =
         json['campfires'] as List<Object?>? ?? const <Object?>[];
+    final encodedControls =
+        json['controls'] as List<Object?>? ?? const <Object?>[];
     return WorldState(
       map: TileMap.fromJson(json['map']! as Map<String, Object?>),
       entities: encodedEntities.map(
@@ -103,6 +107,11 @@ final class WorldState {
           GridPoint.fromJson(encoded['at']! as Map<String, Object?>):
               Portal.fromJson(encoded),
       },
+      controls: <GridPoint, GridRect>{
+        for (final encoded in encodedControls.cast<Map<String, Object?>>())
+          GridPoint.fromJson(encoded['at']! as Map<String, Object?>):
+              GridRect.fromJson(encoded['opens']! as Map<String, Object?>),
+      },
     );
   }
 
@@ -121,6 +130,9 @@ final class WorldState {
 
   /// Camps where the player can rest and save.
   final Set<GridPoint> campfires;
+
+  /// Control panels not used yet, by tile, with the bars each one opens.
+  final Map<GridPoint, GridRect> controls;
   final String playerId;
   final SeededRandom random;
   final List<NoisePulse> _pendingNoises;
@@ -249,6 +261,13 @@ final class WorldState {
     'portals': <Object?>[
       for (final entry in portals.entries)
         <String, Object?>{'at': entry.key.toJson(), ...entry.value.toJson()},
+    ],
+    'controls': <Object?>[
+      for (final entry in controls.entries)
+        <String, Object?>{
+          'at': entry.key.toJson(),
+          'opens': entry.value.toJson(),
+        },
     ],
   };
 }

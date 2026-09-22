@@ -19,6 +19,7 @@ import 'package:stepbound/game/render/flag_component.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/game/render/level_background_component.dart';
 import 'package:stepbound/game/render/lighting_component.dart';
+import 'package:stepbound/game/render/mall_props.dart';
 import 'package:stepbound/game/render/pickup_component.dart';
 import 'package:stepbound/game/render/pixel_palette.dart';
 import 'package:stepbound/game/render/screen_fade_component.dart';
@@ -31,6 +32,15 @@ typedef GameSnapshot = ({
   Map<String, Object?> tutorial,
   List<String> hud,
   String place,
+});
+
+/// A place announced on the way in: its name and its picture.
+typedef PlaceCard = ({String name, String image});
+
+/// A story scene playing over the game, and what to do when it ends.
+typedef PlayingCutscene = ({
+  List<CutsceneFrame> frames,
+  void Function()? onFinished,
 });
 
 final class StepboundGame extends FlameGame
@@ -73,13 +83,35 @@ final class StepboundGame extends FlameGame
 
   final WorldState simulation;
   final GameAudio audio;
-  late final Soundscape soundscape = Soundscape(world: simulation);
+  late final Soundscape soundscape = Soundscape(
+    world: simulation,
+    fires: outdoorFireSpots(),
+  );
   late final TurnPresentationController presentation;
   late final DebugWorldOverlay debugOverlay;
   final Map<String, CharacterComponent> _characters =
       <String, CharacterComponent>{};
   final ValueNotifier<bool> aiming = ValueNotifier<bool>(false);
   final ValueNotifier<bool> gameOver = ValueNotifier<bool>(false);
+
+  /// Turns true once everything is loaded and the first frame can be drawn.
+  final ValueNotifier<bool> readyToShow = ValueNotifier<bool>(false);
+
+  /// While true the game leaves the music and ambience alone: a story is
+  /// playing over it (memories at a camp, the level starting over).
+  bool soundscapePaused = false;
+
+  /// True while the camp menu is open, after resting at a campfire.
+  final ValueNotifier<bool> atCamp = ValueNotifier<bool>(false);
+
+  /// The story scene covering the game, if any.
+  final ValueNotifier<PlayingCutscene?> cutscene =
+      ValueNotifier<PlayingCutscene?>(null);
+
+  /// The place being announced between two fades to black, if any.
+  final ValueNotifier<PlaceCard?> locationCard = ValueNotifier<PlaceCard?>(
+    null,
+  );
 
   /// Ignores the keyboard while a dialogue covers the game.
   bool inputLocked = false;
@@ -133,7 +165,7 @@ final class StepboundGame extends FlameGame
         await world.add(
           LightingComponent(
             area: _regionRect(region),
-            lights: barracksLights(),
+            lights: region.lights,
             playerPosition: () => _characters[playerId]!.position,
           ),
         );
@@ -152,6 +184,9 @@ final class StepboundGame extends FlameGame
     await world.addAll(<Component>[
       for (final pickup in simulation.pickups.values)
         PickupComponent(pickup: pickup),
+      LuigiComponent(tile: luigiTile()),
+      ShutterComponent(bars: luigiBars(), map: simulation.map),
+      PanelGlintComponent(panel: mallPanelTile(), world: simulation),
     ]);
     tutorial = TutorialDirector(world: simulation, host: this);
     final tutorialState = _tutorialState;
@@ -172,6 +207,7 @@ final class StepboundGame extends FlameGame
     _syncPresentation();
     _snapCameraToPlayer();
     _acceptsInput = true;
+    readyToShow.value = true;
   }
 
   @override
@@ -186,15 +222,15 @@ final class StepboundGame extends FlameGame
     _updateHeldDirection(dt);
     _syncPresentation();
     _updateCamera(dt);
-    Soundscape.apply(
-      audio,
-      soundscape.update(
-        dt,
-        indoor: _currentRegion().indoor,
-        resting: _restingAt != null,
-        gameOver: gameOver.value,
-      ),
+    final mix = soundscape.update(
+      dt,
+      indoor: _currentRegion().indoor,
+      resting: _restingAt != null,
+      gameOver: gameOver.value,
     );
+    if (!soundscapePaused) {
+      Soundscape.apply(audio, mix);
+    }
     final ammo = simulation.player.component<AmmoComponent>();
     if (ammoLoaded.value != ammo.loaded) {
       ammoLoaded.value = ammo.loaded;
@@ -273,6 +309,10 @@ final class StepboundGame extends FlameGame
       switch (event) {
         case CampfireUsedEvent(:final at):
           _startRest(at);
+        case TeleportedEvent(:final from, :final to)
+            when _regionAt(to)?.cardImage != null &&
+                _regionAt(to) != _regionAt(from):
+          _showLocationCard(_regionAt(to)!, threshold: from);
         case TeleportedEvent(:final to):
           final entering = _isIndoor(to);
           _addWithoutWaiting(
@@ -314,11 +354,52 @@ final class StepboundGame extends FlameGame
 
   String get playerId => simulation.playerId;
 
-  bool get _canAct => _acceptsInput && !inputLocked && _entranceHoldLeft <= 0;
+  bool get _canAct =>
+      _acceptsInput &&
+      !inputLocked &&
+      _entranceHoldLeft <= 0 &&
+      locationCard.value == null &&
+      cutscene.value == null;
 
   bool _isIndoor(GridPoint tile) => levelRegions.any(
     (region) => region.indoor && region.bounds.contains(tile),
   );
+
+  LevelRegion? _regionAt(GridPoint tile) {
+    for (final region in levelRegions) {
+      if (region.bounds.contains(tile)) {
+        return region;
+      }
+    }
+    return null;
+  }
+
+  /// On the way into a place with a card the game goes black and shows its
+  /// picture and name; Mario waits until the card is dismissed.
+  ///
+  /// Until the screen is black Mario is still drawn on the [threshold] he
+  /// stepped on, so the camera keeps showing the place he is leaving.
+  void _showLocationCard(LevelRegion region, {required GridPoint threshold}) {
+    _heldDirection = null;
+    _holdElapsed = 0;
+    presentation.clearBuffer();
+    aiming.value = false;
+    _cardThreshold = threshold;
+    locationCard.value = (name: region.name ?? '', image: region.cardImage!);
+  }
+
+  /// Where Mario is drawn while a card fades to black, if one is.
+  GridPoint? _cardThreshold;
+
+  /// Called by the card overlay once the screen is black: Mario moves to
+  /// the new place behind it.
+  void locationCardBlack() => _cardThreshold = null;
+
+  /// Called by the card overlay once the new place has faded in.
+  void dismissLocationCard() {
+    _cardThreshold = null;
+    locationCard.value = null;
+  }
 
   /// Mario stops on the threshold while the room fades in: the steps queued
   /// on the street are dropped and a held arrow must be pressed again.
@@ -346,7 +427,26 @@ final class StepboundGame extends FlameGame
   }
 
   @override
-  bool get isPromptVisible => prompt.value != null;
+  bool get isPromptVisible => prompt.value != null || cutscene.value != null;
+
+  @override
+  void playCutscene(List<CutsceneFrame> frames, {void Function()? onFinished}) {
+    _heldDirection = null;
+    _holdElapsed = 0;
+    presentation.clearBuffer();
+    aiming.value = false;
+    cutscene.value = (
+      frames: List<CutsceneFrame>.unmodifiable(frames),
+      onFinished: onFinished,
+    );
+  }
+
+  /// Called by the cutscene overlay once the game has faded back in.
+  void finishCutscene() {
+    final callback = cutscene.value?.onFinished;
+    cutscene.value = null;
+    callback?.call();
+  }
 
   String? _focusId;
 
@@ -398,8 +498,8 @@ final class StepboundGame extends FlameGame
   @override
   bool isUnlocked(HudElement element) => hud.value.contains(element);
 
-  /// Mario kneels by the fire, which roars up; the game is saved when the
-  /// moment is over.
+  /// Mario kneels by the fire, which roars up; when the moment is over the
+  /// camp menu opens (save, start over, zombie types, memories).
   void _startRest(GridPoint campfire) {
     _heldDirection = null;
     presentation.clearBuffer();
@@ -419,14 +519,24 @@ final class StepboundGame extends FlameGame
     if (_restLeft > 0) {
       return;
     }
-    final campfire = _restingAt!;
+    _campAt = _restingAt;
     _restingAt = null;
-    unawaited(_save(campfire));
+    atCamp.value = true;
   }
 
-  Future<void> _save(GridPoint campfire) async {
-    await onRest?.call(snapshot(place: campfireNames()[campfire] ?? ''));
-    showPrompt(const <TutorialLine>[TutorialLine(TutorialDirector.saved)]);
+  /// The campfire Mario rests at while the camp menu is open.
+  GridPoint? _campAt;
+
+  /// Saves the game as it is at this campfire.
+  Future<void> saveAtCamp() async {
+    await onRest?.call(snapshot(place: campfireNames()[_campAt] ?? ''));
+  }
+
+  /// Closes the camp menu and gives Mario back to the player.
+  void leaveCamp() {
+    _campAt = null;
+    atCamp.value = false;
+    inputLocked = false;
   }
 
   /// The whole game as it is now, ready to be saved.
@@ -581,8 +691,14 @@ final class StepboundGame extends FlameGame
   }
 
   void _syncPresentation() {
+    final threshold = _cardThreshold;
     for (final entry in _characters.entries) {
-      final visual = presentation.visualPositionFor(entry.key);
+      final visual =
+          entry.key == playerId &&
+              threshold != null &&
+              !presentation.isEntityMoving(playerId)
+          ? VisualPosition(threshold.x.toDouble(), threshold.y.toDouble())
+          : presentation.visualPositionFor(entry.key);
       final moving = presentation.isEntityMoving(entry.key);
       final animationProgress = presentation.progress;
       entry.value

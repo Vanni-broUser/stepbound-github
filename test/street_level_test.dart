@@ -4,8 +4,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/core/core.dart';
 
 void main() {
-  test('every street and barracks row has the same width', () {
-    for (final rows in <List<String>>[streetLevelRows, barracksRows]) {
+  test('every row of each place has the same width', () {
+    for (final rows in <List<String>>[
+      streetLevelRows,
+      northDistrictRows,
+      harbourRows,
+      barracksRows,
+    ]) {
       final width = rows.first.length;
       expect(rows.every((row) => row.length == width), isTrue);
     }
@@ -70,7 +75,8 @@ void main() {
     expect(byFountain, hasLength(2));
   });
 
-  test('hordes too many to fight block the way to the hospital', () {
+  test('hordes of wanderers and carabinieri block the way to the '
+      'hospital', () {
     final world = createStreetWorld();
     // The square, in the north district's own tiles.
     final square = GridRect(
@@ -84,13 +90,20 @@ void main() {
           zombie.component<PositionComponent>().position.x < square.left,
     );
     expect(hordes.length, greaterThanOrEqualTo(30));
+    expect(hordes.map((zombie) => zombie.kind).toSet(), <EntityKind>{
+      EntityKind.wanderer,
+      EntityKind.carabiniere,
+    });
+    final carabinieri = hordes.where(
+      (zombie) => zombie.kind == EntityKind.carabiniere,
+    );
+    expect(carabinieri.length, inInclusiveRange(3, hordes.length ~/ 4));
     expect(
-      hordes.map((zombie) => zombie.kind).toSet(),
-      containsAll(<EntityKind>[
-        EntityKind.wanderer,
-        EntityKind.sprinter,
-        EntityKind.brute,
-      ]),
+      carabinieri.map((zombie) => zombie.id).toSet().intersection(<String>{
+        for (var i = 0; i < carabiniereSpawns().length; i++) 'carabiniere-$i',
+      }),
+      isEmpty,
+      reason: 'the barracks spawns its own carabinieri later',
     );
     // None of them can see someone standing anywhere in the square.
     for (final zombie in hordes) {
@@ -114,6 +127,7 @@ void main() {
         if (entity.kind != EntityKind.player)
           entity.component<PositionComponent>().position,
       ...carabiniereSpawns(),
+      ...mallHordeSpawns(),
     ];
     for (final spot in spots) {
       for (final region in levelRegions) {
@@ -234,6 +248,144 @@ void main() {
       final back = walk(world, out, Direction.south);
       expect(back, backDoor.step(Direction.south));
     });
+
+    test('the south road of the square goes down to the harbour and back', () {
+      final world = createStreetWorld();
+      final harbour = levelRegions.firstWhere(
+        (region) => region.name == harbourName,
+      );
+      expect(harbour.cardImage, harbourCardImage);
+      // The centre line of the road, one step before its last row.
+      final road = GridPoint(
+        northDistrictOrigin.x + northDistrictRows.last.indexOf('|'),
+        northDistrictOrigin.y + northDistrictRows.length - 2,
+      );
+      final down = walk(world, road, Direction.south);
+      expect(harbour.bounds.contains(down), isTrue);
+      expect(down.y, harbourOrigin.y + 1);
+      expect(
+        world.player.component<PositionComponent>().facing,
+        Direction.south,
+      );
+      final up = walk(world, down, Direction.north);
+      expect(up, road);
+    });
+  });
+
+  test('a sprinter prowls the middle of the car park, the backpack is '
+      'further west', () {
+    final world = createStreetWorld();
+    final sprinters = zombiesIn(
+      world,
+      levelRegions[1],
+    ).where((zombie) => zombie.kind == EntityKind.sprinter);
+    final sprinter = sprinters.single.component<PositionComponent>().position;
+    final backpack = world.pickups[parkingBackpackId]!.position;
+    final carPark = northDistrictRows[sprinter.y - northDistrictOrigin.y];
+    expect(carPark.contains('L'), isTrue);
+    // Straight ahead of the road up from the square, so framing it with
+    // Mario never swings the camera west to the backpack.
+    final road = northDistrictOrigin.x + northDistrictRows.last.indexOf('|');
+    expect((sprinter.x - road).abs(), lessThanOrEqualTo(1));
+    expect(road - backpack.x, greaterThanOrEqualTo(12));
+  });
+
+  group('hypermarket', () {
+    GridPoint walk(WorldState world, GridPoint from, Direction direction) {
+      world.player.component<PositionComponent>().position = from;
+      final events = const TurnScheduler().advance(
+        world,
+        MoveAction(direction),
+      );
+      expect(events.whereType<TeleportedEvent>(), hasLength(1));
+      return world.player.component<PositionComponent>().position;
+    }
+
+    GridPoint northTile(String glyph) {
+      final y = northDistrictRows.indexWhere((row) => row.contains(glyph));
+      return GridPoint(
+        northDistrictOrigin.x + northDistrictRows[y].indexOf(glyph),
+        northDistrictOrigin.y + y,
+      );
+    }
+
+    test('its open entrance leads to the ground floor and back', () {
+      final world = createStreetWorld();
+      final door = northTile('m');
+      final inside = walk(world, door.step(Direction.south), Direction.north);
+      final ground = levelRegions.firstWhere(
+        (region) => region.bounds == mallGroundBounds,
+      );
+      expect(ground.indoor, isTrue);
+      expect(ground.lights, isNotEmpty);
+      expect(mallGroundBounds.contains(inside), isTrue);
+      final out = walk(world, inside, Direction.south);
+      expect(out, door.step(Direction.south));
+    });
+
+    test('the stairs join the two floors', () {
+      final world = createStreetWorld();
+      final up = GridPoint(
+        mallGroundOrigin.x + mallGroundRows[2].indexOf('U'),
+        mallGroundOrigin.y + 2,
+      );
+      final upstairs = walk(world, up, Direction.north);
+      expect(upstairs.x, greaterThanOrEqualTo(mallFirstOrigin.x));
+      expect(
+        mallFirstRows[upstairs.y - mallFirstOrigin.y][upstairs.x -
+            mallFirstOrigin.x],
+        'D',
+      );
+      final downstairs = walk(world, upstairs, Direction.north);
+      expect(downstairs, up);
+    });
+
+    test('the panel beyond the gate lifts the shutter in front of Luigi', () {
+      final world = createStreetWorld();
+      final bars = luigiBars();
+      final luigi = luigiTile();
+      expect(luigi.y, lessThan(bars.top));
+      expect(bars.left <= luigi.x && luigi.x <= bars.right, isTrue);
+      final shutter = GridPoint(bars.left, bars.top);
+      expect(world.map.tileAt(shutter).isWalkable, isFalse);
+      expect(world.map.tileAt(shutter).blocksSight, isFalse);
+
+      final panel = mallPanelTile();
+      world.player.component<PositionComponent>()
+        ..position = panel.step(Direction.south)
+        ..facing = Direction.north;
+      final events = const TurnScheduler().advance(
+        world,
+        const InteractAction(),
+      );
+      expect(events.whereType<ControlUsedEvent>().single.opened, bars);
+      expect(world.map.tileAt(shutter).isWalkable, isTrue);
+      expect(world.controls, isEmpty);
+      // The horde comes between the shutter and the panel.
+      for (final spawn in mallHordeSpawns()) {
+        expect(spawn.x, greaterThan(bars.right));
+        expect(spawn.x, lessThanOrEqualTo(panel.x + 2));
+      }
+    });
+
+    test('a backpack with two rounds waits at the far corner of the car '
+        'park', () {
+      final backpack = createStreetWorld().pickups[parkingBackpackId]!;
+      expect(backpack.ammo, 2);
+      expect(backpack.active, isTrue);
+      final row = northDistrictRows[backpack.position.y];
+      expect(row[backpack.position.x - northDistrictOrigin.x - 1], '=');
+    });
+  });
+
+  test('the harbour ends at the parapet over the sea', () {
+    final map = createStreetWorld().map;
+    final parapet = harbourRows.indexWhere((row) => row.startsWith('R'));
+    for (var x = 0; x < harbourRows.first.length; x++) {
+      final below = GridPoint(harbourOrigin.x + x, harbourOrigin.y + parapet);
+      expect(map.tileAt(below).isWalkable, isFalse);
+      expect(map.tileAt(below).blocksSight, isFalse);
+    }
   });
 
   test('the barracks has lamps and two carabinieri waiting in the dark', () {
@@ -279,26 +431,29 @@ void main() {
     );
   });
 
-  test('fires burn on the street and in the north district', () {
-    int count(List<FireSpot> spots, FireKind kind) =>
-        spots.where((s) => s.kind == kind).length;
-    final street = streetFireSpots();
-    expect(count(street, FireKind.car), 2);
-    expect(count(street, FireKind.bin), 2);
-    expect(count(street, FireKind.window), 3);
-    final all = outdoorFireSpots();
-    expect(count(all, FireKind.car), 6);
-    expect(count(all, FireKind.bin), 5);
-    expect(count(all, FireKind.window), 8);
-    expect(count(all, FireKind.campfire), 1);
-    final north = levelRegions[1].bounds;
-    expect(
-      all
-          .where((spot) => spot.kind == FireKind.campfire)
-          .every((spot) => north.contains(spot.tile)),
-      isTrue,
-    );
-  });
+  test(
+    'fires burn on the street, in the north district and at the harbour',
+    () {
+      int count(List<FireSpot> spots, FireKind kind) =>
+          spots.where((s) => s.kind == kind).length;
+      final street = streetFireSpots();
+      expect(count(street, FireKind.car), 2);
+      expect(count(street, FireKind.bin), 2);
+      expect(count(street, FireKind.window), 3);
+      final all = outdoorFireSpots();
+      expect(count(all, FireKind.car), 7);
+      expect(count(all, FireKind.bin), 8);
+      expect(count(all, FireKind.window), 11);
+      expect(count(all, FireKind.campfire), 1);
+      final north = levelRegions[1].bounds;
+      expect(
+        all
+            .where((spot) => spot.kind == FireKind.campfire)
+            .every((spot) => north.contains(spot.tile)),
+        isTrue,
+      );
+    },
+  );
 
   test('the camp burns at the closed east end of the north street', () {
     final world = createStreetWorld();

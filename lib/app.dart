@@ -13,7 +13,11 @@ import 'package:stepbound/save/save_game.dart';
 import 'package:stepbound/ui/audio_scope.dart';
 import 'package:stepbound/ui/black_fade.dart';
 import 'package:stepbound/ui/blood_decor.dart';
+import 'package:stepbound/ui/camp_menu.dart';
+import 'package:stepbound/ui/game_cutscene.dart';
 import 'package:stepbound/ui/gameplay_dialogue.dart';
+import 'package:stepbound/ui/loading_art.dart';
+import 'package:stepbound/ui/location_card.dart';
 import 'package:stepbound/ui/main_menu.dart';
 import 'package:stepbound/ui/story_intro.dart';
 import 'package:stepbound/ui/title_splash.dart';
@@ -65,6 +69,15 @@ final class _StepboundAppState extends State<StepboundApp> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Decoded up front, so the loading picture is there at once.
+    for (final image in <String>[LoadingArt.image, MainMenu.logo]) {
+      unawaited(precacheImage(AssetImage(image), context));
+    }
+  }
+
+  @override
   void dispose() {
     _lifecycle.dispose();
     super.dispose();
@@ -72,7 +85,7 @@ final class _StepboundAppState extends State<StepboundApp> {
 
   Future<void> _newGame(int slot) async {
     await _saves.clear(slot);
-    _audio.playMusic(Music.story);
+    _playStoryAudio();
     setState(() {
       _slot = slot;
       _hasSave = false;
@@ -159,6 +172,55 @@ final class _StepboundAppState extends State<StepboundApp> {
     });
   }
 
+  /// From a camp: the level from the very start, the first story picture,
+  /// with nothing kept (bullets, known zombies, memories). It counts as a
+  /// save: the slot now holds the start of the level, so loading it later
+  /// starts the level over too.
+  Future<void> _restartLevel() async {
+    // The camp's fire and hushed music stop at once: the story plays.
+    _game?.soundscapePaused = true;
+    _playStoryAudio();
+    await _saves.save(
+      SaveGame(
+        slot: _slot,
+        savedAt: DateTime.now(),
+        place: levelStartPlace,
+        world: createStreetWorld().toJson(),
+        tutorial: const <String, Object?>{},
+        hud: const <String>[],
+      ),
+    );
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _hasSave = true;
+      _restartCount = 0;
+      _game = null;
+      _phase = _Phase.story;
+    });
+  }
+
+  /// The story's music at full volume, no ambience.
+  void _playStoryAudio() {
+    _audio
+      ..silenceAmbience()
+      ..setMusicLevel(1)
+      ..playMusic(Music.story);
+  }
+
+  /// Memories at a camp play with the story's sound; the game's comes back
+  /// when they end.
+  void _watchMemories(StepboundGame game, {required bool playing}) {
+    game.soundscapePaused = playing;
+    if (playing) {
+      _playStoryAudio();
+    }
+  }
+
+  /// What a save made by starting the level over is called in the slots.
+  static const String levelStartPlace = 'Inizio del livello';
+
   void _backToMenu() {
     _audio
       ..silenceAmbience()
@@ -223,7 +285,14 @@ final class _StepboundAppState extends State<StepboundApp> {
                       game: game,
                     ),
                     if (_phase == _Phase.dialogue) ...<Widget>[
-                      GameplayDialogue(onFinished: _finishDialogue),
+                      // Mario speaks once the game behind him is there, so
+                      // no line goes by unseen under the loading picture.
+                      ValueListenableBuilder<bool>(
+                        valueListenable: game.readyToShow,
+                        builder: (context, ready, _) => ready
+                            ? GameplayDialogue(onFinished: _finishDialogue)
+                            : const SizedBox.shrink(),
+                      ),
                       const BlackFade(
                         key: ValueKey<String>('gameplay-fade-in'),
                         toBlack: false,
@@ -233,9 +302,15 @@ final class _StepboundAppState extends State<StepboundApp> {
                       // buttons never show through it.
                       ValueListenableBuilder<List<TutorialLine>?>(
                         valueListenable: game.prompt,
-                        builder: (context, lines, _) => lines == null
-                            ? TouchControls(game: game)
-                            : const SizedBox.shrink(),
+                        builder: (context, lines, _) =>
+                            ValueListenableBuilder<bool>(
+                              valueListenable: game.atCamp,
+                              // Also gone while the camp menu is open.
+                              builder: (context, atCamp, _) =>
+                                  lines == null && !atCamp
+                                  ? TouchControls(game: game)
+                                  : const SizedBox.shrink(),
+                            ),
                       ),
                     if (_phase == _Phase.playing)
                       ValueListenableBuilder<List<TutorialLine>?>(
@@ -261,6 +336,42 @@ final class _StepboundAppState extends State<StepboundApp> {
                         },
                       ),
                     ValueListenableBuilder<bool>(
+                      valueListenable: game.atCamp,
+                      builder: (context, atCamp, _) => atCamp
+                          ? CampMenu(
+                              knownZombies: game.tutorial.knownZombies,
+                              luigiSceneSeen: game.tutorial.luigiSceneSeen,
+                              onSave: game.saveAtCamp,
+                              onRestartLevel: () => unawaited(_restartLevel()),
+                              onClose: game.leaveCamp,
+                              onMemories: (playing) =>
+                                  _watchMemories(game, playing: playing),
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                    ValueListenableBuilder<PlayingCutscene?>(
+                      valueListenable: game.cutscene,
+                      builder: (context, cutscene, _) => cutscene == null
+                          ? const SizedBox.shrink()
+                          : GameCutscene(
+                              key: ObjectKey(cutscene),
+                              frames: cutscene.frames,
+                              onFinished: game.finishCutscene,
+                            ),
+                    ),
+                    ValueListenableBuilder<PlaceCard?>(
+                      valueListenable: game.locationCard,
+                      builder: (context, card, _) => card == null
+                          ? const SizedBox.shrink()
+                          : LocationCard(
+                              key: ObjectKey(card),
+                              name: card.name,
+                              image: card.image,
+                              onBlack: game.locationCardBlack,
+                              onFinished: game.dismissLocationCard,
+                            ),
+                    ),
+                    ValueListenableBuilder<bool>(
                       valueListenable: game.gameOver,
                       builder: (context, isGameOver, _) {
                         if (!isGameOver) {
@@ -272,6 +383,17 @@ final class _StepboundAppState extends State<StepboundApp> {
                           onMenu: _backToMenu,
                         );
                       },
+                    ),
+                    // The loading picture instead of a black screen while
+                    // the maps and sprites load.
+                    LoadingCover(
+                      key: ObjectKey(game),
+                      ready: game.readyToShow,
+                      // A new game comes out of the story's fade to black.
+                      fadeIn: _phase == _Phase.dialogue,
+                      caption: _phase == _Phase.dialogue
+                          ? 'Caricamento del tutorial'
+                          : 'Caricamento della partita',
                     ),
                   ],
                 ),

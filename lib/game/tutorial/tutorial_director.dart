@@ -16,6 +16,16 @@ final class TutorialLine {
   final String? portrait;
 }
 
+/// One full-screen picture of a story scene played during the game: the
+/// picture first, then [text] on a tap, then the next picture.
+final class CutsceneFrame {
+  const CutsceneFrame({required this.image, required this.text, this.speaker});
+
+  final String image;
+  final String? speaker;
+  final String text;
+}
+
 /// Touch controls that the tutorial unlocks one at a time. The arrows are
 /// always there.
 enum HudElement { interact, ammo, shoot }
@@ -44,6 +54,10 @@ abstract interface class TutorialHost {
   bool isUnlocked(HudElement element);
 
   void unlock(HudElement element);
+
+  /// Fades to black and plays [frames] like the intro story, then fades
+  /// back to the game and calls [onFinished].
+  void playCutscene(List<CutsceneFrame> frames, {void Function()? onFinished});
 }
 
 final class _QueuedPrompt {
@@ -62,7 +76,11 @@ final class _QueuedPrompt {
 ///    the interact button; it holds two bullets (the ammo counter appears);
 /// 3. at the barracks Mario hopes he is safe; a few steps inside, the
 ///    carabinieri zombies come out of the dark;
-/// 4. past them, a backpack holds the pistol (the shoot button appears).
+/// 4. past them, a backpack holds the pistol (the shoot button appears);
+/// 5. a few steps into the hypermarket a voice calls for help; upstairs,
+///    walking up to the shutter where Luigi is stuck plays his scene, then
+///    zombies pour in through the gate, between Mario and the panel that
+///    lifts the shutter.
 final class TutorialDirector {
   TutorialDirector({required this.world, required this.host});
 
@@ -84,13 +102,51 @@ final class TutorialDirector {
   static const String campLesson =
       'Usa gli accampamenti per salvare i tuoi progressi';
   static const String saved = 'Salvataggio completato';
+  static const String sprinterLesson =
+      'Gli zombi veloci si muovono alla tua stessa velocità';
   static const String carabiniereLesson =
       'Gli zombi carabinieri possono raggiungerti a due celle di distanza '
       'grazie al loro manganello';
 
   static const String wandererPortrait = 'assets/story/portrait_wanderer.png';
+  static const String sprinterPortrait = 'assets/story/portrait_sprinter.png';
   static const String carabinierePortrait =
       'assets/story/portrait_carabiniere.png';
+
+  static const String mysteryVoice = 'Voce misteriosa';
+  static const String helpCall = "Aiuto! C'è qualcuno?! Aiutooo";
+  static const String someoneAlive = "Ei ma qui c'è qualcuno ancora vivo!";
+  static const String shutterOpened =
+      'Hai disattivato il sistema antifurto: la saracinesca si è alzata';
+
+  static const String luigi = 'Luigi Rovaga';
+
+  /// Luigi behind the shutter, then the zombies at Mario's back.
+  static const List<CutsceneFrame> luigiScene = <CutsceneFrame>[
+    CutsceneFrame(
+      image: 'assets/story/scene_luigi_trapped.jpg',
+      speaker: luigi,
+      text:
+          'Mi chiamo Luigi. Sono rimasto bloccato qui per colpa del sistema '
+          'antifurto',
+    ),
+    CutsceneFrame(
+      image: 'assets/story/scene_luigi_warning.jpg',
+      speaker: luigi,
+      text: 'Attenzione! Dietro di te',
+    ),
+    CutsceneFrame(
+      image: 'assets/story/scene_mall_zombies.jpg',
+      speaker: 'Zombi',
+      text: 'Aaaahhrg!',
+    ),
+  ];
+
+  /// Steps into the hypermarket before the voice is heard.
+  static const int stepsBeforeVoice = 3;
+
+  /// How far Luigi's shouting carries: the zombies come in after it.
+  static const int hordeCallRadius = 30;
 
   /// Leaves time for the camera to pan to the zombie and for its balloon.
   static const double focusDelay = 0.7;
@@ -114,7 +170,12 @@ final class TutorialDirector {
   bool _carabinieriOut = false;
   bool _carabiniereLessonQueued = false;
   bool _campLessonQueued = false;
+  bool _sprinterLessonQueued = false;
   int _stepsInside = 0;
+  int _stepsInMall = 0;
+  bool _voiceQueued = false;
+  bool _luigiScenePlayed = false;
+  bool _hordeOut = false;
 
   /// What has already happened, to be saved with the game.
   Map<String, Object?> toJson() => <String, Object?>{
@@ -124,7 +185,12 @@ final class TutorialDirector {
     'carabinieriOut': _carabinieriOut,
     'carabiniereLesson': _carabiniereLessonQueued,
     'campLesson': _campLessonQueued,
+    'sprinterLesson': _sprinterLessonQueued,
     'stepsInside': _stepsInside,
+    'stepsInMall': _stepsInMall,
+    'mallVoice': _voiceQueued,
+    'luigiScene': _luigiScenePlayed,
+    'mallHorde': _hordeOut,
   };
 
   /// Restores [toJson]; anything missing counts as not happened yet.
@@ -136,17 +202,32 @@ final class TutorialDirector {
     _carabinieriOut = flag('carabinieriOut');
     _carabiniereLessonQueued = flag('carabiniereLesson');
     _campLessonQueued = flag('campLesson');
+    _sprinterLessonQueued = flag('sprinterLesson');
     _stepsInside = json['stepsInside'] as int? ?? 0;
+    _stepsInMall = json['stepsInMall'] as int? ?? 0;
+    _voiceQueued = flag('mallVoice');
+    _luigiScenePlayed = flag('luigiScene');
+    _hordeOut = flag('mallHorde');
   }
+
+  /// The zombie types met so far, for the camp's list: the wanderers from
+  /// the first alert on (or at the latest once past the street), the
+  /// carabinieri once they have come out in the barracks, the sprinters
+  /// once one has been announced.
+  Set<EntityKind> get knownZombies => <EntityKind>{
+    if (_zombieLessonQueued || _carabinieriOut) EntityKind.wanderer,
+    if (_carabinieriOut || _carabiniereLessonQueued) EntityKind.carabiniere,
+    if (_sprinterLessonQueued) EntityKind.sprinter,
+  };
+
+  /// Whether Luigi's scene in the hypermarket has been played, so it can
+  /// be watched again among the memories.
+  bool get luigiSceneSeen => _luigiScenePlayed;
 
   /// "Non hai una pistola" only while the player really has none.
   static String ammoFound(int rounds, {required bool hasGun}) => hasGun
       ? 'Hai trovato $rounds proiettili'
       : 'Hai trovato $rounds proiettili. $noGun';
-
-  bool _isIndoor(GridPoint tile) => levelRegions.any(
-    (region) => region.indoor && region.bounds.contains(tile),
-  );
 
   /// Feeds the events of a resolved turn.
   void onEvents(Iterable<WorldEvent> events) {
@@ -165,31 +246,80 @@ final class TutorialDirector {
               onDismissed: () => host.focusOn(null),
             ),
           );
-        case AlertedEvent(entityId: final id)
-            when !_carabiniereLessonQueued &&
-                world.entities[id]?.kind == EntityKind.carabiniere:
-          _carabiniereLessonQueued = true;
-          host.focusOn(id);
-          _queue.add(
-            _QueuedPrompt(
-              const <TutorialLine>[
-                TutorialLine(carabiniereLesson, portrait: carabinierePortrait),
-              ],
-              delay: focusDelay,
-              onDismissed: () => host.focusOn(null),
-            ),
-          );
+        case AlertedEvent(entityId: final id) when _isBarracksCarabiniere(id):
+          _queueCarabiniereLesson(id);
         case PickedUpEvent(:final ammo, :final gun):
           host.playPickupAnimation();
           _queue.add(_pickupPrompt(ammo: ammo, gun: gun));
         case MovedEvent(entityId: final id, :final to)
-            when id == world.playerId && _isIndoor(to):
+            when id == world.playerId && barracksBounds.contains(to):
           _stepsInside++;
           if (_stepsInside >= stepsBeforeCarabinieri) {
             _releaseCarabinieri();
           }
+        case MovedEvent(entityId: final id, :final to)
+            when id == world.playerId && mallGroundBounds.contains(to):
+          _stepsInMall++;
+          if (_stepsInMall >= stepsBeforeVoice && !_voiceQueued) {
+            _voiceQueued = true;
+            _queue.add(
+              _QueuedPrompt(const <TutorialLine>[
+                TutorialLine(helpCall, speaker: mysteryVoice),
+                TutorialLine.mario(someoneAlive),
+              ], delay: reactionDelay),
+            );
+          }
+        case ControlUsedEvent():
+          _queue.add(
+            _QueuedPrompt(const <TutorialLine>[TutorialLine(shutterOpened)]),
+          );
         case _:
           break;
+      }
+    }
+  }
+
+  /// The first carabiniere to become aware of Mario is framed while its
+  /// reach is explained.
+  void _queueCarabiniereLesson(String id) {
+    if (_carabiniereLessonQueued) {
+      return;
+    }
+    _carabiniereLessonQueued = true;
+    host.focusOn(id);
+    _queue.add(
+      _QueuedPrompt(
+        const <TutorialLine>[
+          TutorialLine(carabiniereLesson, portrait: carabinierePortrait),
+        ],
+        delay: focusDelay,
+        onDismissed: () => host.focusOn(null),
+      ),
+    );
+  }
+
+  /// The lesson belongs to the barracks, where the carabinieri are first
+  /// met: the ones in the hordes on the hospital road never give it.
+  bool _isBarracksCarabiniere(String id) {
+    final zombie = world.entities[id];
+    return zombie != null &&
+        zombie.kind == EntityKind.carabiniere &&
+        barracksBounds.contains(zombie.component<PositionComponent>().position);
+  }
+
+  /// A carabiniere in the barracks that hears Mario (papers underfoot, a
+  /// shot) comes after him without ever raising the alert: it still gets
+  /// its lesson.
+  void _checkCarabiniereAware() {
+    if (_carabiniereLessonQueued) {
+      return;
+    }
+    for (final zombie in world.entities.values) {
+      if (_isBarracksCarabiniere(zombie.id) &&
+          zombie.isAlive &&
+          zombie.component<HearingComponent>().lastHeard != null) {
+        _queueCarabiniereLesson(zombie.id);
+        return;
       }
     }
   }
@@ -230,6 +360,9 @@ final class TutorialDirector {
     _checkBackpackSeen();
     _checkBarracksReached();
     _checkCampSeen();
+    _checkSprinterSeen();
+    _checkCarabiniereAware();
+    _checkLuigiReached(turnAnimating: turnAnimating);
     if (_queue.isEmpty || host.isPromptVisible || turnAnimating) {
       return;
     }
@@ -268,6 +401,33 @@ final class TutorialDirector {
     );
   }
 
+  /// The first sprinter on screen (the one in the hypermarket's car park)
+  /// is framed with Mario while its pace is explained.
+  void _checkSprinterSeen() {
+    if (_sprinterLessonQueued) {
+      return;
+    }
+    for (final zombie in world.entities.values) {
+      if (zombie.kind != EntityKind.sprinter ||
+          !zombie.isAlive ||
+          !host.isTileVisible(zombie.component<PositionComponent>().position)) {
+        continue;
+      }
+      _sprinterLessonQueued = true;
+      host.focusOn(zombie.id);
+      _queue.add(
+        _QueuedPrompt(
+          const <TutorialLine>[
+            TutorialLine(sprinterLesson, portrait: sprinterPortrait),
+          ],
+          delay: focusDelay,
+          onDismissed: () => host.focusOn(null),
+        ),
+      );
+      return;
+    }
+  }
+
   void _checkCampSeen() {
     if (_campLessonQueued || !world.campfires.any(host.isTileVisible)) {
       return;
@@ -284,6 +444,40 @@ final class TutorialDirector {
         delay: reactionDelay,
         onDismissed: () => host.unlock(HudElement.interact),
       ),
+    );
+  }
+
+  /// Walking up to Luigi's shutter plays his scene once the step is over;
+  /// the zombies come in when it ends.
+  void _checkLuigiReached({required bool turnAnimating}) {
+    if (_luigiScenePlayed || turnAnimating || host.isPromptVisible) {
+      return;
+    }
+    final position = world.player.component<PositionComponent>().position;
+    if (!luigiSceneTrigger().contains(position)) {
+      return;
+    }
+    _luigiScenePlayed = true;
+    host.playCutscene(luigiScene, onFinished: _releaseHorde);
+  }
+
+  /// Zombies at the gate, drawn by Luigi's shouting towards Mario.
+  void _releaseHorde() {
+    if (_hordeOut) {
+      return;
+    }
+    _hordeOut = true;
+    final occupied = world.occupiedPoints();
+    var index = 0;
+    for (final spawn in mallHordeSpawns()) {
+      if (!occupied.contains(spawn)) {
+        host.spawnZombie(createMallZombie('mall-zombie-${index++}', spawn));
+      }
+    }
+    world.emitNoise(
+      origin: world.player.component<PositionComponent>().position,
+      radius: hordeCallRadius,
+      sourceEntityId: world.playerId,
     );
   }
 
