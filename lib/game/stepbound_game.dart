@@ -103,6 +103,9 @@ final class StepboundGame extends FlameGame
   final Map<String, CharacterComponent> _characters =
       <String, CharacterComponent>{};
   final Map<GridPoint, FireComponent> _campfires = <GridPoint, FireComponent>{};
+  LuigiComponent? _luigi;
+
+  MallScript get _mallScript => tutorial.scripts.whereType<MallScript>().first;
 
   /// What covers the game, if anything.
   final ValueNotifier<GameCover?> cover = ValueNotifier<GameCover?>(null);
@@ -176,7 +179,7 @@ final class StepboundGame extends FlameGame
       ),
       for (final pickup in simulation.pickups.values)
         PickupComponent(pickup: pickup),
-      LuigiComponent(tile: luigiTile),
+      if (!_mallScript.luigiGone) _luigi = LuigiComponent(tile: luigiTile),
       ShutterComponent(bars: luigiBars, map: simulation.map),
       PanelGlintComponent(panel: mallPanelTile, world: simulation),
     ]);
@@ -332,6 +335,17 @@ final class StepboundGame extends FlameGame
       cover.value = null;
       cutscene.onFinished?.call();
     }
+  }
+
+  @override
+  void sendLuigiAway({void Function()? onFinished}) {
+    final luigi = _luigi;
+    if (luigi == null) {
+      onFinished?.call();
+      return;
+    }
+    _luigi = null;
+    luigi.walkAwayThrough(luigiExitPath, onArrived: onFinished);
   }
 
   /// A door or a road into another place: a short fade to black (a slower

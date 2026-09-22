@@ -4,7 +4,16 @@ import 'package:stepbound/core/items/pickup.dart';
 import 'package:stepbound/core/world.dart';
 
 /// Every place of the game, so code can name the one it means.
-enum PlaceId { street, barracks, northDistrict, harbour, mallGround, mallFirst }
+enum PlaceId {
+  street,
+  barracks,
+  northDistrict,
+  harbour,
+  mallGround,
+  mallFirst,
+  mallNorthStreet,
+  barArcobaleno,
+}
 
 /// What the glyphs of a place's ASCII map mean for movement and sight: the
 /// ones in [walls] block both, the ones in [obstacles] block movement but

@@ -10,6 +10,9 @@ void main() {
       northDistrictRows,
       harbourRows,
       barracksRows,
+      mallGroundRows,
+      mallFirstRows,
+      mallNorthStreetRows,
     ]) {
       final width = rows.first.length;
       expect(rows.every((row) => row.length == width), isTrue);
@@ -355,6 +358,65 @@ void main() {
       expect(downstairs, up);
     });
 
+    void expectWalkableStraightPath(WorldState world, List<GridPoint> path) {
+      var from = path.first;
+      for (final to in path.skip(1)) {
+        expect(
+          from.x == to.x || from.y == to.y,
+          isTrue,
+          reason: 'not a straight line: $from to $to',
+        );
+        final dx = (to.x - from.x).sign;
+        final dy = (to.y - from.y).sign;
+        var tile = from;
+        while (tile != to) {
+          expect(
+            world.map.tileAt(tile).isWalkable,
+            isTrue,
+            reason: 'tile $tile blocks the way',
+          );
+          tile = GridPoint(tile.x + dx, tile.y + dy);
+        }
+        expect(world.map.tileAt(to).isWalkable, isTrue);
+        from = to;
+      }
+    }
+
+    test('Luigi walks a clear path from his shop down to the stairs', () {
+      expectWalkableStraightPath(createTutorialWorld(), luigiExitPath);
+    });
+
+    test('the hall opens west on a long corridor of shops, with the fire '
+        'exit onto the car park behind the building at its far end', () {
+      final world = createTutorialWorld();
+      final stairsX =
+          place(PlaceId.mallGround).origin.x + mallGroundRows[2].indexOf('U');
+      // Through the doorway in the hall's west wall, straight to the exit.
+      final doorway = GridPoint(
+        place(PlaceId.mallGround).origin.x +
+            mallGroundRows[mallExitTile.y].indexOf('.', 25),
+        mallExitTile.y,
+      );
+      expect(doorway.x, lessThan(stairsX));
+      expectWalkableStraightPath(world, <GridPoint>[
+        GridPoint(doorway.x + 1, doorway.y),
+        mallExitTile,
+      ]);
+      expect(
+        stairsX - mallExitTile.x,
+        greaterThan(40),
+        reason: 'a long corridor, not a nook',
+      );
+      final beyond = walk(
+        world,
+        mallExitTile.step(Direction.east),
+        Direction.west,
+      );
+      expect(place(PlaceId.mallNorthStreet).bounds.contains(beyond), isTrue);
+      final back = walk(world, beyond, Direction.south);
+      expect(back, mallExitTile.step(Direction.east));
+    });
+
     test('the panel beyond the gate lifts the shutter in front of Luigi', () {
       final world = createTutorialWorld();
       final bars = luigiBars;
@@ -396,17 +458,92 @@ void main() {
     });
   });
 
-  test('the harbour ends at the parapet over the sea', () {
-    final map = createTutorialWorld().map;
-    final parapet = harbourRows.indexWhere((row) => row.startsWith('R'));
-    for (var x = 0; x < harbourRows.first.length; x++) {
-      final below = GridPoint(
-        place(PlaceId.harbour).origin.x + x,
-        place(PlaceId.harbour).origin.y + parapet,
+  group('harbour', () {
+    final harbour = place(PlaceId.harbour);
+    GridPoint at(int x, int y) =>
+        GridPoint(harbour.origin.x + x, harbour.origin.y + y);
+    String glyph(int x, int y) => harbourRows[y][x];
+
+    test('the promenade ends at the parapet over the sea, round the corner '
+        'too, but for the two piers', () {
+      final map = createTutorialWorld().map;
+      final parapet = harbourRows.indexWhere((row) => row.startsWith('R'));
+      final corner = harbourRows[parapet].lastIndexOf('R');
+      for (var x = 0; x <= corner; x++) {
+        expect(map.tileAt(at(x, parapet)).isWalkable, isFalse);
+        expect(map.tileAt(at(x, parapet)).blocksSight, isFalse);
+      }
+      var piers = 0;
+      for (var y = parapet + 1; glyph(corner, y) != 'B'; y++) {
+        if (glyph(corner, y) == 'l') {
+          piers++;
+          continue;
+        }
+        expect(glyph(corner, y), 'R', reason: 'row $y');
+        expect(glyph(corner - 1, y), anyOf('~', 'b'), reason: 'row $y');
+      }
+      expect(piers, 4, reason: 'two piers, two planks wide');
+    });
+
+    test('an alley climbs north off the seafront road, then turns east to '
+        'the Bar Arcobaleno, which you can walk into and out of', () {
+      final world = createTutorialWorld();
+      final door = harbourRows.indexWhere((row) => row.contains('h'));
+      final doorX = harbourRows[door].indexOf('h');
+      final road = harbourRows.indexWhere((row) => row.contains('J'));
+      final alleyX = harbourRows[door].indexOf('P');
+      expect(alleyX, lessThan(doorX));
+      for (var y = door; y < road; y++) {
+        expect(
+          world.map.tileAt(at(alleyX, y)).isWalkable,
+          isTrue,
+          reason: 'the alley at row $y',
+        );
+      }
+      world.player.component<PositionComponent>().position = at(
+        doorX,
+        door + 1,
       );
-      expect(map.tileAt(below).isWalkable, isFalse);
-      expect(map.tileAt(below).blocksSight, isFalse);
-    }
+      var events = const TurnScheduler().advance(
+        world,
+        const MoveAction(Direction.north),
+      );
+      expect(events.whereType<TeleportedEvent>(), hasLength(1));
+      final inside = world.player.component<PositionComponent>().position;
+      final bar = place(PlaceId.barArcobaleno);
+      expect(bar.indoor, isTrue);
+      expect(bar.lights, isNotEmpty);
+      expect(bar.bounds.contains(inside), isTrue);
+      events = const TurnScheduler().advance(
+        world,
+        const MoveAction(Direction.south),
+      );
+      expect(events.whereType<TeleportedEvent>(), hasLength(1));
+      expect(
+        world.player.component<PositionComponent>().position,
+        at(doorX, door + 1),
+      );
+    });
+
+    test('a rowboat moored at the second pier holds four rounds', () {
+      final world = createTutorialWorld();
+      final boat = world.pickups[boatBackpackId]!;
+      expect(boat.ammo, 4);
+      expect(boat.gun, isFalse);
+      expect(harbour.bounds.contains(boat.position), isTrue);
+      final deck = <GridPoint>[
+        for (final direction in Direction.values) boat.position.step(direction),
+      ].where((tile) => world.map.tileAt(tile).isWalkable).toList();
+      expect(deck, isNotEmpty, reason: 'you can step aboard next to it');
+      final pier = harbourRows.lastIndexWhere((row) => row.contains('l'));
+      final onPier = at(harbourRows[pier].indexOf('l'), pier);
+      expect(world.map.tileAt(onPier).isWalkable, isTrue);
+      expect(
+        world.map.tileAt(onPier.step(Direction.south)).isWalkable,
+        isTrue,
+        reason: 'the boat is alongside the end of the pier',
+      );
+    });
   });
 
   test('the barracks has lamps and two carabinieri waiting in the dark', () {
@@ -455,29 +592,35 @@ void main() {
     );
   });
 
-  test(
-    'fires burn on the street, in the north district and at the harbour',
-    () {
-      int count(List<FireSpot> spots, FireKind kind) =>
-          spots.where((s) => s.kind == kind).length;
-      final street = streetFireSpots;
-      expect(count(street, FireKind.car), 2);
-      expect(count(street, FireKind.bin), 2);
-      expect(count(street, FireKind.window), 3);
-      final all = outdoorFireSpots;
-      expect(count(all, FireKind.car), 7);
-      expect(count(all, FireKind.bin), 8);
-      expect(count(all, FireKind.window), 11);
-      expect(count(all, FireKind.campfire), 1);
-      final north = place(PlaceId.northDistrict).bounds;
-      expect(
-        all
-            .where((spot) => spot.kind == FireKind.campfire)
-            .every((spot) => north.contains(spot.tile)),
-        isTrue,
-      );
-    },
-  );
+  test('fires burn on the street, in the north district, at the harbour and '
+      'in the pile-up behind the hypermarket', () {
+    int count(List<FireSpot> spots, FireKind kind) =>
+        spots.where((s) => s.kind == kind).length;
+    final street = streetFireSpots;
+    expect(count(street, FireKind.car), 2);
+    expect(count(street, FireKind.bin), 2);
+    expect(count(street, FireKind.window), 3);
+    final all = outdoorFireSpots;
+    final behindMall = place(PlaceId.mallNorthStreet).bounds;
+    expect(
+      all.where(
+        (spot) => spot.kind == FireKind.car && behindMall.contains(spot.tile),
+      ),
+      hasLength(4),
+      reason: 'the burning wrecks blocking the road west',
+    );
+    expect(count(all, FireKind.car), 11);
+    expect(count(all, FireKind.bin), 9);
+    expect(count(all, FireKind.window), 12);
+    expect(count(all, FireKind.campfire), 1);
+    final north = place(PlaceId.northDistrict).bounds;
+    expect(
+      all
+          .where((spot) => spot.kind == FireKind.campfire)
+          .every((spot) => north.contains(spot.tile)),
+      isTrue,
+    );
+  });
 
   test('the camp burns at the closed east end of the north street', () {
     final world = createTutorialWorld();

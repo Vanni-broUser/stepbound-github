@@ -5,6 +5,9 @@
 ///   shelves at the back of a shop, `Q` the anti-theft control panel:
 ///   walls.
 /// - `E` entrance from the car park, `U` stairs up, `D` stairs down: doors.
+///   On the ground floor, the hall opens west onto a long corridor lined
+///   with a second row of shops; at its far end `X` is the fire exit onto
+///   the car park behind the building.
 /// - `P` planter, `T` abandoned trolley, `K` kiosk, `BBB` bench, `G` gate
 ///   post, `H` the shutter's bars, `L` Luigi behind them: obstacles.
 /// - `.` floor, `o` floor of a shop, `d` floor of the service area beyond
@@ -13,22 +16,22 @@
 ///   through the gate.
 // mall-ground-rows-start
 const List<String> mallGroundRows = <String>[
-  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-  'xWWWWWWWWWWWWWWWWWWWWWWWUUUWWx',
-  'xWWWWWWWWWWWWWWWWWWWWWWWUUUWWx',
-  'x....:......*.........:.....bx',
-  'x..PP....TT......PP.........:x',
-  'x......*.......:.......*.....x',
-  'x.KK.......BBB.......KK......x',
-  'x......:...........b.........x',
-  'x..PP.......*...T......PP....x',
-  'x...:...................:....x',
-  'x..........BBB.....*.........x',
-  'x....*..........:.......P....x',
-  'x.T.........................Tx',
-  'x.......:.....*..............x',
-  'xwwwwwwwwwwwwwEEEwwwwwwwwwwwwx',
-  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  'xWWWWWWWWWWWWWWWWWWWWWWWWxxWWWWWWWWWWWWWWWWWWWWWWWUUUWWx',
+  'xWWWWWWWWWWWWWWWWWWWWWWWWxxWWWWWWWWWWWWWWWWWWWWWWWUUUWWx',
+  'x........................xx....:......*.........:.....bx',
+  'x........T...............xx..PP....TT......PP.........:x',
+  'x.....*............*.....xx......*.......:.......*.....x',
+  'x.............b..........xx.KK.......BBB.......KK......x',
+  'x................................:...........b.........x',
+  'X................:...........PP.......*...T......PP....x',
+  'x.............................:...................:....x',
+  'x...........*............xx..........BBB.....*.........x',
+  'x....................T...xx....*..........:.......P....x',
+  'x...:....................xx.T.........................Tx',
+  'x........................xx.......:.....*..............x',
+  'xwwwwwwwwwwwwwwwwwwwwwwwwxxwwwwwwwwwwwwwEEEwwwwwwwwwwwwx',
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
 ];
 // mall-ground-rows-end
 

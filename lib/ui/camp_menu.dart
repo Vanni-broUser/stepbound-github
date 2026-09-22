@@ -77,19 +77,19 @@ final List<ZombieCard> zombieCards = <ZombieCard>[
 ];
 
 /// The pictures and lines of each memory.
-final Map<StoryMemory, List<StoryScene>> memoryScenes =
-    <StoryMemory, List<StoryScene>>{
-      StoryMemory.newsBroadcast: introScenes,
-      StoryMemory.outbreakNight: outbreakScenes,
-      StoryMemory.luigiTrapped: <StoryScene>[
-        for (final frame in MallScript.luigiScene)
-          StoryScene(
-            image: frame.image,
-            speaker: frame.speaker,
-            text: frame.text,
-          ),
-      ],
-    };
+final Map<StoryMemory, List<StoryScene>>
+memoryScenes = <StoryMemory, List<StoryScene>>{
+  StoryMemory.newsBroadcast: introScenes,
+  StoryMemory.outbreakNight: outbreakScenes,
+  StoryMemory.luigiTrapped: <StoryScene>[
+    for (final frame in MallScript.luigiScene)
+      StoryScene(image: frame.image, speaker: frame.speaker, text: frame.text),
+  ],
+  StoryMemory.luigiRescued: <StoryScene>[
+    for (final frame in MallScript.reunionScene)
+      StoryScene(image: frame.image, speaker: frame.speaker, text: frame.text),
+  ],
+};
 
 enum _CampPage { home, zombies, confirmRestart }
 

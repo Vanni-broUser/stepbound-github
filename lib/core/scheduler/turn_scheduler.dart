@@ -22,6 +22,14 @@ final class TurnScheduler {
       noise.settle(world);
       final actors = world.actorsInSimulationRadius().toList()
         ..sort((left, right) => left.id.compareTo(right.id));
+      // Out of reach (Mario went through a door), a zombie has lost him:
+      // meeting it again raises a new alert.
+      final simulated = actors.toSet();
+      for (final entity in world.entities.values) {
+        if (!simulated.contains(entity)) {
+          entity.maybeComponent<HearingComponent>()?.hunting = false;
+        }
+      }
       for (final entity in actors) {
         ai.perceive(world, entity);
         final actor = entity.component<ActorComponent>();

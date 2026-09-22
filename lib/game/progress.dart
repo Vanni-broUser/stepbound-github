@@ -2,7 +2,7 @@ import 'package:stepbound/core/core.dart';
 
 /// Story scenes that can be watched again at a camp once they have been
 /// seen, in the order they are lived.
-enum StoryMemory { newsBroadcast, outbreakNight, luigiTrapped }
+enum StoryMemory { newsBroadcast, outbreakNight, luigiTrapped, luigiRescued }
 
 /// What the player has come to know over the whole game: the zombie types
 /// met and the story scenes seen. Unlike the tutorial's lessons, which
