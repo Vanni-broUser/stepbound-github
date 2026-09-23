@@ -132,17 +132,17 @@ void main() {
 
   test('the crossroads opens north and east but not south', () {
     final map = createTutorialWorld().map;
-    expect(map.tileAt(const GridPoint(16, 30)).isWalkable, isTrue);
-    expect(map.tileAt(const GridPoint(30, 46)).isWalkable, isTrue);
-    expect(map.tileAt(const GridPoint(16, 50)).isWalkable, isFalse);
+    expect(map.tileAt(const GridPoint(16, 20)).isWalkable, isTrue);
+    expect(map.tileAt(const GridPoint(30, 36)).isWalkable, isTrue);
+    expect(map.tileAt(const GridPoint(16, 40)).isWalkable, isFalse);
   });
 
   test('the streets end against buildings, the north one at the barracks', () {
     final map = createTutorialWorld().map;
-    expect(map.tileAt(const GridPoint(3, 46)).isWalkable, isFalse);
-    expect(map.tileAt(const GridPoint(40, 46)).isWalkable, isFalse);
-    expect(map.tileAt(const GridPoint(15, 16)).isWalkable, isFalse);
-    expect(map.tileAt(const GridPoint(16, 16)).isWalkable, isTrue);
+    expect(map.tileAt(const GridPoint(3, 36)).isWalkable, isFalse);
+    expect(map.tileAt(const GridPoint(40, 36)).isWalkable, isFalse);
+    expect(map.tileAt(const GridPoint(15, 6)).isWalkable, isFalse);
+    expect(map.tileAt(const GridPoint(16, 6)).isWalkable, isTrue);
   });
 
   List<Entity> zombiesIn(WorldState world, Place region) => world
@@ -311,7 +311,7 @@ void main() {
     final world = createTutorialWorld();
     world.player.component<PositionComponent>().position = const GridPoint(
       13,
-      45,
+      35,
     );
     final events = const TurnScheduler().advance(
       world,
@@ -343,10 +343,10 @@ void main() {
 
     test('the front door leads inside the barracks and back out', () {
       final world = createTutorialWorld();
-      final inDoor = walk(world, const GridPoint(16, 17), Direction.north);
+      final inDoor = walk(world, const GridPoint(16, 7), Direction.north);
       expect(inside(inDoor), isTrue);
       final outDoor = walk(world, inDoor, Direction.south);
-      expect(outDoor, const GridPoint(16, 17));
+      expect(outDoor, const GridPoint(16, 7));
     });
 
     test('the back door opens on the street of the north district', () {
@@ -964,19 +964,23 @@ void main() {
     expect(count(all, FireKind.car), 11);
     expect(count(all, FireKind.bin), 10);
     expect(count(all, FireKind.window), 14);
-    expect(count(all, FireKind.campfire), 1);
-    final north = place(PlaceId.northDistrict).bounds;
+    expect(count(all, FireKind.campfire), 2);
+    // One camp in the north district, one in the dead end the wrecks
+    // leave at the west end of the shopping street behind the mall.
     expect(
       all
           .where((spot) => spot.kind == FireKind.campfire)
-          .every((spot) => north.contains(spot.tile)),
-      isTrue,
+          .map((spot) => placeAt(spot.tile)?.id)
+          .toSet(),
+      <PlaceId>{PlaceId.northDistrict, PlaceId.mallNorthStreet},
     );
   });
 
   test('the camp burns at the closed east end of the north street', () {
     final world = createTutorialWorld();
-    final camp = world.campfires.single;
+    final camp = world.campfires.firstWhere(
+      place(PlaceId.northDistrict).bounds.contains,
+    );
     final (x, y) = (
       camp.x - place(PlaceId.northDistrict).origin.x,
       camp.y - place(PlaceId.northDistrict).origin.y,
@@ -994,7 +998,9 @@ void main() {
 
   test('resting at the camp beyond the barracks asks the game to save', () {
     final world = createTutorialWorld();
-    final camp = world.campfires.single;
+    final camp = world.campfires.firstWhere(
+      place(PlaceId.northDistrict).bounds.contains,
+    );
     expect(campfireNames[camp], 'Accampamento dietro la caserma');
     expect(world.map.tileAt(camp).isWalkable, isFalse);
     world.player.component<PositionComponent>()

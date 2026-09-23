@@ -267,9 +267,9 @@ void main() {
       final game = await _pumpReadyGame(tester);
       // The player starts near the south-west corner of the tutorial street,
       // so both axes sit on a clamp: x at half the view width, y at the
-      // map height (52 tiles) minus half the view height.
+      // map height (42 tiles) minus half the view height.
       expect(game.camera.viewfinder.position.x, 192);
-      expect(game.camera.viewfinder.position.y, 52 * 16 - 108);
+      expect(game.camera.viewfinder.position.y, 42 * 16 - 108);
     });
   });
 
@@ -352,7 +352,7 @@ void main() {
     return tester.runAsync(() async {
       final game = await _pumpReadyGame(tester);
       final position = game.simulation.player.component<PositionComponent>()
-        ..position = const GridPoint(16, 17)
+        ..position = const GridPoint(16, 7)
         ..facing = Direction.north;
       void stepNorth() => game
         ..pressDirection(Direction.north)
@@ -379,7 +379,7 @@ void main() {
       expect(game.drawnPlaces, <String>[place(PlaceId.street).background]);
 
       game.simulation.player.component<PositionComponent>()
-        ..position = const GridPoint(16, 17)
+        ..position = const GridPoint(16, 7)
         ..facing = Direction.north;
       game
         ..pressDirection(Direction.north)
@@ -446,7 +446,9 @@ void main() {
         'backpacks': <String, Object?>{'lesson': true},
         'street': <String, Object?>{'zombieLesson': true},
       });
-      final camp = game.simulation.campfires.single;
+      final camp = game.simulation.campfires.firstWhere(
+        place(PlaceId.northDistrict).bounds.contains,
+      );
       game.simulation.player.component<PositionComponent>()
         ..position = camp.step(Direction.west)
         ..facing = Direction.east;
@@ -489,7 +491,7 @@ void main() {
     final world = createTutorialWorld();
     world.player.component<PositionComponent>().position = const GridPoint(
       16,
-      30,
+      20,
     );
     await saves.save(
       SaveGame(
@@ -527,7 +529,7 @@ void main() {
         .currentGame;
     expect(
       game.simulation.player.component<PositionComponent>().position,
-      const GridPoint(16, 30),
+      const GridPoint(16, 20),
     );
   });
 

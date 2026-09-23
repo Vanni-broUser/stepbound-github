@@ -36,6 +36,9 @@ ROAD_GLYPHS = set(".-|ZVc")
 WALK_GLYPHS = set("=")
 BUILDING_GLYPHS = set("BHfKMGW#%0")
 FACADE_GLYPHS = set("Hf")
+# Street furniture: it stands on the footway, not in the road, so it
+# looks for its floor up and down its column as well as sideways.
+FOOTWAY_GLYPHS = set("T/F")
 
 ASPHALT = (44, 46, 52)
 ASPHALT_SPECKLE = (52, 54, 60)
@@ -231,38 +234,50 @@ class Level:
             return glyph
         return None
 
-    def _floor_along(self, x: int, y: int, step: int) -> str | None:
-        """The nearest floor along row `y` from `x`, never looking through
-        a wall: a prop is paved with the street it stands in, not with
-        whatever lies on the far side of the building next to it."""
-        nx = x + step
-        while 0 <= nx < self.width and not self.is_building(nx, y):
-            floor = self._floor(self.rows[y][nx])
+    def _floor_along(self, x: int, y: int, dx: int, dy: int):
+        """The nearest floor from (x, y) one way, and how many tiles off it
+        is, never looking through a wall: a prop is paved with the street it
+        stands in, not with what lies beyond the building beside it."""
+        nx, ny, away = x + dx, y + dy, 1
+        while (0 <= nx < self.width and 0 <= ny < self.height
+               and not self.is_building(nx, ny)):
+            floor = self._floor(self.rows[ny][nx])
             if floor is not None:
-                return floor
-            nx += step
-        return None
+                return floor, away
+            nx, ny, away = nx + dx, ny + dy, away + 1
+        return None, 0
 
     def surface(self, x: int, y: int) -> str:
         """Floor under a prop or actor (`=` sidewalk, `.` road, `P` paving,
-        `L` parking, `Y` stairs): what its own row is paved with, taken
-        from the nearest tile either side of it that says. A car in the
-        outside lane has the kerb running along one whole side of it and
-        only the lane it blocks at its ends, so counting the neighbours
-        around it used to pave it with the sidewalk. The neighbours still
-        settle a prop on the kerb line itself, road one side and sidewalk
-        the other, and one whose row is paved nowhere."""
+        `L` parking, `Y` stairs): the nearest floor beside it, never through
+        a wall, and where two are equally near, whichever more of them say.
+
+        A vehicle belongs to the carriageway it stands in, which runs along
+        its row: a car in the outside lane has the kerb down one whole side
+        of it and only the lane it blocks at its ends, so looking all round
+        used to pave it with the sidewalk. Street furniture belongs instead
+        to the footway beside it, and a footway runs whichever way its
+        street does, so the lights and the signs look up and down their
+        column too -- otherwise the ones on a side street's pavement take
+        the tarmac of the road they stand at the mouth of."""
         glyph = self.at(x, y)
         floor = self._floor(glyph)
         if floor is not None:
             return floor
-        west = self._floor_along(x, y, -1)
-        east = self._floor_along(x, y, 1)
-        if west == east or east is None:
-            if west is not None:
-                return west
-        elif west is None:
-            return east
+        ways = [(-1, 0), (1, 0)]
+        if glyph in FOOTWAY_GLYPHS:
+            ways += [(0, -1), (0, 1)]
+        found = [self._floor_along(x, y, dx, dy) for dx, dy in ways]
+        near = [f for f, away in found
+                if f is not None and away == min(
+                    (a for g, a in found if g is not None), default=0)]
+        if glyph in FOOTWAY_GLYPHS and any(f != "." for f in near):
+            # Nothing on a post stands in the carriageway: at a corner, with
+            # the road on two sides of it and the kerb on the others, the
+            # kerb wins however the neighbours happen to count up.
+            near = [f for f in near if f != "."]
+        if len(set(near)) == 1:
+            return near[0]
         votes = {"=": 0, ".": 0, "P": 0, "L": 0, "Y": 0, ",": 0}
         for dx in (-1, 0, 1):
             for dy in (-1, 0, 1):
@@ -273,10 +288,11 @@ class Level:
                     votes["."] += 1 + (dy == 0)
                 elif g in "PLY,":
                     votes[g] += 1 + (dy == 0)
-        # On the kerb line only the two sides stand; ties fall the way the
-        # order of `votes` puts them, which keeps the pick deterministic.
-        kerb = [floor for floor in votes if floor in (west, east)]
-        return max(kerb or votes, key=votes.get)
+        # Equally near and disagreeing: whichever more sides say, then the
+        # neighbours, then the order of `votes`, so the pick never wavers.
+        order = list(votes)
+        return max(near or order,
+                   key=lambda f: (near.count(f), votes[f], -order.index(f)))
 
 
 def column_runs(level: Level, glyphs: set[str], skip=None):
@@ -2441,7 +2457,10 @@ def bake(level: Level, rng: random.Random, output: str) -> None:
     paint_back_passage(d, level)
     paint_mall_back_door(d, level)
 
-    car_colors = [(140, 40, 36), (70, 96, 130), (180, 170, 150), (60, 110, 80)]
+    # Enough of them that two pile-ups in the same place do not come out
+    # the same colours; they are handed out in the order the cars are met.
+    car_colors = [(140, 40, 36), (70, 96, 130), (180, 170, 150), (60, 110, 80),
+                  (118, 118, 124), (162, 132, 62), (94, 78, 102), (198, 166, 112)]
     color_index = 0
     for y in range(level.height):
         for x in range(level.width):
@@ -2528,7 +2547,7 @@ def bake(level: Level, rng: random.Random, output: str) -> None:
                 if (level.at(x - 1, y) in ROAD_GLYPHS
                         or level.at(x + 1, y) in ROAD_GLYPHS):
                     kind = 0
-                elif any(level.at(x + dx, y) == "J" for dx in (-2, -1, 1, 2)):
+                elif any(level.at(x + dx, y) in "JCXU" for dx in (-2, -1, 1, 2)):
                     kind = 1
                 else:
                     kind = 2
