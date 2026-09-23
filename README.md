@@ -94,10 +94,19 @@ GitLab CI runs formatting, static analysis, and tests with Flutter 3.44.2. Signe
 - `lib/data`: data loading
 - `lib/save`: persistence adapters
 - `lib/ui`: Flutter interface
-- `assets/balance/default.json`: external balance defaults
+- `assets/balance/default.json`: authoritative balance defaults
 - `assets/sprites`: production sprite atlases and atlas contract
 - `bin/stepbound_runner.dart`: headless ASCII runner
 
 The simulation core imports no Flutter APIs. World time advances only when a `PlayerAction` is passed to `TurnScheduler.advance`.
+
+After changing `assets/balance/default.json`, regenerate and commit the typed
+defaults consumed by the pure-Dart core:
+
+```bash
+dart run tools/generate_balance.dart
+```
+
+CI runs the generator in check mode and rejects stale generated balance data.
 
 See `CONTRIBUTING.md` for the GitLab workflow and `docs/target_devices.md` for the physical-device matrix.

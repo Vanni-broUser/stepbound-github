@@ -1,5 +1,7 @@
 import 'package:stepbound/core/entities/entity.dart';
 
+part 'default_balance.g.dart';
+
 final class ActorStats {
   const ActorStats({
     required this.tickCost,
@@ -44,55 +46,8 @@ final class BalanceConfig {
   BalanceConfig({required Map<EntityKind, ActorStats> actors})
     : actors = Map<EntityKind, ActorStats>.unmodifiable(actors);
 
-  factory BalanceConfig.standard() {
-    return BalanceConfig(
-      actors: const <EntityKind, ActorStats>{
-        EntityKind.player: ActorStats(
-          tickCost: 1,
-          health: 6,
-          vision: 0,
-          hearing: 0,
-          contactDamage: 0,
-        ),
-        EntityKind.wanderer: ActorStats(
-          tickCost: 2,
-          health: 1,
-          vision: 6,
-          hearing: 8,
-          contactDamage: 1,
-        ),
-        EntityKind.sprinter: ActorStats(
-          tickCost: 1,
-          health: 1,
-          vision: 8,
-          hearing: 12,
-          contactDamage: 1,
-        ),
-        EntityKind.brute: ActorStats(
-          tickCost: 3,
-          health: 2,
-          vision: 4,
-          hearing: 14,
-          contactDamage: 1,
-        ),
-        EntityKind.blind: ActorStats(
-          tickCost: 2,
-          health: 1,
-          vision: 0,
-          hearing: 20,
-          contactDamage: 1,
-        ),
-        EntityKind.carabiniere: ActorStats(
-          tickCost: 2,
-          health: 1,
-          vision: 6,
-          hearing: 8,
-          contactDamage: 1,
-          attackReach: 2,
-        ),
-      },
-    );
-  }
+  /// The checked-in defaults generated from `assets/balance/default.json`.
+  factory BalanceConfig.standard() => BalanceConfig(actors: _defaultActorStats);
 
   factory BalanceConfig.fromJson(Map<String, Object?> json) {
     final encodedActors = json['actors']! as Map<String, Object?>;
