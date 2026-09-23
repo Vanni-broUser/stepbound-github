@@ -78,6 +78,11 @@ final class StepboundGame extends FlameGame
   }
 
   static const double tileSize = 16;
+
+  /// How far outside the view a character is still drawn, in pixels: a
+  /// sprite reaches above and beside the tile its feet stand on, and a
+  /// walk animation leans into the tile it came from.
+  static const double cullMargin = 3 * tileSize;
   static const double holdRepeatSeconds = 0.18;
 
   /// How long Mario stands still on the threshold of a building, so the
@@ -481,7 +486,7 @@ final class StepboundGame extends FlameGame
 
   @override
   void spawnZombie(Entity zombie) {
-    simulation.entities[zombie.id] = zombie;
+    simulation.addEntity(zombie);
     final component = CharacterComponent(entity: zombie)..playEmerge();
     audio.play(Sfx.zombieAlert);
     _characters[zombie.id] = component;
@@ -659,7 +664,15 @@ final class StepboundGame extends FlameGame
 
   void _syncPresentation() {
     final threshold = _cardThreshold;
+    final view = camera.visibleWorldRect.inflate(cullMargin);
     for (final entry in _characters.entries) {
+      // Mario drives the camera and the followed one is what it is panning
+      // to, so those two are always kept up to date.
+      final followed = entry.key == playerId || entry.key == _focusId;
+      if (!followed && !_isInView(view, entry.key)) {
+        entry.value.onScreen = false;
+        continue;
+      }
       final visual =
           entry.key == playerId &&
               threshold != null &&
@@ -667,6 +680,7 @@ final class StepboundGame extends FlameGame
           ? VisualPosition(threshold.x.toDouble(), threshold.y.toDouble())
           : presentation.visualPositionFor(entry.key);
       entry.value
+        ..onScreen = true
         ..position.setValues(
           visual.x * tileSize + tileSize / 2,
           visual.y * tileSize + tileSize,
@@ -675,6 +689,24 @@ final class StepboundGame extends FlameGame
         ..animationProgress = presentation.progress
         ..aiming = entry.key == playerId && aiming.value;
     }
+  }
+
+  /// Whether [entityId] stands near enough [view] to be worth drawing. It
+  /// reads the tile out of the simulation rather than the animated
+  /// position, which is the work being skipped.
+  bool _isInView(Rect view, String entityId) {
+    final tile = simulation.entities[entityId]
+        ?.maybeComponent<PositionComponent>()
+        ?.position;
+    if (tile == null) {
+      return true;
+    }
+    final left = tile.x * tileSize;
+    final top = tile.y * tileSize;
+    return left + tileSize >= view.left &&
+        left <= view.right &&
+        top + tileSize >= view.top &&
+        top <= view.bottom;
   }
 
   Direction _facingOf(String entityId) =>

@@ -860,7 +860,7 @@ void main() {
       (tile) => tile.x == place(PlaceId.barracks).origin.x + 10,
     );
     final carabiniere = createCarabiniere('carabiniere-0', spawn);
-    world.entities[carabiniere.id] = carabiniere;
+    world.addEntity(carabiniere);
     final position = carabiniere.component<PositionComponent>();
     var before = position.position;
     while (true) {

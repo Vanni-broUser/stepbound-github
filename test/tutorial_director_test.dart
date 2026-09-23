@@ -144,10 +144,7 @@ void main() {
     final zombies = <Entity>[
       for (final (index, spawn) in carabiniereSpawns.indexed)
         createCarabiniere('carabiniere-$index', spawn),
-    ];
-    for (final zombie in zombies) {
-      world.entities[zombie.id] = zombie;
-    }
+    ]..forEach(world.addEntity);
     AlertedEvent alert(Entity zombie) => AlertedEvent(
       entityId: zombie.id,
       at: zombie.component<PositionComponent>().position,
@@ -167,7 +164,7 @@ void main() {
 
   test('a carabiniere that only heard Mario still gets its lesson', () {
     final zombie = createCarabiniere('carabiniere-0', carabiniereSpawns.first);
-    world.entities[zombie.id] = zombie;
+    world.addEntity(zombie);
     settle();
     expect(host.shown, isEmpty, reason: 'not aware of Mario yet');
     // Papers underfoot: it hears him and comes, with no alert raised.
@@ -513,9 +510,7 @@ void main() {
       settle();
       host.onCutsceneFinished!();
       expect(host.spawned, isNotEmpty);
-      for (final zombie in host.spawned) {
-        world.entities[zombie.id] = zombie;
-      }
+      host.spawned.forEach(world.addEntity);
     }
 
     /// The panel, and the news of the shutter read.

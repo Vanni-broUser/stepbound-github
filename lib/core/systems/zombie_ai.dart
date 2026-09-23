@@ -7,6 +7,12 @@ import 'package:stepbound/core/world_event.dart';
 final class ZombieAi {
   const ZombieAi();
 
+  /// How far a zombie looks for a way round before giving up and waiting.
+  /// What it walks towards is at most a hearing range away — twenty tiles
+  /// for the blind one — so this allows a generous detour while keeping an
+  /// unreachable target from costing the whole block every tick.
+  static const int pathfindingRange = 48;
+
   /// Runs every tick, before the zombie's energy is checked. Each time it
   /// starts going after the player (by sight, by smell, or by walking into
   /// its alert trigger) it raises the alert, even if it had lost him or was
@@ -86,7 +92,8 @@ final class ZombieAi {
     final next = world.map.shortestNextStep(
       start: zombiePosition.position,
       target: target,
-      blocked: world.occupiedPoints(excluding: zombie.id),
+      isBlocked: (point) => world.isBlocked(point, excluding: zombie.id),
+      maxDistance: pathfindingRange,
     );
     if (next == null) {
       world.emit(WaitedEvent(zombie.id));

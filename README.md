@@ -78,8 +78,15 @@ The current set includes the protagonist plus wanderer, sprinter, brute, and bli
 
 ```bash
 dart format --output=none --set-exit-if-changed .
+dart run tools/generate_balance.dart --check
 flutter analyze --fatal-infos --fatal-warnings
 flutter test
+```
+
+The web and debug APK builds are for trying the game out locally and have no
+CI job:
+
+```bash
 flutter build web --release
 flutter build apk --debug
 ```
@@ -95,8 +102,14 @@ GitLab CI runs formatting, static analysis, and tests with Flutter 3.44.2. Signe
 - `assets/balance/default.json`: authoritative balance defaults, compiled into the core by `tools/generate_balance.dart`
 - `assets/sprites`: production sprite atlases and atlas contract
 - `bin/stepbound_runner.dart`: headless ASCII runner
+- `tools/benchmark_world.dart`: deterministic simulation scaling benchmark
 
 The simulation core imports no Flutter APIs. World time advances only when a `PlayerAction` is passed to `TurnScheduler.advance`.
+
+`WorldState` keeps a tile index of entities and pickups, so `entityAt`,
+`pickupAt` and `isBlocked` do not scan the world. Entities join through
+`addEntity`, and moving one is a plain write to its `PositionComponent`:
+the component tells its world, and the index follows.
 
 The balance asset is a build-time source, not a bundled asset: the pure-Dart
 core cannot read a file, so the values are generated into

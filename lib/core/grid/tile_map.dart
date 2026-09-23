@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:typed_data';
 
 import 'package:stepbound/core/grid/grid_point.dart';
 import 'package:stepbound/core/grid/tile.dart';
@@ -55,6 +56,14 @@ final class TileMap {
   final int width;
   final int height;
   final List<Tile> _tiles;
+
+  /// Scratch for [shortestNextStep], kept between calls and grown only
+  /// once: a search stamps its own number on the tiles it reaches instead
+  /// of clearing arrays the size of the map before every query.
+  late final Int32List _reachedBy = Int32List(width * height);
+  late final Int32List _cameFrom = Int32List(width * height);
+  late final Int32List _queue = Int32List(width * height);
+  int _searches = 0;
 
   bool contains(GridPoint point) {
     return point.x >= 0 && point.y >= 0 && point.x < width && point.y < height;
@@ -150,43 +159,97 @@ final class TileMap {
     return distances;
   }
 
+  /// The first step of a shortest path from [start] to [target], or null
+  /// when there is no way there. [isBlocked] marks the tiles somebody or
+  /// something else is standing on; the target tile itself is never
+  /// blocked, so a zombie still walks into whoever is on it.
+  ///
+  /// [maxDistance] caps how far the search spreads. Without it a target
+  /// that cannot be reached — the player behind a wall two tiles away, or
+  /// a way out walled off by the crowd — costs the whole walkable area
+  /// before the search admits defeat, and that happens per zombie, per
+  /// tick.
+  ///
+  /// Neighbours are visited in [Direction] order, so of two paths of the
+  /// same length the same one comes back every time.
   GridPoint? shortestNextStep({
     required GridPoint start,
     required GridPoint target,
-    Set<GridPoint> blocked = const <GridPoint>{},
+    bool Function(GridPoint point)? isBlocked,
+    int? maxDistance,
   }) {
     if (start == target) {
       return start;
     }
-
-    final frontier = ListQueue<GridPoint>()..add(start);
-    final cameFrom = <GridPoint, GridPoint?>{start: null};
-
-    while (frontier.isNotEmpty && !cameFrom.containsKey(target)) {
-      final current = frontier.removeFirst();
-      for (final neighbor in walkableNeighbors(current)) {
-        if (cameFrom.containsKey(neighbor) ||
-            (blocked.contains(neighbor) && neighbor != target)) {
-          continue;
-        }
-        cameFrom[neighbor] = current;
-        frontier.add(neighbor);
-      }
-    }
-
-    if (!cameFrom.containsKey(target)) {
+    if (!contains(start) || !contains(target)) {
       return null;
     }
 
-    var current = target;
-    while (cameFrom[current] != start) {
-      final previous = cameFrom[current];
-      if (previous == null) {
+    final targetIndex = _indexOf(target);
+    final startIndex = _indexOf(start);
+    final search = ++_searches;
+    _reachedBy[startIndex] = search;
+    _cameFrom[startIndex] = -1;
+    _queue[0] = startIndex;
+
+    var head = 0;
+    var tail = 1;
+    var levelEnd = 1;
+    var distance = 0;
+    var found = false;
+
+    while (head < tail && !found) {
+      if (head == levelEnd) {
+        distance += 1;
+        levelEnd = tail;
+        // A queue in level order never goes back: past the cap, nothing
+        // still waiting in it can reach the target either.
+        if (maxDistance != null && distance >= maxDistance) {
+          break;
+        }
+      }
+      final current = _queue[head++];
+      final x = current % width;
+      final y = current ~/ width;
+      for (final direction in Direction.values) {
+        final nextX = x + direction.dx;
+        final nextY = y + direction.dy;
+        if (nextX < 0 || nextY < 0 || nextX >= width || nextY >= height) {
+          continue;
+        }
+        final neighbor = nextY * width + nextX;
+        if (_reachedBy[neighbor] == search || !_tiles[neighbor].isWalkable) {
+          continue;
+        }
+        if (neighbor != targetIndex &&
+            (isBlocked?.call(GridPoint(nextX, nextY)) ?? false)) {
+          continue;
+        }
+        _reachedBy[neighbor] = search;
+        _cameFrom[neighbor] = current;
+        if (neighbor == targetIndex) {
+          found = true;
+          break;
+        }
+        _queue[tail++] = neighbor;
+      }
+    }
+
+    if (!found) {
+      return null;
+    }
+
+    var step = targetIndex;
+    while (true) {
+      final previous = _cameFrom[step];
+      if (previous == startIndex) {
+        return GridPoint(step % width, step ~/ width);
+      }
+      if (previous < 0) {
         return null;
       }
-      current = previous;
+      step = previous;
     }
-    return current;
   }
 
   List<String> toAsciiRows() {

@@ -34,6 +34,13 @@ final class CharacterComponent extends PositionComponent {
   double _emergeElapsed = emergeDuration;
   bool isMoving = false;
 
+  /// Cleared by the game while this character stands away from the
+  /// camera, so a crowd spread over the map is not drawn every frame
+  /// for nothing. Its timers keep running: they cost almost nothing and
+  /// an animation started off screen should be over by the time it
+  /// walks back in.
+  bool onScreen = true;
+
   CharacterAction _action = CharacterAction.none;
   double _actionElapsed = 0;
   double actionDuration = 0;
@@ -185,6 +192,9 @@ final class CharacterComponent extends PositionComponent {
 
   @override
   void render(ui.Canvas canvas) {
+    if (!onScreen) {
+      return;
+    }
     if (_emergeElapsed >= emergeDuration) {
       _renderCharacter(canvas);
       return;

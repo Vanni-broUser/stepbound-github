@@ -7,7 +7,10 @@ sealed class EntityComponent {
 }
 
 final class PositionComponent extends EntityComponent {
-  PositionComponent({required this.position, required this.facing});
+  PositionComponent({required GridPoint position, required this.facing})
+    // A named parameter cannot be private, so the field is set by hand.
+    // ignore: prefer_initializing_formals
+    : _position = position;
 
   factory PositionComponent.fromJson(Map<String, Object?> json) {
     return PositionComponent(
@@ -16,8 +19,25 @@ final class PositionComponent extends EntityComponent {
     );
   }
 
-  GridPoint position;
+  GridPoint _position;
   Direction facing;
+
+  /// Set by the `WorldState` holding this entity, and by nobody else, so
+  /// its tile index follows a position written straight into [position] —
+  /// which is how the player's action, the AI, the tutorial scripts and the
+  /// tests all move somebody.
+  void Function(GridPoint from, GridPoint to)? onMoved;
+
+  GridPoint get position => _position;
+
+  set position(GridPoint value) {
+    if (value == _position) {
+      return;
+    }
+    final previous = _position;
+    _position = value;
+    onMoved?.call(previous, value);
+  }
 
   @override
   String get type => 'position';
