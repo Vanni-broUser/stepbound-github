@@ -128,10 +128,11 @@ restarts.
 Container jobs start from Flutter 3.44.0 and fetch/checkout 3.44.2 for every
 job, which is the largest fixed cost left in the pipeline. The JUnit converter
 is globally activated at execution time, so its version is whatever the day
-brings.
+brings. The README also described directories that hold nothing: `lib/input`
+and `lib/data` are kept on purpose, but input lives under `lib/game/input`.
 
 - Use an exact prebuilt Flutter image, or cache a prepared SDK.
 - Pin the JUnit conversion tool instead of activating an implicit latest version.
 - Update the architecture section when directories move or remain placeholders.
-  Done here: `lib/input` and `lib/data` are gone from the README, neither
-  existed.
+  Done here: the README says where input actually lives (`lib/game/input`) and
+  that `lib/input` and `lib/data` are empty placeholders.

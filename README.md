@@ -96,7 +96,8 @@ GitLab CI runs formatting, static analysis, and tests with Flutter 3.44.2. Signe
 ## Architecture
 
 - `lib/core`: pure Dart grid, entities, actions, systems, scheduler, events, serialization, and seeded RNG
-- `lib/game`: Flame presentation, camera, render layers, turn interpolation, input adapters, and debug tools
+- `lib/game`: Flame presentation, camera, render layers, turn interpolation, and debug tools; input adapters live under `lib/game/input`
+- `lib/input`, `lib/data`: empty, kept for input adapters and a runtime data loader that do not exist yet
 - `lib/save`: persistence adapters
 - `lib/ui`: Flutter interface
 - `assets/balance/default.json`: authoritative balance defaults, compiled into the core by `tools/generate_balance.dart`
