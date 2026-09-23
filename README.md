@@ -109,4 +109,7 @@ dart run tools/generate_balance.dart
 
 CI runs the generator in check mode and rejects stale generated balance data.
 
-See `CONTRIBUTING.md` for the GitLab workflow and `docs/target_devices.md` for the physical-device matrix.
+See `CONTRIBUTING.md` for the GitLab workflow,
+`docs/target_devices.md` for the physical-device matrix, and
+`docs/maintainability_and_scalability_backlog.md` for the prioritised technical
+improvement backlog.
