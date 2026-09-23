@@ -209,16 +209,47 @@ class Level:
     def is_building(self, x, y) -> bool:
         return self.at(x, y) in BUILDING_GLYPHS
 
-    def surface(self, x: int, y: int) -> str:
-        """Floor under a prop or actor: the most common floor around it
-        (`=` sidewalk, `.` road, `P` paving, `L` parking, `Y` stairs)."""
-        glyph = self.at(x, y)
+    @staticmethod
+    def _floor(glyph: str) -> str | None:
+        """The floor `glyph` paves, if it paves one."""
         if glyph in WALK_GLYPHS:
             return "="
         if glyph in ROAD_GLYPHS:
             return "."
         if glyph in "PLY,":
             return glyph
+        return None
+
+    def _floor_along(self, x: int, y: int, step: int) -> str | None:
+        """The nearest floor along row `y` from `x`, never looking through
+        a wall: a prop is paved with the street it stands in, not with
+        whatever lies on the far side of the building next to it."""
+        nx = x + step
+        while 0 <= nx < self.width and not self.is_building(nx, y):
+            floor = self._floor(self.rows[y][nx])
+            if floor is not None:
+                return floor
+            nx += step
+        return None
+
+    def surface(self, x: int, y: int) -> str:
+        """Floor under a prop or actor (`=` sidewalk, `.` road, `P` paving,
+        `L` parking, `Y` stairs): what its own row is paved with, taken
+        from the nearest tile either side of it that says. A car in the
+        outside lane has the kerb running along one whole side of it and
+        only the lane it blocks at its ends, so counting the neighbours
+        around it used to pave it with the sidewalk. The neighbours still
+        settle a prop on the kerb line itself, road one side and sidewalk
+        the other, and one whose row is paved nowhere."""
+        glyph = self.at(x, y)
+        floor = self._floor(glyph)
+        if floor is not None:
+            return floor
+        sides = {side for side in (self._floor_along(x, y, -1),
+                                   self._floor_along(x, y, 1))
+                 if side is not None}
+        if len(sides) == 1:
+            return sides.pop()
         votes = {"=": 0, ".": 0, "P": 0, "L": 0, "Y": 0, ",": 0}
         for dx in (-1, 0, 1):
             for dy in (-1, 0, 1):
@@ -229,7 +260,7 @@ class Level:
                     votes["."] += 1 + (dy == 0)
                 elif g in "PLY,":
                     votes[g] += 1 + (dy == 0)
-        return max(votes, key=votes.get)
+        return max(sides or votes, key=votes.get)
 
 
 def column_runs(level: Level, glyphs: set[str]):

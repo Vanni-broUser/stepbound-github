@@ -23,14 +23,14 @@ void main() {
     final width = mallNorthStreetRows.first.length;
     final roadRows = mallNorthStreetRows.where((row) => row.contains('-'));
     expect(
-      roadRows.every((row) => row.startsWith('-') && row.endsWith('-')),
+      roadRows.every((row) => !row.contains(RegExp('[BHfKMGW#%]'))),
       isTrue,
-      reason: 'the road continues past both edges of the map',
+      reason: 'nothing built closes the road: it runs past both map edges',
     );
     expect(
-      roadRows.every((row) => row.contains('XX') && row.contains('UU')),
+      roadRows.every((row) => row.startsWith('XX') && row.endsWith('UU')),
       isTrue,
-      reason: 'wrecks block both off-map directions',
+      reason: 'wrecks, not walls, block both off-map directions',
     );
 
     final facadeRows = mallNorthStreetRows
@@ -53,6 +53,23 @@ void main() {
       lessThan(width - 10),
       reason: 'right-side palazzi narrow the car park',
     );
+  });
+
+  test('the pile-up closes the street behind the mall, pavements and all', () {
+    final world = createTutorialWorld();
+    final street = place(PlaceId.mallNorthStreet);
+    final reached = world.map.floodFillDistances(
+      mallNorthStreetEntry,
+      maxDistance: street.width * street.height,
+    );
+    expect(reached.length, greaterThan(street.width), reason: 'sanity check');
+    for (final tile in reached.keys) {
+      expect(
+        tile.x,
+        inExclusiveRange(street.bounds.left + 1, street.bounds.right - 1),
+        reason: 'the wrecks reach the map edge, so the pavement is no way out',
+      );
+    }
   });
 
   test('the player starts unarmed with no bullets', () {
