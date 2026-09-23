@@ -267,9 +267,9 @@ void main() {
       final game = await _pumpReadyGame(tester);
       // The player starts near the south-west corner of the tutorial street,
       // so both axes sit on a clamp: x at half the view width, y at the
-      // map height (52 tiles) minus half the view height.
+      // map height (42 tiles) minus half the view height.
       expect(game.camera.viewfinder.position.x, 192);
-      expect(game.camera.viewfinder.position.y, 52 * 16 - 108);
+      expect(game.camera.viewfinder.position.y, 42 * 16 - 108);
     });
   });
 
@@ -352,7 +352,7 @@ void main() {
     return tester.runAsync(() async {
       final game = await _pumpReadyGame(tester);
       final position = game.simulation.player.component<PositionComponent>()
-        ..position = const GridPoint(16, 17)
+        ..position = const GridPoint(16, 7)
         ..facing = Direction.north;
       void stepNorth() => game
         ..pressDirection(Direction.north)
@@ -379,7 +379,7 @@ void main() {
       expect(game.drawnPlaces, <String>[place(PlaceId.street).background]);
 
       game.simulation.player.component<PositionComponent>()
-        ..position = const GridPoint(16, 17)
+        ..position = const GridPoint(16, 7)
         ..facing = Direction.north;
       game
         ..pressDirection(Direction.north)
@@ -446,7 +446,9 @@ void main() {
         'backpacks': <String, Object?>{'lesson': true},
         'street': <String, Object?>{'zombieLesson': true},
       });
-      final camp = game.simulation.campfires.single;
+      final camp = game.simulation.campfires.firstWhere(
+        place(PlaceId.northDistrict).bounds.contains,
+      );
       game.simulation.player.component<PositionComponent>()
         ..position = camp.step(Direction.west)
         ..facing = Direction.east;
@@ -489,13 +491,13 @@ void main() {
     final world = createTutorialWorld();
     world.player.component<PositionComponent>().position = const GridPoint(
       16,
-      30,
+      20,
     );
     await saves.save(
       SaveGame(
         slot: 3,
         savedAt: DateTime(2026, 9, 21, 17, 5),
-        place: 'Accampamento dietro la caserma',
+        place: 'Dietro la caserma',
         world: saveTutorialWorld(world),
         tutorial: const <String, Object?>{
           'street': <String, Object?>{'zombieLesson': true},
@@ -504,6 +506,7 @@ void main() {
           knownZombies: <EntityKind>[EntityKind.wanderer],
         ).toJson(),
         hud: const <String>['interact', 'ammo'],
+        played: const Duration(hours: 3, minutes: 5),
       ),
     );
     await tester.pumpWidget(StepboundApp(saves: saves));
@@ -511,8 +514,13 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey<String>('menu-load')));
     await tester.pump();
-    expect(find.textContaining('Accampamento dietro la caserma'), findsOne);
+    expect(find.textContaining('Dietro la caserma'), findsOne);
     expect(find.textContaining('21/09/2026 17:05'), findsOne);
+    expect(
+      find.textContaining('3h 05m'),
+      findsOne,
+      reason: 'the slot says how long that game has been played',
+    );
     await tester.tap(find.byKey(const ValueKey<String>('menu-slot-3')));
     await tester.pump();
 
@@ -527,7 +535,7 @@ void main() {
         .currentGame;
     expect(
       game.simulation.player.component<PositionComponent>().position,
-      const GridPoint(16, 30),
+      const GridPoint(16, 20),
     );
   });
 
@@ -539,7 +547,7 @@ void main() {
       SaveGame(
         slot: 1,
         savedAt: DateTime(2026),
-        place: 'Accampamento dietro la caserma',
+        place: 'Dietro la caserma',
         world: saveTutorialWorld(createTutorialWorld()),
         tutorial: const <String, Object?>{},
         progress: Progress.newGame().toJson(),
@@ -571,7 +579,7 @@ void main() {
         SaveGame(
           slot: 1,
           savedAt: DateTime(2026),
-          place: 'Accampamento dietro la caserma',
+          place: 'Dietro la caserma',
           world: saveTutorialWorld(world),
           tutorial: const <String, Object?>{
             'street': <String, Object?>{'zombieLesson': true},
@@ -580,6 +588,7 @@ void main() {
             knownZombies: <EntityKind>[EntityKind.wanderer],
           ).toJson(),
           hud: const <String>['interact', 'ammo', 'shoot'],
+          played: const Duration(hours: 2, minutes: 30),
         ),
       );
       final audio = SilentAudio();
@@ -628,6 +637,11 @@ void main() {
       expect(progress.knownZombies, isEmpty, reason: 'it had met a wanderer');
       expect(progress.memories, Progress.newGame().memories);
       expect(saved.hud, isEmpty);
+      expect(
+        saved.played,
+        greaterThanOrEqualTo(const Duration(hours: 2, minutes: 30)),
+        reason: 'the hours played are the one thing starting over keeps',
+      );
       final restored = restoreTutorialWorld(saved.world);
       expect(restored.player.component<AmmoComponent>().loaded, 0);
       expect(
@@ -645,7 +659,7 @@ void main() {
       SaveGame(
         slot: 1,
         savedAt: DateTime(2026),
-        place: 'Accampamento dietro la caserma',
+        place: 'Dietro la caserma',
         world: saveTutorialWorld(createTutorialWorld()),
         tutorial: const <String, Object?>{},
         progress: Progress.newGame().toJson(),
@@ -769,7 +783,7 @@ void main() {
       SaveGame(
         slot: 1,
         savedAt: DateTime(2026),
-        place: 'Accampamento dietro la caserma',
+        place: 'Dietro la caserma',
         world: saveTutorialWorld(createTutorialWorld()),
         tutorial: const <String, Object?>{},
         progress: Progress.newGame().toJson(),
