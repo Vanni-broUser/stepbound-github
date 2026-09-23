@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:stepbound/core/core.dart';
+import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/ui/audio_scope.dart';
 import 'package:stepbound/ui/blood_decor.dart';
 
 final class TouchControls extends StatelessWidget {
@@ -11,6 +13,10 @@ final class TouchControls extends StatelessWidget {
 
   static const double actionButtonSize = 54;
   static const double actionGap = 12;
+
+  /// The way out, in the far corner from the thumbs: smaller than the
+  /// action buttons, so it is never the one hit by mistake.
+  static const double menuButtonSize = 38;
 
   @override
   Widget build(BuildContext context) {
@@ -48,9 +54,36 @@ final class TouchControls extends StatelessWidget {
                 bottom: 0,
                 child: _DirectionalPad(game: game),
               ),
+              // Always there, unlocked or not: it is the way out, not
+              // something the tutorial hands over.
+              Positioned(right: 0, top: 0, child: _PauseButton(game: game)),
             ],
           ),
         );
+      },
+    );
+  }
+}
+
+/// Opens the menu over the game. The gameplay buttons go with it: the
+/// menu replaces whatever covers the game, and these are what is drawn
+/// when nothing does.
+final class _PauseButton extends StatelessWidget {
+  const _PauseButton({required this.game});
+
+  final StepboundGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    return _ActionButton(
+      key: const ValueKey<String>('touch-menu'),
+      semanticLabel: 'Menù',
+      size: TouchControls.menuButtonSize,
+      drips: const <BloodDrip>[BloodDrip(0.35, 9, 3)],
+      icon: const Icon(Icons.menu, color: Color(0xffd8cfbf), size: 20),
+      onPressed: () {
+        AudioScope.of(context).play(Sfx.uiClick);
+        game.openMenu();
       },
     );
   }
@@ -74,7 +107,7 @@ final class _ShootButton extends StatelessWidget {
               key: const ValueKey<String>('touch-shoot'),
               semanticLabel: isAiming ? 'Spara' : 'Mira',
               active: isAiming,
-              enabled: hasAmmo,
+              dimmed: !hasAmmo,
               drips: const <BloodDrip>[
                 BloodDrip(0.3, 17, 5),
                 BloodDrip(0.62, 11, 4),
@@ -307,8 +340,9 @@ final class _ActionButton extends StatelessWidget {
     required this.semanticLabel,
     required this.onPressed,
     this.active = false,
-    this.enabled = true,
+    this.dimmed = false,
     this.drips = const <BloodDrip>[],
+    this.size = TouchControls.actionButtonSize,
     super.key,
   });
 
@@ -316,8 +350,9 @@ final class _ActionButton extends StatelessWidget {
   final String semanticLabel;
   final VoidCallback onPressed;
   final bool active;
-  final bool enabled;
+  final bool dimmed;
   final List<BloodDrip> drips;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
@@ -327,19 +362,19 @@ final class _ActionButton extends StatelessWidget {
       label: semanticLabel,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: enabled ? onPressed : null,
+        onTap: onPressed,
         child: Opacity(
-          opacity: enabled ? 1 : 0.45,
+          opacity: dimmed ? 0.45 : 1,
           child: BloodOverlay(
             painter: BloodPainter(
               band: 5,
-              cornerRadius: TouchControls.actionButtonSize / 2,
+              cornerRadius: size / 2,
               drips: drips,
               color: active ? BloodColors.bright : BloodColors.fresh,
             ),
             child: Container(
-              width: TouchControls.actionButtonSize,
-              height: TouchControls.actionButtonSize,
+              width: size,
+              height: size,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: active

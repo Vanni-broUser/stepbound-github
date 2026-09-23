@@ -12,6 +12,7 @@ import 'package:stepbound/game/audio/game_audio.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/audio/soundscape.dart';
 import 'package:stepbound/game/game_cover.dart';
+import 'package:stepbound/game/haptics/game_haptics.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/aim_line_component.dart';
 import 'package:stepbound/game/render/character_component.dart';
@@ -57,10 +58,12 @@ final class StepboundGame extends FlameGame
     Set<HudElement> unlocked = const <HudElement>{},
     this.onRest,
     GameAudio? audio,
+    GameplayHaptics? haptics,
     Progress? progress,
   }) : simulation = world ?? createTutorialWorld(seed: seed),
        progress = progress ?? Progress.newGame(),
        audio = audio ?? SilentAudio(),
+       haptics = haptics ?? const GameplayHaptics(),
        hud = ValueNotifier<Set<HudElement>>(Set<HudElement>.of(unlocked)),
        super(
          camera: CameraComponent(
@@ -94,6 +97,7 @@ final class StepboundGame extends FlameGame
   /// The zombie types met and the story scenes seen, over the whole game.
   final Progress progress;
   final GameAudio audio;
+  final GameplayHaptics haptics;
   late final Soundscape soundscape = Soundscape(
     world: simulation,
     fires: outdoorFireSpots,
@@ -250,6 +254,7 @@ final class StepboundGame extends FlameGame
     }
     _processedTurn = presentation.turnCount;
     tutorial.onEvents(presentation.lastEvents);
+    haptics.onEvents(presentation.lastEvents, playerId: playerId);
     for (final cue in <SfxCue>[
       ...soundscape.soundsFor(presentation.lastEvents),
       ...soundscape.idleMoans(),
@@ -437,6 +442,26 @@ final class StepboundGame extends FlameGame
     await onRest?.call(snapshot(place: campfireNames[_campfire] ?? ''));
   }
 
+  // -------------------------------------------------------- pause menu
+
+  /// Opens the menu from the button in the corner. Mario stops where he
+  /// is, the touch controls step aside and the menu takes their place.
+  /// Nothing doing while something else already covers the game, or while
+  /// Mario is kneeling at a fire: the camp menu is on its way.
+  void openMenu() {
+    if (cover.value != null || _campfire != null) {
+      return;
+    }
+    _cover(const PauseCover());
+  }
+
+  /// Closes it and gives Mario back to the player.
+  void closeMenu() {
+    if (cover.value is PauseCover) {
+      cover.value = null;
+    }
+  }
+
   /// Closes the camp menu and gives Mario back to the player.
   void leaveCamp() {
     _campfire = null;
@@ -584,6 +609,7 @@ final class StepboundGame extends FlameGame
     }
     if (!aiming.value) {
       if (simulation.player.component<AmmoComponent>().loaded == 0) {
+        presentation.submit(const ShootAction());
         return;
       }
       _heldDirection = null;
