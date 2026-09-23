@@ -47,7 +47,7 @@ final class _StepboundAppState extends State<StepboundApp> {
       widget.saves ?? PreferencesSaveRepository();
   late final GameAudio _audio = widget.audio ?? SilentAudio();
 
-  /// Pauses the sound while the app is in the background.
+  /// Silences the game whenever it is not the app in front.
   late final AppLifecycleListener _lifecycle;
   StepboundGame? _game;
   _Phase _phase = _Phase.menu;
@@ -59,14 +59,45 @@ final class _StepboundAppState extends State<StepboundApp> {
   /// Whether the current slot holds a campfire save to resume after dying.
   bool _hasSave = false;
 
+  /// What this game had been played for when it was loaded or started, and
+  /// the clock running since. Together they are what a save records: it
+  /// only runs while the game is in front and out of the menu, so a phone
+  /// in a pocket is not play, and nothing between two saves is kept.
+  Duration _playedBefore = Duration.zero;
+  final Stopwatch _clock = Stopwatch();
+
+  Duration get _played => _playedBefore + _clock.elapsed;
+
+  /// Starts this game's clock over from [played].
+  void _startClock(Duration played) {
+    _playedBefore = played;
+    _clock
+      ..reset()
+      ..start();
+  }
+
   @override
   void initState() {
     super.initState();
-    _lifecycle = AppLifecycleListener(
-      onHide: _audio.pause,
-      onShow: _audio.resume,
-    );
+    // Only `resumed` means the player is looking at the game. Android
+    // goes inactive, then hidden, then paused on the way out, and a
+    // call or the app switcher stops at inactive: all of them silence
+    // it, or the game over sting plays on over whatever comes next, and
+    // all of them stop the clock.
+    _lifecycle = AppLifecycleListener(onStateChange: _onLifecycle);
     _audio.playMusic(Music.menu);
+  }
+
+  void _onLifecycle(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _audio.resume();
+      if (_phase != _Phase.menu) {
+        _clock.start();
+      }
+      return;
+    }
+    _audio.pause();
+    _clock.stop();
   }
 
   @override
@@ -87,6 +118,7 @@ final class _StepboundAppState extends State<StepboundApp> {
   Future<void> _newGame(int slot) async {
     await _saves.clear(slot);
     _playStoryAudio();
+    _startClock(Duration.zero);
     setState(() {
       _slot = slot;
       _hasSave = false;
@@ -96,6 +128,7 @@ final class _StepboundAppState extends State<StepboundApp> {
   }
 
   void _loadGame(SaveGame save) {
+    _startClock(save.played);
     setState(() {
       _slot = save.slot;
       _hasSave = true;
@@ -128,6 +161,7 @@ final class _StepboundAppState extends State<StepboundApp> {
         tutorial: snapshot.tutorial,
         progress: snapshot.progress,
         hud: snapshot.hud,
+        played: _played,
       ),
     );
     _hasSave = true;
@@ -162,6 +196,7 @@ final class _StepboundAppState extends State<StepboundApp> {
     if (!mounted) {
       return;
     }
+    _startClock(save?.played ?? _played);
     setState(() {
       _restartCount += 1;
       _game = save != null
@@ -192,6 +227,8 @@ final class _StepboundAppState extends State<StepboundApp> {
         tutorial: const <String, Object?>{},
         progress: Progress.newGame().toJson(),
         hud: const <String>[],
+        // The hours played are the one thing starting over keeps.
+        played: _played,
       ),
     );
     if (!mounted) {

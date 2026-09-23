@@ -1,45 +1,96 @@
 // The ASCII map is one row per line, however wide the place is.
 
 /// Reached only through the hypermarket ground floor's new fire exit (see
-/// mall.dart): the loading side of the building, a street closed off on
-/// its own to the rest of the north district. The fire door stands in the
-/// southern roofline, two rows of parking stalls in front of it, a
-/// wrecked-car pile-up blocks the road as it continues off-map east and
-/// west, and beyond it a park has gone to seed between the north-side
-/// palazzi. The palazzi on the right also narrow the car park and keep that
-/// part of the block inaccessible.
-/// New glyphs, on top of the outdoor legend in street.dart: `g` grass, floor;
-/// `p` broken playground equipment, an obstacle; `j` the fire door in the
-/// rear wall, stepped onto to go back inside, floor.
+/// mall.dart): the loading side of the building and the block behind it,
+/// closed off on its own from the rest of the north district. Four strips,
+/// south to north: the fire door in the southern roofline with two rows of
+/// parking stalls in front of it, the four-lane road behind them, the
+/// park, and beyond the park a shopping street. The two streets are joined
+/// at the east end by a north-south street between the palazzi, so the
+/// block walks as a circuit rather than a dead end.
+///
+/// What is closed, and by what. West, both streets stop at the map edge:
+/// the four-lane road behind a wrecked-car pile-up from house front to
+/// house front, wrecks in every lane and one more shunted up on each
+/// pavement, the shopping street behind concrete road blocks laid across
+/// it by the living. The wrecks are nosed forward and back of one another
+/// rather than lined up, but they all take the second column from the map
+/// edge, so the wall never opens. A second pile-up stands midway between
+/// the park's two south gates and cuts the four-lane road in half, which
+/// leaves the park the only way from one half to the other. East, nothing
+/// blocks anything: the streets simply run into the buildings.
+///
+/// The car park and the park are the same width, each pushed to its own
+/// side with palazzi filling the rest of its row: the park east with the
+/// palazzi west of it, the car park west with the palazzi east of it,
+/// which keeps that part of the block inaccessible. The park is railed all
+/// round, with three gates on its paths: one north onto the shopping
+/// street, two south onto the road. Its paths make a spine down from the
+/// north gate to a walk right across it, then a branch down to each south
+/// gate, and the trees, benches and playground stand in the lawns between
+/// them. Rubbish has been heaped in the south-west corner of the car park
+/// and out over the pavement there, deep enough to climb over at its edges
+/// and not at its heart.
+///
+/// At the top of the map, where the shopping street opens into its
+/// forecourt, stands the station: a low provincial building of the kind
+/// the south is full of, a long body of round-arched openings under a
+/// raised middle bay with the clock and the town's name on it. Its two
+/// doorways stand open. Nothing is built behind them yet -- the ticket
+/// hall is a place of its own still to come -- so for now they are the
+/// threshold and no further.
+///
+/// New glyphs, on top of the outdoor legend in street.dart: `g` grass,
+/// floor; `p` broken playground equipment and `^` the park railing,
+/// obstacles you can see over; `<` a gate in that railing, floor; `;` a
+/// heap of rubbish too deep to step on, an obstacle, with `:` the rubbish
+/// spilled around it, walkable but noisy; `0` the station building, a
+/// wall, and `(` its open doorways, floor; `j` the fire door in the rear
+/// wall, stepped onto to go back inside, floor.
 // mall-north-rows-start
 const List<String> mallNorthStreetRows = <String>[
-  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  'BBBBBBBBBBBBBBBBggggggggggggggggggggggBBBBBBBBBBBB',
-  'BBBBBBBBBBBBBBBBggAggggggggggggggpggggBBBBBBBBBBBB',
-  'BBBBBBBBBBBBBBBBgggggggggggAggggggggggBBBBBBBBBBBB',
-  'BBBBBBBBBBBBBBBBggggggggnngggggggggpggBBBBBBBBBBBB',
-  'BBBBBBBBBBBBBBBBggggggnngggggggggggggpBBBBBBBBBBBB',
-  'HHHHHHHHHHHHHHHHggggggggggggggAggpggggHHHHHHHHHHHH',
-  'HHHHHHHHHHHHHHHHggggAgggggggggggggggggHHHHHHHHHHHH',
-  'HHHHHHHHHHHHHHHHggggggggggnnggggggggggHHHHHHHHHHHH',
-  '==================================================',
-  '.XX.CC......................................CC.UU.',
-  '-XX--------------------------------------------UU-',
-  '-XX--------------------------------------------UU-',
-  '.XX.CC......................................CC.UU.',
-  '==================================================',
-  'BBLLLLLLLLCCLLLLLLLLLLLLLLLLLLLLLLLLLLBBBBBBBBBBBB',
-  'BBLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLBBBBBBBBBBBB',
-  'BBLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLBBBBBBBBBBBB',
-  'BBLLLLLLLLLLLLLwLLLLLLLLLLLLLLLLLLLLLLBBBBBBBBBBBB',
-  'BBLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLBBBBBBBBBBBB',
-  'BBLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLBBBBBBBBBBBB',
-  'BB====================================BBBBBBBBBBBB',
-  'BBBBBBBBBBBBBBBBBBBBBBBBBjBBBBBBBBBBBBBBBBBBBBBBBB',
-  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB000000000000000000',
+  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB000000000000000000',
+  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB000000000000000000',
+  'HHHHHHHHHfHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH000000000000000000',
+  'HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHfHHHHHHHHHHHHHHHHHHHHHH000000000000000000',
+  'HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH00((000000((000000',
+  'CC/===================F============:=============/=====TPPPPPPP:PPPPPPPBBB',
+  '.UU.........CC...........:........................Z....=PPPPPCCPPPPPCCPBBB',
+  'CC----------------------------------------------..Z....=PPPPPPPPPPPPPPPBBB',
+  '.UU....S..........:...........UU..................Z....=PPPPPPPPUUPPPPPBBB',
+  'CC======:=========================================TVVVV=PPPNPPPPPPPPPNPBBB',
+  'BBBBBBBBBBBBBBBB^^^^^^^^^^<^^^^^^^^^^^BBBBBBBBBBBB=....=BBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBggggggggggPgggggggggggBBBBBBBBBBBB=....=BBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBggAggggAggPgggAggggAggBBBBBBBBBBBB=....=BBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBggggggggggPgggggggggggBBBBBBBBBBBB=.||.=BBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBggnnggnnggPgggnnggnnggBBBBBBBBBBBB=.||.=BBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBPPPPPPPPPPPPPPPPPPPPPPBBBBBBBBBBBB=v||.=BBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBggggPggggggggggggPggggBBBBBBBBBBBB=v||.=BBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBgAggPnnggggggggnnPggAgBBBBBBBBBBBB=.||.=BBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBggggPggggpgpgpgggPggggBBBBBBBBBBBB=.||.=BBBBBBBBBBBBBBBBBB',
+  'HHHHHHHHHHHHHHHHggggPggggggggggggPggggHHHHHHHHHHHH=.||.=BBBBBBBBBBBBBBBBBB',
+  'HHHHHHHHHHHHHHHHggAgPgggAggggAgggPgAggHHHHHHHHHHHH/....=BBBBBBBBBBBBBBBBBB',
+  'HHHHHHHHHHHHHHHH^^^^<^^^^^^^^^^^^<^^^^HHHHHHHHHHHH=....=BBBBBBBBBBBBBBBBBB',
+  'UU=======================CC========================VVVVTBBBBBBBBBBBBBBBBBB',
+  '.XX.CC....................UU............CC........Z....=BBBBBBBBBBBBBBBBBB',
+  '-XX----------------------UU---------------------..Z....=BBBBBBBBBBBBBBBBBB',
+  'XX------------------------UU----------------:---..Z....=BBBBBBBBBBBBBBBBBB',
+  '.XX..CC..................UU............UU.........Z....=BBBBBBBBBBBBBBBBBB',
+  'CC========================CC=====================/T=====BBBBBBBBBBBBBBBBBB',
+  'BBLLLLLLLLCCLLLLLLLLLLLLBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBLLLLLLLLLLLLLLLLLLLLLLBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BB::LLLLLLLLLLLLLLLLLLLLBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BB;;::LLLLLLLLLwLLLLLLLLBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BB;;;::LLLLLLLLLLLLLLLLLBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BB;;;;:::LLLLLLLLLLLLLLLBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BB;;;:::================BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBjBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
 ];
 // mall-north-rows-end

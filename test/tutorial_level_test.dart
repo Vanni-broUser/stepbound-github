@@ -21,18 +21,6 @@ void main() {
 
   test('the street behind the mall keeps the outdoor perspective', () {
     final width = mallNorthStreetRows.first.length;
-    final roadRows = mallNorthStreetRows.where((row) => row.contains('-'));
-    expect(
-      roadRows.every((row) => row.startsWith('-') && row.endsWith('-')),
-      isTrue,
-      reason: 'the road continues past both edges of the map',
-    );
-    expect(
-      roadRows.every((row) => row.contains('XX') && row.contains('UU')),
-      isTrue,
-      reason: 'wrecks block both off-map directions',
-    );
-
     final facadeRows = mallNorthStreetRows
         .takeWhile((row) => !row.contains('-'))
         .where((row) => row.contains('H'));
@@ -55,6 +43,80 @@ void main() {
     );
   });
 
+  test('wrecks and road blocks close the block behind the mall, west', () {
+    // East there is nothing to close: both streets run into the buildings.
+    final roadRows = mallNorthStreetRows.where((row) => row.contains('-'));
+    expect(
+      roadRows.every((row) => outdoorLegend.obstacles.contains(row[1])),
+      isTrue,
+      reason:
+          'wrecks on the four-lane road, concrete blocks on the shopping '
+          'street, never a wall: the wrecks are nosed forward and back of '
+          'one another, but each covers the second column from the edge',
+    );
+    // The second pile-up stands midway between the park's two south gates
+    // and cuts the four-lane road, so the park joins its two halves.
+    final railing = mallNorthStreetRows.lastIndexWhere(
+      (row) => row.contains('<'),
+    );
+    final gates = <int>[
+      for (var x = 0; x < mallNorthStreetRows[railing].length; x++)
+        if (mallNorthStreetRows[railing][x] == '<') x,
+    ];
+    expect(gates, hasLength(2));
+    final between = (gates.first + gates.last) ~/ 2;
+    expect(
+      mallNorthStreetRows
+          .skip(railing + 1)
+          .take(6)
+          .every((row) => outdoorLegend.obstacles.contains(row[between])),
+      isTrue,
+      reason: 'the pile-up closes the road on the column between the gates',
+    );
+  });
+
+  test('the block behind the mall walks as a circuit, never to the edge', () {
+    final world = createTutorialWorld();
+    final street = place(PlaceId.mallNorthStreet);
+    final reached = world.map.floodFillDistances(
+      mallNorthStreetEntry,
+      maxDistance: street.width * street.height,
+    );
+    expect(reached.length, greaterThan(street.width), reason: 'sanity check');
+    final gates = <GridPoint>[
+      for (var y = 0; y < street.height; y++)
+        for (var x = 0; x < street.width; x++)
+          if (mallNorthStreetRows[y][x] == '<')
+            GridPoint(street.origin.x + x, street.origin.y + y),
+    ];
+    expect(
+      gates,
+      hasLength(3),
+      reason: 'one gate north of the park, two south',
+    );
+    final doors = <GridPoint>[
+      for (var y = 0; y < street.height; y++)
+        for (var x = 0; x < street.width; x++)
+          if (mallNorthStreetRows[y][x] == '(')
+            GridPoint(street.origin.x + x, street.origin.y + y),
+    ];
+    expect(doors, hasLength(4), reason: 'two doorways, two tiles wide each');
+    for (final way in <GridPoint>[...gates, ...doors]) {
+      expect(
+        reached.containsKey(way),
+        isTrue,
+        reason: 'every gate and station doorway can be walked to',
+      );
+    }
+    for (final tile in reached.keys) {
+      expect(
+        tile.x,
+        inExclusiveRange(street.bounds.left + 1, street.bounds.right - 1),
+        reason: 'nothing walkable touches the edge of the map',
+      );
+    }
+  });
+
   test('the player starts unarmed with no bullets', () {
     final ammo = createTutorialWorld().player.component<AmmoComponent>();
     expect(ammo.hasGun, isFalse);
@@ -70,17 +132,17 @@ void main() {
 
   test('the crossroads opens north and east but not south', () {
     final map = createTutorialWorld().map;
-    expect(map.tileAt(const GridPoint(16, 30)).isWalkable, isTrue);
-    expect(map.tileAt(const GridPoint(30, 46)).isWalkable, isTrue);
-    expect(map.tileAt(const GridPoint(16, 50)).isWalkable, isFalse);
+    expect(map.tileAt(const GridPoint(16, 20)).isWalkable, isTrue);
+    expect(map.tileAt(const GridPoint(30, 36)).isWalkable, isTrue);
+    expect(map.tileAt(const GridPoint(16, 40)).isWalkable, isFalse);
   });
 
   test('the streets end against buildings, the north one at the barracks', () {
     final map = createTutorialWorld().map;
-    expect(map.tileAt(const GridPoint(3, 46)).isWalkable, isFalse);
-    expect(map.tileAt(const GridPoint(40, 46)).isWalkable, isFalse);
-    expect(map.tileAt(const GridPoint(15, 16)).isWalkable, isFalse);
-    expect(map.tileAt(const GridPoint(16, 16)).isWalkable, isTrue);
+    expect(map.tileAt(const GridPoint(3, 36)).isWalkable, isFalse);
+    expect(map.tileAt(const GridPoint(40, 36)).isWalkable, isFalse);
+    expect(map.tileAt(const GridPoint(15, 6)).isWalkable, isFalse);
+    expect(map.tileAt(const GridPoint(16, 6)).isWalkable, isTrue);
   });
 
   List<Entity> zombiesIn(WorldState world, Place region) => world
@@ -249,7 +311,7 @@ void main() {
     final world = createTutorialWorld();
     world.player.component<PositionComponent>().position = const GridPoint(
       13,
-      45,
+      35,
     );
     final events = const TurnScheduler().advance(
       world,
@@ -281,10 +343,10 @@ void main() {
 
     test('the front door leads inside the barracks and back out', () {
       final world = createTutorialWorld();
-      final inDoor = walk(world, const GridPoint(16, 17), Direction.north);
+      final inDoor = walk(world, const GridPoint(16, 7), Direction.north);
       expect(inside(inDoor), isTrue);
       final outDoor = walk(world, inDoor, Direction.south);
-      expect(outDoor, const GridPoint(16, 17));
+      expect(outDoor, const GridPoint(16, 7));
     });
 
     test('the back door opens on the street of the north district', () {
@@ -900,21 +962,25 @@ void main() {
       reason: 'the burning wrecks blocking the road west',
     );
     expect(count(all, FireKind.car), 11);
-    expect(count(all, FireKind.bin), 9);
-    expect(count(all, FireKind.window), 12);
-    expect(count(all, FireKind.campfire), 1);
-    final north = place(PlaceId.northDistrict).bounds;
+    expect(count(all, FireKind.bin), 10);
+    expect(count(all, FireKind.window), 14);
+    expect(count(all, FireKind.campfire), 2);
+    // One camp in the north district, one in the dead end the wrecks
+    // leave at the west end of the shopping street behind the mall.
     expect(
       all
           .where((spot) => spot.kind == FireKind.campfire)
-          .every((spot) => north.contains(spot.tile)),
-      isTrue,
+          .map((spot) => placeAt(spot.tile)?.id)
+          .toSet(),
+      <PlaceId>{PlaceId.northDistrict, PlaceId.mallNorthStreet},
     );
   });
 
   test('the camp burns at the closed east end of the north street', () {
     final world = createTutorialWorld();
-    final camp = world.campfires.single;
+    final camp = world.campfires.firstWhere(
+      place(PlaceId.northDistrict).bounds.contains,
+    );
     final (x, y) = (
       camp.x - place(PlaceId.northDistrict).origin.x,
       camp.y - place(PlaceId.northDistrict).origin.y,
@@ -932,8 +998,10 @@ void main() {
 
   test('resting at the camp beyond the barracks asks the game to save', () {
     final world = createTutorialWorld();
-    final camp = world.campfires.single;
-    expect(campfireNames[camp], 'Accampamento dietro la caserma');
+    final camp = world.campfires.firstWhere(
+      place(PlaceId.northDistrict).bounds.contains,
+    );
+    expect(campfireNames[camp], 'Dietro la caserma');
     expect(world.map.tileAt(camp).isWalkable, isFalse);
     world.player.component<PositionComponent>()
       ..position = camp.step(Direction.west)
@@ -1007,6 +1075,62 @@ void main() {
       );
       expect(restored.player.component<AmmoComponent>().loaded, 3);
       expect(restored.map.width, world.map.width);
+    });
+
+    test('saving at the new camp behind the mall, after the first one, '
+        'carries everything through both', () {
+      GridPoint campIn(WorldState world, PlaceId id) =>
+          world.campfires.firstWhere(place(id).bounds.contains);
+
+      Map<String, Object?> rest(WorldState world, GridPoint camp) {
+        world.player.component<PositionComponent>()
+          ..position = camp.step(Direction.west)
+          ..facing = Direction.east;
+        final events = const TurnScheduler().advance(
+          world,
+          const InteractAction(),
+        );
+        expect(events.whereType<CampfireUsedEvent>().single.at, camp);
+        return throughStorage(saveTutorialWorld(world));
+      }
+
+      final world = createTutorialWorld();
+      final first = campIn(world, PlaceId.northDistrict);
+      final second = campIn(world, PlaceId.mallNorthStreet);
+      expect(campfireNames[first], 'Dietro la caserma');
+      expect(
+        campfireNames[second],
+        'Zona nord',
+        reason: 'the two camps are told apart in the save slots',
+      );
+
+      // Rest at the first camp with a zombie down and some rounds spent.
+      final zombie = world.entities.values.firstWhere(
+        (entity) => entity.kind != EntityKind.player,
+      );
+      zombie.component<HealthComponent>().current = 0;
+      world.player.component<AmmoComponent>().loaded = 3;
+      final loaded = restoreTutorialWorld(rest(world, first));
+      expect(loaded.entities[zombie.id]!.isAlive, isFalse);
+      expect(
+        loaded.player.component<PositionComponent>().position,
+        first.step(Direction.west),
+      );
+
+      // Then rest at the new one, and load that save in turn.
+      final again = restoreTutorialWorld(rest(loaded, second));
+      expect(again.campfires, contains(second));
+      expect(
+        again.entities[zombie.id]!.isAlive,
+        isFalse,
+        reason: 'what the first save held survives the second',
+      );
+      expect(again.player.component<AmmoComponent>().loaded, 3);
+      expect(
+        again.player.component<PositionComponent>().position,
+        second.step(Direction.west),
+        reason: 'Mario is left sitting at the camp he saved at',
+      );
     });
   });
 

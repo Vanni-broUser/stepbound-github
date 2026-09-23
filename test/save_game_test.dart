@@ -7,19 +7,25 @@ void main() {
   SaveGame save() => SaveGame(
     slot: 1,
     savedAt: DateTime(2026),
-    place: 'Accampamento dietro la caserma',
+    place: 'Dietro la caserma',
     world: saveTutorialWorld(createTutorialWorld()),
     tutorial: const <String, Object?>{},
     progress: Progress.newGame().toJson(),
     hud: const <String>[],
+    played: const Duration(hours: 2, minutes: 7, seconds: 3),
   );
 
   test('a save reads back as it was written', () async {
     final saves = MemorySaveRepository();
     await saves.save(save());
     final loaded = (await saves.load(1))!;
-    expect(loaded.place, 'Accampamento dietro la caserma');
+    expect(loaded.place, 'Dietro la caserma');
     expect(loaded.world['mapChanges'], isEmpty);
+    expect(
+      loaded.played,
+      const Duration(hours: 2, minutes: 7, seconds: 3),
+      reason: 'the hours played are stored to the second',
+    );
   });
 
   test('a save keeps the memories in the order they were lived', () async {
@@ -34,7 +40,7 @@ void main() {
       SaveGame(
         slot: 1,
         savedAt: DateTime(2026),
-        place: 'Accampamento dietro la caserma',
+        place: 'Dietro la caserma',
         world: saveTutorialWorld(createTutorialWorld()),
         tutorial: const <String, Object?>{},
         progress: progress.toJson(),

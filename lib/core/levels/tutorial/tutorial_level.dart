@@ -30,8 +30,8 @@ export 'package:stepbound/core/levels/tutorial/street.dart';
 /// street.dart), of the barracks (barracks.dart) and of the hypermarket
 /// (mall.dart).
 const Legend outdoorLegend = Legend(
-  walls: 'BHfKMGW#%',
-  obstacles: 'CXUvkDFTSOyJQaAnI~RNbpx*i&!',
+  walls: 'BHfKMGW#%0',
+  obstacles: 'CXUvkDFTSOyJQaAnI~RNbpx*i&!^;/',
   debris: ':q',
 );
 const Legend barracksLegend = Legend(walls: 'xWQNSIw', obstacles: 'TCAh');
@@ -148,21 +148,25 @@ const String boatBackpackId = 'backpack-boat';
 
 /// Walking into the crossroads makes the tutorial zombie notice the player
 /// even if it is not looking that way.
-const GridRect tutorialZombieTrigger = GridRect(14, 43, 23, 49);
+const GridRect tutorialZombieTrigger = GridRect(14, 33, 23, 39);
 
 /// The forecourt in front of the barracks: reaching it makes Mario speak.
-const GridRect barracksForecourt = GridRect(13, 17, 19, 18);
+const GridRect barracksForecourt = GridRect(13, 7, 19, 8);
 
-/// Camps where the player can save, and what a save there is called.
-const Map<String, String> _campNames = <String, String>{
-  'S': 'Accampamento dietro la caserma',
+/// Camps where the player can save, and what a save there is called. The
+/// glyph is `S` everywhere, so the place it burns in gives it its name;
+/// each of them has one.
+const Map<PlaceId, String> _campNames = <PlaceId, String>{
+  PlaceId.northDistrict: 'Dietro la caserma',
+  PlaceId.mallNorthStreet: 'Zona nord',
 };
 
 /// Campfires, by tile, with the name shown in the save slots.
 final Map<GridPoint, String> campfireNames = <GridPoint, String>{
   for (final place in _outdoors)
     for (final (point, glyph) in place.glyphs)
-      if (_campNames.containsKey(glyph)) point: _campNames[glyph]!,
+      if (glyph == 'S' && _campNames.containsKey(place.id))
+        point: _campNames[place.id]!,
 };
 
 /// The flagpole planted on the forecourt, where the tricolour flies.

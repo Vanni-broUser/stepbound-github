@@ -53,6 +53,9 @@ final class SilentAudio implements GameAudio {
   final List<Sfx> played = <Sfx>[];
   final List<Sfx> stopped = <Sfx>[];
 
+  /// Whether the app is in the background, as the lifecycle last said.
+  bool paused = false;
+
   @override
   void playMusic(Music? music) => this.music = music;
 
@@ -76,10 +79,10 @@ final class SilentAudio implements GameAudio {
   void unlock() {}
 
   @override
-  void pause() {}
+  void pause() => paused = true;
 
   @override
-  void resume() {}
+  void resume() => paused = false;
 
   @override
   Future<void> dispose() async {}

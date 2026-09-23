@@ -186,6 +186,41 @@ void main() {
       expect(audio.played, contains(Sfx.uiClick));
     });
 
+    testWidgets('putting the app down silences it, at every step of the '
+        'way out and back', (tester) async {
+      final audio = SilentAudio();
+      await tester.pumpWidget(
+        StepboundApp(saves: MemorySaveRepository(), audio: audio),
+      );
+      await tester.pump();
+      expect(audio.paused, isFalse);
+
+      void go(AppLifecycleState state) =>
+          tester.binding.handleAppLifecycleStateChanged(state);
+
+      // The way out: a call or the app switcher stops at inactive, the
+      // background carries on through hidden to paused. The sound has to
+      // be off from the first step, or the game over sting plays on.
+      for (final state in <AppLifecycleState>[
+        AppLifecycleState.inactive,
+        AppLifecycleState.hidden,
+        AppLifecycleState.paused,
+      ]) {
+        go(state);
+        expect(audio.paused, isTrue, reason: r'silent at $state');
+      }
+      // And the way back in, sound only once it is in front again.
+      for (final state in <AppLifecycleState>[
+        AppLifecycleState.hidden,
+        AppLifecycleState.inactive,
+      ]) {
+        expect(audio.paused, isTrue, reason: r'still silent at $state');
+        go(state);
+      }
+      go(AppLifecycleState.resumed);
+      expect(audio.paused, isFalse);
+    });
+
     testWidgets('the audio switch mutes and says so', (tester) async {
       final audio = SilentAudio();
       await tester.pumpWidget(

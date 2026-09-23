@@ -82,12 +82,19 @@ final class _MainMenuState extends State<MainMenu> {
         '${two(time.hour)}:${two(time.minute)}';
   }
 
+  /// Hours and minutes played, as the slot shows them.
+  static String _played(Duration played) {
+    final minutes = (played.inMinutes % 60).toString().padLeft(2, '0');
+    return '${played.inHours}h ${minutes}m';
+  }
+
   String _slotLabel(int slot) {
     final save = _slots[slot - 1];
     if (save == null) {
       return 'SLOT $slot\nvuoto';
     }
-    return 'SLOT $slot  ${_date(save.savedAt)}\n${save.place}';
+    return 'SLOT $slot  ${_date(save.savedAt)}\n'
+        '${save.place}  ·  ${_played(save.played)}';
   }
 
   @override

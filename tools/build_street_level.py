@@ -34,8 +34,11 @@ MALL_NORTH_OUTPUT = os.path.join("assets", "levels", "mall_north_street.png")
 
 ROAD_GLYPHS = set(".-|ZVc")
 WALK_GLYPHS = set("=")
-BUILDING_GLYPHS = set("BHfKMGW#%")
+BUILDING_GLYPHS = set("BHfKMGW#%0")
 FACADE_GLYPHS = set("Hf")
+# Street furniture: it stands on the footway, not in the road, so it
+# looks for its floor up and down its column as well as sideways.
+FOOTWAY_GLYPHS = set("T/F")
 
 ASPHALT = (44, 46, 52)
 ASPHALT_SPECKLE = (52, 54, 60)
@@ -105,6 +108,16 @@ NORTH_STOREFRONTS = {
     30: [
         (63, 6, "elettronica"),
         (70, 5, "kebab2"),
+    ],
+}
+MALL_NORTH_STOREFRONTS = {
+    3: [
+        (4, 5, "pizzeria"),
+        (11, 4, "alimentari"),
+        (17, 6, "barsport"),
+        (26, 6, "elettronica"),
+        (34, 5, "abbigliamento"),
+        (41, 5, "gelateria"),
     ],
 }
 HARBOUR_STOREFRONTS = {
@@ -186,11 +199,16 @@ def rect(d: ImageDraw.ImageDraw, x, y, w, h, c) -> None:
 
 
 class Level:
-    def __init__(self, rows: list[str], storefronts=None, old_town=False):
+    def __init__(self, rows: list[str], storefronts=None, old_town=False,
+                 one_roof=None):
         self.rows = rows
         self.storefronts = storefronts or {}
         # Old town: white palazzi with green shutters, pale terraces.
         self.old_town = old_town
+        # One building, not a patchwork: (row, column) -- from that row
+        # down and west of that column the roof is painted whole (the back
+        # of the hypermarket, in the north street).
+        self.one_roof = one_roof
         self.height = len(rows)
         self.width = len(rows[0])
 
@@ -205,16 +223,61 @@ class Level:
     def is_building(self, x, y) -> bool:
         return self.at(x, y) in BUILDING_GLYPHS
 
-    def surface(self, x: int, y: int) -> str:
-        """Floor under a prop or actor: the most common floor around it
-        (`=` sidewalk, `.` road, `P` paving, `L` parking, `Y` stairs)."""
-        glyph = self.at(x, y)
+    @staticmethod
+    def _floor(glyph: str) -> str | None:
+        """The floor `glyph` paves, if it paves one."""
         if glyph in WALK_GLYPHS:
             return "="
         if glyph in ROAD_GLYPHS:
             return "."
         if glyph in "PLY,":
             return glyph
+        return None
+
+    def _floor_along(self, x: int, y: int, dx: int, dy: int):
+        """The nearest floor from (x, y) one way, and how many tiles off it
+        is, never looking through a wall: a prop is paved with the street it
+        stands in, not with what lies beyond the building beside it."""
+        nx, ny, away = x + dx, y + dy, 1
+        while (0 <= nx < self.width and 0 <= ny < self.height
+               and not self.is_building(nx, ny)):
+            floor = self._floor(self.rows[ny][nx])
+            if floor is not None:
+                return floor, away
+            nx, ny, away = nx + dx, ny + dy, away + 1
+        return None, 0
+
+    def surface(self, x: int, y: int) -> str:
+        """Floor under a prop or actor (`=` sidewalk, `.` road, `P` paving,
+        `L` parking, `Y` stairs): the nearest floor beside it, never through
+        a wall, and where two are equally near, whichever more of them say.
+
+        A vehicle belongs to the carriageway it stands in, which runs along
+        its row: a car in the outside lane has the kerb down one whole side
+        of it and only the lane it blocks at its ends, so looking all round
+        used to pave it with the sidewalk. Street furniture belongs instead
+        to the footway beside it, and a footway runs whichever way its
+        street does, so the lights and the signs look up and down their
+        column too -- otherwise the ones on a side street's pavement take
+        the tarmac of the road they stand at the mouth of."""
+        glyph = self.at(x, y)
+        floor = self._floor(glyph)
+        if floor is not None:
+            return floor
+        ways = [(-1, 0), (1, 0)]
+        if glyph in FOOTWAY_GLYPHS:
+            ways += [(0, -1), (0, 1)]
+        found = [self._floor_along(x, y, dx, dy) for dx, dy in ways]
+        near = [f for f, away in found
+                if f is not None and away == min(
+                    (a for g, a in found if g is not None), default=0)]
+        if glyph in FOOTWAY_GLYPHS and any(f != "." for f in near):
+            # Nothing on a post stands in the carriageway: at a corner, with
+            # the road on two sides of it and the kerb on the others, the
+            # kerb wins however the neighbours happen to count up.
+            near = [f for f in near if f != "."]
+        if len(set(near)) == 1:
+            return near[0]
         votes = {"=": 0, ".": 0, "P": 0, "L": 0, "Y": 0, ",": 0}
         for dx in (-1, 0, 1):
             for dy in (-1, 0, 1):
@@ -225,19 +288,27 @@ class Level:
                     votes["."] += 1 + (dy == 0)
                 elif g in "PLY,":
                     votes[g] += 1 + (dy == 0)
-        return max(votes, key=votes.get)
+        # Equally near and disagreeing: whichever more sides say, then the
+        # neighbours, then the order of `votes`, so the pick never wavers.
+        order = list(votes)
+        return max(near or order,
+                   key=lambda f: (near.count(f), votes[f], -order.index(f)))
 
 
-def column_runs(level: Level, glyphs: set[str]):
+def column_runs(level: Level, glyphs: set[str], skip=None):
     """Vertical runs of `glyphs`, grouped into bands of adjacent columns
-    sharing the same top and bottom row. Yields (x0, width, top, bottom)."""
+    sharing the same top and bottom row. Yields (x0, width, top, bottom).
+    Cells `skip(x, y)` accepts are left out, as if they were not there."""
+    def taken(x, y):
+        return level.at(x, y) in glyphs and not (skip and skip(x, y))
+
     runs: dict[tuple[int, int], list[int]] = {}
     for x in range(level.width):
         y = 0
         while y < level.height:
-            if level.at(x, y) in glyphs:
+            if taken(x, y):
                 top = y
-                while y < level.height and level.at(x, y) in glyphs:
+                while y < level.height and taken(x, y):
                     y += 1
                 runs.setdefault((top, y - 1), []).append(x)
             else:
@@ -368,11 +439,22 @@ def paint_parking(d, rng, level, x, y):
 
 def paint_roofs(d, rng, level):
     """Roof areas split into a patchwork of buildings, each with its own
-    colour, a parapet all around and a few rooftop units."""
-    for x0, width, top, bottom in column_runs(level, {"B"}):
+    colour, a parapet all around and a few rooftop units. `level.one_roof`
+    sets aside a corner of the map -- everything from a row down and from
+    the west edge to a column -- as a single building whose roof runs
+    unbroken, broken only by its door."""
+    whole = level.one_roof
+    band, edge = whole if whole else (0, 0)
+
+    def inside(x, y):
+        return whole is not None and y >= band and x < edge
+
+    for x0, width, top, bottom in column_runs(level, {"B"}, skip=inside):
         for sx, sw in segments(x0, width, rng):
             for sy, sh in segments(top, bottom - top + 1, rng):
                 paint_roof_block(d, rng, level, sx, sy, sw, sh)
+    if whole is not None:
+        paint_roof_block(d, rng, level, 0, band, edge, level.height - band)
 
 
 def paint_roof_block(d, rng, level, sx, sy, sw, sh):
@@ -894,7 +976,11 @@ def paint_mall_back_door(d, level):
 
     Like the barracks' back passage, only the opening is visible: the
     building is south of the camera, so painting its north facade here
-    would reverse the perspective used by every other outdoor map.
+    would reverse the perspective used by every other outdoor map. The
+    roof behind is one unbroken slab (see paint_roofs) and the door is the
+    only break in it: a concrete well biting one tile deeper into the
+    roof, the way in at its top and the exit sign lit over it at the
+    bottom, where there is roof to hang it on.
     """
     doors = [(x, y) for y in range(level.height) for x in range(level.width)
              if level.at(x, y) == "j"]
@@ -902,15 +988,17 @@ def paint_mall_back_door(d, level):
         return
     dx, dy = doors[0]
     px, py = dx * TILE, dy * TILE
-    rect(d, px - 2, py, 20, TILE, (112, 108, 102))  # concrete reveal
+    well = py + TILE  # the tile the roof gives up to the door
+    rect(d, px - 2, py, 20, TILE * 2, (112, 108, 102))  # concrete reveal
+    rect(d, px - 2, well + TILE - 3, 20, 3, (76, 74, 70))  # its far edge
     rect(d, px, py + 2, TILE, 14, (24, 24, 26))  # dark passage
     rect(d, px + 2, py + 4, 12, 12, (46, 44, 44))
     rect(d, px + 2, py + 13, 12, 3, (80, 76, 70))  # threshold
     rect(d, px, py + 2, 4, 14, (118, 122, 130))  # open leaf
     rect(d, px + 1, py + 3, 2, 12, (158, 162, 170))
     rect(d, px + 3, py + 9, 1, 2, (220, 190, 90))  # push bar
-    rect(d, px + 4, py - 4, 8, 5, (30, 120, 60))  # exit sign
-    rect(d, px + 6, py - 3, 4, 3, (210, 250, 220))
+    rect(d, px + 4, well + 5, 8, 5, (30, 120, 60))  # exit sign
+    rect(d, px + 6, well + 6, 4, 3, (210, 250, 220))
 
 
 # ------------------------------------------------------------ hypermarket
@@ -1681,6 +1769,171 @@ def paint_grass(d, rng, x, y):
         rect(d, px + rng.randrange(8), py + rng.randrange(10), 6, 3, (84, 70, 52))
 
 
+def _station_arch(d, x, y, w, h, frame, hole):
+    """Round-headed opening, `w` wide and `h` tall to the ground, in a
+    raised stone frame: the arcade the station's front is made of."""
+    r = w // 2
+    for dy in range(r + 1):
+        half = round(math.sqrt(max(0, r * r - (r - dy) ** 2)))
+        rect(d, x + r - half - 2, y + dy - 2, 2 * half + 4, 1, frame)
+        rect(d, x + r - half, y + dy, 2 * half, 1, hole)
+    rect(d, x - 2, y + r, 2, h - r, frame)
+    rect(d, x + w, y + r, 2, h - r, frame)
+    rect(d, x, y + r, w, h - r, hole)
+
+
+def paint_station(d, rng, level):
+    """The station at the top of the block, `0`: the low provincial kind
+    the south is full of, a long body of round-arched openings between
+    pilasters, a cornice over them, and a raised middle bay carrying the
+    clock and the name. The two openings the map marks `(` are the doors,
+    standing open on the dark of the booking hall; the rest are windows,
+    their glass mostly gone."""
+    cells = [(x, y) for y in range(level.height) for x in range(level.width)
+             if level.at(x, y) == "0"]
+    if not cells:
+        return
+    x0, x1 = min(x for x, _ in cells), max(x for x, _ in cells)
+    y0, y1 = min(y for _, y in cells), max(y for _, y in cells)
+    px, py = x0 * TILE, y0 * TILE
+    w, h = (x1 - x0 + 1) * TILE, (y1 - y0 + 1) * TILE
+    wall, wall_dark = (226, 214, 184), (196, 182, 150)
+    trim, plinth = (238, 230, 206), (146, 142, 132)
+    roof, hole = (150, 142, 128), (26, 26, 30)
+    rect(d, px, py, w, h, wall)
+    rect(d, px, py, w, 9, roof)  # the flat roof, seen edge on
+    rect(d, px, py + 7, w, 2, (110, 104, 96))
+    rect(d, px, py + 9, w, 3, trim)  # the cornice under it
+    rect(d, px, py + 12, w, 1, wall_dark)
+    ground = py + h - 3
+    rect(d, px, ground, w, 3, plinth)  # the plinth it stands on
+    # The front is the stretch standing over the forecourt: an arcade of
+    # openings two tiles wide, the rest of the building a blind end.
+    front = [ax for ax in range(x0, x1, 2)
+             if level.at(ax, y1 + 1) not in BUILDING_GLYPHS
+             and level.at(ax + 1, y1 + 1) not in BUILDING_GLYPHS]
+    if not front:
+        return
+    # the middle bay: raised, carrying the clock and the name, the middle
+    # opening of the arcade under it
+    middle = front[len(front) // 2] * TILE + TILE
+    bx, bw = middle - 36, 72
+    rect(d, bx, py, bw, h - 3, wall)
+    rect(d, bx, py, bw, 6, roof)
+    rect(d, bx, py + 5, bw, 2, (110, 104, 96))
+    rect(d, bx, py + 7, bw, 3, trim)  # its own cornice
+    for edge in (bx, bx + bw - 3):  # the pilasters framing it
+        rect(d, edge, py + 10, 3, h - 13, wall_dark)
+        rect(d, edge, py + 10, 1, h - 13, trim)
+    for ax in front:
+        sx = ax * TILE + 4
+        rect(d, sx - 4, py + 13, 4, h - 16, wall_dark)  # the pilaster beside it
+        rect(d, sx - 4, py + 13, 1, h - 16, trim)
+        if level.at(ax, y1) == "(":
+            _station_arch(d, sx, ground - 36, 24, 36, trim, hole)
+            rect(d, sx + 2, ground - 18, 20, 18, (14, 14, 16))  # the hall
+            rect(d, sx, ground - 3, 24, 3, (176, 170, 158))  # its worn step
+            for leaf in (sx, sx + 20):  # the doors, folded back
+                rect(d, leaf, ground - 24, 4, 22, (66, 58, 46))
+                rect(d, leaf + 1, ground - 23, 2, 20, (92, 82, 66))
+        else:
+            _station_arch(d, sx, ground - 36, 24, 32, trim, (52, 58, 66))
+            for gy in range(ground - 26, ground - 4, 7):  # the glazing bars
+                rect(d, sx, gy, 24, 1, trim)
+            rect(d, sx + 11, ground - 30, 2, 26, trim)
+            if rng.random() < 0.7:  # panes gone, and boards over the gap
+                rect(d, sx + rng.randrange(1, 13), ground - 24, 10, 9, hole)
+                rect(d, sx + 1, ground - 20, 22, 3, (122, 92, 60))
+            rect(d, sx, ground - 4, 24, 4, wall_dark)  # its sill
+    cx, cy = bx + bw // 2, py + 24
+    d.ellipse([cx - 11, cy - 11, cx + 11, cy + 11], fill=trim)  # the clock
+    d.ellipse([cx - 9, cy - 9, cx + 9, cy + 9], fill=(238, 234, 220))
+    for tick in range(12):
+        tx = cx + round(7 * math.sin(tick * math.pi / 6))
+        ty = cy - round(7 * math.cos(tick * math.pi / 6))
+        rect(d, tx, ty, 1, 1, (90, 86, 80))
+    rect(d, cx, cy - 6, 1, 7, (40, 38, 36))  # stopped at ten past eleven
+    rect(d, cx, cy, 6, 1, (40, 38, 36))
+    rect(d, cx - 1, cy - 1, 2, 2, (40, 38, 36))
+    name = "STAZIONE"
+    nx = cx - (text_width(name) * 2) // 2
+    rect(d, nx - 5, cy + 15, text_width(name) * 2 + 10, 14, (40, 60, 46))
+    rect(d, nx - 5, cy + 15, text_width(name) * 2 + 10, 1, (80, 110, 86))
+    paint_text(d, nx, cy + 18, name, (236, 236, 224), missing=(5,), scale=2,
+               tilted=(7,))
+
+
+def paint_railing(d, level, x, y):
+    """A length of the park's iron railing, `^`: uprights on a bottom rail
+    with a rail across their heads, a post wherever the run ends or a gate
+    breaks it. Painted low in the tile so the lawn shows behind it."""
+    px, py = x * TILE, y * TILE
+    iron, iron_dark, iron_light = (58, 62, 66), (36, 38, 42), (96, 100, 104)
+    rect(d, px, py + 13, TILE, 2, iron_dark)  # its shadow on the ground
+    for bar in range(px + 1, px + TILE, 3):
+        rect(d, bar, py + 4, 1, 9, iron)
+        rect(d, bar, py + 4, 1, 1, iron_light)
+    rect(d, px, py + 3, TILE, 2, iron)  # the rail over their heads
+    rect(d, px, py + 3, TILE, 1, iron_light)
+    rect(d, px, py + 11, TILE, 1, iron_dark)
+    for side, neighbour in ((0, level.at(x - 1, y)), (TILE - 3, level.at(x + 1, y))):
+        if neighbour != "^":
+            rect(d, px + side, py + 1, 3, 14, iron)
+            rect(d, px + side, py + 1, 3, 2, iron_light)
+            rect(d, px + side, py + 14, 3, 1, iron_dark)
+
+
+def paint_park_gate(d, level, x, y):
+    """A gate in the park railing, `<`: both leaves swung right back
+    against the posts, so the path runs straight through."""
+    px, py = x * TILE, y * TILE
+    iron, iron_light = (58, 62, 66), (96, 100, 104)
+    inside = 1 if level.at(x, y + 1) in "gP" else -1  # which way the park lies
+    for side in (0, TILE - 3):  # the posts, taller than the railing
+        rect(d, px + side, py - 1, 3, 17, iron)
+        rect(d, px + side, py - 1, 3, 2, iron_light)
+        rect(d, px + side, py - 3, 3, 2, (150, 140, 90))  # a brass finial
+    for side in (1, TILE - 5):  # the leaves, folded back along the railing
+        top = py + 4 if inside > 0 else py + 2
+        rect(d, px + side, top, 4, 10, (40, 44, 48))
+        for bar in range(px + side, px + side + 4, 2):
+            rect(d, bar, top + 1, 1, 8, iron_light)
+
+
+def paint_rubbish(d, rng, px, py, deep=True):
+    """The rubbish heaped in the corner of the car park: split sacks, boxes
+    gone soft, a bin on its side. `deep` piles them shoulder high, too deep
+    to climb; the rest is the same rubbish trodden flat around the heaps,
+    which you can walk over."""
+    sacks = [(28, 28, 32), (40, 38, 42), (20, 22, 26), (34, 32, 30)]
+    if deep:
+        rect(d, px, py + 12, TILE, 4, (26, 26, 28))  # the shadow it sits in
+        for _ in range(4):
+            sw, sh = rng.randint(7, 10), rng.randint(6, 8)
+            sx = px + rng.randrange(0, TILE - sw + 1)
+            sy = py + rng.randrange(0, TILE - sh)
+            rect(d, sx, sy, sw, sh, rng.choice(sacks))
+            rect(d, sx + 1, sy, sw - 2, 1, (72, 70, 76))  # the light on top
+            rect(d, sx + 1, sy + sh - 1, sw - 2, 1, (14, 14, 16))
+            if rng.random() < 0.3:  # a split, and what is coming out of it
+                rect(d, sx + 2, sy + 2, 3, 2, rng.choice(DEBRIS))
+        if rng.random() < 0.5:  # a cardboard box slumped on top
+            bx, by = px + rng.randrange(1, 7), py + rng.randrange(0, 7)
+            rect(d, bx, by, 9, 7, (118, 88, 58))
+            rect(d, bx, by, 9, 1, (146, 112, 74))
+            rect(d, bx + 1, by + 3, 7, 1, (84, 62, 40))
+    else:
+        for _ in range(3):  # flattened sacks, low enough to step over
+            sw = rng.randint(5, 9)
+            sx = px + rng.randrange(0, TILE - sw + 1)
+            sy = py + rng.randrange(1, TILE - 4)
+            rect(d, sx, sy, sw, 3, rng.choice(sacks))
+            rect(d, sx + 1, sy, sw - 2, 1, (62, 60, 66))
+    for _ in range(6):  # what has spilled out of them
+        rect(d, px + rng.randrange(14), py + rng.randrange(15), 2, 1,
+             rng.choice(DEBRIS))
+
+
 def paint_playground(d, px, py, kind):
     """Broken playground rides, rusted and left to the weeds: a swing with
     one chain snapped, a slide on its side, a merry-go-round off its pivot."""
@@ -1842,6 +2095,35 @@ def paint_bin(d, px, py):
     rect(d, px + 5, py + 9, 1, 6, (44, 48, 44))
     rect(d, px + 9, py + 9, 1, 6, (44, 48, 44))
     rect(d, px + 4, py + 5, 8, 2, SCORCH)
+
+
+def paint_sign(d, px, py, kind):
+    """A road sign on its post, `/`: give way at the mouth of a side
+    street, no entry where a street is closed, or the blue plate that
+    points the way. Like the traffic lights it stands into the tile above,
+    so it reads at eye level rather than flat on the pavement."""
+    white, red, blue = (236, 234, 228), (186, 40, 36), (36, 62, 118)
+    rect(d, px + 7, py + 14, 4, 2, (24, 24, 28))  # its shadow
+    rect(d, px + 8, py - 2, 2, 17, (146, 144, 138))  # the post
+    rect(d, px + 8, py - 2, 1, 17, (184, 182, 176))
+    if kind == 0:  # give way: a triangle on its point
+        for i in range(7):
+            rect(d, px + 2 + i, py - 10 + i, 14 - i * 2, 1, red)
+            if 1 <= i < 5:
+                rect(d, px + 4 + i, py - 9 + i, 10 - i * 2, 1, white)
+    elif kind == 1:  # no entry
+        d.ellipse([px + 2, py - 11, px + 14, py + 1], fill=red)
+        d.ellipse([px + 4, py - 9, px + 12, py - 1], fill=red)
+        rect(d, px + 4, py - 6, 9, 3, white)
+    else:  # the way to the station
+        rect(d, px, py - 10, 16, 10, blue)
+        rect(d, px, py - 10, 16, 1, (76, 106, 166))
+        rect(d, px, py - 1, 16, 1, (22, 38, 74))
+        rect(d, px + 3, py - 6, 8, 2, white)  # the arrow, pointing on
+        for i in range(3):
+            rect(d, px + 9 + i, py - 7 - i, 1, 3 + i * 2, white)
+        rect(d, px + 2, py - 9, 5, 1, (150, 170, 210))
+        rect(d, px + 2, py - 3, 7, 1, (150, 170, 210))
 
 
 def paint_traffic_light(d, px, py):
@@ -2104,8 +2386,14 @@ def main() -> None:
          NORTH_OUTPUT)
     bake(Level(read_rows("harbour-rows"), HARBOUR_STOREFRONTS, old_town=True),
          random.Random(1071), HARBOUR_OUTPUT)
-    bake(Level(read_rows("mall-north-rows")), random.Random(2611),
-         MALL_NORTH_OUTPUT)
+    mall_north_rows = read_rows("mall-north-rows")
+    # South of the car park there is one building, the back of the
+    # hypermarket: its roof starts at the row the fire door stands in and
+    # runs as far east as the block the car park sits in, the rest of the
+    # bottom of the map being other buildings.
+    rear = next(y for y, row in enumerate(mall_north_rows) if "j" in row)
+    bake(Level(mall_north_rows, MALL_NORTH_STOREFRONTS, one_roof=(rear, 50)),
+         random.Random(2611), MALL_NORTH_OUTPUT)
 
 
 def bake(level: Level, rng: random.Random, output: str) -> None:
@@ -2131,9 +2419,13 @@ def bake(level: Level, rng: random.Random, output: str) -> None:
             if level.at(x, y) in "o5":
                 paint_water(d, rng, x, y)
                 continue
+            # Anything standing in the park keeps the lawn under it, the
+            # railing along its edge included; a bench with the path on one
+            # side and grass on the other would otherwise be paved in half.
             if level.at(x, y) == "g" or (
-                level.at(x, y) in "Apn"
-                and "g" in (level.at(x - 1, y), level.at(x + 1, y))
+                level.at(x, y) in "Apn^<"
+                and "g" in (level.at(x - 1, y), level.at(x + 1, y),
+                            level.at(x, y - 1), level.at(x, y + 1))
             ):
                 paint_grass(d, rng, x, y)
                 continue
@@ -2157,6 +2449,7 @@ def bake(level: Level, rng: random.Random, output: str) -> None:
     paint_facades(d, rng, level)
     paint_barracks(d, level)
     paint_hypermarket(d, rng, level)
+    paint_station(d, rng, level)
     paint_duomo(d, rng, level)
     paint_small_church(d, rng, level)
     paint_shipyard(d, rng, level)
@@ -2164,14 +2457,22 @@ def bake(level: Level, rng: random.Random, output: str) -> None:
     paint_back_passage(d, level)
     paint_mall_back_door(d, level)
 
-    car_colors = [(140, 40, 36), (70, 96, 130), (180, 170, 150), (60, 110, 80)]
+    # Enough of them that two pile-ups in the same place do not come out
+    # the same colours; they are handed out in the order the cars are met.
+    car_colors = [(140, 40, 36), (70, 96, 130), (180, 170, 150), (60, 110, 80),
+                  (118, 118, 124), (162, 132, 62), (94, 78, 102), (198, 166, 112)]
     color_index = 0
     for y in range(level.height):
         for x in range(level.width):
             glyph = level.at(x, y)
             px, py = x * TILE, y * TILE
             if glyph == ":":
-                paint_debris(d, rng, px, py)
+                # Debris beside the heaps is the same tip, trodden flat.
+                if any(level.at(x + dx, y + dy) == ";"
+                       for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1))):
+                    paint_rubbish(d, rng, px, py, deep=False)
+                else:
+                    paint_debris(d, rng, px, py)
             elif glyph == "d":
                 paint_corpse(image, rng, px, py)
             elif glyph == "D":
@@ -2199,6 +2500,12 @@ def bake(level: Level, rng: random.Random, output: str) -> None:
                 paint_cafe_table(d, px, py)
             elif glyph == "p":
                 paint_playground(d, px, py, kind=(x * 7 + y * 3) % 3)
+            elif glyph == "^":
+                paint_railing(d, level, x, y)
+            elif glyph == "<":
+                paint_park_gate(d, level, x, y)
+            elif glyph == ";":
+                paint_rubbish(d, rng, px, py)
             elif glyph == "&":
                 paint_flower_bed(d, rng, level, x, y)
             elif glyph == "!" and level.at(x - 1, y) != "!" and level.at(x, y - 1) != "!":
@@ -2233,6 +2540,18 @@ def bake(level: Level, rng: random.Random, output: str) -> None:
         for x in range(level.width):
             if level.at(x, y) == "T":
                 paint_traffic_light(d, x * TILE, y * TILE)
+            elif level.at(x, y) == "/":
+                # Give way on the pavement running alongside a carriageway
+                # (a side street waiting to join), no entry where the road
+                # blocks close a street, the blue plate anywhere else.
+                if (level.at(x - 1, y) in ROAD_GLYPHS
+                        or level.at(x + 1, y) in ROAD_GLYPHS):
+                    kind = 0
+                elif any(level.at(x + dx, y) in "JCXU" for dx in (-2, -1, 1, 2)):
+                    kind = 1
+                else:
+                    kind = 2
+                paint_sign(d, x * TILE, y * TILE, kind)
             elif level.at(x, y) == "A":
                 paint_tree(d, rng, x * TILE, y * TILE)
             elif level.at(x, y) == "N":

@@ -213,6 +213,14 @@ final class PlayerAudio implements GameAudio {
     for (final channel in _channels) {
       channel.pause();
     }
+    // The effects play from their own pools, not from the channels, so
+    // pausing those leaves them running: the game over sting is long
+    // enough to carry on over whatever the phone does next. Cut every
+    // one still playing; a one-shot has nothing to come back to.
+    for (final stopper in _stoppers.values.toList()) {
+      unawaited(_guard(stopper()));
+    }
+    _stoppers.clear();
   }
 
   @override

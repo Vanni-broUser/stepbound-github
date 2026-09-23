@@ -321,7 +321,7 @@ void main() {
   test('Mario speaks when he reaches the barracks', () {
     world.player.component<PositionComponent>().position = const GridPoint(
       16,
-      17,
+      7,
     );
     settle();
     final lines = host.shown.single;
@@ -362,8 +362,8 @@ void main() {
       director.onEvents(<WorldEvent>[
         MovedEvent(
           entityId: world.playerId,
-          from: const GridPoint(7, 46),
-          to: const GridPoint(8, 46),
+          from: const GridPoint(7, 36),
+          to: const GridPoint(8, 36),
         ),
       ]);
     }
@@ -392,7 +392,9 @@ void main() {
   });
 
   test('the first camp teaches saving, with the button if still missing', () {
-    host.visible.add(world.campfires.single);
+    host.visible.add(
+      world.campfires.firstWhere(place(PlaceId.northDistrict).bounds.contains),
+    );
     settle();
     expect(host.shown.single.map((line) => line.text), <String>[
       NorthDistrictScript.campLesson,
@@ -405,7 +407,11 @@ void main() {
   test('a player who already interacts only hears about the camps', () {
     host
       ..unlocked.add(HudElement.interact)
-      ..visible.add(world.campfires.single);
+      ..visible.add(
+        world.campfires.firstWhere(
+          place(PlaceId.northDistrict).bounds.contains,
+        ),
+      );
     settle();
     expect(host.shown.single.single.text, NorthDistrictScript.campLesson);
   });
