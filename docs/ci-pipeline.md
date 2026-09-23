@@ -4,6 +4,11 @@ Stepbound usa la stessa impostazione di base di Delivery: una sola pipeline per
 commit/MR, cache limitata a `.pub-cache`, job interrompibili e configurazione
 suddivisa per responsabilita in `gitlab/`.
 
+Gli stage sono due: `verify`, che blocca, e `build`, dove stanno tutti i job
+che producono un pacchetto. Sono tutti manuali e non dipendono l'uno
+dall'altro, quindi tenerli separati in due stage serviva solo a metterli in
+fila.
+
 ## Verifiche e build
 
 - `analyze`: format e analisi statica bloccanti.
