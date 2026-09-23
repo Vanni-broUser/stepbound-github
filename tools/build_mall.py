@@ -5,7 +5,9 @@ Reads the `mall-ground-rows` and `mall-first-rows` blocks of
 lib/core/levels/tutorial/mall.dart and paints them in the barracks' style:
 the rooms float on a black background, shopfronts with their signs run
 along the back wall, the floor is glossy tiles littered with trolleys,
-planters, kiosks and benches. Upstairs, Luigi's grocery sits behind its
+planters, kiosks and benches. The ground floor is two such areas one above
+the other, joined by a narrow passage down their west side, with the fire
+exit in the upper one's back wall. Upstairs, Luigi's grocery sits behind its
 shutter (the shutter itself, Luigi, the lamps' light and the panel's glint
 are drawn by the game), and past an open gate a dark service area holds
 the anti-theft control panel.
@@ -58,24 +60,30 @@ GLASS_SHINE = (104, 128, 150)
 
 WALLS = set("xWwISQ")
 
-# Shopfronts along the back wall, by first column: (width, sign, board,
-# letters, front). Front is "glass", "shutter", "smashed" or "boards".
+# Shopfronts along a back wall, by (first column, top row of that wall):
+# (width, sign, board, letters, front). Front is "glass", "shutter",
+# "smashed" or "boards". The ground floor has two back walls, one per area.
 GROUND_SHOPS = {
-    # The west corridor's own row, wall to wall.
-    1: (6, "TABACCHI", (150, 130, 40), (250, 240, 190), "boards"),
-    7: (6, "OTTICA", (30, 80, 110), (220, 240, 250), "smashed"),
-    13: (6, "GIOCATTOLI", (170, 50, 60), (250, 230, 120), "shutter"),
-    19: (6, "LIBRERIA", (60, 90, 50), (236, 240, 220), "smashed"),
-    # The hall's, east of the corridor.
-    27: (6, "ELETTRONICA", (26, 46, 96), (120, 220, 240), "smashed"),
-    33: (5, "SCARPE", (60, 60, 64), (240, 200, 90), "shutter"),
-    38: (6, "PROFUMERIA", (120, 60, 110), (246, 226, 240), "glass"),
-    44: (6, "BAR", (70, 44, 30), (236, 214, 160), "boards"),
+    # The upper area's own row, wall to wall but for the fire exit.
+    (1, 1): (6, "TABACCHI", (150, 130, 40), (250, 240, 190), "boards"),
+    (7, 1): (6, "OTTICA", (30, 80, 110), (220, 240, 250), "smashed"),
+    (13, 1): (6, "GIOCATTOLI", (170, 50, 60), (250, 230, 120), "shutter"),
+    (19, 1): (6, "LIBRERIA", (60, 90, 50), (236, 240, 220), "smashed"),
+    (25, 1): (6, "FERRAMENTA", (70, 70, 80), (230, 230, 236), "boards"),
+    (31, 1): (6, "SPORT", (20, 90, 130), (235, 245, 250), "glass"),
+    (37, 1): (6, "CARTOLERIA", (190, 120, 40), (255, 240, 210), "smashed"),
+    # The hall's, below it, between the passage and the stairs.
+    (4, 15): (6, "ELETTRONICA", (26, 46, 96), (120, 220, 240), "smashed"),
+    (10, 15): (6, "SCARPE", (60, 60, 64), (240, 200, 90), "shutter"),
+    (16, 15): (6, "PROFUMERIA", (120, 60, 110), (246, 226, 240), "glass"),
+    (22, 15): (6, "BAR", (70, 44, 30), (236, 214, 160), "boards"),
+    (28, 15): (6, "GIOIELLERIA", (90, 70, 110), (240, 225, 160), "shutter"),
+    (34, 15): (6, "CASALINGHI", (40, 100, 100), (230, 245, 240), "smashed"),
 }
 FIRST_SHOPS = {
-    5: (6, "FARMACIA", (30, 120, 70), (236, 250, 236), "shutter"),
-    18: (6, "ABBIGLIAMENTO", (60, 40, 90), (236, 226, 240), "smashed"),
-    24: (3, "PANIFICIO", (150, 100, 50), (250, 236, 200), "boards"),
+    (5, 3): (6, "FARMACIA", (30, 120, 70), (236, 250, 236), "shutter"),
+    (18, 3): (6, "ABBIGLIAMENTO", (60, 40, 90), (236, 226, 240), "smashed"),
+    (24, 3): (3, "PANIFICIO", (150, 100, 50), (250, 236, 200), "boards"),
 }
 
 
@@ -154,10 +162,18 @@ def paint_blood(d, rng, px, py):
 # ------------------------------------------------------------------- walls
 
 
-def wall_rows(room, x):
-    """The top and bottom rows of the run of `W` in column x."""
+def wall_rows(room, x, top=None):
+    """The top and bottom rows of a run of `W` in column x: the one
+    starting at [top], or the topmost one. A floor can hold more than one
+    back wall, one per area."""
     ys = [y for y in range(room.height) if room.at(x, y) in "WQ"]
-    return (min(ys), max(ys)) if ys else (None, None)
+    if not ys:
+        return (None, None)
+    start = ys[0] if top is None else top
+    bottom = start
+    while room.at(x, bottom + 1) in "WQ":
+        bottom += 1
+    return (start, bottom)
 
 
 def paint_back_wall(d, room, shops, rng):
@@ -174,8 +190,8 @@ def paint_back_wall(d, room, shops, rng):
                     rect(d, px, py + 4, TILE, 1, (90, 90, 96))
                 if room.at(x, y + 1) not in "WQ":
                     rect(d, px, py + 13, TILE, 3, WALL_FACE_DARK)  # skirting
-    for x0, (w, name, board, letters, front) in shops.items():
-        top, bottom = wall_rows(room, x0)
+    for (x0, y0), (w, name, board, letters, front) in shops.items():
+        top, bottom = wall_rows(room, x0, y0)
         px, py0 = x0 * TILE, top * TILE + 5
         width, height = w * TILE, (bottom - top + 1) * TILE - 5
         rect(d, px + 1, py0, width - 2, height - 3, OUTLINE)
@@ -204,13 +220,20 @@ def paint_back_wall(d, room, shops, rng):
 
 
 def paint_exit(d, x, y):
-    """The fire exit in the west wall at the end of the corridor: daylight
-    spilling in around a push-bar door seen edge on."""
+    """The fire exit through the back wall of the upper area, drawn like
+    the barracks' back door so it reads as open and walkable: the reveal
+    cut through the wall, grey daylight from the car park beyond, the leaf
+    swung back against the jamb, the green sign over it."""
     px, py = x * TILE, y * TILE
-    rect(d, px, py, TILE, TILE, (150, 160, 140))
-    rect(d, px + 1, py + 1, 12, 14, (54, 46, 34))
-    rect(d, px + 2, py + 2, 10, 12, (74, 62, 46))
-    rect(d, px + 10, py + 5, 2, 6, (150, 150, 60))  # push bar
+    rect(d, px, py - 14, TILE, 30, WALL_TOP)
+    rect(d, px + 2, py - 12, 12, 28, (70, 90, 110))
+    rect(d, px + 4, py - 8, 8, 24, (150, 170, 186))
+    rect(d, px + 5, py - 4, 6, 20, (190, 204, 214))
+    rect(d, px + 2, py - 12, 3, 28, (128, 96, 60))  # open leaf
+    rect(d, px + 3, py + 2, 1, 2, (220, 190, 90))  # its push bar
+    rect(d, px + 3, py - 19, 10, 5, (30, 120, 60))  # exit sign
+    rect(d, px + 5, py - 18, 6, 3, (200, 250, 210))
+    rect(d, px + 6, py - 17, 3, 1, (30, 120, 60))
 
 
 def paint_partition(d, room, x, y):

@@ -345,9 +345,13 @@ void main() {
 
     test('the stairs join the two floors', () {
       final world = createTutorialWorld();
+      final lowerStep = mallGroundRows.lastIndexWhere(
+        (row) => row.contains('U'),
+      );
       final up = GridPoint(
-        place(PlaceId.mallGround).origin.x + mallGroundRows[2].indexOf('U'),
-        place(PlaceId.mallGround).origin.y + 2,
+        place(PlaceId.mallGround).origin.x +
+            mallGroundRows[lowerStep].indexOf('U'),
+        place(PlaceId.mallGround).origin.y + lowerStep,
       );
       final upstairs = walk(world, up, Direction.north);
       expect(
@@ -392,35 +396,70 @@ void main() {
       expectWalkableStraightPath(createTutorialWorld(), luigiExitPath);
     });
 
-    test('the hall opens west on a long corridor of shops, with the fire '
-        'exit onto the car park behind the building at its far end', () {
+    test('the hall and the upper row of shops sit one above the other, '
+        'joined on the west, with the fire exit above the stairs', () {
       final world = createTutorialWorld();
-      final stairsX =
-          place(PlaceId.mallGround).origin.x + mallGroundRows[2].indexOf('U');
-      // Through the doorway in the hall's west wall, straight to the exit.
-      final doorway = GridPoint(
-        place(PlaceId.mallGround).origin.x +
-            mallGroundRows[mallExitTile.y].indexOf('.', 25),
-        mallExitTile.y,
+      final ground = place(PlaceId.mallGround);
+      final entrance = ground.doorRow('E').first;
+      final stairs = ground.doorRow('U');
+      // The hall is the lower area: its entrance is south of its stairs,
+      // and the fire exit is north of them, in the area above.
+      expect(entrance.y, greaterThan(stairs.first.y));
+      expect(mallExitTile.y, lessThan(stairs.first.y));
+      expect(mallExitTile.x, greaterThanOrEqualTo(stairs.first.x));
+      expect(mallExitTile.x, lessThanOrEqualTo(stairs.last.x));
+      // The only way between the two areas: two cells wide, on the west.
+      final passage = <List<GridPoint>>[
+        for (var y = 0; y < ground.height; y++)
+          if (ground.walkableRow(y).length == 2) ground.walkableRow(y),
+      ];
+      expect(passage, hasLength(greaterThanOrEqualTo(3)));
+      for (final row in passage) {
+        expect(row.last.x - row.first.x, 1, reason: 'two cells side by side');
+        expect(
+          row.first.x - ground.origin.x,
+          lessThan(ground.width ~/ 4),
+          reason: 'down the west side',
+        );
+      }
+      final west = passage.first.first.x;
+      expect(
+        stairs.first.x - west,
+        greaterThan(30),
+        reason: 'the long way round, not a nook',
       );
-      expect(doorway.x, lessThan(stairsX));
+      // Down the passage into the hall, and back up and east to the exit.
       expectWalkableStraightPath(world, <GridPoint>[
-        GridPoint(doorway.x + 1, doorway.y),
+        GridPoint(west, passage.first.first.y - 1),
+        GridPoint(west, stairs.first.y + 2),
+      ]);
+      expectWalkableStraightPath(world, <GridPoint>[
+        GridPoint(west, mallExitTile.y + 1),
+        GridPoint(mallExitTile.x, mallExitTile.y + 1),
         mallExitTile,
       ]);
-      expect(
-        stairsX - mallExitTile.x,
-        greaterThan(40),
-        reason: 'a long corridor, not a nook',
-      );
       final beyond = walk(
         world,
-        mallExitTile.step(Direction.east),
-        Direction.west,
+        mallExitTile.step(Direction.south),
+        Direction.north,
       );
       expect(place(PlaceId.mallNorthStreet).bounds.contains(beyond), isTrue);
+      // It lands in front of a door set in the hypermarket's rear wall,
+      // walled in on every other side, not loose in the car park.
+      expect(beyond, mallNorthStreetEntry.step(Direction.north));
+      for (final side in <Direction>[
+        Direction.east,
+        Direction.west,
+        Direction.south,
+      ]) {
+        expect(
+          world.map.tileAt(mallNorthStreetEntry.step(side)).isWalkable,
+          isFalse,
+          reason: 'the door stands in the wall, $side of it does not',
+        );
+      }
       final back = walk(world, beyond, Direction.south);
-      expect(back, mallExitTile.step(Direction.east));
+      expect(back, mallExitTile.step(Direction.south));
     });
 
     test('the panel beyond the gate lifts the shutter in front of Luigi', () {
