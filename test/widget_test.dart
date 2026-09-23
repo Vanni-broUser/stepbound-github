@@ -339,6 +339,16 @@ void main() {
       expect(audio.played, contains(Sfx.gameOver));
       expect(audio.stopped, isEmpty);
 
+      expect(
+        find.text('RICOMINCIA IL LIVELLO (60)'),
+        findsOneWidget,
+        reason: 'no fire found yet: the level from the start is the only way',
+      );
+      expect(
+        find.byKey(const ValueKey<String>('game-over-restart')),
+        findsNothing,
+      );
+
       await tester.tap(find.byKey(const ValueKey<String>('restart-button')));
       await tester.pump();
       expect(
@@ -350,6 +360,73 @@ void main() {
         contains(Sfx.gameOver),
         reason: 'the sting is cut: it must not play on over the new game',
       );
+    });
+  });
+
+  testWidgets('dying with a campfire behind him offers the fire first and '
+      'the level second', (tester) {
+    return tester.runAsync(() async {
+      final saves = MemorySaveRepository();
+      await saves.save(
+        SaveGame(
+          slot: 1,
+          savedAt: DateTime(2026),
+          place: 'Dietro la caserma',
+          world: saveTutorialWorld(createTutorialWorld()),
+          tutorial: const <String, Object?>{},
+          progress: Progress.newGame().toJson(),
+          hud: const <String>['interact'],
+        ),
+      );
+      await tester.pumpWidget(StepboundApp(saves: saves, audio: SilentAudio()));
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey<String>('menu-load')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey<String>('menu-slot-1')));
+      await tester.pump();
+      await _waitForGame(tester);
+      final game = tester
+          .state<GameWidgetState<StepboundGame>>(
+            find.byType(GameWidget<StepboundGame>),
+          )
+          .currentGame;
+
+      game.cover.value = const GameOverCover();
+      await tester.pump();
+
+      expect(
+        find.text('RIPRENDI DAL FALÒ (60)'),
+        findsOneWidget,
+        reason: 'the fire is the first choice and the one the clock takes',
+      );
+      expect(find.text('RICOMINCIA IL LIVELLO'), findsOneWidget);
+
+      // Starting over here throws the fire away, so it asks.
+      await tester.tap(find.byKey(const ValueKey<String>('game-over-restart')));
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey<String>('game-over-cost')),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('game-over-restart-cancel')),
+      );
+      await tester.pump();
+      expect(find.text('RICOMINCIA IL LIVELLO'), findsOneWidget);
+      expect((await saves.load(1))!.place, 'Dietro la caserma');
+
+      await tester.tap(find.byKey(const ValueKey<String>('game-over-restart')));
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('game-over-restart-confirm')),
+      );
+      await tester.pump();
+      await tester.pump();
+
+      final saved = (await saves.load(1))!;
+      expect(saved.place, 'Inizio del livello');
+      expect(saved.atCampfire, isFalse);
     });
   });
 
@@ -576,7 +653,7 @@ void main() {
     expect(await saves.load(1), isNull, reason: 'the old save is wiped');
   });
 
-  testWidgets('starting the level over from a camp saves the level start '
+  testWidgets('starting the level over from the menu saves the level start '
       'and plays the story from the first picture', (tester) {
     return tester.runAsync(() async {
       final saves = MemorySaveRepository();
@@ -612,20 +689,22 @@ void main() {
             find.byType(GameWidget<StepboundGame>),
           )
           .currentGame;
-      game.cover.value = const CampCover();
-      // By the fire: its crackle, the music hushed.
+      // Something was playing: it must not come back over the story.
       audio
         ..setAmbience(Ambience.fire, 0.8)
         ..setMusicLevel(0.2);
+      await tester.tap(find.byKey(const ValueKey<String>('touch-menu')));
       await tester.pump();
-      expect(find.byKey(const ValueKey<String>('touch-up')), findsNothing);
-      await tester.tap(find.byKey(const ValueKey<String>('camp-restart')));
-      await tester.pump();
-      await tester.tap(
-        find.byKey(const ValueKey<String>('camp-restart-confirm')),
+      expect(
+        find.byKey(const ValueKey<String>('touch-up')),
+        findsNothing,
+        reason: 'the menu takes the place of the gameplay buttons',
       );
-      // The old game still ticks until it is gone: it must not bring the
-      // camp's sound back.
+      await tester.tap(find.byKey(const ValueKey<String>('pause-restart')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey<String>('pause-confirm')));
+      // The old game still ticks until it is gone: it must not bring its
+      // own sound back.
       game.update(0.1);
       await tester.pump();
       await tester.pump();
@@ -639,6 +718,11 @@ void main() {
       expect(audio.ambience.values.every((volume) => volume == 0), isTrue);
       final saved = (await saves.load(1))!;
       expect(saved.place, 'Inizio del livello');
+      expect(
+        saved.atCampfire,
+        isFalse,
+        reason: 'there is no fire to go back to at the start of a level',
+      );
       expect(saved.tutorial, isEmpty);
       final progress = Progress.fromJson(saved.progress);
       expect(progress.knownZombies, isEmpty, reason: 'it had met a wanderer');

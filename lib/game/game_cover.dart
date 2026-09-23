@@ -37,6 +37,12 @@ final class CampCover extends GameCover {
   const CampCover();
 }
 
+/// The menu the corner button opens, mid-game: back to the last campfire,
+/// the level from the start, or out to the main menu.
+final class PauseCover extends GameCover {
+  const PauseCover();
+}
+
 /// Mario is dead.
 final class GameOverCover extends GameCover {
   const GameOverCover();

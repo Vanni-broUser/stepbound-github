@@ -12,6 +12,7 @@ final class SaveGame {
     required this.tutorial,
     required this.progress,
     required this.hud,
+    this.atCampfire = true,
     this.played = Duration.zero,
   });
 
@@ -27,13 +28,14 @@ final class SaveGame {
       tutorial: json['tutorial']! as Map<String, Object?>,
       progress: json['progress']! as Map<String, Object?>,
       hud: (json['hud']! as List<Object?>).cast<String>(),
+      atCampfire: json['atCampfire']! as bool,
       played: Duration(seconds: json['played']! as int),
     );
   }
 
   /// A save of any other format reads as an empty slot. Bump it whenever
   /// what a save holds changes: old saves are dropped, never migrated.
-  static const int format = 12;
+  static const int format = 13;
 
   /// 1 to [SaveRepository.slotCount].
   final int slot;
@@ -54,6 +56,11 @@ final class SaveGame {
   /// Names of the unlocked touch controls.
   final List<String> hud;
 
+  /// Whether a campfire wrote this save. Every save is one except the
+  /// slot written when the level starts over: there is no fire to go back
+  /// to from that one, so the menus do not offer it.
+  final bool atCampfire;
+
   /// How long this game has been played, counting from the very start
   /// of it. It is the one thing starting the level over at a camp does
   /// not throw away, and it only moves while the game is in front: a
@@ -69,6 +76,7 @@ final class SaveGame {
     tutorial: tutorial,
     progress: progress,
     hud: hud,
+    atCampfire: atCampfire,
     played: played,
   );
 
@@ -81,6 +89,7 @@ final class SaveGame {
     'tutorial': tutorial,
     'progress': progress,
     'hud': hud,
+    'atCampfire': atCampfire,
     'played': played.inSeconds,
   };
 }

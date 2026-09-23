@@ -20,6 +20,7 @@ import 'package:stepbound/ui/gameplay_dialogue.dart';
 import 'package:stepbound/ui/loading_art.dart';
 import 'package:stepbound/ui/location_card.dart';
 import 'package:stepbound/ui/main_menu.dart';
+import 'package:stepbound/ui/pause_menu.dart';
 import 'package:stepbound/ui/story_intro.dart';
 import 'package:stepbound/ui/title_splash.dart';
 
@@ -42,7 +43,6 @@ final class StepboundApp extends StatefulWidget {
 }
 
 final class _StepboundAppState extends State<StepboundApp> {
-  static const int baseSeed = 20260920;
   late final SaveRepository _saves =
       widget.saves ?? PreferencesSaveRepository();
   late final GameAudio _audio = widget.audio ?? SilentAudio();
@@ -51,13 +51,14 @@ final class _StepboundAppState extends State<StepboundApp> {
   late final AppLifecycleListener _lifecycle;
   StepboundGame? _game;
   _Phase _phase = _Phase.menu;
-  int _restartCount = 0;
 
   /// The slot this game saves into at campfires.
   int _slot = 1;
 
-  /// Whether the current slot holds a campfire save to resume after dying.
-  bool _hasSave = false;
+  /// Whether the current slot holds a save made at a campfire. Only then
+  /// is there anywhere to go back to, so only then do the menus offer it.
+  /// The slot written when the level starts over does not count.
+  bool _hasCampSave = false;
 
   /// What this game had been played for when it was loaded or started, and
   /// the clock running since. Together they are what a save records: it
@@ -121,8 +122,7 @@ final class _StepboundAppState extends State<StepboundApp> {
     _startClock(Duration.zero);
     setState(() {
       _slot = slot;
-      _hasSave = false;
-      _restartCount = 0;
+      _hasCampSave = false;
       _phase = _Phase.story;
     });
   }
@@ -131,7 +131,7 @@ final class _StepboundAppState extends State<StepboundApp> {
     _startClock(save.played);
     setState(() {
       _slot = save.slot;
-      _hasSave = true;
+      _hasCampSave = save.atCampfire;
       _game = _gameFrom(save);
       _phase = _Phase.playing;
     });
@@ -164,7 +164,7 @@ final class _StepboundAppState extends State<StepboundApp> {
         played: _played,
       ),
     );
-    _hasSave = true;
+    _hasCampSave = true;
   }
 
   void _finishIntro() {
@@ -189,31 +189,30 @@ final class _StepboundAppState extends State<StepboundApp> {
     });
   }
 
-  /// After dying: back to the last campfire if there is one, otherwise the
-  /// start of the level.
-  Future<void> _restartGame() async {
-    final save = _hasSave ? await _saves.load(_slot) : null;
+  /// Back to the last campfire, from the menu or after dying. Only
+  /// offered while [_hasCampSave]; if the slot has gone missing anyway,
+  /// the level starts over rather than leaving the player stuck.
+  Future<void> _resumeFromCamp() async {
+    final save = await _saves.load(_slot);
     if (!mounted) {
       return;
     }
-    _startClock(save?.played ?? _played);
+    if (save == null) {
+      await _restartLevel();
+      return;
+    }
+    _startClock(save.played);
     setState(() {
-      _restartCount += 1;
-      _game = save != null
-          ? _gameFrom(save)
-          : StepboundGame(
-              seed: baseSeed + _restartCount,
-              onRest: _store,
-              audio: _audio,
-            );
+      _game = _gameFrom(save);
       _phase = _Phase.playing;
     });
   }
 
-  /// From a camp: the level from the very start, the first story picture,
-  /// with nothing kept (bullets, known zombies, memories). It counts as a
-  /// save: the slot now holds the start of the level, so loading it later
-  /// starts the level over too.
+  /// The level from the very start, the first story picture, with nothing
+  /// kept but the hours played (bullets, known zombies, memories all go).
+  /// It counts as a save: the slot now holds the start of the level, so
+  /// loading it later starts the level over too — but not a campfire one,
+  /// so there is nothing to resume from until the next fire.
   Future<void> _restartLevel() async {
     // The camp's fire and hushed music stop at once: the story plays.
     _game?.soundscapePaused = true;
@@ -227,6 +226,7 @@ final class _StepboundAppState extends State<StepboundApp> {
         tutorial: const <String, Object?>{},
         progress: Progress.newGame().toJson(),
         hud: const <String>[],
+        atCampfire: false,
         // The hours played are the one thing starting over keeps.
         played: _played,
       ),
@@ -235,8 +235,7 @@ final class _StepboundAppState extends State<StepboundApp> {
       return;
     }
     setState(() {
-      _hasSave = true;
-      _restartCount = 0;
+      _hasCampSave = false;
       _game = null;
       _phase = _Phase.story;
     });
@@ -291,15 +290,25 @@ final class _StepboundAppState extends State<StepboundApp> {
     CampCover() => CampMenu(
       progress: game.progress,
       onSave: game.saveAtCamp,
-      onRestartLevel: () => unawaited(_restartLevel()),
       onClose: game.leaveCamp,
       onMemories: (playing) => _watchMemories(game, playing: playing),
     ),
+    PauseCover() => PauseMenu(
+      canResumeFromCamp: _hasCampSave,
+      onResumeFromCamp: () => unawaited(_resumeFromCamp()),
+      onRestartLevel: () => unawaited(_restartLevel()),
+      onMainMenu: _backToMenu,
+      onClose: game.closeMenu,
+    ),
     GameOverCover() => _GameOverOverlay(
-      fromSave: _hasSave,
-      onRestart: () {
+      canResumeFromCamp: _hasCampSave,
+      onResumeFromCamp: () {
         _audio.stop(Sfx.gameOver);
-        unawaited(_restartGame());
+        unawaited(_resumeFromCamp());
+      },
+      onRestartLevel: () {
+        _audio.stop(Sfx.gameOver);
+        unawaited(_restartLevel());
       },
       onMenu: () {
         _audio.stop(Sfx.gameOver);
@@ -418,14 +427,19 @@ final class _StepboundAppState extends State<StepboundApp> {
 
 final class _GameOverOverlay extends StatefulWidget {
   const _GameOverOverlay({
-    required this.fromSave,
-    required this.onRestart,
+    required this.canResumeFromCamp,
+    required this.onResumeFromCamp,
+    required this.onRestartLevel,
     required this.onMenu,
   });
 
-  /// True when the restart goes back to the last campfire.
-  final bool fromSave;
-  final VoidCallback onRestart;
+  /// Whether there is a campfire save to go back to. With one it is the
+  /// first choice and the one the countdown takes, and starting the level
+  /// over is offered under it; without one the level from the start is
+  /// the only way on.
+  final bool canResumeFromCamp;
+  final VoidCallback onResumeFromCamp;
+  final VoidCallback onRestartLevel;
   final VoidCallback onMenu;
 
   @override
@@ -437,6 +451,10 @@ final class _GameOverOverlayState extends State<_GameOverOverlay> {
   Timer? _timer;
   int _secondsLeft = autoRestartSeconds;
 
+  /// Starting the level over from here throws the campfire away, so it
+  /// asks first, as the menus do.
+  bool _confirmingRestart = false;
+
   @override
   void initState() {
     super.initState();
@@ -446,7 +464,7 @@ final class _GameOverOverlayState extends State<_GameOverOverlay> {
       });
       if (_secondsLeft <= 0) {
         timer.cancel();
-        widget.onRestart();
+        _takeCountdownChoice();
       }
     });
   }
@@ -457,75 +475,147 @@ final class _GameOverOverlayState extends State<_GameOverOverlay> {
     super.dispose();
   }
 
+  /// What the countdown runs out into: the campfire when there is one,
+  /// the level from the start when there is not.
+  void _takeCountdownChoice() {
+    if (widget.canResumeFromCamp) {
+      widget.onResumeFromCamp();
+      return;
+    }
+    widget.onRestartLevel();
+  }
+
+  /// The player has chosen: the clock stops either way.
+  void _tapped(VoidCallback action) {
+    _timer?.cancel();
+    _timer = null;
+    AudioScope.of(context).play(Sfx.uiClick);
+    action();
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final unit = constraints.maxHeight.isFinite
-            ? constraints.maxHeight / 216
+            ? constraints.maxHeight / IntegerResolutionViewport.virtualHeight
             : 1.0;
         return ColoredBox(
           key: const ValueKey<String>('game-over-overlay'),
           color: const Color(0xc2180e0c),
           child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                // Grows with the view, like the dialogue text.
-                BloodyTitle('GAME OVER', fontSize: 34 * unit),
-                SizedBox(height: 4 * unit),
-                TextButton(
-                  key: const ValueKey<String>('restart-button'),
-                  style: TextButton.styleFrom(
-                    backgroundColor: const Color(0xdd4a2823),
-                    foregroundColor: const Color(0xffe4705f),
-                    side: const BorderSide(color: Color(0xffe4705f), width: 2),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 28,
-                      vertical: 12,
-                    ),
-                  ),
-                  onPressed: () {
-                    _timer?.cancel();
-                    AudioScope.of(context).play(Sfx.uiClick);
-                    widget.onRestart();
-                  },
-                  child: Text(
-                    widget.fromSave
-                        ? 'RIPRENDI DAL FALÒ ($_secondsLeft)'
-                        : 'RICOMINCIA ($_secondsLeft)',
-                    style: const TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                SizedBox(height: 6 * unit),
-                TextButton(
-                  key: const ValueKey<String>('menu-button'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xffd8cfbf),
-                  ),
-                  onPressed: () {
-                    _timer?.cancel();
-                    AudioScope.of(context).play(Sfx.uiClick);
-                    widget.onMenu();
-                  },
-                  child: const Text(
-                    'MENÙ PRINCIPALE',
-                    style: TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  // Grows with the view, like the dialogue text.
+                  BloodyTitle('GAME OVER', fontSize: 34 * unit),
+                  SizedBox(height: 4 * unit),
+                  ...(_confirmingRestart ? _confirm(unit) : _choices(unit)),
+                ],
+              ),
             ),
           ),
         );
       },
     );
   }
+
+  List<Widget> _choices(double unit) => <Widget>[
+    _primary(
+      key: const ValueKey<String>('restart-button'),
+      label: widget.canResumeFromCamp
+          ? 'RIPRENDI DAL FALÒ ($_secondsLeft)'
+          : 'RICOMINCIA IL LIVELLO ($_secondsLeft)',
+      onPressed: () => _tapped(_takeCountdownChoice),
+    ),
+    if (widget.canResumeFromCamp) ...<Widget>[
+      SizedBox(height: 6 * unit),
+      _secondary(
+        key: const ValueKey<String>('game-over-restart'),
+        label: 'RICOMINCIA IL LIVELLO',
+        onPressed: () =>
+            _tapped(() => setState(() => _confirmingRestart = true)),
+      ),
+    ],
+    SizedBox(height: 6 * unit),
+    _secondary(
+      key: const ValueKey<String>('menu-button'),
+      label: 'MENÙ PRINCIPALE',
+      onPressed: () => _tapped(widget.onMenu),
+    ),
+  ];
+
+  List<Widget> _confirm(double unit) => <Widget>[
+    MenuPanel(
+      unit: unit,
+      width: MenuButton.fullWidth,
+      child: MenuParagraph(
+        'Ricominciare il livello? Il falò dove hai salvato va perso: si '
+        'riparte dalla prima scena della storia, e restano solo le ore di '
+        'gioco.',
+        key: const ValueKey<String>('game-over-cost'),
+        unit: unit,
+        center: true,
+      ),
+    ),
+    SizedBox(height: 5 * unit),
+    MenuButton(
+      key: const ValueKey<String>('game-over-restart-confirm'),
+      label: 'SÌ, RICOMINCIA',
+      unit: unit,
+      compact: true,
+      warning: true,
+      onPressed: widget.onRestartLevel,
+    ),
+    SizedBox(height: 3 * unit),
+    MenuButton(
+      key: const ValueKey<String>('game-over-restart-cancel'),
+      label: 'NO',
+      unit: unit,
+      compact: true,
+      onPressed: () => setState(() => _confirmingRestart = false),
+    ),
+  ];
+
+  Widget _primary({
+    required Key key,
+    required String label,
+    required VoidCallback onPressed,
+  }) => TextButton(
+    key: key,
+    style: TextButton.styleFrom(
+      backgroundColor: const Color(0xdd4a2823),
+      foregroundColor: const Color(0xffe4705f),
+      side: const BorderSide(color: Color(0xffe4705f), width: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+    ),
+    onPressed: onPressed,
+    child: Text(
+      label,
+      style: const TextStyle(
+        fontFamily: 'monospace',
+        fontSize: 14,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+  );
+
+  Widget _secondary({
+    required Key key,
+    required String label,
+    required VoidCallback onPressed,
+  }) => TextButton(
+    key: key,
+    style: TextButton.styleFrom(foregroundColor: const Color(0xffd8cfbf)),
+    onPressed: onPressed,
+    child: Text(
+      label,
+      style: const TextStyle(
+        fontFamily: 'monospace',
+        fontSize: 12,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+  );
 }
