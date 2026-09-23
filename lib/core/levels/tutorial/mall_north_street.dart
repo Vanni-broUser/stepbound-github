@@ -58,7 +58,7 @@ const List<String> mallNorthStreetRows = <String>[
   'CC/===================F============:=============/=====TPPPPPPP:PPPPPPPBBB',
   '.UU.........CC...........:........................Z....=PPPPPCCPPPPPCCPBBB',
   'CC----------------------------------------------..Z....=PPPPPPPPPPPPPPPBBB',
-  '.UUS..............:...........UU..................Z....=PPPPPPPPUUPPPPPBBB',
+  '.UU....S..........:...........UU..................Z....=PPPPPPPPUUPPPPPBBB',
   'CC======:=========================================TVVVV=PPPNPPPPPPPPPNPBBB',
   'BBBBBBBBBBBBBBBB^^^^^^^^^^<^^^^^^^^^^^BBBBBBBBBBBB=....=BBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBBBBBggggggggggPgggggggggggBBBBBBBBBBBB=....=BBBBBBBBBBBBBBBBBB',
