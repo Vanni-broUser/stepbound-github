@@ -74,7 +74,7 @@ final class _ShootButton extends StatelessWidget {
               key: const ValueKey<String>('touch-shoot'),
               semanticLabel: isAiming ? 'Spara' : 'Mira',
               active: isAiming,
-              enabled: hasAmmo,
+              dimmed: !hasAmmo,
               drips: const <BloodDrip>[
                 BloodDrip(0.3, 17, 5),
                 BloodDrip(0.62, 11, 4),
@@ -307,7 +307,7 @@ final class _ActionButton extends StatelessWidget {
     required this.semanticLabel,
     required this.onPressed,
     this.active = false,
-    this.enabled = true,
+    this.dimmed = false,
     this.drips = const <BloodDrip>[],
     super.key,
   });
@@ -316,7 +316,7 @@ final class _ActionButton extends StatelessWidget {
   final String semanticLabel;
   final VoidCallback onPressed;
   final bool active;
-  final bool enabled;
+  final bool dimmed;
   final List<BloodDrip> drips;
 
   @override
@@ -327,9 +327,9 @@ final class _ActionButton extends StatelessWidget {
       label: semanticLabel,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: enabled ? onPressed : null,
+        onTap: onPressed,
         child: Opacity(
-          opacity: enabled ? 1 : 0.45,
+          opacity: dimmed ? 0.45 : 1,
           child: BloodOverlay(
             painter: BloodPainter(
               band: 5,
