@@ -25,7 +25,6 @@ flutter:
     - assets/audio/ambience/
     - assets/audio/music/
     - assets/audio/sfx/
-    - assets/balance/
     - assets/levels/
     - assets/sprites/
     - assets/story/

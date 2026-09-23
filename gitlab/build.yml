@@ -1,6 +1,12 @@
+# Il web serve solo a provare il gioco in locale: non lo distribuiamo, e
+# analyze piu i test coprono gia gli errori di compilazione. Resta a mano,
+# come l'APK di debug, per quando serve l'artefatto.
 build_web:
   extends: .flutter_3_44_2
   stage: build
+  rules:
+    - when: manual
+      allow_failure: true
   script:
     - flutter build web --release --build-number="$CI_PIPELINE_IID"
   artifacts:

@@ -89,25 +89,27 @@ GitLab CI runs formatting, static analysis, and tests with Flutter 3.44.2. Signe
 ## Architecture
 
 - `lib/core`: pure Dart grid, entities, actions, systems, scheduler, events, serialization, and seeded RNG
-- `lib/game`: Flame presentation, camera, render layers, turn interpolation, and debug tools
-- `lib/input`: input adapters
-- `lib/data`: data loading
+- `lib/game`: Flame presentation, camera, render layers, turn interpolation, input adapters, and debug tools
 - `lib/save`: persistence adapters
 - `lib/ui`: Flutter interface
-- `assets/balance/default.json`: authoritative balance defaults
+- `assets/balance/default.json`: authoritative balance defaults, compiled into the core by `tools/generate_balance.dart`
 - `assets/sprites`: production sprite atlases and atlas contract
 - `bin/stepbound_runner.dart`: headless ASCII runner
 
 The simulation core imports no Flutter APIs. World time advances only when a `PlayerAction` is passed to `TurnScheduler.advance`.
 
-After changing `assets/balance/default.json`, regenerate and commit the typed
-defaults consumed by the pure-Dart core:
+The balance asset is a build-time source, not a bundled asset: the pure-Dart
+core cannot read a file, so the values are generated into
+`lib/core/entities/default_balance.g.dart`. After changing the JSON,
+regenerate and commit the generated defaults:
 
 ```bash
 dart run tools/generate_balance.dart
 ```
 
 CI runs the generator in check mode and rejects stale generated balance data.
+A new actor is a deliberate three-step change: the `EntityKind` enum, the
+JSON asset, and the generator's own list of kinds.
 
 See `CONTRIBUTING.md` for the GitLab workflow,
 `docs/target_devices.md` for the physical-device matrix, and

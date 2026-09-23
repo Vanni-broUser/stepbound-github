@@ -1,55 +1,69 @@
+// Generates the typed balance defaults the pure-Dart core compiles in.
+//
+// `assets/balance/default.json` is the single source of the actor stats. The
+// core cannot read a file, so the values are generated into a Dart map that
+// `BalanceConfig.standard()` returns. CI runs this tool with `--check` and
+// refuses a generated file that no longer matches the asset.
+//
+//   dart run tools/generate_balance.dart          rewrite the generated file
+//   dart run tools/generate_balance.dart --check  fail if it is out of date
+//
+// Exit codes: 1 the generated file is stale, 64 wrong arguments, 65 the
+// asset is unusable.
 import 'dart:convert';
 import 'dart:io';
 
 const String _sourcePath = 'assets/balance/default.json';
 const String _outputPath = 'lib/core/entities/default_balance.g.dart';
-const Set<String> _actorKinds = <String>{
+
+/// Every `EntityKind` that carries stats, in the order they are generated.
+/// Kept here on purpose: the generator refuses an asset that does not match
+/// this list, so adding an actor stays a deliberate three-step change (the
+/// enum in `entity.dart`, the asset, this list).
+const List<String> _actorKinds = <String>[
   'player',
   'wanderer',
   'sprinter',
   'brute',
   'blind',
   'carabiniere',
-};
-const List<String> _requiredStats = <String>[
-  'tickCost',
-  'health',
-  'vision',
-  'hearing',
-  'contactDamage',
 ];
 
+/// The stats every actor must carry, in generated order, with the smallest
+/// value each one accepts.
+const Map<String, int> _requiredStats = <String, int>{
+  'tickCost': 1,
+  'health': 1,
+  'vision': 0,
+  'hearing': 0,
+  'contactDamage': 0,
+};
+
+/// Optional: an actor without it bites the tile in front of it.
+const String _attackReach = 'attackReach';
+const int _minimumAttackReach = 1;
+
 void main(List<String> arguments) {
-  if (arguments.any((argument) => argument != '--check') ||
-      arguments.where((argument) => argument == '--check').length > 1) {
+  final check = arguments.length == 1 && arguments.single == '--check';
+  if (arguments.isNotEmpty && !check) {
     stderr.writeln('Usage: dart run tools/generate_balance.dart [--check]');
     exitCode = 64;
     return;
   }
 
-  final decoded = jsonDecode(File(_sourcePath).readAsStringSync());
-  if (decoded is! Map<String, Object?>) {
-    _fail('$_sourcePath must contain a JSON object.');
-  }
-  final actors = decoded['actors'];
-  if (actors is! Map<String, Object?>) {
-    _fail('$_sourcePath must contain an "actors" object.');
-  }
-  final actualKinds = actors.keys.toSet();
-  if (!_sameSet(actualKinds, _actorKinds)) {
-    _fail(
-      '$_sourcePath must define exactly: ${_actorKinds.join(', ')}; '
-      'found: ${actualKinds.join(', ')}.',
-    );
+  final root = _repositoryRoot();
+  final source = File('$root/$_sourcePath');
+  if (!source.existsSync()) {
+    _fail('Cannot find $_sourcePath: looked under $root.');
   }
 
-  final generated = _generate(actors);
-  final output = File(_outputPath);
-  if (arguments.contains('--check')) {
+  final generated = _format(_generate(_readActors(source)));
+  final output = File('$root/$_outputPath');
+  if (check) {
     final current = output.existsSync() ? output.readAsStringSync() : '';
     if (_normaliseNewlines(current) != _normaliseNewlines(generated)) {
       stderr.writeln(
-        '$_outputPath is out of date. Run: '
+        '$_outputPath no longer matches $_sourcePath. Run: '
         'dart run tools/generate_balance.dart',
       );
       exitCode = 1;
@@ -63,10 +77,50 @@ void main(List<String> arguments) {
   stdout.writeln('Generated $_outputPath from $_sourcePath.');
 }
 
+/// The checkout holding this script, so the tool works from any directory.
+/// Falls back to the working directory when the script path is unusable,
+/// as it is when the tool runs from a snapshot.
+String _repositoryRoot() {
+  final script = Platform.script;
+  if (script.isScheme('file')) {
+    final root = File.fromUri(script).parent.parent.path;
+    if (File('$root/$_sourcePath').existsSync()) {
+      return root;
+    }
+  }
+  return Directory.current.path;
+}
+
+Map<String, Object?> _readActors(File source) {
+  final Object? decoded;
+  try {
+    decoded = jsonDecode(source.readAsStringSync());
+  } on FormatException catch (error) {
+    _fail('$_sourcePath is not valid JSON: ${error.message}');
+  }
+  if (decoded is! Map<String, Object?>) {
+    _fail('$_sourcePath must contain a JSON object.');
+  }
+  final actors = decoded['actors'];
+  if (actors is! Map<String, Object?>) {
+    _fail('$_sourcePath must contain an "actors" object.');
+  }
+  final missing = _actorKinds.where((kind) => !actors.containsKey(kind));
+  final unexpected = actors.keys.where((kind) => !_actorKinds.contains(kind));
+  if (missing.isNotEmpty || unexpected.isNotEmpty) {
+    _fail(
+      '$_sourcePath must define exactly ${_actorKinds.join(', ')}.'
+      '${missing.isEmpty ? '' : ' Missing: ${missing.join(', ')}.'}'
+      '${unexpected.isEmpty ? '' : ' Unexpected: ${unexpected.join(', ')}.'}',
+    );
+  }
+  return actors;
+}
+
 String _generate(Map<String, Object?> actors) {
   final buffer = StringBuffer()
     ..writeln('// GENERATED CODE - DO NOT MODIFY BY HAND.')
-    ..writeln('// Source: assets/balance/default.json')
+    ..writeln('// Source: $_sourcePath')
     ..writeln()
     ..writeln("part of 'balance.dart';")
     ..writeln()
@@ -81,15 +135,12 @@ String _generate(Map<String, Object?> actors) {
       _fail('Actor "$kind" must be a JSON object.');
     }
     _validateStats(kind, encoded);
-    buffer
-      ..writeln('  EntityKind.$kind: ActorStats(')
-      ..writeln("    tickCost: ${encoded['tickCost']},")
-      ..writeln("    health: ${encoded['health']},")
-      ..writeln("    vision: ${encoded['vision']},")
-      ..writeln("    hearing: ${encoded['hearing']},")
-      ..writeln("    contactDamage: ${encoded['contactDamage']},");
-    if (encoded['attackReach'] case final int attackReach) {
-      buffer.writeln('    attackReach: $attackReach,');
+    buffer.writeln('  EntityKind.$kind: ActorStats(');
+    for (final stat in _requiredStats.keys) {
+      buffer.writeln('    $stat: ${encoded[stat]},');
+    }
+    if (encoded.containsKey(_attackReach)) {
+      buffer.writeln('    $_attackReach: ${encoded[_attackReach]},');
     }
     buffer.writeln('  ),');
   }
@@ -99,31 +150,63 @@ String _generate(Map<String, Object?> actors) {
 }
 
 void _validateStats(String kind, Map<String, Object?> stats) {
-  final allowed = <String>{..._requiredStats, 'attackReach'};
-  final unknown = stats.keys.where((key) => !allowed.contains(key)).toList();
+  final allowed = <String>{..._requiredStats.keys, _attackReach};
+  final unknown = stats.keys.where((key) => !allowed.contains(key));
   if (unknown.isNotEmpty) {
     _fail('Actor "$kind" has unknown fields: ${unknown.join(', ')}.');
   }
-  for (final field in _requiredStats) {
-    if (stats[field] is! int) {
-      _fail('Actor "$kind" field "$field" must be an integer.');
-    }
+  for (final MapEntry(key: stat, value: minimum) in _requiredStats.entries) {
+    _validateStat(kind, stat, stats[stat], minimum, required: true);
   }
-  if (stats['attackReach'] != null && stats['attackReach'] is! int) {
-    _fail('Actor "$kind" field "attackReach" must be an integer.');
-  }
-  if ((stats['tickCost']! as int) <= 0 ||
-      (stats['health']! as int) <= 0 ||
-      (stats['vision']! as int) < 0 ||
-      (stats['hearing']! as int) < 0 ||
-      (stats['contactDamage']! as int) < 0 ||
-      (stats['attackReach'] as int? ?? 1) <= 0) {
-    _fail('Actor "$kind" contains stats outside their valid range.');
+  if (stats.containsKey(_attackReach)) {
+    _validateStat(
+      kind,
+      _attackReach,
+      stats[_attackReach],
+      _minimumAttackReach,
+      required: false,
+    );
   }
 }
 
-bool _sameSet(Set<String> left, Set<String> right) =>
-    left.length == right.length && left.containsAll(right);
+void _validateStat(
+  String kind,
+  String stat,
+  Object? value,
+  int minimum, {
+  required bool required,
+}) {
+  if (value == null && !required) {
+    _fail('Actor "$kind" leaves "$stat" null: drop the field instead.');
+  }
+  if (value is! int) {
+    _fail('Actor "$kind" field "$stat" must be an integer, was: $value.');
+  }
+  if (value < minimum) {
+    _fail('Actor "$kind" field "$stat" must be at least $minimum, was $value.');
+  }
+}
+
+/// Runs the generated source through the same formatter CI checks, so a
+/// regenerated file can never fail `dart format`.
+String _format(String source) {
+  final directory = Directory.systemTemp.createTempSync('stepbound_balance');
+  try {
+    final file = File('${directory.path}/default_balance.g.dart')
+      ..writeAsStringSync(source);
+    final result = Process.runSync(Platform.resolvedExecutable, <String>[
+      'format',
+      '--summary=none',
+      file.path,
+    ]);
+    if (result.exitCode != 0) {
+      _fail('dart format rejected the generated source:\n${result.stderr}');
+    }
+    return file.readAsStringSync();
+  } finally {
+    directory.deleteSync(recursive: true);
+  }
+}
 
 String _normaliseNewlines(String value) => value.replaceAll('\r\n', '\n');
 
