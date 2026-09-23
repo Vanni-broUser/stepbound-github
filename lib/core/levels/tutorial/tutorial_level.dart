@@ -310,9 +310,9 @@ final List<GridPoint> luigiExitPath = <GridPoint>[
   luigiStairsDown,
 ];
 
-/// The fire exit at the far west end of the ground floor's corridor, past
-/// its second row of shops: the only way in or out of the car park behind
-/// the hypermarket.
+/// The fire exit in the back wall of the ground floor's upper area, past
+/// its second row of shops and straight above the stairs: the only way in
+/// or out of the car park behind the hypermarket.
 final GridPoint mallExitTile = _mallGround.tileOf('X');
 
 /// Where the fire exit lands, in the car park behind the hypermarket.
@@ -340,7 +340,7 @@ Map<GridPoint, Portal> _pairedDoors(
 /// - the hypermarket's entrance from the car park, and its stairs between
 ///   the two floors (both flights climb into the back wall: the lower step
 ///   of each flight is where Mario lands);
-/// - the fire exit at the end of the ground floor's west corridor, onto
+/// - the fire exit in the back wall of the ground floor's upper area, onto
 ///   the car park behind the hypermarket, cut off from the rest of the
 ///   north district;
 /// - the door of the Bar Arcobaleno, up the harbour's alley.
@@ -386,7 +386,7 @@ Map<GridPoint, Portal> _portals() {
     ..._pairedDoors(
       <GridPoint>[mallNorthStreetEntry],
       <GridPoint>[mallExitTile],
-      Direction.east,
+      Direction.south,
     ),
     ..._pairedDoors(
       <GridPoint>[_harbour.tileOf('h')],
