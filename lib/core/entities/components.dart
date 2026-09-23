@@ -57,35 +57,23 @@ final class HealthComponent extends EntityComponent {
 }
 
 final class AmmoComponent extends EntityComponent {
-  AmmoComponent({
-    required this.loaded,
-    required this.reserve,
-    required this.magazineCapacity,
-    this.hasGun = true,
-  });
+  AmmoComponent({required this.loaded, this.hasGun = true});
 
   factory AmmoComponent.fromJson(Map<String, Object?> json) {
     return AmmoComponent(
       loaded: json['loaded']! as int,
-      reserve: json['reserve']! as int,
-      magazineCapacity: json['magazineCapacity']! as int,
       hasGun: json['hasGun'] as bool? ?? true,
     );
   }
 
+  /// Every round found, all of them ready to fire: there is no magazine to
+  /// fill and nothing is left behind.
   int loaded;
-  int reserve;
-  final int magazineCapacity;
 
   /// Bullets can be carried before the pistol is found.
   bool hasGun;
 
-  /// Fills the magazine first, the rest goes to the reserve.
-  void add(int rounds) {
-    final intoMagazine = (magazineCapacity - loaded).clamp(0, rounds);
-    loaded += intoMagazine;
-    reserve += rounds - intoMagazine;
-  }
+  void add(int rounds) => loaded += rounds;
 
   @override
   String get type => 'ammo';
@@ -94,8 +82,6 @@ final class AmmoComponent extends EntityComponent {
   Map<String, Object?> toJson() => <String, Object?>{
     'type': type,
     'loaded': loaded,
-    'reserve': reserve,
-    'magazineCapacity': magazineCapacity,
     'hasGun': hasGun,
   };
 }

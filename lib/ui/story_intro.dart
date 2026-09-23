@@ -101,8 +101,12 @@ final class _StoryIntroState extends State<StoryIntro> {
         return;
       }
       if (_sceneIndex + 1 < widget.scenes.length) {
+        // A new picture is worth a look on its own before its line covers
+        // it; when the next line is spoken over the same one there is
+        // nothing new to see, so it comes up with the tap.
+        final shown = widget.scenes[_sceneIndex].image;
         _sceneIndex += 1;
-        _showText = false;
+        _showText = widget.scenes[_sceneIndex].image == shown;
         return;
       }
       if (widget.fadeOutAtEnd) {

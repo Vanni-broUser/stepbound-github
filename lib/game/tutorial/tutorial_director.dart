@@ -67,6 +67,10 @@ abstract interface class TutorialHost {
   /// prompts wait for it to go.
   bool get isPromptVisible;
 
+  /// Drops the steps queued and the arrow held, so that a prompt about to
+  /// show finds Mario where it was triggered.
+  void stopWalking();
+
   /// Mario's crouch-and-grab, played when a backpack is collected.
   void playPickupAnimation();
 
@@ -199,12 +203,20 @@ final class TutorialDirector {
     for (final script in scripts) {
       script.update(turnAnimating: turnAnimating);
     }
-    if (_queue.isEmpty || host.isPromptVisible || turnAnimating) {
+    if (_queue.isEmpty || host.isPromptVisible) {
       return;
     }
+    // A prompt belongs where it was triggered: Mario stops instead of
+    // walking on for as long as the arrow stays down, and its delay runs
+    // on the clock rather than on the few frames between one step and the
+    // next — held down, those would stretch it over half the street.
+    host.stopWalking();
     final next = _queue.first;
     if (next.delay > 0) {
       next.delay -= dt;
+      return;
+    }
+    if (turnAnimating) {
       return;
     }
     _queue.removeAt(0);

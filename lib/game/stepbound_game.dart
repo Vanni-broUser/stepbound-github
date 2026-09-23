@@ -289,9 +289,7 @@ final class StepboundGame extends FlameGame
 
   /// Drops the steps queued and the arrow held, and lowers the pistol.
   void _stopMario() {
-    _heldDirection = null;
-    _holdElapsed = 0;
-    presentation.clearBuffer();
+    stopWalking();
     aiming.value = false;
   }
 
@@ -302,6 +300,13 @@ final class StepboundGame extends FlameGame
 
   @override
   bool get isPromptVisible => cover.value != null;
+
+  @override
+  void stopWalking() {
+    _heldDirection = null;
+    _holdElapsed = 0;
+    presentation.clearBuffer();
+  }
 
   @override
   void showPrompt(List<TutorialLine> lines, {void Function()? onDismissed}) =>

@@ -34,7 +34,7 @@ MALL_NORTH_OUTPUT = os.path.join("assets", "levels", "mall_north_street.png")
 
 ROAD_GLYPHS = set(".-|ZVc")
 WALK_GLYPHS = set("=")
-BUILDING_GLYPHS = set("BHfKMGW")
+BUILDING_GLYPHS = set("BHfKMGW#%")
 FACADE_GLYPHS = set("Hf")
 
 ASPHALT = (44, 46, 52)
@@ -213,9 +213,9 @@ class Level:
             return "="
         if glyph in ROAD_GLYPHS:
             return "."
-        if glyph in "PLY":
+        if glyph in "PLY,":
             return glyph
-        votes = {"=": 0, ".": 0, "P": 0, "L": 0, "Y": 0}
+        votes = {"=": 0, ".": 0, "P": 0, "L": 0, "Y": 0, ",": 0}
         for dx in (-1, 0, 1):
             for dy in (-1, 0, 1):
                 g = self.at(x + dx, y + dy)
@@ -223,7 +223,7 @@ class Level:
                     votes["="] += 1 + (dy == 0)
                 elif g in ROAD_GLYPHS:
                     votes["."] += 1 + (dy == 0)
-                elif g in "PLY":
+                elif g in "PLY,":
                     votes[g] += 1 + (dy == 0)
         return max(votes, key=votes.get)
 
@@ -1074,6 +1074,250 @@ def _tower(d, rng, x, y, w, h):
         rect(d, x - 1, ly + lh + 5, w + 2, 1, DUOMO_DARK)
 
 
+def paint_yard_floor(d, rng, x, y):
+    """The shipyard's concrete: big poured slabs, cracked along their
+    joints, stained with oil and old antifouling paint."""
+    px, py = x * TILE, y * TILE
+    slab = (104, 102, 98) if (x // 4 + y // 4) % 2 else (98, 96, 92)
+    rect(d, px, py, TILE, TILE, slab)
+    for _ in range(5):
+        rect(d, px + rng.randrange(TILE), py + rng.randrange(TILE), 2, 1,
+             shade(slab, rng.randint(-10, 8)))
+    if x % 4 == 0:
+        rect(d, px, py, 1, TILE, (78, 76, 74))
+    if y % 4 == 0:
+        rect(d, px, py, TILE, 1, (78, 76, 74))
+    if rng.random() < 0.2:  # oil soaked into the slab
+        rect(d, px + rng.randrange(9), py + rng.randrange(9), 6, 5, OIL)
+    if rng.random() < 0.1:  # a splash of hull paint
+        rect(d, px + rng.randrange(11), py + rng.randrange(12), 4, 3,
+             rng.choice(((120, 60, 44), (60, 80, 104), (150, 146, 138))))
+
+
+def paint_flower_bed(d, rng, level, x, y):
+    """A bed raised behind a kerb of the same stone as the paving: dry
+    earth, a shrub gone leggy and some weeds over the edge."""
+    px, py = x * TILE, y * TILE
+    kerb, earth = (192, 184, 166), (78, 62, 48)
+    rect(d, px, py, TILE, TILE, kerb)
+    rect(d, px + 2, py + 2, TILE - 4, TILE - 4, earth)
+    rect(d, px, py, TILE, 2, shade(kerb, 16))
+    rect(d, px, py + TILE - 2, TILE, 2, shade(kerb, -34))
+    if level.at(x, y - 1) != "&":
+        rect(d, px + 2, py + 2, TILE - 4, 1, shade(earth, -18))
+    for _ in range(9):
+        rect(d, px + 2 + rng.randrange(TILE - 5), py + 2 + rng.randrange(TILE - 5),
+             2, 1, shade(earth, rng.randint(-12, 14)))
+    for _ in range(7):  # what is left growing in it
+        gx = px + 3 + rng.randrange(TILE - 7)
+        gy = py + 4 + rng.randrange(TILE - 9)
+        green = rng.choice(((74, 96, 52), (92, 112, 58), (60, 80, 46)))
+        rect(d, gx, gy, 2, rng.randint(3, 6), green)
+    if rng.random() < 0.4:
+        rect(d, px + rng.randrange(3, 11), py + TILE - 3, 4, 3, (86, 100, 58))
+
+
+def paint_street_fountain(d, px, py):
+    """The drinking fountain of the piazzetta, over two cells by two: a
+    low kerbed basin, green with algae, and the stone column standing in
+    it with its brass spout over a scalloped bowl."""
+    stone, lit, dark = (196, 186, 166), (216, 208, 190), (140, 130, 112)
+    water, algae = (62, 78, 72), (78, 96, 58)
+    w = h = 2 * TILE
+    # the basin: a rounded kerb, the water inside it barely moving
+    d.rounded_rectangle([px + 1, py + 6, px + w - 2, py + h - 2], radius=9,
+                        fill=stone, outline=dark)
+    d.rounded_rectangle([px + 5, py + 10, px + w - 6, py + h - 6], radius=6,
+                        fill=water)
+    for i in range(px + 6, px + w - 6, 5):
+        rect(d, i, py + h - 9, 3, 2, algae)
+    rect(d, px + 2, py + 6, w - 4, 2, lit)          # the light on the kerb
+    rect(d, px + 2, py + h - 4, w - 4, 2, dark)
+    # the column, standing in the middle of it
+    cx = px + w // 2
+    rect(d, cx - 5, py + h - 16, 10, 7, dark)       # its plinth
+    rect(d, cx - 4, py + h - 17, 8, 2, lit)
+    rect(d, cx - 4, py - 4, 8, h - 13, stone)       # the shaft
+    rect(d, cx - 4, py - 4, 2, h - 13, lit)
+    rect(d, cx + 2, py - 4, 2, h - 13, dark)
+    for cy in range(py + 2, py + h - 14, 7):        # grime run down it
+        rect(d, cx - 3, cy, 5, 1, shade(stone, -22))
+    rect(d, cx - 6, py - 8, 12, 5, stone)           # the cap
+    rect(d, cx - 6, py - 8, 12, 2, lit)
+    rect(d, cx - 3, py - 11, 6, 3, dark)
+    rect(d, cx - 1, py + 6, 4, 3, (132, 104, 44))   # the brass spout
+    rect(d, cx - 5, py + 9, 10, 4, stone)           # the scalloped bowl
+    rect(d, cx - 4, py + 10, 8, 2, dark)
+    rect(d, cx - 1, py + 13, 2, 6, (118, 140, 150))  # the trickle it still runs
+
+
+def paint_small_church(d, rng, level):
+    """San Nicola, up in the warren of alleys: one plain gabled front in
+    the same limestone as the Duomo, a small rose window over an arched
+    portal, a bell gable with its bell on the west corner, and two worn
+    steps down to the square."""
+    cells = [(x, y) for y in range(level.height) for x in range(level.width)
+             if level.at(x, y) == "#"]
+    if not cells:
+        return
+    x0 = min(x for x, _ in cells) * TILE
+    y0 = min(y for _, y in cells) * TILE
+    w = (max(x for x, _ in cells) + 1) * TILE - x0
+    bottom = (max(y for _, y in cells) + 1) * TILE
+    cx = x0 + w // 2
+    paint_roof_block(d, rng, level, x0 // TILE, y0 // TILE, w // TILE,
+                     (bottom - y0) // TILE)
+
+    # the nave, its gable rising over the front
+    nave_l, nave_r = x0, x0 + w
+    gable_top = y0 + 14
+    front = y0 + 30
+    _ashlar(d, rng, nave_l, front, nave_r - nave_l, bottom - front)
+    for dy in range(front - gable_top):  # the gable, sloping both ways
+        span = (nave_r - nave_l) * dy // (2 * (front - gable_top))
+        _ashlar(d, rng, cx - span, gable_top + dy, 2 * span + 1, 1)
+        rect(d, cx - span, gable_top + dy, 3, 1, DUOMO_LIGHT)
+        rect(d, cx + span - 2, gable_top + dy, 3, 1, DUOMO_DARK)
+    rect(d, nave_l, front - 1, nave_r - nave_l, 2, DUOMO_LIGHT)
+    _blind_arcade(d, nave_l + 2, front + 2, nave_r - nave_l - 4)
+
+    # the rose window, plain: a ring of stone with eight spokes, set in the
+    # front wall between the cornice and the portal
+    rose_y = front + 16
+    d.ellipse([cx - 9, rose_y - 9, cx + 9, rose_y + 9], fill=DUOMO_LIGHT)
+    d.ellipse([cx - 7, rose_y - 7, cx + 7, rose_y + 7], fill=DUOMO_HOLE)
+    for i in range(8):
+        a = math.pi * i / 4
+        rect(d, cx + round(5 * math.cos(a)), rose_y + round(5 * math.sin(a)),
+             1, 1, DUOMO_SHADE)
+
+    # the portal, and the steps worn down to the square
+    door_w = 16
+    _arch_window(d, cx - door_w // 2, bottom - 26, door_w, 26)
+    rect(d, cx - door_w // 2, bottom - 14, door_w, 14, DOOR_GREEN)
+    rect(d, cx - 1, bottom - 14, 2, 14, shade(DOOR_GREEN, -20))
+    for i, sy in enumerate((bottom - 4, bottom - 2)):
+        rect(d, cx - door_w, sy, door_w * 2, 2, shade(DUOMO_STONE, -8 * i))
+
+    # the bell gable on the west corner, a bell hanging in its arch
+    bx, by = x0, y0 + 8
+    _ashlar(d, rng, bx, by, 20, front - by + 8)
+    rect(d, bx, by, 20, 3, DUOMO_LIGHT)
+    _arch_window(d, bx + 5, by + 7, 8, 14)
+    rect(d, bx + 7, by + 13, 4, 5, (96, 82, 46))  # the bell
+    rect(d, bx + 6, by + 17, 6, 2, (120, 102, 58))
+
+
+def paint_shipyard(d, rng, level):
+    """The yard at the end of the seafront road: its wall closes the road,
+    a hull sits up on the stocks under the gantry crane."""
+    for y in range(level.height):
+        for x in range(level.width):
+            if level.at(x, y) == "%":
+                paint_yard_wall(d, rng, level, x, y)
+    for y in range(level.height):
+        for x in range(level.width):
+            if level.at(x, y) == "*" and level.at(x - 1, y) != "*" \
+                    and level.at(x, y - 1) != "*":
+                w = h = 0
+                while level.at(x + w, y) == "*":
+                    w += 1
+                while level.at(x, y + h) == "*":
+                    h += 1
+                paint_hull(d, rng, x * TILE, y * TILE, w * TILE, h * TILE)
+            elif level.at(x, y) == "i" and level.at(x - 1, y) != "i" \
+                    and level.at(x, y - 1) != "i":
+                paint_gantry(d, x * TILE, y * TILE)
+
+
+def paint_yard_wall(d, rng, level, x, y):
+    """Concrete panels with a capping along the top, rust running down
+    them and the odd sprayed tag."""
+    px, py = x * TILE, y * TILE
+    slab, joint = (146, 142, 134), (110, 106, 100)
+    rect(d, px, py, TILE, TILE, slab)
+    for _ in range(6):
+        rect(d, px + rng.randrange(TILE), py + rng.randrange(TILE), 2, 1,
+             shade(slab, -rng.randint(6, 16)))
+    if x % 3 == 0:  # the joint between one panel and the next
+        rect(d, px, py, 1, TILE, joint)
+    if not level.is_building(x, y + 1):  # the top of the wall, then shadow
+        rect(d, px, py, TILE, 4, (176, 172, 164))
+        rect(d, px, py + 4, TILE, 1, joint)
+        rect(d, px, py + TILE - 3, TILE, 3, (40, 40, 44))
+    if not level.is_building(x + 1, y):
+        rect(d, px + TILE - 2, py, 2, TILE, joint)
+    if rng.random() < 0.25:
+        rect(d, px + rng.randrange(2, 13), py + 5, 1, rng.randint(4, 9),
+             (126, 74, 46))
+    if rng.random() < 0.12:
+        rect(d, px + 3, py + 7, 9, 4, (70, 86, 110))
+
+
+def paint_hull(d, rng, px, py, w, h):
+    """A fishing boat up on the stocks, seen from above with her bow to the
+    west: white topsides over a red bottom, the deck open amidships, the
+    wheelhouse aft, and timber shores holding her upright."""
+    white, shadow = (186, 182, 172), (120, 116, 110)
+    red, deck, rail = (128, 52, 40), (146, 118, 78), (208, 204, 194)
+    keel_y = py + h // 2
+
+    def half_width(i):
+        """Fine at the stem, full amidships, still broad at the transom."""
+        t = i / (w - 20)
+        return int((h // 2 - 6) * min(1.0, 0.18 + 1.5 * t ** 0.6))
+
+    for i in range(w - 20):  # her shadow, cast south-east under the hull
+        half = half_width(i)
+        rect(d, px + 12 + i, keel_y - half + 5, 1, 2 * half, (58, 56, 56))
+    for i in range(w - 20):  # the red bottom, widest at the turn of the bilge
+        half = half_width(i)
+        rect(d, px + 8 + i, keel_y - half, 1, 2 * half, red)
+    for i in range(w - 20):  # the white topsides inside it
+        half = max(1, half_width(i) - 4)
+        rect(d, px + 8 + i, keel_y - half, 1, 2 * half, white)
+        if i % 11 == 0:
+            rect(d, px + 8 + i, keel_y - half, 1, 2 * half, shadow)
+    for i in range(w - 20):  # the capping rail all the way round
+        half = half_width(i) - 4
+        if half > 0:
+            rect(d, px + 8 + i, keel_y - half, 1, 2, rail)
+            rect(d, px + 8 + i, keel_y + half - 2, 1, 2, shadow)
+    rect(d, px + w - 14, keel_y - h // 2 + 8, 2, h - 16, rail)  # the transom
+
+    hold_x = px + 8 + (w - 20) // 3
+    rect(d, hold_x, keel_y - h // 4, (w - 20) // 3, h // 2, deck)  # the hold
+    rect(d, hold_x, keel_y - h // 4, (w - 20) // 3, 2, shade(deck, -24))
+    house_x = px + w - 44
+    rect(d, house_x, keel_y - 14, 24, 28, (168, 160, 146))  # the wheelhouse
+    rect(d, house_x, keel_y - 14, 24, 2, rail)
+    rect(d, house_x + 2, keel_y - 10, 20, 7, PANE)
+    rect(d, house_x + 9, keel_y - 22, 3, 9, (150, 146, 138))  # her mast
+    for bx in range(px + 20, px + w - 24, 24):  # shores under the bilge
+        for by in (keel_y - half_width(bx - px - 8) - 6, keel_y + half_width(bx - px - 8) + 2):
+            rect(d, bx, by, 5, 5, (108, 84, 56))
+            rect(d, bx - 1, by + 4, 7, 2, (80, 62, 42))
+    for _ in range(w // 10):  # rust weeping from the fastenings
+        rect(d, px + 10 + rng.randrange(w - 26), keel_y - rng.randrange(-h // 3, h // 3),
+             3, 1, shade(red, -rng.randint(10, 40)))
+
+
+def paint_gantry(d, px, py):
+    """The gantry crane over the stocks: two legs, a jib across them and
+    the hook block hanging still."""
+    steel, rust = (150, 134, 70), (120, 86, 48)
+    for lx in (px + 2, px + 24):
+        rect(d, lx, py - 26, 5, 56, steel)
+        rect(d, lx + 1, py - 26, 1, 56, rust)
+        rect(d, lx - 3, py + 28, 11, 4, (70, 70, 74))
+    rect(d, px - 22, py - 30, 56, 6, steel)  # the jib
+    rect(d, px - 22, py - 24, 56, 1, rust)
+    for i in range(px - 20, px + 32, 8):  # its lattice
+        rect(d, i, py - 24, 1, 5, rust)
+    rect(d, px - 4, py - 24, 2, 18, (60, 60, 64))  # the fall
+    rect(d, px - 7, py - 6, 8, 7, (80, 78, 82))    # the hook block
+
+
 def paint_duomo(d, rng, level):
     """The Duomo of Molfetta on the harbour, in pale limestone: the nave's
     gabled front with its rose window and arched portal, the aisles either
@@ -1109,7 +1353,7 @@ def paint_duomo(d, rng, level):
     # the aisles, their roofs sloping down away from the nave
     aisle_top = bottom - 70
     nave_l, nave_r = cx - 46, cx + 46
-    for ax0, ax1, rising in ((x0 + 6, nave_l, True), (nave_r, x0 + w - 6, False)):
+    for ax0, ax1, rising in ((x0, nave_l, True), (nave_r, x0 + w, False)):
         _ashlar(d, rng, ax0, aisle_top, ax1 - ax0, bottom - aisle_top)
         for i in range(ax1 - ax0):
             t = i if rising else (ax1 - ax0 - 1 - i)
@@ -1118,7 +1362,7 @@ def paint_duomo(d, rng, level):
             rect(d, ax0 + i, aisle_top - 12 + drop, 1, 1, DUOMO_ROOF_DARK)
         _blind_arcade(d, ax0, aisle_top + 1, ax1 - ax0)
         _arch_window(d, (ax0 + ax1) // 2 - 3, aisle_top + 22, 6, 18)
-    rect(d, x0 + w - 10, aisle_top, 4, bottom - aisle_top, DUOMO_SHADE)
+    rect(d, x0 + w - 4, aisle_top, 4, bottom - aisle_top, DUOMO_SHADE)
 
     # the nave's front: gable, cornice of little arches, rose window, portal
     nave_top = bottom - 94
@@ -1159,7 +1403,7 @@ def paint_duomo(d, rng, level):
     rect(d, cx + 2, py + 28, 2, 2, (180, 150, 80))
     # grime climbing from the sidewalk, and the blood of the first night
     for _ in range(40):
-        gx = x0 + 6 + rng.randrange(w - 12)
+        gx = x0 + rng.randrange(w)
         if nave_l <= gx < nave_r and px - 4 <= gx < px + pw + 4:
             continue
         rect(d, gx, bottom - rng.randint(2, 14), 1, rng.randint(2, 8), DUOMO_SHADE)
@@ -1878,6 +2122,8 @@ def bake(level: Level, rng: random.Random, output: str) -> None:
                 paint_paving(d, rng, x, y)
             elif surface == "L":
                 paint_parking(d, rng, level, x, y)
+            elif surface == ",":
+                paint_yard_floor(d, rng, x, y)
             else:
                 paint_road(d, rng, level, x, y)
 
@@ -1888,6 +2134,8 @@ def bake(level: Level, rng: random.Random, output: str) -> None:
     paint_barracks(d, level)
     paint_hypermarket(d, rng, level)
     paint_duomo(d, rng, level)
+    paint_small_church(d, rng, level)
+    paint_shipyard(d, rng, level)
     paint_hospital(d, rng, level)
     paint_back_passage(d, level)
 
@@ -1926,6 +2174,10 @@ def bake(level: Level, rng: random.Random, output: str) -> None:
                 paint_cafe_table(d, px, py)
             elif glyph == "p":
                 paint_playground(d, px, py, kind=(x * 7 + y * 3) % 3)
+            elif glyph == "&":
+                paint_flower_bed(d, rng, level, x, y)
+            elif glyph == "!" and level.at(x - 1, y) != "!" and level.at(x, y - 1) != "!":
+                paint_street_fountain(d, px, py)
             elif glyph == "h":
                 paint_bar_doorway(d, px, py)
             elif (glyph in "o5" and level.at(x - 1, y) not in "o5"
@@ -1965,7 +2217,7 @@ def bake(level: Level, rng: random.Random, output: str) -> None:
     for _ in range(level.width * level.height // 3):
         x = rng.randrange(level.width * TILE)
         y = rng.randrange(level.height * TILE)
-        if level.at(x // TILE, y // TILE) in ROAD_GLYPHS | WALK_GLYPHS | set(":PL"):
+        if level.at(x // TILE, y // TILE) in ROAD_GLYPHS | WALK_GLYPHS | set(":PL,"):
             rect(d, x, y, rng.randint(1, 3), 1, rng.choice(DEBRIS))
 
     os.makedirs(os.path.dirname(output), exist_ok=True)

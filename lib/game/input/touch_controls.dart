@@ -23,22 +23,28 @@ final class TouchControls extends StatelessWidget {
           minimum: const EdgeInsets.all(10),
           child: Stack(
             children: <Widget>[
-              if (unlocked.contains(HudElement.shoot))
-                Positioned(
-                  left: 0,
-                  bottom: actionButtonSize + actionGap,
-                  child: _ShootButton(game: game),
-                ),
+              // Interact sits where the thumb rests; shooting is the one
+              // worth reaching for.
               if (unlocked.contains(HudElement.interact))
                 Positioned(
-                  left: actionButtonSize + actionGap,
-                  bottom: 0,
+                  right: 0,
+                  bottom: actionButtonSize + actionGap,
                   child: _InteractButton(game: game),
                 ),
+              if (unlocked.contains(HudElement.shoot))
+                Positioned(
+                  right: actionButtonSize + actionGap,
+                  bottom: 0,
+                  child: _ShootButton(game: game),
+                ),
               if (unlocked.contains(HudElement.ammo))
-                Positioned(left: 0, bottom: 0, child: _AmmoCounter(game: game)),
+                Positioned(
+                  right: 0,
+                  bottom: 0,
+                  child: _AmmoCounter(game: game),
+                ),
               Positioned(
-                right: 0,
+                left: 0,
                 bottom: 0,
                 child: _DirectionalPad(game: game),
               ),

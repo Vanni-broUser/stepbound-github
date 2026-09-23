@@ -23,7 +23,13 @@ void main() {
     final ammo = createTutorialWorld().player.component<AmmoComponent>();
     expect(ammo.hasGun, isFalse);
     expect(ammo.loaded, 0);
-    expect(ammo.reserve, 0);
+  });
+
+  test('bullets pile up with no magazine to cap them', () {
+    final ammo = createTutorialWorld().player.component<AmmoComponent>()
+      ..add(4)
+      ..add(5);
+    expect(ammo.loaded, 9, reason: 'nothing is left in a reserve');
   });
 
   test('the crossroads opens north and east but not south', () {
@@ -470,6 +476,9 @@ void main() {
       final parapet = harbourRows.indexWhere((row) => row.startsWith('R'));
       final corner = harbourRows[parapet].lastIndexOf('R');
       for (var x = 0; x <= corner; x++) {
+        if (glyph(x, parapet) == 'l') {
+          continue; // the shipyard's slipway runs down through it
+        }
         expect(map.tileAt(at(x, parapet)).isWalkable, isFalse);
         expect(map.tileAt(at(x, parapet)).blocksSight, isFalse);
       }
@@ -490,7 +499,7 @@ void main() {
       final world = createTutorialWorld();
       final door = harbourRows.indexWhere((row) => row.contains('h'));
       final doorX = harbourRows[door].indexOf('h');
-      final road = harbourRows.indexWhere((row) => row.contains('J'));
+      final road = harbourRows.indexWhere((row) => row.contains('-'));
       final alleyX = harbourRows[door].indexOf('P');
       expect(alleyX, lessThan(doorX));
       for (var y = door; y < road; y++) {
@@ -545,25 +554,104 @@ void main() {
       );
     });
 
-    test('the seafront road runs on west past the Duomo before the road '
-        'block closes it', () {
+    test('the seafront road runs on west past the Duomo until the shipyard '
+        'closes it, the way in round the side', () {
       final duomo = harbourRows.indexWhere((row) => row.contains('W'));
       final west = harbourRows[duomo].indexOf('W');
-      final road = harbourRows.indexWhere((row) => row.contains('J'));
-      final block = harbourRows[road].indexOf('J');
+      final road = harbourRows.indexWhere((row) => row.contains('-'));
+      // The yard is walled all round; the one standing across the road is
+      // its east wall, the last before the tarmac starts.
+      final wall = harbourRows[road].lastIndexOf('%');
       expect(
-        block,
+        wall,
         lessThan(west),
         reason: 'the road goes further west than the church itself',
       );
       final world = createTutorialWorld();
-      for (var x = block + 1; x < west; x++) {
+      for (var x = wall + 1; x < west; x++) {
         expect(
           world.map.tileAt(at(x, road)).isWalkable,
           isTrue,
           reason: 'the seafront road at column $x',
         );
       }
+      expect(
+        world.map.tileAt(at(wall, road)).isWalkable,
+        isFalse,
+        reason: 'the yard wall stands across the road',
+      );
+
+      // The way in is off the promenade, past the end of the wall: from
+      // there the yard, its hull and its crane are reachable.
+      final promenade = harbourRows.indexWhere(
+        (row) => row.startsWith('R') && row.contains('l'),
+      );
+      final gate = GridPoint(wall, promenade - 1);
+      expect(world.map.tileAt(at(gate.x, gate.y)).isWalkable, isTrue);
+      expect(
+        world.map.tileAt(at(gate.x - 1, gate.y)).isWalkable,
+        isTrue,
+        reason: 'the yard itself',
+      );
+      expect(harbourRows.any((row) => row.contains('*')), isTrue);
+      expect(harbourRows.any((row) => row.contains('i')), isTrue);
+    });
+
+    test('the alleys of the old town climb off the seafront road and cross '
+        'one another, with the church and the fountain among them', () {
+      final world = createTutorialWorld();
+      final duomoRow = harbourRows.indexWhere((row) => row.contains('W'));
+      final duomoX = harbourRows[duomoRow].indexOf('W');
+      List<GridPoint> tilesOf(String wanted) => <GridPoint>[
+        for (var y = 0; y < harbourRows.length; y++)
+          for (var x = 0; x < harbourRows[y].length; x++)
+            if (glyph(x, y) == wanted) GridPoint(x, y),
+      ];
+
+      // Alleys west of the Duomo, counted where each one opens onto the
+      // sidewalk of the seafront road.
+      var mouths = 0;
+      for (var y = 0; y < harbourRows.length - 1; y++) {
+        for (var x = 1; x < duomoX; x++) {
+          if (glyph(x, y) == 'P' &&
+              glyph(x, y + 1) == '=' &&
+              glyph(x - 1, y) != 'P') {
+            mouths++;
+          }
+        }
+      }
+      expect(mouths, greaterThanOrEqualTo(3), reason: 'alleys off the road');
+
+      // The small church stands at the far end of them from the Duomo, and
+      // takes up less of the map than it does.
+      final church = tilesOf('#');
+      expect(church, isNotEmpty);
+      expect(
+        church.map((tile) => tile.x).reduce((a, b) => a > b ? a : b),
+        lessThan(duomoX),
+        reason: 'west of the Duomo',
+      );
+      expect(
+        church.length,
+        lessThan(tilesOf('W').length),
+        reason: 'smaller than the Duomo',
+      );
+
+      // The fountain, two cells by two, with room to walk in front of it.
+      final fountain = tilesOf('!');
+      expect(fountain, hasLength(4));
+      final top = fountain
+          .map((tile) => tile.y)
+          .reduce((a, b) => a < b ? a : b);
+      for (final tile in fountain) {
+        expect(world.map.tileAt(at(tile.x, tile.y)).isWalkable, isFalse);
+        expect(
+          world.map.tileAt(at(tile.x, top - 1)).isWalkable,
+          isTrue,
+          reason: 'room to pass in front of it',
+        );
+      }
+      expect(tilesOf('&'), isNotEmpty, reason: 'the flower beds with it');
     });
 
     test('the Duomo stands back from the road: a two-cell alley climbs to '

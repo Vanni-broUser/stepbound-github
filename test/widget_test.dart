@@ -103,6 +103,13 @@ Future<StepboundGame> _pumpReadyGame(
 }
 
 void main() {
+  // Tests tap through the lines without waiting: only the test below cares
+  // about the pause that keeps a walking tap from eating them.
+  setUp(() => GameplayDialogue.settleTime = Duration.zero);
+  tearDown(
+    () => GameplayDialogue.settleTime = GameplayDialogue.defaultSettleTime,
+  );
+
   testWidgets('F2 mounts the Flame game surface', (tester) {
     return tester.runAsync(() async {
       await _pumpAppThroughIntro(tester);
@@ -266,7 +273,7 @@ void main() {
     });
   });
 
-  testWidgets('shoot button cannot aim when the magazine is empty', (tester) {
+  testWidgets('shoot button cannot aim with no bullets left', (tester) {
     return tester.runAsync(() async {
       final game = await _pumpReadyGame(tester);
 
@@ -678,5 +685,122 @@ void main() {
     for (final key in controls) {
       expect(find.byKey(ValueKey<String>(key)), findsOneWidget);
     }
+  });
+
+  testWidgets('a story line over a picture already seen comes up with the '
+      'tap that turns to it', (tester) async {
+    const same = 'assets/story/scene_mario_luigi_reunion.jpg';
+    var finished = false;
+    await tester.pumpWidget(
+      Directionality(
+        textDirection: TextDirection.ltr,
+        child: StoryIntro(
+          scenes: const <StoryScene>[
+            StoryScene(image: same, text: 'Prima'),
+            StoryScene(image: same, text: 'Seconda'),
+            StoryScene(image: 'assets/story/scene_harbour.jpg', text: 'Terza'),
+          ],
+          onFinished: () => finished = true,
+        ),
+      ),
+    );
+    final story = find.byKey(const ValueKey<String>('story-intro'));
+    Future<void> tap() async {
+      await tester.tap(story);
+      await tester.pump();
+    }
+
+    // A new picture is worth a look before its line covers it.
+    expect(find.text('Prima'), findsNothing);
+    await tap();
+    expect(find.text('Prima'), findsOneWidget);
+
+    // The second line is spoken over the same picture: one tap, not two.
+    await tap();
+    expect(find.text('Seconda'), findsOneWidget);
+
+    // The third changes the picture, so that one waits for its own tap.
+    await tap();
+    expect(find.text('Terza'), findsNothing);
+    await tap();
+    expect(find.text('Terza'), findsOneWidget);
+
+    await tap();
+    expect(finished, isTrue);
+  });
+
+  testWidgets('a text box ignores the taps of someone still walking', (tester) {
+    return tester.runAsync(() async {
+      // The opening lines are tapped through with no pause, as everywhere
+      // else; the pause is what this test is about, so it starts here.
+      final game = await _pumpReadyGame(tester);
+      GameplayDialogue.settleTime = GameplayDialogue.defaultSettleTime;
+      final lines = <TutorialLine>[
+        const TutorialLine('Prima battuta'),
+        const TutorialLine('Seconda battuta'),
+      ];
+      game.showPrompt(lines);
+      await tester.pump();
+      final dialogue = find.byKey(const ValueKey<String>('gameplay-dialogue'));
+      expect(find.text('Prima battuta'), findsOneWidget);
+
+      // The tap that was meant for an arrow button lands on the box.
+      await tester.tap(dialogue);
+      await tester.pump();
+      expect(
+        find.text('Prima battuta'),
+        findsOneWidget,
+        reason: 'the first line was eaten by a walking tap',
+      );
+
+      await Future<void>.delayed(GameplayDialogue.defaultSettleTime);
+      await tester.pump();
+      await tester.tap(dialogue);
+      await tester.pump();
+      expect(find.text('Seconda battuta'), findsOneWidget);
+    });
+  });
+
+  testWidgets('the arrows stay on the left and the actions on the right', (
+    tester,
+  ) async {
+    final saves = MemorySaveRepository();
+    await saves.save(
+      SaveGame(
+        slot: 1,
+        savedAt: DateTime(2026),
+        place: 'Accampamento dietro la caserma',
+        world: saveTutorialWorld(createTutorialWorld()),
+        tutorial: const <String, Object?>{},
+        progress: Progress.newGame().toJson(),
+        hud: const <String>['interact', 'ammo', 'shoot'],
+      ),
+    );
+    await tester.pumpWidget(StepboundApp(saves: saves));
+    await tester.pump();
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey<String>('menu-load')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey<String>('menu-slot-1')));
+    await tester.pump();
+
+    double centreOf(String key) =>
+        tester.getCenter(find.byKey(ValueKey<String>(key))).dx;
+
+    // Like every gamepad since the NES: the thumb that moves is the left one.
+    final screen =
+        tester.view.physicalSize.width / tester.view.devicePixelRatio;
+    for (final arrow in <String>['touch-up', 'touch-down', 'touch-left']) {
+      expect(centreOf(arrow), lessThan(screen / 2), reason: arrow);
+    }
+    for (final action in <String>[
+      'touch-shoot',
+      'touch-interact',
+      'touch-ammo',
+    ]) {
+      expect(centreOf(action), greaterThan(screen / 2), reason: action);
+    }
+    expect(centreOf('touch-shoot'), greaterThan(centreOf('touch-right')));
+    expect(centreOf('touch-interact'), greaterThan(centreOf('touch-right')));
   });
 }
