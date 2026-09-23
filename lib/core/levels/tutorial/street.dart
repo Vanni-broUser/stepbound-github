@@ -25,7 +25,9 @@
 /// - Seafront: `~` sea, `R` stone parapet, `N` palm in its planter, `bb`
 ///   half-sunk rowboat: obstacles you can see over. `l` wooden pier and
 ///   `o` deck of a moored rowboat: floor.
-/// - Park: `g` grass, floor; `p` broken playground ride, an obstacle.
+/// - Park: `g` grass, floor; `p` broken playground ride and `^` the park
+///   railing, obstacles you can see over; `<` a gate in that railing,
+///   floor. `;` a heap of rubbish too deep to step on, an obstacle.
 /// - `h` door of the Bar Arcobaleno, `j` where the hypermarket's fire exit
 ///   lands behind it: doors.
 /// - Duomo: `x` the churchyard gate, an obstacle you can see through; `s`

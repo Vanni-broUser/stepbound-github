@@ -107,6 +107,16 @@ NORTH_STOREFRONTS = {
         (70, 5, "kebab2"),
     ],
 }
+MALL_NORTH_STOREFRONTS = {
+    3: [
+        (4, 5, "pizzeria"),
+        (11, 4, "alimentari"),
+        (17, 6, "barsport"),
+        (26, 6, "elettronica"),
+        (34, 5, "abbigliamento"),
+        (41, 5, "gelateria"),
+    ],
+}
 HARBOUR_STOREFRONTS = {
     7: [(75, 5, "arcobaleno")],  # up the alley, its door `h` at column 77
     15: [
@@ -1737,6 +1747,77 @@ def paint_grass(d, rng, x, y):
         rect(d, px + rng.randrange(8), py + rng.randrange(10), 6, 3, (84, 70, 52))
 
 
+def paint_railing(d, level, x, y):
+    """A length of the park's iron railing, `^`: uprights on a bottom rail
+    with a rail across their heads, a post wherever the run ends or a gate
+    breaks it. Painted low in the tile so the lawn shows behind it."""
+    px, py = x * TILE, y * TILE
+    iron, iron_dark, iron_light = (58, 62, 66), (36, 38, 42), (96, 100, 104)
+    rect(d, px, py + 13, TILE, 2, iron_dark)  # its shadow on the ground
+    for bar in range(px + 1, px + TILE, 3):
+        rect(d, bar, py + 4, 1, 9, iron)
+        rect(d, bar, py + 4, 1, 1, iron_light)
+    rect(d, px, py + 3, TILE, 2, iron)  # the rail over their heads
+    rect(d, px, py + 3, TILE, 1, iron_light)
+    rect(d, px, py + 11, TILE, 1, iron_dark)
+    for side, neighbour in ((0, level.at(x - 1, y)), (TILE - 3, level.at(x + 1, y))):
+        if neighbour != "^":
+            rect(d, px + side, py + 1, 3, 14, iron)
+            rect(d, px + side, py + 1, 3, 2, iron_light)
+            rect(d, px + side, py + 14, 3, 1, iron_dark)
+
+
+def paint_park_gate(d, level, x, y):
+    """A gate in the park railing, `<`: both leaves swung right back
+    against the posts, so the path runs straight through."""
+    px, py = x * TILE, y * TILE
+    iron, iron_light = (58, 62, 66), (96, 100, 104)
+    inside = 1 if level.at(x, y + 1) in "gP" else -1  # which way the park lies
+    for side in (0, TILE - 3):  # the posts, taller than the railing
+        rect(d, px + side, py - 1, 3, 17, iron)
+        rect(d, px + side, py - 1, 3, 2, iron_light)
+        rect(d, px + side, py - 3, 3, 2, (150, 140, 90))  # a brass finial
+    for side in (1, TILE - 5):  # the leaves, folded back along the railing
+        top = py + 4 if inside > 0 else py + 2
+        rect(d, px + side, top, 4, 10, (40, 44, 48))
+        for bar in range(px + side, px + side + 4, 2):
+            rect(d, bar, top + 1, 1, 8, iron_light)
+
+
+def paint_rubbish(d, rng, px, py, deep=True):
+    """The rubbish heaped in the corner of the car park: split sacks, boxes
+    gone soft, a bin on its side. `deep` piles them shoulder high, too deep
+    to climb; the rest is the same rubbish trodden flat around the heaps,
+    which you can walk over."""
+    sacks = [(28, 28, 32), (40, 38, 42), (20, 22, 26), (34, 32, 30)]
+    if deep:
+        rect(d, px, py + 12, TILE, 4, (26, 26, 28))  # the shadow it sits in
+        for _ in range(4):
+            sw, sh = rng.randint(7, 10), rng.randint(6, 8)
+            sx = px + rng.randrange(0, TILE - sw + 1)
+            sy = py + rng.randrange(0, TILE - sh)
+            rect(d, sx, sy, sw, sh, rng.choice(sacks))
+            rect(d, sx + 1, sy, sw - 2, 1, (72, 70, 76))  # the light on top
+            rect(d, sx + 1, sy + sh - 1, sw - 2, 1, (14, 14, 16))
+            if rng.random() < 0.3:  # a split, and what is coming out of it
+                rect(d, sx + 2, sy + 2, 3, 2, rng.choice(DEBRIS))
+        if rng.random() < 0.5:  # a cardboard box slumped on top
+            bx, by = px + rng.randrange(1, 7), py + rng.randrange(0, 7)
+            rect(d, bx, by, 9, 7, (118, 88, 58))
+            rect(d, bx, by, 9, 1, (146, 112, 74))
+            rect(d, bx + 1, by + 3, 7, 1, (84, 62, 40))
+    else:
+        for _ in range(3):  # flattened sacks, low enough to step over
+            sw = rng.randint(5, 9)
+            sx = px + rng.randrange(0, TILE - sw + 1)
+            sy = py + rng.randrange(1, TILE - 4)
+            rect(d, sx, sy, sw, 3, rng.choice(sacks))
+            rect(d, sx + 1, sy, sw - 2, 1, (62, 60, 66))
+    for _ in range(6):  # what has spilled out of them
+        rect(d, px + rng.randrange(14), py + rng.randrange(15), 2, 1,
+             rng.choice(DEBRIS))
+
+
 def paint_playground(d, px, py, kind):
     """Broken playground rides, rusted and left to the weeds: a swing with
     one chain snapped, a slide on its side, a merry-go-round off its pivot."""
@@ -2164,8 +2245,8 @@ def main() -> None:
     # South of the car park there is one building, the back of the
     # hypermarket: its roof starts at the row the fire door stands in.
     rear = next(y for y, row in enumerate(mall_north_rows) if "j" in row)
-    bake(Level(mall_north_rows, one_roof=rear), random.Random(2611),
-         MALL_NORTH_OUTPUT)
+    bake(Level(mall_north_rows, MALL_NORTH_STOREFRONTS, one_roof=rear),
+         random.Random(2611), MALL_NORTH_OUTPUT)
 
 
 def bake(level: Level, rng: random.Random, output: str) -> None:
@@ -2191,9 +2272,13 @@ def bake(level: Level, rng: random.Random, output: str) -> None:
             if level.at(x, y) in "o5":
                 paint_water(d, rng, x, y)
                 continue
+            # Anything standing in the park keeps the lawn under it, the
+            # railing along its edge included; a bench with the path on one
+            # side and grass on the other would otherwise be paved in half.
             if level.at(x, y) == "g" or (
-                level.at(x, y) in "Apn"
-                and "g" in (level.at(x - 1, y), level.at(x + 1, y))
+                level.at(x, y) in "Apn^<"
+                and "g" in (level.at(x - 1, y), level.at(x + 1, y),
+                            level.at(x, y - 1), level.at(x, y + 1))
             ):
                 paint_grass(d, rng, x, y)
                 continue
@@ -2231,7 +2316,12 @@ def bake(level: Level, rng: random.Random, output: str) -> None:
             glyph = level.at(x, y)
             px, py = x * TILE, y * TILE
             if glyph == ":":
-                paint_debris(d, rng, px, py)
+                # Debris beside the heaps is the same tip, trodden flat.
+                if any(level.at(x + dx, y + dy) == ";"
+                       for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1))):
+                    paint_rubbish(d, rng, px, py, deep=False)
+                else:
+                    paint_debris(d, rng, px, py)
             elif glyph == "d":
                 paint_corpse(image, rng, px, py)
             elif glyph == "D":
@@ -2259,6 +2349,12 @@ def bake(level: Level, rng: random.Random, output: str) -> None:
                 paint_cafe_table(d, px, py)
             elif glyph == "p":
                 paint_playground(d, px, py, kind=(x * 7 + y * 3) % 3)
+            elif glyph == "^":
+                paint_railing(d, level, x, y)
+            elif glyph == "<":
+                paint_park_gate(d, level, x, y)
+            elif glyph == ";":
+                paint_rubbish(d, rng, px, py)
             elif glyph == "&":
                 paint_flower_bed(d, rng, level, x, y)
             elif glyph == "!" and level.at(x - 1, y) != "!" and level.at(x, y - 1) != "!":

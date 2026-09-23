@@ -29,12 +29,15 @@ void main() {
     );
     expect(
       roadRows.every(
-        (row) => row[1] == 'X' && row[width - 2] == 'U',
+        (row) =>
+            outdoorLegend.obstacles.contains(row[1]) &&
+            outdoorLegend.obstacles.contains(row[width - 2]),
       ),
       isTrue,
-      reason: 'wrecks, not walls, block both off-map directions: they are '
-          'nosed forward and back of one another, but each one covers the '
-          'column that seals its end of the road',
+      reason:
+          'wrecks on the road, concrete blocks on the shopping street, '
+          'never a wall: the wrecks are nosed forward and back of one '
+          'another, but each covers the column that seals its end',
     );
 
     final facadeRows = mallNorthStreetRows
@@ -67,6 +70,24 @@ void main() {
       maxDistance: street.width * street.height,
     );
     expect(reached.length, greaterThan(street.width), reason: 'sanity check');
+    final gates = <GridPoint>[
+      for (var y = 0; y < street.height; y++)
+        for (var x = 0; x < street.width; x++)
+          if (mallNorthStreetRows[y][x] == '<')
+            GridPoint(street.origin.x + x, street.origin.y + y),
+    ];
+    expect(
+      gates,
+      hasLength(3),
+      reason: 'one gate north of the park, two south',
+    );
+    for (final gate in gates) {
+      expect(
+        reached.containsKey(gate),
+        isTrue,
+        reason: 'every gate is a way in and out of the park',
+      );
+    }
     for (final tile in reached.keys) {
       expect(
         tile.x,
@@ -921,8 +942,8 @@ void main() {
       reason: 'the burning wrecks blocking the road west',
     );
     expect(count(all, FireKind.car), 11);
-    expect(count(all, FireKind.bin), 9);
-    expect(count(all, FireKind.window), 12);
+    expect(count(all, FireKind.bin), 10);
+    expect(count(all, FireKind.window), 14);
     expect(count(all, FireKind.campfire), 1);
     final north = place(PlaceId.northDistrict).bounds;
     expect(
