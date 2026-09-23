@@ -273,7 +273,9 @@ void main() {
     });
   });
 
-  testWidgets('shoot button cannot aim with no bullets left', (tester) {
+  testWidgets('shoot button dry fires when empty and aims once loaded', (
+    tester,
+  ) {
     return tester.runAsync(() async {
       final game = await _pumpReadyGame(tester);
 
@@ -282,13 +284,18 @@ void main() {
 
       game.simulation.player.component<AmmoComponent>().hasGun = true;
       game.unlock(HudElement.shoot);
+      await tester.pump();
 
       setLoadedRounds(0);
-      game.pressShoot();
+      await tester.tap(find.byKey(const ValueKey<String>('touch-shoot')));
       expect(game.aiming.value, isFalse);
+      expect(
+        game.presentation.lastEvents.whereType<DryFiredEvent>(),
+        hasLength(1),
+      );
 
       setLoadedRounds(1);
-      game.pressShoot();
+      await tester.tap(find.byKey(const ValueKey<String>('touch-shoot')));
       expect(game.aiming.value, isTrue);
     });
   });
