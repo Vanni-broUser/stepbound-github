@@ -186,11 +186,15 @@ def rect(d: ImageDraw.ImageDraw, x, y, w, h, c) -> None:
 
 
 class Level:
-    def __init__(self, rows: list[str], storefronts=None, old_town=False):
+    def __init__(self, rows: list[str], storefronts=None, old_town=False,
+                 one_roof=None):
         self.rows = rows
         self.storefronts = storefronts or {}
         # Old town: white palazzi with green shutters, pale terraces.
         self.old_town = old_town
+        # One building, not a patchwork: from this row down the roof is
+        # painted whole (the back of the hypermarket, in the north street).
+        self.one_roof = one_roof
         self.height = len(rows)
         self.width = len(rows[0])
 
@@ -368,11 +372,21 @@ def paint_parking(d, rng, level, x, y):
 
 def paint_roofs(d, rng, level):
     """Roof areas split into a patchwork of buildings, each with its own
-    colour, a parapet all around and a few rooftop units."""
+    colour, a parapet all around and a few rooftop units. Below
+    `level.one_roof` the patchwork stops: those rows are a single building
+    whose roof runs from edge to edge, broken only by its door."""
+    band = level.one_roof
     for x0, width, top, bottom in column_runs(level, {"B"}):
+        if band is not None:
+            bottom = min(bottom, band - 1)
+            if bottom < top:
+                continue
         for sx, sw in segments(x0, width, rng):
             for sy, sh in segments(top, bottom - top + 1, rng):
                 paint_roof_block(d, rng, level, sx, sy, sw, sh)
+    if band is not None:
+        paint_roof_block(d, rng, level, 0, band, level.width,
+                         level.height - band)
 
 
 def paint_roof_block(d, rng, level, sx, sy, sw, sh):
@@ -894,7 +908,11 @@ def paint_mall_back_door(d, level):
 
     Like the barracks' back passage, only the opening is visible: the
     building is south of the camera, so painting its north facade here
-    would reverse the perspective used by every other outdoor map.
+    would reverse the perspective used by every other outdoor map. The
+    roof behind is one unbroken slab (see paint_roofs) and the door is the
+    only break in it: a concrete well biting one tile deeper into the
+    roof, the way in at its top and the exit sign lit over it at the
+    bottom, where there is roof to hang it on.
     """
     doors = [(x, y) for y in range(level.height) for x in range(level.width)
              if level.at(x, y) == "j"]
@@ -902,15 +920,17 @@ def paint_mall_back_door(d, level):
         return
     dx, dy = doors[0]
     px, py = dx * TILE, dy * TILE
-    rect(d, px - 2, py, 20, TILE, (112, 108, 102))  # concrete reveal
+    well = py + TILE  # the tile the roof gives up to the door
+    rect(d, px - 2, py, 20, TILE * 2, (112, 108, 102))  # concrete reveal
+    rect(d, px - 2, well + TILE - 3, 20, 3, (76, 74, 70))  # its far edge
     rect(d, px, py + 2, TILE, 14, (24, 24, 26))  # dark passage
     rect(d, px + 2, py + 4, 12, 12, (46, 44, 44))
     rect(d, px + 2, py + 13, 12, 3, (80, 76, 70))  # threshold
     rect(d, px, py + 2, 4, 14, (118, 122, 130))  # open leaf
     rect(d, px + 1, py + 3, 2, 12, (158, 162, 170))
     rect(d, px + 3, py + 9, 1, 2, (220, 190, 90))  # push bar
-    rect(d, px + 4, py - 4, 8, 5, (30, 120, 60))  # exit sign
-    rect(d, px + 6, py - 3, 4, 3, (210, 250, 220))
+    rect(d, px + 4, well + 5, 8, 5, (30, 120, 60))  # exit sign
+    rect(d, px + 6, well + 6, 4, 3, (210, 250, 220))
 
 
 # ------------------------------------------------------------ hypermarket
@@ -2104,7 +2124,11 @@ def main() -> None:
          NORTH_OUTPUT)
     bake(Level(read_rows("harbour-rows"), HARBOUR_STOREFRONTS, old_town=True),
          random.Random(1071), HARBOUR_OUTPUT)
-    bake(Level(read_rows("mall-north-rows")), random.Random(2611),
+    mall_north_rows = read_rows("mall-north-rows")
+    # South of the car park there is one building, the back of the
+    # hypermarket: its roof starts at the row the fire door stands in.
+    rear = next(y for y, row in enumerate(mall_north_rows) if "j" in row)
+    bake(Level(mall_north_rows, one_roof=rear), random.Random(2611),
          MALL_NORTH_OUTPUT)
 
 
