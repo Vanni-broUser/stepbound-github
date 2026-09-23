@@ -1,5 +1,5 @@
 build_android_signed:
-  stage: package
+  stage: build
   tags:
     - stepbound-local-android
   interruptible: false
@@ -40,7 +40,7 @@ build_android_signed:
     expire_in: 1 month
 
 check_macos_runner:
-  stage: package
+  stage: build
   tags:
     - stepbound-local-macos
   needs: []
@@ -56,7 +56,7 @@ check_macos_runner:
     - flutter doctor -v
 
 build_ios_signed:
-  stage: package
+  stage: build
   tags:
     - stepbound-local-macos
   interruptible: false

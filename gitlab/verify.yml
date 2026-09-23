@@ -3,7 +3,8 @@ analyze:
   stage: verify
   needs: []
   script:
-    - dart format --output=none --set-exit-if-changed lib test
+    - dart run tools/generate_balance.dart --check
+    - dart format --output=none --set-exit-if-changed lib test tools
     - flutter analyze --fatal-infos --fatal-warnings
 
 unit_tests:

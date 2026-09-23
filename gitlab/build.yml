@@ -1,14 +1,3 @@
-build_web:
-  extends: .flutter_3_44_2
-  stage: build
-  script:
-    - flutter build web --release --build-number="$CI_PIPELINE_IID"
-  artifacts:
-    name: "stepbound-web-$CI_COMMIT_SHORT_SHA"
-    paths:
-      - build/web/
-    expire_in: 1 week
-
 build_android_debug:
   extends: .flutter_3_44_2
   stage: build

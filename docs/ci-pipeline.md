@@ -4,15 +4,23 @@ Stepbound usa la stessa impostazione di base di Delivery: una sola pipeline per
 commit/MR, cache limitata a `.pub-cache`, job interrompibili e configurazione
 suddivisa per responsabilita in `gitlab/`.
 
+Gli stage sono due: `verify`, che blocca, e `build`, dove stanno tutti i job
+che producono un pacchetto. Sono tutti manuali e non dipendono l'uno
+dall'altro, quindi tenerli separati in due stage serviva solo a metterli in
+fila.
+
 ## Verifiche e build
 
 - `analyze`: format e analisi statica bloccanti.
 - `unit_tests`: JUnit, LCOV e soglia iniziale di copertura al 75%.
 - `deps_check`: dipendenze obsolete, informativo.
-- `build_web`: build release automatica conservata per una settimana.
 - `build_android_debug`: APK debug installabile, manuale e non bloccante.
 - `build_android_signed` / `build_ios_signed`: pacchetti release manuali solo su ref
   protette e su runner dedicati.
+
+Il web non ha un job: non distribuiamo il gioco sul browser, lo usiamo solo
+per provarlo in locale con `flutter build web` o `flutter run -d chrome`, e
+`analyze` piu i test coprono gia gli errori di compilazione.
 
 ## Firma Android
 

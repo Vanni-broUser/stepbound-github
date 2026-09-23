@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:stepbound/core/entities/components.dart';
 import 'package:stepbound/core/entities/entity.dart';
 import 'package:stepbound/core/grid/grid_point.dart';
@@ -49,17 +51,21 @@ final class WorldState {
   }) : controls = Map<GridPoint, GridRect>.of(controls),
        portals = Map<GridPoint, Portal>.unmodifiable(portals),
        campfires = Set<GridPoint>.unmodifiable(campfires),
-       entities = <String, Entity>{
+       _entities = <String, Entity>{
          for (final entity in entities) entity.id: entity,
        },
-       pickups = <String, Pickup>{
+       _pickups = <String, Pickup>{
          for (final pickup in pickups) pickup.id: pickup,
        },
        alertTriggers = Map<String, GridRect>.of(alertTriggers),
        _pendingNoises = List<NoisePulse>.of(pendingNoises),
        _events = List<WorldEvent>.of(events) {
-    if (!this.entities.containsKey(playerId)) {
+    if (!_entities.containsKey(playerId)) {
       throw ArgumentError('The world must contain player $playerId.');
+    }
+    _entities.values.forEach(_index);
+    for (final pickup in _pickups.values) {
+      _add(_pickupsByPoint, pickup.position, pickup.id);
     }
   }
 
@@ -118,10 +124,30 @@ final class WorldState {
   }
 
   final TileMap map;
-  final Map<String, Entity> entities;
+  final Map<String, Entity> _entities;
+  final Map<String, Pickup> _pickups;
 
-  /// Backpacks lying on the map, by id.
-  final Map<String, Pickup> pickups;
+  /// Who is on each tile, the dead included: the queries below filter them
+  /// out. [PositionComponent.onMoved] keeps this in step, so moving
+  /// somebody by writing their position is enough — no call site has to
+  /// remember the index.
+  final Map<GridPoint, List<String>> _entitiesByPoint =
+      <GridPoint, List<String>>{};
+
+  /// The same for backpacks, which never move: only [Pickup.active] does.
+  final Map<GridPoint, List<String>> _pickupsByPoint =
+      <GridPoint, List<String>>{};
+
+  /// Everyone in the world, by id. Read-only: [addEntity] is how somebody
+  /// joins, so the tile index hears about it.
+  late final Map<String, Entity> entities = UnmodifiableMapView<String, Entity>(
+    _entities,
+  );
+
+  /// Backpacks lying on the map, by id. Read-only, like [entities].
+  late final Map<String, Pickup> pickups = UnmodifiableMapView<String, Pickup>(
+    _pickups,
+  );
 
   /// Zombies that notice the player as soon as they step into the area,
   /// whatever the zombie is facing. Each trigger fires once.
@@ -141,14 +167,27 @@ final class WorldState {
   final List<WorldEvent> _events;
   int tick;
 
-  Entity get player => entities[playerId]!;
+  Entity get player => _entities[playerId]!;
+
+  /// Adds [entity], or replaces whoever already had its id: the tutorial
+  /// raises zombies in the middle of a game.
+  void addEntity(Entity entity) {
+    final previous = _entities[entity.id];
+    if (previous != null) {
+      final position = previous.component<PositionComponent>()..onMoved = null;
+      _remove(_entitiesByPoint, position.position, previous.id);
+    }
+    _entities[entity.id] = entity;
+    _index(entity);
+  }
 
   Entity? entityAt(GridPoint point, {String? excluding}) {
-    for (final entity in entities.values) {
-      if (entity.id == excluding || !entity.isAlive) {
+    for (final id in _entitiesByPoint[point] ?? const <String>[]) {
+      if (id == excluding) {
         continue;
       }
-      if (entity.component<PositionComponent>().position == point) {
+      final entity = _entities[id]!;
+      if (entity.isAlive) {
         return entity;
       }
     }
@@ -156,12 +195,58 @@ final class WorldState {
   }
 
   Pickup? pickupAt(GridPoint point) {
-    for (final pickup in pickups.values) {
-      if (pickup.active && pickup.position == point) {
+    for (final id in _pickupsByPoint[point] ?? const <String>[]) {
+      final pickup = _pickups[id]!;
+      if (pickup.active) {
         return pickup;
       }
     }
     return null;
+  }
+
+  /// Whether something stands in the way of [point]: somebody alive who is
+  /// not [excluding], or a backpack still on the ground. The pathfinder
+  /// asks this tile by tile instead of being handed [occupiedPoints], which
+  /// it used to rebuild for every zombie of every tick.
+  bool isBlocked(GridPoint point, {String? excluding}) {
+    for (final id in _entitiesByPoint[point] ?? const <String>[]) {
+      if (id != excluding && _entities[id]!.isAlive) {
+        return true;
+      }
+    }
+    return pickupAt(point) != null;
+  }
+
+  void _index(Entity entity) {
+    final position = entity.component<PositionComponent>();
+    _add(_entitiesByPoint, position.position, entity.id);
+    position.onMoved = (from, to) {
+      _remove(_entitiesByPoint, from, entity.id);
+      _add(_entitiesByPoint, to, entity.id);
+    };
+  }
+
+  static void _add(
+    Map<GridPoint, List<String>> index,
+    GridPoint point,
+    String id,
+  ) {
+    (index[point] ??= <String>[]).add(id);
+  }
+
+  static void _remove(
+    Map<GridPoint, List<String>> index,
+    GridPoint point,
+    String id,
+  ) {
+    final ids = index[point];
+    if (ids == null) {
+      return;
+    }
+    ids.remove(id);
+    if (ids.isEmpty) {
+      index.remove(point);
+    }
   }
 
   /// Tiles (Manhattan) around the player within which actors take turns.
@@ -171,7 +256,7 @@ final class WorldState {
     int radius = simulationRadius,
   }) sync* {
     final playerPosition = player.component<PositionComponent>().position;
-    for (final entity in entities.values) {
+    for (final entity in _entities.values) {
       if (entity.kind == EntityKind.player || !entity.isAlive) {
         continue;
       }
@@ -182,12 +267,14 @@ final class WorldState {
     }
   }
 
+  /// Every tile taken, in one set. The scripts use it to pick a free tile
+  /// to raise a zombie on; the pathfinder uses [isBlocked] instead.
   Set<GridPoint> occupiedPoints({String? excluding}) {
     return <GridPoint>{
-      for (final entity in entities.values)
+      for (final entity in _entities.values)
         if (entity.id != excluding && entity.isAlive)
           entity.component<PositionComponent>().position,
-      for (final pickup in pickups.values)
+      for (final pickup in _pickups.values)
         if (pickup.active) pickup.position,
     };
   }
@@ -233,7 +320,7 @@ final class WorldState {
     required int amount,
     required String sourceEntityId,
   }) {
-    final entity = entities[entityId]!;
+    final entity = _entities[entityId]!;
     final health = entity.component<HealthComponent>();
     if (!health.isAlive) {
       return;
@@ -255,13 +342,13 @@ final class WorldState {
   /// known level only stores how its map differs from the level's.
   Map<String, Object?> toJson({bool includeMap = true}) => <String, Object?>{
     if (includeMap) 'map': map.toJson(),
-    'entities': entities.values.map((entity) => entity.toJson()).toList(),
+    'entities': _entities.values.map((entity) => entity.toJson()).toList(),
     'playerId': playerId,
     'randomState': random.state,
     'tick': tick,
     'pendingNoises': _pendingNoises.map((noise) => noise.toJson()).toList(),
     'events': _events.map((event) => event.toJson()).toList(),
-    'pickups': pickups.values.map((pickup) => pickup.toJson()).toList(),
+    'pickups': _pickups.values.map((pickup) => pickup.toJson()).toList(),
     'alertTriggers': <String, Object?>{
       for (final entry in alertTriggers.entries)
         entry.key: entry.value.toJson(),
