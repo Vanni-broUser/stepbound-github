@@ -12,6 +12,7 @@ final class SaveGame {
     required this.tutorial,
     required this.progress,
     required this.hud,
+    this.played = Duration.zero,
   });
 
   factory SaveGame.fromJson(Map<String, Object?> json) {
@@ -26,12 +27,13 @@ final class SaveGame {
       tutorial: json['tutorial']! as Map<String, Object?>,
       progress: json['progress']! as Map<String, Object?>,
       hud: (json['hud']! as List<Object?>).cast<String>(),
+      played: Duration(seconds: json['played']! as int),
     );
   }
 
   /// A save of any other format reads as an empty slot. Bump it whenever
   /// what a save holds changes: old saves are dropped, never migrated.
-  static const int format = 11;
+  static const int format = 12;
 
   /// 1 to [SaveRepository.slotCount].
   final int slot;
@@ -52,6 +54,13 @@ final class SaveGame {
   /// Names of the unlocked touch controls.
   final List<String> hud;
 
+  /// How long this game has been played, counting from the very start
+  /// of it. It is the one thing starting the level over at a camp does
+  /// not throw away, and it only moves while the game is in front: a
+  /// phone in a pocket is not play. Like everything else here it is
+  /// only as fresh as the last save.
+  final Duration played;
+
   SaveGame copyWith({int? slot}) => SaveGame(
     slot: slot ?? this.slot,
     savedAt: savedAt,
@@ -60,6 +69,7 @@ final class SaveGame {
     tutorial: tutorial,
     progress: progress,
     hud: hud,
+    played: played,
   );
 
   Map<String, Object?> toJson() => <String, Object?>{
@@ -71,6 +81,7 @@ final class SaveGame {
     'tutorial': tutorial,
     'progress': progress,
     'hud': hud,
+    'played': played.inSeconds,
   };
 }
 

@@ -1001,7 +1001,7 @@ void main() {
     final camp = world.campfires.firstWhere(
       place(PlaceId.northDistrict).bounds.contains,
     );
-    expect(campfireNames[camp], 'Accampamento dietro la caserma');
+    expect(campfireNames[camp], 'Dietro la caserma');
     expect(world.map.tileAt(camp).isWalkable, isFalse);
     world.player.component<PositionComponent>()
       ..position = camp.step(Direction.west)
@@ -1097,10 +1097,10 @@ void main() {
       final world = createTutorialWorld();
       final first = campIn(world, PlaceId.northDistrict);
       final second = campIn(world, PlaceId.mallNorthStreet);
-      expect(campfireNames[first], 'Accampamento dietro la caserma');
+      expect(campfireNames[first], 'Dietro la caserma');
       expect(
         campfireNames[second],
-        'Accampamento dietro il centro commerciale',
+        'Zona nord',
         reason: 'the two camps are told apart in the save slots',
       );
 

@@ -157,8 +157,8 @@ const GridRect barracksForecourt = GridRect(13, 7, 19, 8);
 /// glyph is `S` everywhere, so the place it burns in gives it its name;
 /// each of them has one.
 const Map<PlaceId, String> _campNames = <PlaceId, String>{
-  PlaceId.northDistrict: 'Accampamento dietro la caserma',
-  PlaceId.mallNorthStreet: 'Accampamento dietro il centro commerciale',
+  PlaceId.northDistrict: 'Dietro la caserma',
+  PlaceId.mallNorthStreet: 'Zona nord',
 };
 
 /// Campfires, by tile, with the name shown in the save slots.
