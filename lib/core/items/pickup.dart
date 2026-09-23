@@ -10,6 +10,7 @@ final class Pickup {
     required this.position,
     this.ammo = 0,
     this.gun = false,
+    this.incense = false,
     this.active = true,
     this.collected = false,
   });
@@ -20,6 +21,7 @@ final class Pickup {
       position: GridPoint.fromJson(json['position']! as Map<String, Object?>),
       ammo: json['ammo']! as int,
       gun: json['gun']! as bool,
+      incense: json['incense']! as bool,
       active: json['active']! as bool,
       collected: json['collected'] as bool? ?? false,
     );
@@ -29,6 +31,10 @@ final class Pickup {
   final GridPoint position;
   final int ammo;
   final bool gun;
+
+  /// The censer's worth of incense Don Angelo asked for: there is one
+  /// such backpack, in San Nicola.
+  final bool incense;
 
   /// False while hidden by a script and after it has been collected.
   bool active;
@@ -40,6 +46,7 @@ final class Pickup {
     'position': position.toJson(),
     'ammo': ammo,
     'gun': gun,
+    'incense': incense,
     'active': active,
     'collected': collected,
   };

@@ -97,6 +97,10 @@ memoryScenes = <StoryMemory, List<StoryScene>>{
     for (final frame in PriestScript.dealScene)
       StoryScene(image: frame.image, speaker: frame.speaker, text: frame.text),
   ],
+  StoryMemory.luigiAtStation: <StoryScene>[
+    for (final frame in StationScript.reunionScene)
+      StoryScene(image: frame.image, speaker: frame.speaker, text: frame.text),
+  ],
 };
 
 enum _CampPage { home, zombies }

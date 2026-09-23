@@ -381,6 +381,7 @@ final class PickedUpEvent extends WorldEvent {
     required this.at,
     required this.ammo,
     required this.gun,
+    this.incense = false,
   });
 
   factory PickedUpEvent.fromJson(Map<String, Object?> json) {
@@ -389,6 +390,7 @@ final class PickedUpEvent extends WorldEvent {
       at: GridPoint.fromJson(json['at']! as Map<String, Object?>),
       ammo: json['ammo']! as int,
       gun: json['gun']! as bool,
+      incense: json['incense']! as bool,
     );
   }
 
@@ -396,10 +398,12 @@ final class PickedUpEvent extends WorldEvent {
   final GridPoint at;
   final int ammo;
   final bool gun;
+  final bool incense;
 
   @override
   String get description =>
-      'player picks up $pickupId: $ammo rounds${gun ? ' and a pistol' : ''}';
+      'player picks up $pickupId: $ammo rounds'
+      '${gun ? ' and a pistol' : ''}${incense ? ' and the incense' : ''}';
 
   @override
   Map<String, Object?> toJson() => <String, Object?>{
@@ -408,6 +412,7 @@ final class PickedUpEvent extends WorldEvent {
     'at': at.toJson(),
     'ammo': ammo,
     'gun': gun,
+    'incense': incense,
   };
 }
 

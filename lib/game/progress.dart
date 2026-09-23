@@ -11,6 +11,7 @@ enum StoryMemory {
   luigiRescued,
   priestMet,
   priestErrand,
+  luigiAtStation,
 }
 
 /// What the player has come to know over the whole game: the zombie types

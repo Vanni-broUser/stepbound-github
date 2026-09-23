@@ -91,13 +91,18 @@ void main() {
     }
   }
 
-  PickedUpEvent pickedUp(String id, {int ammo = 0, bool gun = false}) =>
-      PickedUpEvent(
-        pickupId: id,
-        at: world.pickups[id]!.position,
-        ammo: ammo,
-        gun: gun,
-      );
+  PickedUpEvent pickedUp(
+    String id, {
+    int ammo = 0,
+    bool gun = false,
+    bool incense = false,
+  }) => PickedUpEvent(
+    pickupId: id,
+    at: world.pickups[id]!.position,
+    ammo: ammo,
+    gun: gun,
+    incense: incense,
+  );
 
   setUp(() {
     world = createTutorialWorld();
@@ -304,6 +309,24 @@ void main() {
     director.onEvents(<WorldEvent>[pickedUp(accidentBackpackId, ammo: 4)]);
     settle();
     expect(host.shown.last.single.text, 'Hai trovato 4 proiettili');
+  });
+
+  test('the incense says so and hangs the censer on the HUD', () {
+    director.onEvents(<WorldEvent>[pickedUp(incenseBackpackId, incense: true)]);
+    settle();
+    expect(host.pickupAnimations, 1);
+    expect(host.shown.last.single.text, BackpacksScript.incenseFound);
+    expect(
+      host.unlocked,
+      contains(HudElement.incense),
+      reason: 'the badge goes up with the news, not after it',
+    );
+    host.dismiss();
+    expect(
+      host.unlocked,
+      isNot(contains(HudElement.ammo)),
+      reason: 'the backpack held no rounds to count',
+    );
   });
 
   test('the pistol unlocks shooting', () {
@@ -596,6 +619,58 @@ void main() {
       expect(host.luigiSent, 0);
       host.dismiss();
       expect(host.luigiSent, 1);
+    });
+  });
+
+  group('station', () {
+    /// The far platform, in front of the train Luigi is waiting in.
+    GridPoint onTheFarPlatform() => GridPoint(
+      (stationPlatform.left + stationPlatform.right) ~/ 2,
+      stationPlatform.bottom,
+    );
+
+    test('coming up onto the far platform plays the meeting with Luigi', () {
+      world.player.component<PositionComponent>().position = onTheFarPlatform();
+      settle();
+      expect(host.shown, isEmpty, reason: 'the picture comes first');
+      final frame = host.cutscenes.single.single;
+      expect(frame.speaker, StationScript.luigi);
+      expect(frame.text, "Eccoti ragazzo, ce l'hai fatta finalmente!");
+      expect(frame.image, StationScript.platformScene);
+      expect(progress.memories, contains(StoryMemory.luigiAtStation));
+
+      host.onCutsceneFinished?.call();
+      settle();
+      expect(
+        host.cutscenes,
+        hasLength(1),
+        reason: 'walking the platform again does not play it twice',
+      );
+    });
+
+    test('nothing plays anywhere short of that platform', () {
+      world.player.component<PositionComponent>().position = place(
+        PlaceId.station,
+      ).doorRow('E').first;
+      settle();
+      expect(host.cutscenes, isEmpty);
+      expect(progress.memories, isEmpty);
+    });
+
+    test('a save taken after it does not play it again on the way back', () {
+      world.player.component<PositionComponent>().position = onTheFarPlatform();
+      settle();
+      expect(host.cutscenes, hasLength(1));
+
+      final resumed = TutorialDirector(
+        world: world,
+        host: host,
+        progress: progress,
+      )..restore(director.toJson());
+      for (var i = 0; i < 20; i++) {
+        resumed.update(0.1, turnAnimating: false);
+      }
+      expect(host.cutscenes, hasLength(1));
     });
   });
 

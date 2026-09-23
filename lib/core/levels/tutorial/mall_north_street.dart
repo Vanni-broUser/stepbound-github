@@ -36,17 +36,17 @@
 /// forecourt, stands the station: a low provincial building of the kind
 /// the south is full of, a long body of round-arched openings under a
 /// raised middle bay with the clock and the town's name on it. Its two
-/// doorways stand open. Nothing is built behind them yet -- the ticket
-/// hall is a place of its own still to come -- so for now they are the
-/// threshold and no further.
+/// doorways stand open, and each one goes in: the west one `(` into the
+/// booking hall and its platform, the east one `)` into the far end of
+/// the hall, cut off from the first by the fall (see station.dart).
 ///
 /// New glyphs, on top of the outdoor legend in street.dart: `g` grass,
 /// floor; `p` broken playground equipment and `^` the park railing,
 /// obstacles you can see over; `<` a gate in that railing, floor; `;` a
 /// heap of rubbish too deep to step on, an obstacle, with `:` the rubbish
 /// spilled around it, walkable but noisy; `0` the station building, a
-/// wall, and `(` its open doorways, floor; `j` the fire door in the rear
-/// wall, stepped onto to go back inside, floor.
+/// wall, with `(` and `)` its two open doorways, floor; `j` the fire door
+/// in the rear wall, stepped onto to go back inside, floor.
 // mall-north-rows-start
 const List<String> mallNorthStreetRows = <String>[
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB000000000000000000',
@@ -54,7 +54,7 @@ const List<String> mallNorthStreetRows = <String>[
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB000000000000000000',
   'HHHHHHHHHfHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH000000000000000000',
   'HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHfHHHHHHHHHHHHHHHHHHHHHH000000000000000000',
-  'HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH00((000000((000000',
+  'HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH00((000000))000000',
   'CC/===================F============:=============/=====TPPPPPPP:PPPPPPPBBB',
   '.UU.........CC...........:........................Z....=PPPPPCCPPPPPCCPBBB',
   'CC----------------------------------------------..Z....=PPPPPPPPPPPPPPPBBB',

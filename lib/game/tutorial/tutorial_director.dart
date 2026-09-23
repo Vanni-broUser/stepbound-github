@@ -5,6 +5,7 @@ import 'package:stepbound/game/tutorial/scripts/barracks_script.dart';
 import 'package:stepbound/game/tutorial/scripts/mall_script.dart';
 import 'package:stepbound/game/tutorial/scripts/north_district_script.dart';
 import 'package:stepbound/game/tutorial/scripts/priest_script.dart';
+import 'package:stepbound/game/tutorial/scripts/station_script.dart';
 import 'package:stepbound/game/tutorial/scripts/street_script.dart';
 
 export 'package:stepbound/game/tutorial/scripts/backpacks_script.dart';
@@ -12,6 +13,7 @@ export 'package:stepbound/game/tutorial/scripts/barracks_script.dart';
 export 'package:stepbound/game/tutorial/scripts/mall_script.dart';
 export 'package:stepbound/game/tutorial/scripts/north_district_script.dart';
 export 'package:stepbound/game/tutorial/scripts/priest_script.dart';
+export 'package:stepbound/game/tutorial/scripts/station_script.dart';
 export 'package:stepbound/game/tutorial/scripts/street_script.dart';
 
 /// A line shown in the dialogue box over the gameplay.
@@ -51,9 +53,11 @@ final class CutsceneFrame {
   final String text;
 }
 
-/// Touch controls that the tutorial unlocks one at a time. The arrows are
-/// always there.
-enum HudElement { interact, ammo, shoot }
+/// What the tutorial puts on the HUD, one at a time: the three action
+/// buttons, and [incense], which is no button at all but the censer badge
+/// in the corner, up for good once the incense is in the backpack. The
+/// arrows are always there.
+enum HudElement { interact, ammo, shoot, incense }
 
 /// What the director needs from the game.
 abstract interface class TutorialHost {
@@ -140,8 +144,8 @@ abstract class TutorialScript {
 
 /// Runs the tutorial's scripts and shows their prompts one after the
 /// other: the backpacks, the first street, the barracks, the north
-/// district, the hypermarket and the Duomo. It records what the player
-/// comes to know in [progress].
+/// district, the hypermarket, the Duomo and the station. It records what
+/// the player comes to know in [progress].
 final class TutorialDirector {
   TutorialDirector({
     required this.world,
@@ -155,6 +159,7 @@ final class TutorialDirector {
       NorthDistrictScript(this),
       MallScript(this),
       PriestScript(this),
+      StationScript(this),
     ];
   }
 

@@ -1303,13 +1303,21 @@ def paint_small_church(d, rng, level):
         rect(d, cx + round(5 * math.cos(a)), rose_y + round(5 * math.sin(a)),
              1, 1, DUOMO_SHADE)
 
-    # the portal, and the steps worn down to the square
+    # The portal, standing open on the dark of the nave: both leaves are
+    # folded back against the jambs, and the daylight falling through lies
+    # in a wedge across the worn steps -- the church of San Nicola can be
+    # walked into, unlike the Duomo behind its gate.
     door_w = 16
-    _arch_window(d, cx - door_w // 2, bottom - 26, door_w, 26)
-    rect(d, cx - door_w // 2, bottom - 14, door_w, 14, DOOR_GREEN)
-    rect(d, cx - 1, bottom - 14, 2, 14, shade(DOOR_GREEN, -20))
+    dx = cx - door_w // 2
+    _arch_window(d, dx, bottom - 26, door_w, 26)
+    rect(d, dx, bottom - 21, door_w, 21, (16, 14, 18))
+    for leaf in (dx, dx + door_w - 4):
+        rect(d, leaf, bottom - 19, 4, 19, DOOR_GREEN)
+        rect(d, leaf + 1, bottom - 18, 2, 17, shade(DOOR_GREEN, 18))
+        rect(d, leaf, bottom - 19, 4, 1, shade(DOOR_GREEN, -20))
     for i, sy in enumerate((bottom - 4, bottom - 2)):
         rect(d, cx - door_w, sy, door_w * 2, 2, shade(DUOMO_STONE, -8 * i))
+    rect(d, dx + 4, bottom - 4, door_w - 8, 4, shade(DUOMO_STONE, 22))
 
     # the bell gable on the west corner, a bell hanging in its arch
     bx, by = x0, y0 + 8
@@ -1786,9 +1794,9 @@ def paint_station(d, rng, level):
     """The station at the top of the block, `0`: the low provincial kind
     the south is full of, a long body of round-arched openings between
     pilasters, a cornice over them, and a raised middle bay carrying the
-    clock and the name. The two openings the map marks `(` are the doors,
-    standing open on the dark of the booking hall; the rest are windows,
-    their glass mostly gone."""
+    clock and the name. The two openings the map marks `(` and `)` are the
+    doors, standing open on the dark of the booking hall, and each one goes
+    somewhere; the rest are windows, their glass mostly gone."""
     cells = [(x, y) for y in range(level.height) for x in range(level.width)
              if level.at(x, y) == "0"]
     if not cells:
@@ -1829,7 +1837,7 @@ def paint_station(d, rng, level):
         sx = ax * TILE + 4
         rect(d, sx - 4, py + 13, 4, h - 16, wall_dark)  # the pilaster beside it
         rect(d, sx - 4, py + 13, 1, h - 16, trim)
-        if level.at(ax, y1) == "(":
+        if level.at(ax, y1) in "()":
             _station_arch(d, sx, ground - 36, 24, 36, trim, hole)
             rect(d, sx + 2, ground - 18, 20, 18, (14, 14, 16))  # the hall
             rect(d, sx, ground - 3, 24, 3, (176, 170, 158))  # its worn step

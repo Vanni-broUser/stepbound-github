@@ -13,6 +13,10 @@ void main() {
       mallGroundRows,
       mallFirstRows,
       mallNorthStreetRows,
+      churchRows,
+      stationRows,
+      stationUnderpassRows,
+      stationFarSideRows,
     ]) {
       final width = rows.first.length;
       expect(rows.every((row) => row.length == width), isTrue);
@@ -94,12 +98,7 @@ void main() {
       hasLength(3),
       reason: 'one gate north of the park, two south',
     );
-    final doors = <GridPoint>[
-      for (var y = 0; y < street.height; y++)
-        for (var x = 0; x < street.width; x++)
-          if (mallNorthStreetRows[y][x] == '(')
-            GridPoint(street.origin.x + x, street.origin.y + y),
-    ];
+    final doors = <GridPoint>[...stationWestDoor, ...stationEastDoor];
     expect(doors, hasLength(4), reason: 'two doorways, two tiles wide each');
     for (final way in <GridPoint>[...gates, ...doors]) {
       expect(
@@ -895,6 +894,278 @@ void main() {
         isFalse,
         reason: 'the promenade beyond the sidewalk is already too far',
       );
+    });
+  });
+
+  group('San Nicola', () {
+    final church = place(PlaceId.church);
+
+    test('its portal stands open on the church square and goes both ways', () {
+      final world = createTutorialWorld();
+      // The portal is a hole in the bottom row of the church's own block,
+      // with the paving of its little square under it.
+      expect(
+        harbourRows[churchPortalTile.y -
+            place(PlaceId.harbour).origin.y][churchPortalTile.x -
+            place(PlaceId.harbour).origin.x],
+        '(',
+      );
+      expect(world.map.tileAt(churchPortalTile).isWalkable, isTrue);
+      expect(
+        world.map.tileAt(churchPortalTile.step(Direction.north)).isWalkable,
+        isFalse,
+        reason: 'the front of the church stands over its own door',
+      );
+
+      final square = churchPortalTile.step(Direction.south);
+      world.player.component<PositionComponent>().position = square;
+      var events = const TurnScheduler().advance(
+        world,
+        const MoveAction(Direction.north),
+      );
+      expect(events.whereType<TeleportedEvent>(), hasLength(1));
+      final inside = world.player.component<PositionComponent>().position;
+      expect(church.bounds.contains(inside), isTrue);
+
+      events = const TurnScheduler().advance(
+        world,
+        const MoveAction(Direction.south),
+      );
+      expect(events.whereType<TeleportedEvent>(), hasLength(1));
+      expect(world.player.component<PositionComponent>().position, square);
+    });
+
+    test('the nave is lit only by the portal and the holes in its roof', () {
+      expect(church.indoor, isTrue);
+      expect(
+        church.lights,
+        hasLength(church.tilesOf('^').length + 1),
+        reason: 'no lamp burns in it: the daylight is all there is',
+      );
+      expect(church.lights.every((light) => !light.flickers), isTrue);
+    });
+
+    test('the backpack by the east wall holds the incense, and nothing '
+        'else in the game does', () {
+      final world = createTutorialWorld();
+      final backpack = world.pickups[incenseBackpackId]!;
+      expect(church.bounds.contains(backpack.position), isTrue);
+      expect(backpack.ammo, 0);
+      expect(backpack.gun, isFalse);
+      expect(
+        world.pickups.values.where((pickup) => pickup.incense),
+        hasLength(1),
+      );
+
+      world.player.component<PositionComponent>()
+        ..position = backpack.position.step(Direction.south)
+        ..facing = Direction.north;
+      final events = const TurnScheduler().advance(
+        world,
+        const InteractAction(),
+      );
+      final pickedUp = events.whereType<PickedUpEvent>().single;
+      expect(pickedUp.incense, isTrue);
+      expect(pickedUp.ammo, 0);
+      expect(backpack.collected, isTrue);
+    });
+  });
+
+  group('station', () {
+    final station = place(PlaceId.station);
+    final underpass = place(PlaceId.stationUnderpass);
+    final farSide = place(PlaceId.stationFarSide);
+
+    /// Everywhere reachable from [start] without leaving its place.
+    Map<GridPoint, int> from(WorldState world, GridPoint start, Place place) =>
+        world.map.floodFillDistances(
+          start,
+          maxDistance: place.width * place.height,
+        );
+
+    test('the two doorways land in two corners of the hall with no way '
+        'between them', () {
+      final world = createTutorialWorld();
+      final west = world.portals[stationWestDoor.first]!.to;
+      final east = world.portals[stationEastDoor.first]!.to;
+      expect(station.bounds.contains(west), isTrue);
+      expect(station.bounds.contains(east), isTrue);
+
+      final fromWest = from(world, west, station);
+      expect(
+        fromWest.containsKey(east),
+        isFalse,
+        reason: 'the fall between them closes the hall',
+      );
+      expect(
+        from(world, east, station).containsKey(west),
+        isFalse,
+        reason: 'and closes it from the other side too',
+      );
+      for (final tile in fromWest.keys) {
+        expect(
+          station.bounds.contains(tile),
+          isTrue,
+          reason: 'nothing walkable leaves the station',
+        );
+      }
+    });
+
+    test('the west doorway reaches the tracks, the train shuts them, and '
+        'the two rounds are at the dead end', () {
+      final world = createTutorialWorld();
+      final reached = from(
+        world,
+        world.portals[stationWestDoor.first]!.to,
+        station,
+      );
+      final rails = station.tilesOf('-');
+      expect(
+        rails.where(reached.containsKey),
+        isNotEmpty,
+        reason: 'the platform lets Mario down onto the track',
+      );
+
+      final backpack = world.pickups[stationBackpackId]!;
+      expect(backpack.ammo, stationBackpackAmmo);
+      expect(
+        reached.containsKey(backpack.position.step(Direction.west)),
+        isTrue,
+        reason: 'it can be reached, and taken from the tile beside it',
+      );
+
+      // Nothing east of the two wrecks is walked to: the railcar closes
+      // the near track and the coach on its side the far one.
+      final wrecks = <GridPoint>[
+        ...station.tilesOf('M'),
+        ...station.tilesOf('m'),
+      ];
+      final wreckLeft = wrecks
+          .map((tile) => tile.x)
+          .reduce((a, b) => a < b ? a : b);
+      for (final tile in reached.keys) {
+        expect(
+          tile.x,
+          lessThanOrEqualTo(wreckLeft + 1),
+          reason: 'the wrecks are as far east as the tracks go',
+        );
+      }
+      for (final wreck in wrecks) {
+        expect(world.map.tileAt(wreck).isWalkable, isFalse);
+      }
+      expect(
+        station
+            .tilesOf('M')
+            .every((tile) => world.map.tileAt(tile).blocksSight),
+        isTrue,
+        reason: 'the railcar is a wall, not something to shoot over',
+      );
+      expect(
+        station
+            .tilesOf('m')
+            .every((tile) => !world.map.tileAt(tile).blocksSight),
+        isTrue,
+        reason: 'the coach is down on its side: you see over it',
+      );
+    });
+
+    test('the east doorway reaches the stairs, and the underpass comes up '
+        'on the far platform', () {
+      final world = createTutorialWorld();
+      final reached = from(
+        world,
+        world.portals[stationEastDoor.first]!.to,
+        station,
+      );
+      final down = station.doorRow('U');
+      expect(down, hasLength(2));
+      expect(
+        down.every(reached.containsKey),
+        isTrue,
+        reason: "the flight down is on the far doorway's side of the fall",
+      );
+
+      GridPoint through(GridPoint step, Direction facing) {
+        world.player.component<PositionComponent>().position = step.step(
+          facing.opposite,
+        );
+        final events = const TurnScheduler().advance(world, MoveAction(facing));
+        expect(events.whereType<TeleportedEvent>(), hasLength(1));
+        return world.player.component<PositionComponent>().position;
+      }
+
+      final corridor = through(down.first, Direction.north);
+      expect(underpass.bounds.contains(corridor), isTrue);
+      expect(
+        underpass.height,
+        lessThan(station.height ~/ 2),
+        reason: 'a thin corridor, not a room',
+      );
+
+      final up = underpass.doorRow('U');
+      final onward = from(world, corridor, underpass);
+      expect(
+        up.every(onward.containsKey),
+        isTrue,
+        reason: 'the corridor runs from one flight straight to the other',
+      );
+
+      final platform = through(up.first, Direction.north);
+      expect(farSide.bounds.contains(platform), isTrue);
+      expect(
+        stationPlatform.contains(platform),
+        isTrue,
+        reason: 'you come up onto the platform Luigi is waiting on',
+      );
+    });
+
+    test('the far platform is one clear walk in front of the whole train', () {
+      final world = createTutorialWorld();
+      final reached = from(world, farSide.doorRow('D').first, farSide);
+      final train = farSide.tilesOf('M');
+      expect(train, isNotEmpty);
+      for (final tile in train) {
+        expect(world.map.tileAt(tile).isWalkable, isFalse);
+        expect(
+          stationPlatform.contains(tile),
+          isFalse,
+          reason: 'the train stands on the rails, not on the platform',
+        );
+      }
+      // Every walkable tile of the platform is both reachable and inside
+      // the trigger, so there is no slipping past Luigi.
+      for (var y = stationPlatform.top; y <= stationPlatform.bottom; y++) {
+        for (var x = stationPlatform.left; x <= stationPlatform.right; x++) {
+          final tile = GridPoint(x, y);
+          if (!world.map.tileAt(tile).isWalkable) {
+            continue;
+          }
+          expect(reached.containsKey(tile), isTrue, reason: '$tile');
+        }
+      }
+    });
+
+    test('two wanderers wait in the booking hall and one in the church', () {
+      final world = createTutorialWorld();
+      final indoors = world.entities.values
+          .where((entity) => entity.id.startsWith(indoorZombiePrefix))
+          .toList();
+      expect(indoors, hasLength(station.tilesOf('Z').length + 2));
+      expect(
+        indoors.every(
+          (zombie) => zombie.component<HealthComponent>().current > 0,
+        ),
+        isTrue,
+      );
+      for (final zombie in indoors) {
+        final at = zombie.component<PositionComponent>().position;
+        expect(world.map.tileAt(at).isWalkable, isTrue);
+        expect(
+          station.bounds.contains(at) ||
+              place(PlaceId.church).bounds.contains(at),
+          isTrue,
+        );
+      }
     });
   });
 
