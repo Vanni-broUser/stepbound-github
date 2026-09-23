@@ -245,11 +245,13 @@ class Level:
         floor = self._floor(glyph)
         if floor is not None:
             return floor
-        sides = {side for side in (self._floor_along(x, y, -1),
-                                   self._floor_along(x, y, 1))
-                 if side is not None}
-        if len(sides) == 1:
-            return sides.pop()
+        west = self._floor_along(x, y, -1)
+        east = self._floor_along(x, y, 1)
+        if west == east or east is None:
+            if west is not None:
+                return west
+        elif west is None:
+            return east
         votes = {"=": 0, ".": 0, "P": 0, "L": 0, "Y": 0, ",": 0}
         for dx in (-1, 0, 1):
             for dy in (-1, 0, 1):
@@ -260,7 +262,10 @@ class Level:
                     votes["."] += 1 + (dy == 0)
                 elif g in "PLY,":
                     votes[g] += 1 + (dy == 0)
-        return max(sides or votes, key=votes.get)
+        # On the kerb line only the two sides stand; ties fall the way the
+        # order of `votes` puts them, which keeps the pick deterministic.
+        kerb = [floor for floor in votes if floor in (west, east)]
+        return max(kerb or votes, key=votes.get)
 
 
 def column_runs(level: Level, glyphs: set[str]):

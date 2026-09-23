@@ -28,9 +28,13 @@ void main() {
       reason: 'nothing built closes the road: it runs past both map edges',
     );
     expect(
-      roadRows.every((row) => row.startsWith('XX') && row.endsWith('UU')),
+      roadRows.every(
+        (row) => row[1] == 'X' && row[width - 2] == 'U',
+      ),
       isTrue,
-      reason: 'wrecks, not walls, block both off-map directions',
+      reason: 'wrecks, not walls, block both off-map directions: they are '
+          'nosed forward and back of one another, but each one covers the '
+          'column that seals its end of the road',
     );
 
     final facadeRows = mallNorthStreetRows

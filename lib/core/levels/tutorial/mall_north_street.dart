@@ -8,8 +8,13 @@
 /// the road would carry on off-map east and west a wrecked-car pile-up
 /// walls it off from house front to house front: four lanes of wrecks with
 /// one more shunted up on each pavement, so there is no way round on foot.
-/// The palazzi on the right also narrow the car park and keep that part of
-/// the block inaccessible.
+/// The wrecks are nosed forward and back of one another rather than lined
+/// up, but at each end they all take the same column -- the second from
+/// the map edge west, the second from it east -- so the wall never opens.
+/// The car park and the park are the same width, each pushed to its own
+/// side with palazzi filling the rest of its row: the park east with the
+/// palazzi west of it, the car park west with the palazzi east of it,
+/// which keeps that part of the block inaccessible.
 /// New glyphs, on top of the outdoor legend in street.dart: `g` grass, floor;
 /// `p` broken playground equipment, an obstacle; `j` the fire door in the
 /// rear wall, stepped onto to go back inside, floor.
@@ -25,19 +30,19 @@ const List<String> mallNorthStreetRows = <String>[
   'HHHHHHHHHHHHHHHHggggAgggggggggggggggggHHHHHHHHHHHH',
   'HHHHHHHHHHHHHHHHggggggggggnnggggggggggHHHHHHHHHHHH',
   'UU==============================================CC',
-  'XX..CC......................................CC..UU',
-  'XX----------------------------------------------UU',
-  'XX----------------------------------------------UU',
-  'XX..CC......................................CC..UU',
-  'UU==============================================CC',
-  'BBLLLLLLLLCCLLLLLLLLLLLLLLLLLLLLLLLLLLBBBBBBBBBBBB',
-  'BBLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLBBBBBBBBBBBB',
-  'BBLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLBBBBBBBBBBBB',
-  'BBLLLLLLLLLLLLLwLLLLLLLLLLLLLLLLLLLLLLBBBBBBBBBBBB',
-  'BBLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLBBBBBBBBBBBB',
-  'BBLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLBBBBBBBBBBBB',
-  'BB====================================BBBBBBBBBBBB',
-  'BBBBBBBBBBBBBBBBBBBBBBBBBjBBBBBBBBBBBBBBBBBBBBBBBB',
+  '.XX.CC......................................CC.UU.',
+  '-XX---------------------------------------------UU',
+  'XX---------------------------------------------UU-',
+  '.XX..CC....................................CC..UU.',
+  'CC=============================================UU=',
+  'BBLLLLLLLLCCLLLLLLLLLLLLBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBLLLLLLLLLLLLLLLLLLLLLLBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBLLLLLLLLLLLLLLLLLLLLLLBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBLLLLLLLLLLLLLwLLLLLLLLBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBLLLLLLLLLLLLLLLLLLLLLLBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBLLLLLLLLLLLLLLLLLLLLLLBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BB======================BBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBjBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
