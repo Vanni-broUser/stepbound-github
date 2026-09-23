@@ -21,25 +21,6 @@ void main() {
 
   test('the street behind the mall keeps the outdoor perspective', () {
     final width = mallNorthStreetRows.first.length;
-    final roadRows = mallNorthStreetRows.where((row) => row.contains('-'));
-    expect(
-      roadRows.every((row) => !row.contains(RegExp('[BHfKMGW#%]'))),
-      isTrue,
-      reason: 'nothing built closes the road: it runs past both map edges',
-    );
-    expect(
-      roadRows.every(
-        (row) =>
-            outdoorLegend.obstacles.contains(row[1]) &&
-            outdoorLegend.obstacles.contains(row[width - 2]),
-      ),
-      isTrue,
-      reason:
-          'wrecks on the road, concrete blocks on the shopping street, '
-          'never a wall: the wrecks are nosed forward and back of one '
-          'another, but each covers the column that seals its end',
-    );
-
     final facadeRows = mallNorthStreetRows
         .takeWhile((row) => !row.contains('-'))
         .where((row) => row.contains('H'));
@@ -62,7 +43,39 @@ void main() {
     );
   });
 
-  test('the pile-up closes the street behind the mall, pavements and all', () {
+  test('wrecks and road blocks close the block behind the mall, west', () {
+    // East there is nothing to close: both streets run into the buildings.
+    final roadRows = mallNorthStreetRows.where((row) => row.contains('-'));
+    expect(
+      roadRows.every((row) => outdoorLegend.obstacles.contains(row[1])),
+      isTrue,
+      reason:
+          'wrecks on the four-lane road, concrete blocks on the shopping '
+          'street, never a wall: the wrecks are nosed forward and back of '
+          'one another, but each covers the second column from the edge',
+    );
+    // The second pile-up stands midway between the park's two south gates
+    // and cuts the four-lane road, so the park joins its two halves.
+    final railing = mallNorthStreetRows.lastIndexWhere(
+      (row) => row.contains('<'),
+    );
+    final gates = <int>[
+      for (var x = 0; x < mallNorthStreetRows[railing].length; x++)
+        if (mallNorthStreetRows[railing][x] == '<') x,
+    ];
+    expect(gates, hasLength(2));
+    final between = (gates.first + gates.last) ~/ 2;
+    expect(
+      mallNorthStreetRows
+          .skip(railing + 1)
+          .take(6)
+          .every((row) => outdoorLegend.obstacles.contains(row[between])),
+      isTrue,
+      reason: 'the pile-up closes the road on the column between the gates',
+    );
+  });
+
+  test('the block behind the mall walks as a circuit, never to the edge', () {
     final world = createTutorialWorld();
     final street = place(PlaceId.mallNorthStreet);
     final reached = world.map.floodFillDistances(
@@ -81,18 +94,25 @@ void main() {
       hasLength(3),
       reason: 'one gate north of the park, two south',
     );
-    for (final gate in gates) {
+    final doors = <GridPoint>[
+      for (var y = 0; y < street.height; y++)
+        for (var x = 0; x < street.width; x++)
+          if (mallNorthStreetRows[y][x] == '(')
+            GridPoint(street.origin.x + x, street.origin.y + y),
+    ];
+    expect(doors, hasLength(4), reason: 'two doorways, two tiles wide each');
+    for (final way in <GridPoint>[...gates, ...doors]) {
       expect(
-        reached.containsKey(gate),
+        reached.containsKey(way),
         isTrue,
-        reason: 'every gate is a way in and out of the park',
+        reason: 'every gate and station doorway can be walked to',
       );
     }
     for (final tile in reached.keys) {
       expect(
         tile.x,
         inExclusiveRange(street.bounds.left + 1, street.bounds.right - 1),
-        reason: 'the wrecks reach the map edge, so the pavement is no way out',
+        reason: 'nothing walkable touches the edge of the map',
       );
     }
   });

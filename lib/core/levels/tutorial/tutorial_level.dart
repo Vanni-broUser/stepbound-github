@@ -30,7 +30,7 @@ export 'package:stepbound/core/levels/tutorial/street.dart';
 /// street.dart), of the barracks (barracks.dart) and of the hypermarket
 /// (mall.dart).
 const Legend outdoorLegend = Legend(
-  walls: 'BHfKMGW#%',
+  walls: 'BHfKMGW#%0',
   obstacles: 'CXUvkDFTSOyJQaAnI~RNbpx*i&!^;',
   debris: ':q',
 );

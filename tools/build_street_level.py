@@ -34,7 +34,7 @@ MALL_NORTH_OUTPUT = os.path.join("assets", "levels", "mall_north_street.png")
 
 ROAD_GLYPHS = set(".-|ZVc")
 WALK_GLYPHS = set("=")
-BUILDING_GLYPHS = set("BHfKMGW#%")
+BUILDING_GLYPHS = set("BHfKMGW#%0")
 FACADE_GLYPHS = set("Hf")
 
 ASPHALT = (44, 46, 52)
@@ -202,8 +202,9 @@ class Level:
         self.storefronts = storefronts or {}
         # Old town: white palazzi with green shutters, pale terraces.
         self.old_town = old_town
-        # One building, not a patchwork: from this row down the roof is
-        # painted whole (the back of the hypermarket, in the north street).
+        # One building, not a patchwork: (row, column) -- from that row
+        # down and west of that column the roof is painted whole (the back
+        # of the hypermarket, in the north street).
         self.one_roof = one_roof
         self.height = len(rows)
         self.width = len(rows[0])
@@ -278,16 +279,20 @@ class Level:
         return max(kerb or votes, key=votes.get)
 
 
-def column_runs(level: Level, glyphs: set[str]):
+def column_runs(level: Level, glyphs: set[str], skip=None):
     """Vertical runs of `glyphs`, grouped into bands of adjacent columns
-    sharing the same top and bottom row. Yields (x0, width, top, bottom)."""
+    sharing the same top and bottom row. Yields (x0, width, top, bottom).
+    Cells `skip(x, y)` accepts are left out, as if they were not there."""
+    def taken(x, y):
+        return level.at(x, y) in glyphs and not (skip and skip(x, y))
+
     runs: dict[tuple[int, int], list[int]] = {}
     for x in range(level.width):
         y = 0
         while y < level.height:
-            if level.at(x, y) in glyphs:
+            if taken(x, y):
                 top = y
-                while y < level.height and level.at(x, y) in glyphs:
+                while y < level.height and taken(x, y):
                     y += 1
                 runs.setdefault((top, y - 1), []).append(x)
             else:
@@ -418,21 +423,22 @@ def paint_parking(d, rng, level, x, y):
 
 def paint_roofs(d, rng, level):
     """Roof areas split into a patchwork of buildings, each with its own
-    colour, a parapet all around and a few rooftop units. Below
-    `level.one_roof` the patchwork stops: those rows are a single building
-    whose roof runs from edge to edge, broken only by its door."""
-    band = level.one_roof
-    for x0, width, top, bottom in column_runs(level, {"B"}):
-        if band is not None:
-            bottom = min(bottom, band - 1)
-            if bottom < top:
-                continue
+    colour, a parapet all around and a few rooftop units. `level.one_roof`
+    sets aside a corner of the map -- everything from a row down and from
+    the west edge to a column -- as a single building whose roof runs
+    unbroken, broken only by its door."""
+    whole = level.one_roof
+    band, edge = whole if whole else (0, 0)
+
+    def inside(x, y):
+        return whole is not None and y >= band and x < edge
+
+    for x0, width, top, bottom in column_runs(level, {"B"}, skip=inside):
         for sx, sw in segments(x0, width, rng):
             for sy, sh in segments(top, bottom - top + 1, rng):
                 paint_roof_block(d, rng, level, sx, sy, sw, sh)
-    if band is not None:
-        paint_roof_block(d, rng, level, 0, band, level.width,
-                         level.height - band)
+    if whole is not None:
+        paint_roof_block(d, rng, level, 0, band, edge, level.height - band)
 
 
 def paint_roof_block(d, rng, level, sx, sy, sw, sh):
@@ -1747,6 +1753,100 @@ def paint_grass(d, rng, x, y):
         rect(d, px + rng.randrange(8), py + rng.randrange(10), 6, 3, (84, 70, 52))
 
 
+def _station_arch(d, x, y, w, h, frame, hole):
+    """Round-headed opening, `w` wide and `h` tall to the ground, in a
+    raised stone frame: the arcade the station's front is made of."""
+    r = w // 2
+    for dy in range(r + 1):
+        half = round(math.sqrt(max(0, r * r - (r - dy) ** 2)))
+        rect(d, x + r - half - 2, y + dy - 2, 2 * half + 4, 1, frame)
+        rect(d, x + r - half, y + dy, 2 * half, 1, hole)
+    rect(d, x - 2, y + r, 2, h - r, frame)
+    rect(d, x + w, y + r, 2, h - r, frame)
+    rect(d, x, y + r, w, h - r, hole)
+
+
+def paint_station(d, rng, level):
+    """The station at the top of the block, `0`: the low provincial kind
+    the south is full of, a long body of round-arched openings between
+    pilasters, a cornice over them, and a raised middle bay carrying the
+    clock and the name. The two openings the map marks `(` are the doors,
+    standing open on the dark of the booking hall; the rest are windows,
+    their glass mostly gone."""
+    cells = [(x, y) for y in range(level.height) for x in range(level.width)
+             if level.at(x, y) == "0"]
+    if not cells:
+        return
+    x0, x1 = min(x for x, _ in cells), max(x for x, _ in cells)
+    y0, y1 = min(y for _, y in cells), max(y for _, y in cells)
+    px, py = x0 * TILE, y0 * TILE
+    w, h = (x1 - x0 + 1) * TILE, (y1 - y0 + 1) * TILE
+    wall, wall_dark = (226, 214, 184), (196, 182, 150)
+    trim, plinth = (238, 230, 206), (146, 142, 132)
+    roof, hole = (150, 142, 128), (26, 26, 30)
+    rect(d, px, py, w, h, wall)
+    rect(d, px, py, w, 9, roof)  # the flat roof, seen edge on
+    rect(d, px, py + 7, w, 2, (110, 104, 96))
+    rect(d, px, py + 9, w, 3, trim)  # the cornice under it
+    rect(d, px, py + 12, w, 1, wall_dark)
+    ground = py + h - 3
+    rect(d, px, ground, w, 3, plinth)  # the plinth it stands on
+    # The front is the stretch standing over the forecourt: an arcade of
+    # openings two tiles wide, the rest of the building a blind end.
+    front = [ax for ax in range(x0, x1, 2)
+             if level.at(ax, y1 + 1) not in BUILDING_GLYPHS
+             and level.at(ax + 1, y1 + 1) not in BUILDING_GLYPHS]
+    if not front:
+        return
+    # the middle bay: raised, carrying the clock and the name, the middle
+    # opening of the arcade under it
+    middle = front[len(front) // 2] * TILE + TILE
+    bx, bw = middle - 36, 72
+    rect(d, bx, py, bw, h - 3, wall)
+    rect(d, bx, py, bw, 6, roof)
+    rect(d, bx, py + 5, bw, 2, (110, 104, 96))
+    rect(d, bx, py + 7, bw, 3, trim)  # its own cornice
+    for edge in (bx, bx + bw - 3):  # the pilasters framing it
+        rect(d, edge, py + 10, 3, h - 13, wall_dark)
+        rect(d, edge, py + 10, 1, h - 13, trim)
+    for ax in front:
+        sx = ax * TILE + 4
+        rect(d, sx - 4, py + 13, 4, h - 16, wall_dark)  # the pilaster beside it
+        rect(d, sx - 4, py + 13, 1, h - 16, trim)
+        if level.at(ax, y1) == "(":
+            _station_arch(d, sx, ground - 36, 24, 36, trim, hole)
+            rect(d, sx + 2, ground - 18, 20, 18, (14, 14, 16))  # the hall
+            rect(d, sx, ground - 3, 24, 3, (176, 170, 158))  # its worn step
+            for leaf in (sx, sx + 20):  # the doors, folded back
+                rect(d, leaf, ground - 24, 4, 22, (66, 58, 46))
+                rect(d, leaf + 1, ground - 23, 2, 20, (92, 82, 66))
+        else:
+            _station_arch(d, sx, ground - 36, 24, 32, trim, (52, 58, 66))
+            for gy in range(ground - 26, ground - 4, 7):  # the glazing bars
+                rect(d, sx, gy, 24, 1, trim)
+            rect(d, sx + 11, ground - 30, 2, 26, trim)
+            if rng.random() < 0.7:  # panes gone, and boards over the gap
+                rect(d, sx + rng.randrange(1, 13), ground - 24, 10, 9, hole)
+                rect(d, sx + 1, ground - 20, 22, 3, (122, 92, 60))
+            rect(d, sx, ground - 4, 24, 4, wall_dark)  # its sill
+    cx, cy = bx + bw // 2, py + 24
+    d.ellipse([cx - 11, cy - 11, cx + 11, cy + 11], fill=trim)  # the clock
+    d.ellipse([cx - 9, cy - 9, cx + 9, cy + 9], fill=(238, 234, 220))
+    for tick in range(12):
+        tx = cx + round(7 * math.sin(tick * math.pi / 6))
+        ty = cy - round(7 * math.cos(tick * math.pi / 6))
+        rect(d, tx, ty, 1, 1, (90, 86, 80))
+    rect(d, cx, cy - 6, 1, 7, (40, 38, 36))  # stopped at ten past eleven
+    rect(d, cx, cy, 6, 1, (40, 38, 36))
+    rect(d, cx - 1, cy - 1, 2, 2, (40, 38, 36))
+    name = "STAZIONE"
+    nx = cx - (text_width(name) * 2) // 2
+    rect(d, nx - 5, cy + 15, text_width(name) * 2 + 10, 14, (40, 60, 46))
+    rect(d, nx - 5, cy + 15, text_width(name) * 2 + 10, 1, (80, 110, 86))
+    paint_text(d, nx, cy + 18, name, (236, 236, 224), missing=(5,), scale=2,
+               tilted=(7,))
+
+
 def paint_railing(d, level, x, y):
     """A length of the park's iron railing, `^`: uprights on a bottom rail
     with a rail across their heads, a post wherever the run ends or a gate
@@ -2243,9 +2343,11 @@ def main() -> None:
          random.Random(1071), HARBOUR_OUTPUT)
     mall_north_rows = read_rows("mall-north-rows")
     # South of the car park there is one building, the back of the
-    # hypermarket: its roof starts at the row the fire door stands in.
+    # hypermarket: its roof starts at the row the fire door stands in and
+    # runs as far east as the block the car park sits in, the rest of the
+    # bottom of the map being other buildings.
     rear = next(y for y, row in enumerate(mall_north_rows) if "j" in row)
-    bake(Level(mall_north_rows, MALL_NORTH_STOREFRONTS, one_roof=rear),
+    bake(Level(mall_north_rows, MALL_NORTH_STOREFRONTS, one_roof=(rear, 50)),
          random.Random(2611), MALL_NORTH_OUTPUT)
 
 
@@ -2302,6 +2404,7 @@ def bake(level: Level, rng: random.Random, output: str) -> None:
     paint_facades(d, rng, level)
     paint_barracks(d, level)
     paint_hypermarket(d, rng, level)
+    paint_station(d, rng, level)
     paint_duomo(d, rng, level)
     paint_small_church(d, rng, level)
     paint_shipyard(d, rng, level)

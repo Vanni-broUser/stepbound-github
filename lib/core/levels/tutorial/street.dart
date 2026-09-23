@@ -5,7 +5,8 @@
 /// bake the backgrounds, so keep the two in sync):
 /// - `B` roof, `H` facade, `f` facade with a burning window, `K` facade of
 ///   the barracks, `M` facade of the hypermarket, `G` facade of the
-///   hospital, `W` the Duomo on the harbour: walls.
+///   hospital, `W` the Duomo on the harbour, `0` the station behind the
+///   hypermarket: walls.
 /// - `E` barracks front door, `e` passage through its back, `m` the
 ///   hypermarket's open entrance: doors.
 /// - `=` sidewalk; `.` road; `-` and `|` road with a horizontal or vertical
@@ -29,7 +30,7 @@
 ///   railing, obstacles you can see over; `<` a gate in that railing,
 ///   floor. `;` a heap of rubbish too deep to step on, an obstacle.
 /// - `h` door of the Bar Arcobaleno, `j` where the hypermarket's fire exit
-///   lands behind it: doors.
+///   lands behind it, `(` the station's open doorways: doors.
 /// - Duomo: `x` the churchyard gate, an obstacle you can see through; `s`
 ///   where Don Angelo waits behind it (floor, he is drawn in game).
 /// - Old town: `#` the small church of San Nicola, at the far end of the
