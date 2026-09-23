@@ -1076,6 +1076,62 @@ void main() {
       expect(restored.player.component<AmmoComponent>().loaded, 3);
       expect(restored.map.width, world.map.width);
     });
+
+    test('saving at the new camp behind the mall, after the first one, '
+        'carries everything through both', () {
+      GridPoint campIn(WorldState world, PlaceId id) =>
+          world.campfires.firstWhere(place(id).bounds.contains);
+
+      Map<String, Object?> rest(WorldState world, GridPoint camp) {
+        world.player.component<PositionComponent>()
+          ..position = camp.step(Direction.west)
+          ..facing = Direction.east;
+        final events = const TurnScheduler().advance(
+          world,
+          const InteractAction(),
+        );
+        expect(events.whereType<CampfireUsedEvent>().single.at, camp);
+        return throughStorage(saveTutorialWorld(world));
+      }
+
+      final world = createTutorialWorld();
+      final first = campIn(world, PlaceId.northDistrict);
+      final second = campIn(world, PlaceId.mallNorthStreet);
+      expect(campfireNames[first], 'Accampamento dietro la caserma');
+      expect(
+        campfireNames[second],
+        'Accampamento dietro il centro commerciale',
+        reason: 'the two camps are told apart in the save slots',
+      );
+
+      // Rest at the first camp with a zombie down and some rounds spent.
+      final zombie = world.entities.values.firstWhere(
+        (entity) => entity.kind != EntityKind.player,
+      );
+      zombie.component<HealthComponent>().current = 0;
+      world.player.component<AmmoComponent>().loaded = 3;
+      final loaded = restoreTutorialWorld(rest(world, first));
+      expect(loaded.entities[zombie.id]!.isAlive, isFalse);
+      expect(
+        loaded.player.component<PositionComponent>().position,
+        first.step(Direction.west),
+      );
+
+      // Then rest at the new one, and load that save in turn.
+      final again = restoreTutorialWorld(rest(loaded, second));
+      expect(again.campfires, contains(second));
+      expect(
+        again.entities[zombie.id]!.isAlive,
+        isFalse,
+        reason: 'what the first save held survives the second',
+      );
+      expect(again.player.component<AmmoComponent>().loaded, 3);
+      expect(
+        again.player.component<PositionComponent>().position,
+        second.step(Direction.west),
+        reason: 'Mario is left sitting at the camp he saved at',
+      );
+    });
   });
 
   test('the whole world survives a save and a load', () {
