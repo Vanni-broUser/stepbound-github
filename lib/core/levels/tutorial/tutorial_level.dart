@@ -31,7 +31,7 @@ export 'package:stepbound/core/levels/tutorial/street.dart';
 /// (mall.dart).
 const Legend outdoorLegend = Legend(
   walls: 'BHfKMGW#%0',
-  obstacles: 'CXUvkDFTSOyJQaAnI~RNbpx*i&!^;',
+  obstacles: 'CXUvkDFTSOyJQaAnI~RNbpx*i&!^;/',
   debris: ':q',
 );
 const Legend barracksLegend = Legend(walls: 'xWQNSIw', obstacles: 'TCAh');

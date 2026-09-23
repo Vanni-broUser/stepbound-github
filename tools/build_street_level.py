@@ -2081,6 +2081,35 @@ def paint_bin(d, px, py):
     rect(d, px + 4, py + 5, 8, 2, SCORCH)
 
 
+def paint_sign(d, px, py, kind):
+    """A road sign on its post, `/`: give way at the mouth of a side
+    street, no entry where a street is closed, or the blue plate that
+    points the way. Like the traffic lights it stands into the tile above,
+    so it reads at eye level rather than flat on the pavement."""
+    white, red, blue = (236, 234, 228), (186, 40, 36), (36, 62, 118)
+    rect(d, px + 7, py + 14, 4, 2, (24, 24, 28))  # its shadow
+    rect(d, px + 8, py - 2, 2, 17, (146, 144, 138))  # the post
+    rect(d, px + 8, py - 2, 1, 17, (184, 182, 176))
+    if kind == 0:  # give way: a triangle on its point
+        for i in range(7):
+            rect(d, px + 2 + i, py - 10 + i, 14 - i * 2, 1, red)
+            if 1 <= i < 5:
+                rect(d, px + 4 + i, py - 9 + i, 10 - i * 2, 1, white)
+    elif kind == 1:  # no entry
+        d.ellipse([px + 2, py - 11, px + 14, py + 1], fill=red)
+        d.ellipse([px + 4, py - 9, px + 12, py - 1], fill=red)
+        rect(d, px + 4, py - 6, 9, 3, white)
+    else:  # the way to the station
+        rect(d, px, py - 10, 16, 10, blue)
+        rect(d, px, py - 10, 16, 1, (76, 106, 166))
+        rect(d, px, py - 1, 16, 1, (22, 38, 74))
+        rect(d, px + 3, py - 6, 8, 2, white)  # the arrow, pointing on
+        for i in range(3):
+            rect(d, px + 9 + i, py - 7 - i, 1, 3 + i * 2, white)
+        rect(d, px + 2, py - 9, 5, 1, (150, 170, 210))
+        rect(d, px + 2, py - 3, 7, 1, (150, 170, 210))
+
+
 def paint_traffic_light(d, px, py):
     rect(d, px + 6, py + 14, 5, 2, (24, 24, 28))
     rect(d, px + 7, py - 6, 2, 21, (50, 52, 56))
@@ -2492,6 +2521,18 @@ def bake(level: Level, rng: random.Random, output: str) -> None:
         for x in range(level.width):
             if level.at(x, y) == "T":
                 paint_traffic_light(d, x * TILE, y * TILE)
+            elif level.at(x, y) == "/":
+                # Give way on the pavement running alongside a carriageway
+                # (a side street waiting to join), no entry where the road
+                # blocks close a street, the blue plate anywhere else.
+                if (level.at(x - 1, y) in ROAD_GLYPHS
+                        or level.at(x + 1, y) in ROAD_GLYPHS):
+                    kind = 0
+                elif any(level.at(x + dx, y) == "J" for dx in (-2, -1, 1, 2)):
+                    kind = 1
+                else:
+                    kind = 2
+                paint_sign(d, x * TILE, y * TILE, kind)
             elif level.at(x, y) == "A":
                 paint_tree(d, rng, x * TILE, y * TILE)
             elif level.at(x, y) == "N":

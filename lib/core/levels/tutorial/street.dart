@@ -15,7 +15,7 @@
 /// - `CC` car, `XX` burning car, `UU` overturned car (horizontal pairs),
 ///   `v`/`k` car / burning car parked north-south (vertical pairs), `D` pile
 ///   of corpses, `F` burning bin, `T` traffic light: obstacles you can see
-///   and shoot over.
+///   and shoot over. `/` a road sign on its post.
 /// - `:` debris (walkable but noisy), `d` a lone corpse (walkable).
 /// - `S` a camp with a campfire: rest there to save (an obstacle).
 /// - `I` flagpole on the barracks forecourt (the flag is animated in game).
