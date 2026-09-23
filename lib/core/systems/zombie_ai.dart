@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:stepbound/core/entities/components.dart';
 import 'package:stepbound/core/entities/entity.dart';
 import 'package:stepbound/core/grid/grid_point.dart';
@@ -7,11 +9,24 @@ import 'package:stepbound/core/world_event.dart';
 final class ZombieAi {
   const ZombieAi();
 
-  /// How far a zombie looks for a way round before giving up and waiting.
-  /// What it walks towards is at most a hearing range away — twenty tiles
-  /// for the blind one — so this allows a generous detour while keeping an
-  /// unreachable target from costing the whole block every tick.
+  /// The furthest a zombie ever looks for a way round before giving up and
+  /// waiting. What it walks towards is at most a hearing range away —
+  /// twenty tiles for the blind one — so this allows a generous detour
+  /// while keeping an unreachable target from costing the whole block.
   static const int pathfindingRange = 48;
+
+  /// How far a zombie [distance] tiles from where it is going will look:
+  /// three times the straight line, plus a little slack for short hops.
+  ///
+  /// A flat cap is no help where it hurts most. With the player hemmed in
+  /// by the crowd, every zombie a couple of tiles away asks for a path
+  /// that does not exist, and a flat [pathfindingRange] lets each of them
+  /// comb a couple of thousand tiles to find that out — every zombie,
+  /// every tick, exactly when the game is busiest. Tied to the distance
+  /// the same answer costs a tenth of that, and a zombie two tiles away
+  /// stops considering a walk round the block to get there.
+  static int detourFor(int distance) =>
+      math.min(distance * 3 + 4, pathfindingRange);
 
   /// Runs every tick, before the zombie's energy is checked. Each time it
   /// starts going after the player (by sight, by smell, or by walking into
@@ -93,7 +108,9 @@ final class ZombieAi {
       start: zombiePosition.position,
       target: target,
       isBlocked: (point) => world.isBlocked(point, excluding: zombie.id),
-      maxDistance: pathfindingRange,
+      maxDistance: detourFor(
+        zombiePosition.position.manhattanDistanceTo(target),
+      ),
     );
     if (next == null) {
       world.emit(WaitedEvent(zombie.id));

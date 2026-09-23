@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/core/core.dart';
+import 'package:stepbound/core/systems/zombie_ai.dart';
 
 import 'test_world.dart';
 
@@ -210,6 +211,72 @@ void main() {
           );
         }
       }
+    });
+  });
+
+  group('the leash on a zombie looking for a way round', () {
+    test('is short for a short hop and never longer than the flat cap', () {
+      expect(ZombieAi.detourFor(2), 10);
+      expect(
+        ZombieAi.detourFor(20),
+        ZombieAi.pathfindingRange,
+        reason: 'as far as it can hear: it gets the whole allowance',
+      );
+      for (final distance in <int>[0, 1, 2, 8, 20, 100]) {
+        expect(
+          ZombieAi.detourFor(distance),
+          lessThanOrEqualTo(ZombieAi.pathfindingRange),
+          reason: '$distance',
+        );
+      }
+    });
+
+    test('a way round worth walking is still walked', () {
+      // Mario two tiles away through the wall, the way round eight steps.
+      final map = TileMap.fromAscii(const <String>[
+        '######',
+        '#....#',
+        '####.#',
+        '#....#',
+        '######',
+      ]);
+
+      expect(
+        map.shortestNextStep(
+          start: const GridPoint(1, 3),
+          target: const GridPoint(1, 1),
+          maxDistance: ZombieAi.detourFor(2),
+        ),
+        const GridPoint(2, 3),
+      );
+    });
+
+    test('a way round the whole block, for two tiles, is not', () {
+      // The same two tiles apart, but the corridors meet far to the east:
+      // twenty steps to walk two. The zombie waits instead.
+      final map = TileMap.fromAscii(const <String>[
+        '############',
+        '#..........#',
+        '##########.#',
+        '#..........#',
+        '############',
+      ]);
+      const zombie = GridPoint(1, 3);
+      const player = GridPoint(1, 1);
+
+      expect(
+        map.shortestNextStep(start: zombie, target: player),
+        isNotNull,
+        reason: 'there is a way: it is just a silly one',
+      );
+      expect(
+        map.shortestNextStep(
+          start: zombie,
+          target: player,
+          maxDistance: ZombieAi.detourFor(2),
+        ),
+        isNull,
+      );
     });
   });
 }

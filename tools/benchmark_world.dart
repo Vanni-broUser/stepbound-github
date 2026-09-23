@@ -140,6 +140,11 @@ void _benchmarkPaths() {
   ).firstWhere((point) => !camp.containsKey(point));
   // The widest stretch of the map, where giving up costs the most.
   final street = _largestArea(map);
+  // Mario boxed in by the crowd with a zombie two tiles off: the path it
+  // asks for is not there, and this is the busiest moment of a game.
+  final hemmedIn = _openTile(map);
+  final crowd = map.walkableNeighbors(hemmedIn).toSet();
+  final nearby = GridPoint(hemmedIn.x + 2, hemmedIn.y);
 
   final rows = <String, String>{
     'reachable, 12 tiles away': _time(
@@ -162,12 +167,46 @@ void _benchmarkPaths() {
       () =>
           map.shortestNextStep(start: street, target: player, maxDistance: cap),
     ),
+    'hemmed in by the crowd, two tiles off, cap $cap': _time(
+      () => map.shortestNextStep(
+        start: nearby,
+        target: hemmedIn,
+        isBlocked: crowd.contains,
+        maxDistance: cap,
+      ),
+    ),
+    'the same, on the leash for two tiles (${ZombieAi.detourFor(2)})': _time(
+      () => map.shortestNextStep(
+        start: nearby,
+        target: hemmedIn,
+        isBlocked: crowd.contains,
+        maxDistance: ZombieAi.detourFor(2),
+      ),
+    ),
   };
 
   stdout.writeln('paths (one shortestNextStep, us)');
   for (final row in rows.entries) {
     stdout.writeln('  ${row.key.padRight(44)}${row.value}');
   }
+}
+
+/// An open tile in a wide stretch, with room on all four sides and
+/// another walkable tile two steps east of it.
+GridPoint _openTile(TileMap map) {
+  const unreachable = 1 << 30;
+  for (final tile in _walkableTiles(map)) {
+    final east = GridPoint(tile.x + 2, tile.y);
+    if (map.walkableNeighbors(tile).length < 4 ||
+        !map.contains(east) ||
+        !map.tileAt(east).isWalkable) {
+      continue;
+    }
+    if (map.floodFillDistances(tile, maxDistance: unreachable).length > 1000) {
+      return tile;
+    }
+  }
+  throw StateError('The map has nowhere open enough to crowd.');
 }
 
 /// A tile in the widest walkable stretch of [map].
