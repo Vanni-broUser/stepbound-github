@@ -10,20 +10,24 @@ import 'package:stepbound/core/items/pickup.dart';
 import 'package:stepbound/core/levels/place.dart';
 import 'package:stepbound/core/levels/tutorial/bar_arcobaleno.dart';
 import 'package:stepbound/core/levels/tutorial/barracks.dart';
+import 'package:stepbound/core/levels/tutorial/church.dart';
 import 'package:stepbound/core/levels/tutorial/harbour.dart';
 import 'package:stepbound/core/levels/tutorial/mall.dart';
 import 'package:stepbound/core/levels/tutorial/mall_north_street.dart';
 import 'package:stepbound/core/levels/tutorial/north_district.dart';
+import 'package:stepbound/core/levels/tutorial/station.dart';
 import 'package:stepbound/core/levels/tutorial/street.dart';
 import 'package:stepbound/core/seeded_random.dart';
 import 'package:stepbound/core/world.dart';
 
 export 'package:stepbound/core/levels/tutorial/bar_arcobaleno.dart';
 export 'package:stepbound/core/levels/tutorial/barracks.dart';
+export 'package:stepbound/core/levels/tutorial/church.dart';
 export 'package:stepbound/core/levels/tutorial/harbour.dart';
 export 'package:stepbound/core/levels/tutorial/mall.dart';
 export 'package:stepbound/core/levels/tutorial/mall_north_street.dart';
 export 'package:stepbound/core/levels/tutorial/north_district.dart';
+export 'package:stepbound/core/levels/tutorial/station.dart';
 export 'package:stepbound/core/levels/tutorial/street.dart';
 
 /// The glyphs of the street, the north district and the harbour (see
@@ -38,14 +42,28 @@ const Legend barracksLegend = Legend(walls: 'xWQNSIw', obstacles: 'TCAh');
 const Legend mallLegend = Legend(walls: 'xWwISQ', obstacles: 'PTKBGHL');
 const Legend barLegend = Legend(walls: 'xWw', obstacles: 'KTJ', debris: ':q');
 
+/// San Nicola (church.dart): the altar `A` and the side walls `I` are as
+/// solid as the outer ones, the pews `T` and the column drums `K` are
+/// waist high.
+const Legend churchLegend = Legend(walls: 'xWwIA', obstacles: 'TK');
+
+/// The three places of the station (station.dart): the railcar `M` and
+/// the rubble `#` shut the way like walls, the coach on its side `m`, the
+/// benches `T`, the ticket windows `K` and the canopy posts `n` can be
+/// seen over.
+const Legend stationLegend = Legend(walls: 'xWwM#', obstacles: 'TKmn');
+
 /// The card shown on the way into the harbour.
 const String harbourName = 'Porto e centro storico';
 const String harbourCardImage = 'assets/story/scene_harbour.jpg';
 
 /// The tutorial: the street where Mario wakes up, the inside of the
 /// carabinieri barracks, the north district behind it with the two floors
-/// of its hypermarket, and the harbour south of that. Backgrounds are baked
-/// by tools/build_street_level.py, build_barracks.py and build_mall.py.
+/// of its hypermarket and, past the car park, the block with the station
+/// and its three places, and the harbour south of all that with the Duomo,
+/// the Bar Arcobaleno and the church of San Nicola. Backgrounds are baked
+/// by tools/build_street_level.py, build_barracks.py, build_mall.py,
+/// build_bar.py, build_church.py and build_station.py.
 final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
   PlaceSpec(
     id: PlaceId.street,
@@ -107,6 +125,38 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     indoor: true,
     daylight: 'E',
   ),
+  PlaceSpec(
+    id: PlaceId.church,
+    rows: churchRows,
+    legend: churchLegend,
+    background: 'assets/levels/church.png',
+    indoor: true,
+    // The open portal, and the sky through the holes in the roof.
+    daylight: 'E^',
+  ),
+  // Over the platforms the roof is gone, so the station and the far side
+  // are lit throughout; only the underpass is dark.
+  PlaceSpec(
+    id: PlaceId.station,
+    rows: stationRows,
+    legend: stationLegend,
+    background: 'assets/levels/station.png',
+  ),
+  PlaceSpec(
+    id: PlaceId.stationUnderpass,
+    rows: stationUnderpassRows,
+    legend: stationLegend,
+    background: 'assets/levels/station_underpass.png',
+    indoor: true,
+    // Daylight falling down both flights of stairs.
+    daylight: 'DU',
+  ),
+  PlaceSpec(
+    id: PlaceId.stationFarSide,
+    rows: stationFarSideRows,
+    legend: stationLegend,
+    background: 'assets/levels/station_far_side.png',
+  ),
 ]);
 
 final Map<PlaceId, Place> _placesById = <PlaceId, Place>{
@@ -133,8 +183,22 @@ final Place _mallGround = place(PlaceId.mallGround);
 final Place _mallFirst = place(PlaceId.mallFirst);
 final Place _mallNorthStreet = place(PlaceId.mallNorthStreet);
 final Place _bar = place(PlaceId.barArcobaleno);
+final Place _church = place(PlaceId.church);
+final Place _station = place(PlaceId.station);
+final Place _underpass = place(PlaceId.stationUnderpass);
+final Place _farSide = place(PlaceId.stationFarSide);
 
-Iterable<Place> get _outdoors => tutorialPlaces.where((place) => !place.indoor);
+/// The four places [outdoorLegend] describes, the ones tools/
+/// build_street_level.py bakes: what walks the streets, what burns in them
+/// and what is dropped in them is read off these and no others. It is not
+/// the same as `!place.indoor` -- the station's platforms are open to the
+/// sky, and so lit like a street, but their glyphs are their own.
+Iterable<Place> get _streets => <Place>[
+  _street,
+  _north,
+  _harbour,
+  _mallNorthStreet,
+];
 
 /// The zombie waiting on the east arm of the crossroads.
 const String tutorialZombieId = 'wanderer-0';
@@ -145,6 +209,21 @@ const String parkingBackpackId = 'backpack-parking';
 const String accidentBackpackId = 'backpack-accident';
 const String gunBackpackId = 'backpack-gun';
 const String boatBackpackId = 'backpack-boat';
+
+/// The backpack `9` against the east wall of San Nicola: the incense Don
+/// Angelo asked for.
+const String incenseBackpackId = 'backpack-incense';
+
+/// The backpack `9` in the ballast between the two wrecks, at the dead end
+/// of the station's tracks: two rounds.
+const String stationBackpackId = 'backpack-station';
+
+/// How many rounds it holds.
+const int stationBackpackAmmo = 2;
+
+/// The wanderers standing in the places the outdoor glyphs do not reach:
+/// the nave of San Nicola and the station's booking hall, both `Z`.
+const String indoorZombiePrefix = 'indoor-wanderer-';
 
 /// Walking into the crossroads makes the tutorial zombie notice the player
 /// even if it is not looking that way.
@@ -163,7 +242,7 @@ const Map<PlaceId, String> _campNames = <PlaceId, String>{
 
 /// Campfires, by tile, with the name shown in the save slots.
 final Map<GridPoint, String> campfireNames = <GridPoint, String>{
-  for (final place in _outdoors)
+  for (final place in _streets)
     for (final (point, glyph) in place.glyphs)
       if (glyph == 'S' && _campNames.containsKey(place.id))
         point: _campNames[place.id]!,
@@ -217,7 +296,7 @@ final List<FireSpot> streetFireSpots = _firesIn(_street);
 
 /// Fires of every outdoor place.
 final List<FireSpot> outdoorFireSpots = <FireSpot>[
-  for (final place in _outdoors) ..._firesIn(place),
+  for (final place in _streets) ..._firesIn(place),
 ];
 
 /// Where the carabinieri zombies come out in the barracks.
@@ -322,6 +401,29 @@ final GridPoint mallExitTile = _mallGround.tileOf('X');
 /// Where the fire exit lands, in the car park behind the hypermarket.
 final GridPoint mallNorthStreetEntry = _mallNorthStreet.tileOf('j');
 
+/// The portal of San Nicola, standing open on the church's little square.
+final GridPoint churchPortalTile = _harbour.tileOf('(');
+
+/// The station's two doorways on the forecourt, west and east: neither
+/// leads where the other does.
+final List<GridPoint> stationWestDoor = _mallNorthStreet.doorRow('(');
+final List<GridPoint> stationEastDoor = _mallNorthStreet.doorRow(')');
+
+/// The far platform, where Luigi is waiting in the cab of the one train
+/// still in one piece: coming up the stairs onto it plays his scene. The
+/// whole platform, so there is no walking past him.
+final GridRect stationPlatform = () {
+  final rows = _farSide.rows;
+  final top = rows.indexWhere((row) => row.contains('='));
+  final bottom = rows.lastIndexWhere((row) => row.contains('='));
+  return GridRect(
+    _farSide.origin.x + 1,
+    _farSide.origin.y + top,
+    _farSide.origin.x + _farSide.width - 2,
+    _farSide.origin.y + bottom,
+  );
+}();
+
 /// Doors [from] one place [to] another, tile by tile in order: stepping on
 /// a tile of [from] lands on the tile of [to] one step towards [facing].
 Map<GridPoint, Portal> _pairedDoors(
@@ -347,7 +449,14 @@ Map<GridPoint, Portal> _pairedDoors(
 /// - the fire exit in the back wall of the ground floor's upper area, onto
 ///   the car park behind the hypermarket, cut off from the rest of the
 ///   north district;
-/// - the door of the Bar Arcobaleno, up the harbour's alley.
+/// - the door of the Bar Arcobaleno, up the harbour's alley;
+/// - the open portal of San Nicola, deep in the old town;
+/// - the station's two doorways, each into its own corner of the booking
+///   hall, and the two flights of the underpass that join the far end of
+///   that hall to the far platform (every flight climbs into the back wall
+///   of the place it leaves, so Mario lands on the step below it -- south,
+///   but for the flight up onto the far platform, whose wall runs along
+///   the bottom of the map).
 Map<GridPoint, Portal> _portals() {
   final northEdge = _north.walkableRow(_north.height - 1);
   final harbourEdge = _harbour.walkableRow(0);
@@ -402,6 +511,40 @@ Map<GridPoint, Portal> _portals() {
       <GridPoint>[_harbour.tileOf('h')],
       Direction.south,
     ),
+    ..._pairedDoors(
+      <GridPoint>[churchPortalTile],
+      <GridPoint>[_church.tileOf('E')],
+      Direction.north,
+    ),
+    ..._pairedDoors(
+      <GridPoint>[_church.tileOf('E')],
+      <GridPoint>[churchPortalTile],
+      Direction.south,
+    ),
+    ..._pairedDoors(stationWestDoor, _station.doorRow('E'), Direction.north),
+    ..._pairedDoors(_station.doorRow('E'), stationWestDoor, Direction.south),
+    ..._pairedDoors(stationEastDoor, _station.doorRow('O'), Direction.north),
+    ..._pairedDoors(_station.doorRow('O'), stationEastDoor, Direction.south),
+    ..._pairedDoors(
+      _station.doorRow('U'),
+      _underpass.doorRow('D'),
+      Direction.south,
+    ),
+    ..._pairedDoors(
+      _underpass.doorRow('D'),
+      _station.doorRow('U'),
+      Direction.south,
+    ),
+    ..._pairedDoors(
+      _underpass.doorRow('U'),
+      _farSide.doorRow('D'),
+      Direction.north,
+    ),
+    ..._pairedDoors(
+      _farSide.doorRow('D'),
+      _underpass.doorRow('U'),
+      Direction.south,
+    ),
   };
 }
 
@@ -426,7 +569,7 @@ WorldState createTutorialWorld({int seed = 20260920}) {
       kinds[point.y * width + point.x] = place.kindOf(glyph);
     }
   }
-  for (final place in _outdoors) {
+  for (final place in _streets) {
     for (final (point, glyph) in place.glyphs) {
       switch (glyph) {
         case '@':
@@ -476,9 +619,30 @@ WorldState createTutorialWorld({int seed = 20260920}) {
       }
     }
   }
-  pickups.add(
+  // The places whose own glyphs the outdoor legend does not reach: their
+  // one backpack is placed by hand, and `Z` is a wanderer standing in the
+  // dark of them.
+  pickups.addAll(<Pickup>[
     Pickup(id: gunBackpackId, position: _barracks.tileOf('3'), gun: true),
-  );
+    Pickup(id: incenseBackpackId, position: _church.tileOf('9'), incense: true),
+    Pickup(
+      id: stationBackpackId,
+      position: _station.tileOf('9'),
+      ammo: stationBackpackAmmo,
+    ),
+  ]);
+  var indoorZombies = 0;
+  for (final place in <Place>[_church, _station]) {
+    for (final tile in place.tilesOf('Z')) {
+      entities.add(
+        factory.zombie(
+          id: '$indoorZombiePrefix${indoorZombies++}',
+          kind: EntityKind.wanderer,
+          position: tile,
+        ),
+      );
+    }
+  }
 
   return WorldState(
     map: TileMap(

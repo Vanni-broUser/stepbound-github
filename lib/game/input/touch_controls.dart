@@ -57,6 +57,10 @@ final class TouchControls extends StatelessWidget {
               // Always there, unlocked or not: it is the way out, not
               // something the tutorial hands over.
               Positioned(right: 0, top: 0, child: _PauseButton(game: game)),
+              // No button at all: what Mario is carrying for Don Angelo.
+              // The far top corner from the menu, out of both thumbs' way.
+              if (unlocked.contains(HudElement.incense))
+                const Positioned(left: 0, top: 0, child: _IncenseBadge()),
             ],
           ),
         );
@@ -222,6 +226,44 @@ final class _AmmoCounter extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// The censer found in San Nicola, hanging in the top corner for as long
+/// as Mario carries it: the errand he is on, always in sight.
+final class _IncenseBadge extends StatelessWidget {
+  const _IncenseBadge();
+
+  static const double size = 44;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: 'Incenso per Don Angelo',
+      child: BloodOverlay(
+        painter: const BloodPainter(
+          band: 3,
+          cornerRadius: 8,
+          drips: <BloodDrip>[BloodDrip(0.3, 13, 4), BloodDrip(0.74, 8, 3)],
+        ),
+        child: Container(
+          key: const ValueKey<String>('hud-incense'),
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: const Color(0xcc241a1a),
+            border: Border.all(color: BloodColors.fresh, width: 2),
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: const <BoxShadow>[
+              BoxShadow(color: Color(0x99000000), offset: Offset(2, 2)),
+            ],
+          ),
+          child: const Center(
+            child: CustomPaint(size: Size(26, 30), painter: _CenserIcon()),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -422,6 +464,73 @@ final class _PistolIcon extends CustomPainter {
 
   @override
   bool shouldRepaint(_PistolIcon oldDelegate) => oldDelegate.color != color;
+}
+
+/// A thurible swinging on its chain, smoking: the ring at the top, the
+/// three chains down to the pierced lid, the bowl under it.
+final class _CenserIcon extends CustomPainter {
+  const _CenserIcon();
+
+  static const Color _brass = Color(0xffd6b25c);
+  static const Color _brassDark = Color(0xff8a6a2e);
+  static const Color _chain = Color(0xffd8cfbf);
+  static const Color _hole = Color(0xff3a2a14);
+  static const Color _smoke = Color(0x55e6ded0);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final brass = Paint()..color = _brass;
+    final dark = Paint()..color = _brassDark;
+    final chain = Paint()..color = _chain;
+    final hole = Paint()..color = _hole;
+    final smoke = Paint()..color = _smoke;
+    final ring = Paint()
+      ..color = _chain
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    canvas
+      ..save()
+      // Drawn in a 24-wide square, then scaled to whatever it is given.
+      ..scale(size.width / 24)
+      ..drawCircle(const Offset(12, 2.5), 2.2, ring)
+      // the three chains, the outer two splayed to the rim of the lid
+      ..drawRect(const Rect.fromLTWH(11.25, 4.5, 1.5, 7.5), chain)
+      ..drawRect(const Rect.fromLTWH(5.5, 8, 1.5, 4), chain)
+      ..drawRect(const Rect.fromLTWH(17, 8, 1.5, 4), chain)
+      ..drawRect(const Rect.fromLTWH(5.5, 8, 13, 1.5), chain)
+      // the pierced lid, smoke coming through it
+      ..drawPath(
+        Path()
+          ..moveTo(12, 9.5)
+          ..lineTo(18.5, 15)
+          ..lineTo(5.5, 15)
+          ..close(),
+        brass,
+      )
+      ..drawRect(const Rect.fromLTWH(9, 13, 1.5, 1.5), hole)
+      ..drawRect(const Rect.fromLTWH(13.5, 13, 1.5, 1.5), hole)
+      ..drawRect(const Rect.fromLTWH(4.5, 15, 15, 1.5), dark)
+      // the bowl
+      ..drawPath(
+        Path()
+          ..moveTo(5, 16.5)
+          ..lineTo(19, 16.5)
+          ..lineTo(16, 23.5)
+          ..lineTo(8, 23.5)
+          ..close(),
+        brass,
+      )
+      ..drawRect(const Rect.fromLTWH(7, 20, 10, 1.5), dark)
+      // the smoke, curling away from the lid
+      ..drawRect(const Rect.fromLTWH(2.5, 11.5, 2, 1.5), smoke)
+      ..drawRect(const Rect.fromLTWH(1, 8.5, 2, 1.5), smoke)
+      ..drawRect(const Rect.fromLTWH(20, 11, 2, 1.5), smoke)
+      ..drawRect(const Rect.fromLTWH(21.5, 7.5, 2, 1.5), smoke)
+      ..restore();
+  }
+
+  @override
+  bool shouldRepaint(_CenserIcon oldDelegate) => false;
 }
 
 final class _BulletIcon extends CustomPainter {

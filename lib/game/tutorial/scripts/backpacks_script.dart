@@ -14,6 +14,7 @@ final class BackpacksScript extends TutorialScript {
       'Usa il nuovo bottone a sinistra per interagire con gli oggetti';
   static const String noGun = 'Non hai una pistola';
   static const String gunFound = 'Hai trovato una pistola';
+  static const String incenseFound = "Hai trovato dell'incenso";
   static const String shootLesson =
       'Usa il bottone per mirare, scegli una direzione e poi premi '
       'nuovamente il bottone per sparare';
@@ -30,13 +31,26 @@ final class BackpacksScript extends TutorialScript {
 
   @override
   void onEvent(WorldEvent event) {
-    if (event case PickedUpEvent(:final ammo, :final gun)) {
+    if (event case PickedUpEvent(:final ammo, :final gun, :final incense)) {
       host.playPickupAnimation();
-      say(_found(ammo: ammo, gun: gun));
+      say(_found(ammo: ammo, gun: gun, incense: incense));
     }
   }
 
-  TutorialPrompt _found({required int ammo, required bool gun}) {
+  TutorialPrompt _found({
+    required int ammo,
+    required bool gun,
+    required bool incense,
+  }) {
+    if (incense) {
+      // The censer goes up in the corner as soon as the box is read, so
+      // the news and the icon appearing are one moment.
+      return TutorialPrompt(
+        const <TutorialLine>[TutorialLine(incenseFound)],
+        delay: TutorialDirector.pickupDelay,
+        onShown: () => host.unlock(HudElement.incense),
+      );
+    }
     if (gun) {
       return TutorialPrompt(
         const <TutorialLine>[TutorialLine(gunFound), TutorialLine(shootLesson)],

@@ -13,6 +13,10 @@ enum PlaceId {
   mallFirst,
   mallNorthStreet,
   barArcobaleno,
+  church,
+  station,
+  stationUnderpass,
+  stationFarSide,
 }
 
 /// What the glyphs of a place's ASCII map mean for movement and sight: the

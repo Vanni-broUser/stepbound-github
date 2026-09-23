@@ -113,6 +113,7 @@ final class InteractAction extends PlayerAction {
           at: target,
           ammo: pickup.ammo,
           gun: pickup.gun,
+          incense: pickup.incense,
         ),
       );
       return;
