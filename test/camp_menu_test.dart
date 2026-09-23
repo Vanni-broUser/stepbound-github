@@ -7,7 +7,6 @@ import 'package:stepbound/ui/story_intro.dart';
 
 void main() {
   late int saves;
-  late int restarts;
   late int closes;
   late List<bool> memoryCalls;
 
@@ -21,7 +20,6 @@ void main() {
     List<StoryMemory>? memories,
   }) async {
     saves = 0;
-    restarts = 0;
     closes = 0;
     memoryCalls = <bool>[];
     tester.view.physicalSize = const Size(768, 432);
@@ -42,7 +40,6 @@ void main() {
                 ],
           ),
           onSave: () async => saves++,
-          onRestartLevel: () => restarts++,
           onClose: () => closes++,
           onMemories: memoryCalls.add,
         ),
@@ -55,21 +52,42 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('the camp offers its four actions and a way back', (
+  testWidgets('the camp offers its three actions and a way back', (
     tester,
   ) async {
     await pumpMenu(tester);
     for (final text in <String>[
       'SALVA IL GIOCO',
-      'RICOMINCIA IL LIVELLO',
       'TIPI DI ZOMBI',
       'RIVEDI I RICORDI',
       'TORNA AL GIOCO',
     ]) {
       expect(find.text(text), findsOneWidget, reason: text);
     }
+    expect(
+      find.text('RICOMINCIA IL LIVELLO'),
+      findsNothing,
+      reason: 'starting over belongs to the menu the corner button opens',
+    );
     await tap(tester, 'camp-close');
     expect(closes, 1);
+  });
+
+  testWidgets('the way back sits apart from the choices', (tester) async {
+    await pumpMenu(tester);
+    double topOf(String key) =>
+        tester.getRect(find.byKey(ValueKey<String>(key))).top;
+    double bottomOf(String key) =>
+        tester.getRect(find.byKey(ValueKey<String>(key))).bottom;
+
+    final betweenChoices = topOf('camp-memories') - bottomOf('camp-zombies');
+    final beforeTheWayBack = topOf('camp-close') - bottomOf('camp-memories');
+
+    expect(
+      beforeTheWayBack,
+      greaterThan(betweenChoices * 2),
+      reason: 'leaving the fire must not look like one more choice',
+    );
   });
 
   testWidgets('saving stores the game once and says so', (tester) async {
@@ -79,17 +97,6 @@ void main() {
     expect(find.text('SALVATAGGIO COMPLETATO'), findsOneWidget);
     await tap(tester, 'camp-save');
     expect(saves, 1);
-  });
-
-  testWidgets('starting the level over asks first', (tester) async {
-    await pumpMenu(tester);
-    await tap(tester, 'camp-restart');
-    expect(restarts, 0);
-    await tap(tester, 'camp-back');
-    expect(find.text('SALVA IL GIOCO'), findsOneWidget);
-    await tap(tester, 'camp-restart');
-    await tap(tester, 'camp-restart-confirm');
-    expect(restarts, 1);
   });
 
   testWidgets('zombie types: known ones by name, the rest as ???', (

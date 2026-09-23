@@ -396,3 +396,105 @@ final class _Credits extends StatelessWidget {
     );
   }
 }
+
+/// A column of [MenuButton]s over the game: the camp menu and the menu
+/// opened mid-game. [trailing] sits further down, apart from the rest,
+/// because the way back to the game is not one of the choices.
+final class MenuColumn extends StatelessWidget {
+  const MenuColumn({
+    required this.unit,
+    required this.children,
+    this.trailing,
+    super.key,
+  });
+
+  final double unit;
+  final List<Widget> children;
+  final Widget? trailing;
+
+  /// The gap between two choices, and the wider one above [trailing].
+  static const double gap = 2.5;
+  static const double trailingGap = 9;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        for (final child in children)
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: gap * unit),
+            child: child,
+          ),
+        if (trailing case final trailing?)
+          Padding(
+            padding: EdgeInsets.only(
+              top: trailingGap * unit,
+              bottom: gap * unit,
+            ),
+            child: trailing,
+          ),
+      ],
+    );
+  }
+}
+
+/// A dark plate with the blood-red rim of the buttons, so text reads over
+/// the world behind it.
+final class MenuPanel extends StatelessWidget {
+  const MenuPanel({
+    required this.unit,
+    required this.child,
+    this.width,
+    super.key,
+  });
+
+  final double unit;
+  final Widget child;
+
+  /// In virtual pixels; as wide as it can be when null.
+  final double? width;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width == null ? null : width! * unit,
+      padding: EdgeInsets.all(6 * unit),
+      decoration: BoxDecoration(
+        color: const Color(0xe6140c0c),
+        border: Border.all(color: BloodColors.fresh, width: 1.5 * unit),
+        borderRadius: BorderRadius.circular(4 * unit),
+      ),
+      child: child,
+    );
+  }
+}
+
+/// Body text on a [MenuPanel].
+final class MenuParagraph extends StatelessWidget {
+  const MenuParagraph(
+    this.text, {
+    required this.unit,
+    this.center = false,
+    super.key,
+  });
+
+  final String text;
+  final double unit;
+  final bool center;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      textAlign: center ? TextAlign.center : TextAlign.left,
+      style: TextStyle(
+        color: const Color(0xffe8dccb),
+        fontFamily: 'monospace',
+        fontSize: 7.5 * unit,
+        height: 1.3,
+        decoration: TextDecoration.none,
+      ),
+    );
+  }
+}

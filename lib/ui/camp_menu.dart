@@ -99,15 +99,16 @@ memoryScenes = <StoryMemory, List<StoryScene>>{
   ],
 };
 
-enum _CampPage { home, zombies, confirmRestart }
+enum _CampPage { home, zombies }
 
-/// Opens at a campfire, over the game: save, start the level over, look up
-/// the zombie types met so far, or watch the story scenes seen so far.
+/// Opens at a campfire, over the game: save, look up the zombie types met
+/// so far, or watch the story scenes seen so far. Starting the level over
+/// is not here: it belongs with the other ways out, in the menu the corner
+/// button opens.
 final class CampMenu extends StatefulWidget {
   const CampMenu({
     required this.progress,
     required this.onSave,
-    required this.onRestartLevel,
     required this.onClose,
     this.onMemories,
     super.key,
@@ -116,7 +117,6 @@ final class CampMenu extends StatefulWidget {
   /// The zombie types met and the story scenes seen so far.
   final Progress progress;
   final Future<void> Function() onSave;
-  final VoidCallback onRestartLevel;
   final VoidCallback onClose;
 
   /// Told true when the memories start playing and false when they end,
@@ -193,21 +193,23 @@ final class _CampMenuState extends State<CampMenu> {
   }
 
   Widget _list(double unit) {
-    final items = switch (_page) {
-      _CampPage.home => <Widget>[
+    return MenuColumn(
+      unit: unit,
+      // Apart from the choices: leaving the fire is not one of them.
+      trailing: MenuButton(
+        key: const ValueKey<String>('camp-close'),
+        label: 'TORNA AL GIOCO',
+        unit: unit,
+        compact: true,
+        onPressed: widget.onClose,
+      ),
+      children: <Widget>[
         MenuButton(
           key: const ValueKey<String>('camp-save'),
           label: _saved ? 'SALVATAGGIO COMPLETATO' : 'SALVA IL GIOCO',
           unit: unit,
           compact: true,
           onPressed: _saving || _saved ? null : () => unawaited(_save()),
-        ),
-        MenuButton(
-          key: const ValueKey<String>('camp-restart'),
-          label: 'RICOMINCIA IL LIVELLO',
-          unit: unit,
-          compact: true,
-          onPressed: () => _open(_CampPage.confirmRestart),
         ),
         MenuButton(
           key: const ValueKey<String>('camp-zombies'),
@@ -226,46 +228,6 @@ final class _CampMenuState extends State<CampMenu> {
             setState(() => _watchingMemories = true);
           },
         ),
-        MenuButton(
-          key: const ValueKey<String>('camp-close'),
-          label: 'TORNA AL GIOCO',
-          unit: unit,
-          compact: true,
-          onPressed: widget.onClose,
-        ),
-      ],
-      _CampPage.confirmRestart => <Widget>[
-        _Panel(
-          unit: unit,
-          width: MenuButton.fullWidth,
-          child: _Paragraph(
-            'Ricominciare il livello? Si riparte dalla prima scena della '
-            'storia: proiettili, zombi conosciuti e ricordi si azzerano, e '
-            "lo slot viene salvato all'inizio del livello.",
-            unit: unit,
-            center: true,
-          ),
-        ),
-        MenuButton(
-          key: const ValueKey<String>('camp-restart-confirm'),
-          label: 'SÌ, RICOMINCIA',
-          unit: unit,
-          compact: true,
-          warning: true,
-          onPressed: widget.onRestartLevel,
-        ),
-        _back(unit, label: 'NO'),
-      ],
-      _CampPage.zombies => const <Widget>[],
-    };
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        for (final item in items)
-          Padding(
-            padding: EdgeInsets.symmetric(vertical: 2.5 * unit),
-            child: item,
-          ),
       ],
     );
   }
@@ -314,7 +276,7 @@ final class _CampMenuState extends State<CampMenu> {
               ),
               SizedBox(width: 8 * unit),
               Expanded(
-                child: _Panel(
+                child: MenuPanel(
                   unit: unit,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -353,7 +315,7 @@ final class _CampMenuState extends State<CampMenu> {
                         ),
                       ),
                       SizedBox(height: 2 * unit),
-                      _Paragraph(
+                      MenuParagraph(
                         known
                             ? card.description
                             : 'Non hai ancora incontrato questo zombi.',
@@ -370,60 +332,6 @@ final class _CampMenuState extends State<CampMenu> {
         SizedBox(height: 4 * unit),
         Align(alignment: Alignment.centerLeft, child: _back(unit)),
       ],
-    );
-  }
-}
-
-/// A dark plate with the blood-red rim of the buttons, so text reads over
-/// the world.
-final class _Panel extends StatelessWidget {
-  const _Panel({required this.unit, required this.child, this.width});
-
-  final double unit;
-  final Widget child;
-
-  /// In virtual pixels; as wide as it can be when null.
-  final double? width;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: width == null ? null : width! * unit,
-      padding: EdgeInsets.all(6 * unit),
-      decoration: BoxDecoration(
-        color: const Color(0xe6140c0c),
-        border: Border.all(color: BloodColors.fresh, width: 1.5 * unit),
-        borderRadius: BorderRadius.circular(4 * unit),
-      ),
-      child: child,
-    );
-  }
-}
-
-final class _Paragraph extends StatelessWidget {
-  const _Paragraph(
-    this.text, {
-    required this.unit,
-    this.center = false,
-    super.key,
-  });
-
-  final String text;
-  final double unit;
-  final bool center;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      textAlign: center ? TextAlign.center : TextAlign.left,
-      style: TextStyle(
-        color: const Color(0xffe8dccb),
-        fontFamily: 'monospace',
-        fontSize: 7.5 * unit,
-        height: 1.3,
-        decoration: TextDecoration.none,
-      ),
     );
   }
 }

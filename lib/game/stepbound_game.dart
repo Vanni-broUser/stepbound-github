@@ -437,6 +437,26 @@ final class StepboundGame extends FlameGame
     await onRest?.call(snapshot(place: campfireNames[_campfire] ?? ''));
   }
 
+  // -------------------------------------------------------- pause menu
+
+  /// Opens the menu from the button in the corner. Mario stops where he
+  /// is, the touch controls step aside and the menu takes their place.
+  /// Nothing doing while something else already covers the game, or while
+  /// Mario is kneeling at a fire: the camp menu is on its way.
+  void openMenu() {
+    if (cover.value != null || _campfire != null) {
+      return;
+    }
+    _cover(const PauseCover());
+  }
+
+  /// Closes it and gives Mario back to the player.
+  void closeMenu() {
+    if (cover.value is PauseCover) {
+      cover.value = null;
+    }
+  }
+
   /// Closes the camp menu and gives Mario back to the player.
   void leaveCamp() {
     _campfire = null;
