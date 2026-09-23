@@ -30,8 +30,8 @@ export 'package:stepbound/core/levels/tutorial/street.dart';
 /// street.dart), of the barracks (barracks.dart) and of the hypermarket
 /// (mall.dart).
 const Legend outdoorLegend = Legend(
-  walls: 'BHfKMGW',
-  obstacles: 'CXUvkDFTSOyJQaAnI~RNbpx',
+  walls: 'BHfKMGW#%',
+  obstacles: 'CXUvkDFTSOyJQaAnI~RNbpx*i&!',
   debris: ':q',
 );
 const Legend barracksLegend = Legend(walls: 'xWQNSIw', obstacles: 'TCAh');
@@ -271,14 +271,25 @@ final GridRect luigiBars = () {
   return GridRect(bars.first.x, bars.first.y, bars.last.x, bars.last.y);
 }();
 
-/// Walking up to the shutter (the two rows of corridor in front of it)
-/// starts Luigi's scene.
-final GridRect luigiSceneTrigger = GridRect(
-  luigiBars.left - 1,
-  luigiBars.bottom + 1,
-  luigiBars.right + 1,
-  luigiBars.bottom + 2,
-);
+/// How many rows along the railing Luigi's shouting does not reach: the
+/// far edge of the corridor, and the only way past his shop without his
+/// scene playing. Two of eight, so that slipping by takes knowing about
+/// it rather than luck.
+const int luigiDodgeRows = 2;
+
+/// Walking up to the shutter starts Luigi's scene: the corridor in front
+/// of the shop, all of it but the [luigiDodgeRows] hugging the railing
+/// over the atrium.
+final GridRect luigiSceneTrigger = () {
+  final railing = _mallFirst.rows.lastIndexWhere((row) => row.contains('w'));
+  final lastFloorRow = _mallFirst.origin.y + railing - 1;
+  return GridRect(
+    luigiBars.left - 1,
+    luigiBars.bottom + 1,
+    luigiBars.right + 1,
+    lastFloorRow - luigiDodgeRows,
+  );
+}();
 
 /// The anti-theft control panel beyond the gate.
 final GridPoint mallPanelTile = _mallFirst.tileOf('Q');
@@ -422,7 +433,6 @@ WorldState createTutorialWorld({int seed = 20260920}) {
               position: point,
               health: 1,
               loadedAmmo: 0,
-              reserveAmmo: 0,
               hasGun: false,
             ),
           );

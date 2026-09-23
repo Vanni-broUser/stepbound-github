@@ -30,6 +30,16 @@
 ///   lands behind it: doors.
 /// - Duomo: `x` the churchyard gate, an obstacle you can see through; `s`
 ///   where Don Angelo waits behind it (floor, he is drawn in game).
+/// - Old town: `#` the small church of San Nicola, at the far end of the
+///   warren of alleys from the Duomo: a wall. The alleys are paved with
+///   `P`, and one of them opens into a piazzetta where `&` are the raised
+///   flower beds and `!` the stone drinking fountain in its basin (both
+///   obstacles, the fountain two cells by two).
+/// - Shipyard, at the west end of the seafront road: `%` its wall, which
+///   closes the road (the way in is round the side, off the promenade);
+///   `*` a hull up on the stocks and `i` the gantry crane, obstacles; the
+///   yard itself is `,` poured concrete and `l` the slipway down into the
+///   water.
 /// - Zombies: `w` wanderer, `z` sprinter, `u` brute, `r` carabiniere; `t`
 ///   the two wanderers outside the churchyard gate.
 /// - `@` player, `w` wanderer.

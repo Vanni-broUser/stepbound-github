@@ -15,6 +15,12 @@ final class _FakeHost implements TutorialHost {
   @override
   bool isPromptVisible = false;
 
+  /// How many times a queued prompt has held Mario still.
+  int stops = 0;
+
+  @override
+  void stopWalking() => stops++;
+
   @override
   bool isTileVisible(GridPoint tile) => visible.contains(tile);
 
@@ -98,6 +104,25 @@ void main() {
     host = _FakeHost();
     progress = Progress();
     director = TutorialDirector(world: world, host: host, progress: progress);
+  });
+
+  test('a queued prompt stops Mario and counts down while he still walks', () {
+    director.queue(
+      TutorialPrompt(<TutorialLine>[
+        const TutorialLine('Ecco'),
+      ], delay: TutorialDirector.reactionDelay),
+    );
+
+    // Holding an arrow down leaves hardly a frame between one step and the
+    // next: the delay has to run anyway, or the box lands streets away.
+    for (var i = 0; i < 20; i++) {
+      director.update(0.05, turnAnimating: true);
+    }
+    expect(host.stops, greaterThan(0), reason: 'he walked on');
+    expect(host.shown, isEmpty, reason: 'the step was still animating');
+
+    director.update(0.05, turnAnimating: false);
+    expect(host.shown.single.single.text, 'Ecco');
   });
 
   test('the zombie lesson follows its alert, framing the zombie', () {
@@ -199,6 +224,37 @@ void main() {
     expect(progress.knownZombies, contains(EntityKind.sprinter));
     final restored = Progress.fromJson(progress.toJson());
     expect(restored.knownZombies, progress.knownZombies);
+  });
+
+  test('only the rows along the railing slip past Luigi unheard', () {
+    final firstFloor = place(PlaceId.mallFirst);
+    final railing = firstFloor.rows.lastIndexWhere((row) => row.contains('w'));
+    final lastFloorRow = firstFloor.origin.y + railing - 1;
+    final column = luigiTile.x;
+
+    // Every row of the corridor from the shutter down to the last two.
+    for (var y = luigiSceneTrigger.top; y <= lastFloorRow; y++) {
+      final dodging = y > lastFloorRow - luigiDodgeRows;
+      expect(
+        luigiSceneTrigger.contains(GridPoint(column, y)),
+        !dodging,
+        reason: 'row $y of ${lastFloorRow - luigiSceneTrigger.top + 1}',
+      );
+    }
+    expect(
+      lastFloorRow - luigiSceneTrigger.top + 1,
+      greaterThan(luigiDodgeRows * 2),
+      reason: 'the way around has to be the narrow one',
+    );
+
+    // And the way around is actually walkable, or it is no dodge at all.
+    for (var y = lastFloorRow - luigiDodgeRows + 1; y <= lastFloorRow; y++) {
+      expect(
+        firstFloor.walkableRow(y - firstFloor.origin.y),
+        contains(GridPoint(column, y)),
+        reason: 'row $y is blocked in front of the shop',
+      );
+    }
   });
 
   test("Luigi's scene becomes a memory once played", () {

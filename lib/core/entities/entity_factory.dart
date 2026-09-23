@@ -14,7 +14,6 @@ final class EntityFactory {
     Direction facing = Direction.east,
     int? health,
     int loadedAmmo = 6,
-    int reserveAmmo = 6,
     bool hasGun = true,
   }) {
     final stats = balance[EntityKind.player];
@@ -25,12 +24,7 @@ final class EntityFactory {
       components: <EntityComponent>[
         PositionComponent(position: position, facing: facing),
         HealthComponent(current: maximum, maximum: maximum),
-        AmmoComponent(
-          loaded: loadedAmmo,
-          reserve: reserveAmmo,
-          magazineCapacity: 6,
-          hasGun: hasGun,
-        ),
+        AmmoComponent(loaded: loadedAmmo, hasGun: hasGun),
         ActorComponent(
           tickCost: stats.tickCost,
           contactDamage: stats.contactDamage,

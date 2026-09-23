@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/ui/audio_scope.dart';
@@ -41,6 +43,14 @@ final class GameplayDialogue extends StatefulWidget {
     super.key,
   });
 
+  static const Duration defaultSettleTime = Duration(milliseconds: 500);
+
+  /// A line ignores taps for this long. The box often opens while an arrow
+  /// is being held down or tapped over and over to walk: without the pause
+  /// those taps eat the first lines before they can be read. Tests that
+  /// only tap through the lines set it to zero.
+  static Duration settleTime = defaultSettleTime;
+
   final List<DialogueLine> lines;
   final VoidCallback onFinished;
 
@@ -51,9 +61,43 @@ final class GameplayDialogue extends StatefulWidget {
 final class _GameplayDialogueState extends State<GameplayDialogue> {
   int _index = 0;
 
+  /// False until the line on screen has been there long enough to be read.
+  bool _settled = false;
+  Timer? _settling;
+
+  /// A tap counts only if the finger came down while the line was settled:
+  /// one already resting on an arrow button when the box opened does not.
+  bool _pressWasFresh = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _settle();
+  }
+
+  @override
+  void dispose() {
+    _settling?.cancel();
+    super.dispose();
+  }
+
+  void _settle() {
+    _settling?.cancel();
+    final wait = GameplayDialogue.settleTime;
+    _settled = wait <= Duration.zero;
+    _settling = _settled ? null : Timer(wait, () => _settled = true);
+  }
+
+  void _press() => _pressWasFresh = _settled;
+
   void _advance() {
+    if (!_pressWasFresh) {
+      return;
+    }
+    _pressWasFresh = false;
     AudioScope.of(context).play(Sfx.dialogue);
     if (_index + 1 < widget.lines.length) {
+      _settle();
       setState(() => _index += 1);
       return;
     }
@@ -67,6 +111,7 @@ final class _GameplayDialogueState extends State<GameplayDialogue> {
     return GestureDetector(
       key: const ValueKey<String>('gameplay-dialogue'),
       behavior: HitTestBehavior.opaque,
+      onTapDown: (_) => _press(),
       onTap: _advance,
       child: Semantics(
         label: 'Tocca per continuare',
