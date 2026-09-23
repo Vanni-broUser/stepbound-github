@@ -889,39 +889,28 @@ def paint_back_passage(d, level):
             rect(d, px + 3, py + 10, 10, 2, (66, 62, 58))
 
 
-def paint_mall_back_door(d, rng, level):
-    """The back of the hypermarket along the bottom of its car park: a
-    blank concrete wall with two shuttered loading bays, and the fire exit
-    `j` standing open in it, the way back inside."""
+def paint_mall_back_door(d, level):
+    """The hypermarket fire exit `j`, seen from behind.
+
+    Like the barracks' back passage, only the opening is visible: the
+    building is south of the camera, so painting its north facade here
+    would reverse the perspective used by every other outdoor map.
+    """
     doors = [(x, y) for y in range(level.height) for x in range(level.width)
              if level.at(x, y) == "j"]
     if not doors:
         return
     dx, dy = doors[0]
-    px, py, w = dx * TILE, dy * TILE, level.width * TILE
-    rect(d, 0, py, w, 30, (130, 126, 120))  # the rear wall
-    rect(d, 0, py, w, 3, (92, 88, 84))  # its coping
-    for jx in range(0, w, 96):  # panel joints
-        rect(d, jx, py + 3, 1, 27, (112, 108, 102))
-    for _ in range(50):  # rain streaks and grime
-        rect(d, rng.randrange(w - 6), py + 4 + rng.randrange(22),
-             rng.randint(2, 6), rng.randint(1, 3), (114, 110, 102))
-    for bx in (px - 8 * TILE, px + 7 * TILE):  # loading bays, shutters down
-        rect(d, bx, py + 6, 48, 2, (60, 60, 64))
-        rect(d, bx, py + 8, 48, 20, (80, 80, 84))
-        for sy in range(py + 9, py + 28, 2):
-            rect(d, bx + 2, sy, 44, 1, (118, 122, 130))
-    rect(d, px - 3, py + 3, 22, 27, (112, 108, 102))  # the door surround
-    rect(d, px + 4, py + 4, 8, 5, (30, 120, 60))  # the sign over it
-    rect(d, px + 6, py + 5, 4, 3, (210, 250, 220))
-    rect(d, px + 1, py + 10, 14, 20, (24, 24, 26))  # the opening
-    rect(d, px + 3, py + 12, 10, 18, (46, 44, 44))
-    rect(d, px + 1, py + 10, 4, 20, (118, 122, 130))  # the leaf swung open
-    rect(d, px + 2, py + 11, 2, 18, (158, 162, 170))
-    rect(d, px + 4, py + 20, 1, 2, (220, 190, 90))  # its push bar
-    for bx in (px - 8, px + 21):  # bollards on the tarmac
-        rect(d, bx, py - 7, 3, 8, (62, 62, 66))
-        rect(d, bx, py - 8, 3, 2, (210, 170, 40))
+    px, py = dx * TILE, dy * TILE
+    rect(d, px - 2, py, 20, TILE, (112, 108, 102))  # concrete reveal
+    rect(d, px, py + 2, TILE, 14, (24, 24, 26))  # dark passage
+    rect(d, px + 2, py + 4, 12, 12, (46, 44, 44))
+    rect(d, px + 2, py + 13, 12, 3, (80, 76, 70))  # threshold
+    rect(d, px, py + 2, 4, 14, (118, 122, 130))  # open leaf
+    rect(d, px + 1, py + 3, 2, 12, (158, 162, 170))
+    rect(d, px + 3, py + 9, 1, 2, (220, 190, 90))  # push bar
+    rect(d, px + 4, py - 4, 8, 5, (30, 120, 60))  # exit sign
+    rect(d, px + 6, py - 3, 4, 3, (210, 250, 220))
 
 
 # ------------------------------------------------------------ hypermarket
@@ -2173,7 +2162,7 @@ def bake(level: Level, rng: random.Random, output: str) -> None:
     paint_shipyard(d, rng, level)
     paint_hospital(d, rng, level)
     paint_back_passage(d, level)
-    paint_mall_back_door(d, rng, level)
+    paint_mall_back_door(d, level)
 
     car_colors = [(140, 40, 36), (70, 96, 130), (180, 170, 150), (60, 110, 80)]
     color_index = 0

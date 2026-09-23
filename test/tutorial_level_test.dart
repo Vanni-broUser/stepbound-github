@@ -19,6 +19,42 @@ void main() {
     }
   });
 
+  test('the street behind the mall keeps the outdoor perspective', () {
+    final width = mallNorthStreetRows.first.length;
+    final roadRows = mallNorthStreetRows.where((row) => row.contains('-'));
+    expect(
+      roadRows.every((row) => row.startsWith('-') && row.endsWith('-')),
+      isTrue,
+      reason: 'the road continues past both edges of the map',
+    );
+    expect(
+      roadRows.every((row) => row.contains('XX') && row.contains('UU')),
+      isTrue,
+      reason: 'wrecks block both off-map directions',
+    );
+
+    final facadeRows = mallNorthStreetRows
+        .takeWhile((row) => !row.contains('-'))
+        .where((row) => row.contains('H'));
+    expect(facadeRows, isNotEmpty, reason: 'north-side palazzi face south');
+
+    final exitRow = mallNorthStreetRows.indexWhere((row) => row.contains('j'));
+    expect(
+      mallNorthStreetRows.skip(exitRow).every((row) => !row.contains('H')),
+      isTrue,
+      reason: 'the southern building shows only its roof and exit',
+    );
+
+    final lastParkingColumn = mallNorthStreetRows
+        .map((row) => row.lastIndexOf('L'))
+        .reduce((left, right) => left > right ? left : right);
+    expect(
+      lastParkingColumn,
+      lessThan(width - 10),
+      reason: 'right-side palazzi narrow the car park',
+    );
+  });
+
   test('the player starts unarmed with no bullets', () {
     final ammo = createTutorialWorld().player.component<AmmoComponent>();
     expect(ammo.hasGun, isFalse);
