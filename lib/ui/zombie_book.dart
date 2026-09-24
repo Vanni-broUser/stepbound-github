@@ -103,6 +103,10 @@ memoryScenes = <StoryMemory, List<StoryScene>>{
     for (final frame in DuomoScript.initiationScene)
       StoryScene(image: frame.image, speaker: frame.speaker, text: frame.text),
   ],
+  StoryMemory.priestMass: <StoryScene>[
+    for (final frame in DuomoScript.massScene)
+      StoryScene(image: frame.image, speaker: frame.speaker, text: frame.text),
+  ],
   StoryMemory.luigiAtStation: <StoryScene>[
     for (final frame in StationScript.reunionScene)
       StoryScene(image: frame.image, speaker: frame.speaker, text: frame.text),

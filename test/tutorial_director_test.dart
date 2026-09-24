@@ -304,6 +304,49 @@ void main() {
     expect(host.cultistRobesCollected, 1);
   });
 
+  test('the mass starts only once Mario is back in the Duomo in the robe', () {
+    world.pickups[episcopalRingPickupId]!
+      ..active = false
+      ..collected = true;
+    final position = world.player.component<PositionComponent>()
+      ..position = world.portals[duomoPortalTile]!.to;
+    settle();
+    host.onCutsceneFinished?.call();
+    expect(host.cutscenes, hasLength(1), reason: 'only the initiation');
+
+    // Dressed upstairs: the mass is downstairs.
+    progress
+      ..unlockOutfit(PlayerOutfit.cultist)
+      ..wearOutfit(PlayerOutfit.cultist);
+    position.position = duomoUpperRobeTile;
+    settle();
+    expect(host.cutscenes, hasLength(1));
+
+    // Down in his own clothes: everything waits.
+    progress.wearOutfit(PlayerOutfit.base);
+    position.position = duomoStairEntryTile;
+    settle();
+    expect(host.cutscenes, hasLength(1));
+    expect(progress.memories, isNot(contains(StoryMemory.priestMass)));
+
+    progress.wearOutfit(PlayerOutfit.cultist);
+    settle();
+    expect(host.cutscenes, hasLength(2));
+    expect(host.cutscenes.last, DuomoScript.massScene);
+    expect(host.cutscenes.last.first.image, DuomoScript.massImage);
+    expect(host.cutscenes.last.first.text, DuomoScript.massWelcomeLine);
+    expect(host.cutscenes.last.last.image, DuomoScript.crucifiedImage);
+    expect(host.cutscenes.last.last.speaker, PriestScript.priest);
+    expect(progress.memories, contains(StoryMemory.priestMass));
+
+    // Held once.
+    position.position = duomoUpperRobeTile;
+    settle();
+    position.position = duomoStairEntryTile;
+    settle();
+    expect(host.cutscenes, hasLength(2));
+  });
+
   test('looking over the gap between the roofs tells Mario what it would '
       'take, every time he looks', () {
     for (var look = 0; look < 2; look++) {

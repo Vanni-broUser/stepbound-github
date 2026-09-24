@@ -42,6 +42,29 @@ final class DuomoScript extends TutorialScript {
     ),
   ];
 
+  static const String massImage = 'assets/story/scene_priest_mass.jpg';
+  static const String crucifiedImage =
+      'assets/story/scene_crucified_zombie.jpg';
+  static const String massWelcomeLine =
+      'Noi siamo tutti pronti a cominciare giovanotto, accomodati pure!';
+  static const String massSermonLine =
+      "Il Signore ha mandato questa sciagura contro l'uomo, essa però è "
+      'pur sempre opera del Signore ed ha lo scopo di purificare il mondo';
+
+  /// Played when Mario comes back down into the Duomo wearing the robe.
+  static const List<CutsceneFrame> massScene = <CutsceneFrame>[
+    CutsceneFrame(
+      image: massImage,
+      speaker: PriestScript.priest,
+      text: massWelcomeLine,
+    ),
+    CutsceneFrame(
+      image: crucifiedImage,
+      speaker: PriestScript.priest,
+      text: massSermonLine,
+    ),
+  ];
+
   bool _ringDelivered = false;
 
   bool get ringDelivered => _ringDelivered;
@@ -85,11 +108,15 @@ final class DuomoScript extends TutorialScript {
 
   @override
   void update({required bool turnAnimating}) {
-    if (_ringDelivered || turnAnimating || host.isPromptVisible) {
+    if (turnAnimating || host.isPromptVisible) {
+      return;
+    }
+    final position = world.player.component<PositionComponent>().position;
+    if (_ringDelivered) {
+      _startMassIfDressed(position);
       return;
     }
     final ring = world.pickups[episcopalRingPickupId];
-    final position = world.player.component<PositionComponent>().position;
     if (ring == null ||
         !ring.collected ||
         placeAt(position)?.id != PlaceId.duomo) {
@@ -98,6 +125,19 @@ final class DuomoScript extends TutorialScript {
     _ringDelivered = true;
     progress.remember(StoryMemory.priestFamily);
     host.playCutscene(initiationScene, onFinished: _finishInitiation);
+  }
+
+  /// The mass waits for Mario in the Duomo in the occultist robe: coming
+  /// down in his own clothes changes nothing, until he is back in there
+  /// wearing it. Held once, the memory says so, in the save too.
+  void _startMassIfDressed(GridPoint position) {
+    if (progress.memories.contains(StoryMemory.priestMass) ||
+        progress.activeOutfit != PlayerOutfit.cultist ||
+        placeAt(position)?.id != PlaceId.duomo) {
+      return;
+    }
+    progress.remember(StoryMemory.priestMass);
+    host.playCutscene(massScene);
   }
 
   void _finishInitiation() {
