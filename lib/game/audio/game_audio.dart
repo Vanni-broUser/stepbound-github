@@ -23,9 +23,10 @@ abstract interface class GameAudio {
 
   void play(Sfx sfx, {double volume = 1});
 
-  /// Cuts [sfx] short if it is still playing. Only the long ones need it:
-  /// the game over sting would otherwise play on over the game that
-  /// starts again.
+  /// Cuts [sfx] short if it is still playing, or as soon as it has started
+  /// if it is still starting. Only the long ones ([Sfx.lingers]) are kept
+  /// track of: the game over sting would otherwise play on over the game
+  /// that starts again.
   void stop(Sfx sfx);
 
   /// A tap happened: browsers only let sound start after one, so what they

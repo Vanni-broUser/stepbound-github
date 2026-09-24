@@ -64,11 +64,16 @@ enum Sfx {
   hitFlesh(<String>['sfx/hit_flesh.mp3'], volume: 0.8),
   playerHurt(<String>['sfx/player_hurt.mp3']),
   playerFall(<String>['sfx/player_fall.mp3']),
-  gameOver(<String>['sfx/game_over.mp3'], voices: 1),
+  gameOver(<String>['sfx/game_over.mp3'], voices: 1, lingers: true),
   uiClick(<String>['sfx/ui_click.mp3'], volume: 0.6),
   dialogue(<String>['sfx/dialogue.mp3'], volume: 0.5);
 
-  const Sfx(this.files, {this.volume = 1, this.voices = 2});
+  const Sfx(
+    this.files, {
+    this.volume = 1,
+    this.voices = 2,
+    this.lingers = false,
+  });
 
   final List<String> files;
 
@@ -77,6 +82,11 @@ enum Sfx {
 
   /// How many copies of one file can overlap.
   final int voices;
+
+  /// Long enough to play on over what comes next: the game over sting, half
+  /// a minute. Every copy is kept track of, so that `GameAudio.stop` and the
+  /// app going to the background can cut it; a new copy cuts the old one.
+  final bool lingers;
 }
 
 /// A credit line for the in-game credits screen.

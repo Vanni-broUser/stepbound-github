@@ -5,6 +5,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stepbound/game/audio/game_audio.dart';
+import 'package:stepbound/game/audio/lingering_shots.dart';
 import 'package:stepbound/game/audio/sound.dart';
 
 /// The device's sound, through audioplayers. Music and ambience are looping
@@ -54,8 +55,8 @@ final class PlayerAudio implements GameAudio {
   final Map<Ambience, _Channel> _ambience = <Ambience, _Channel>{};
   final Map<String, Future<AudioPool>> _pools = <String, Future<AudioPool>>{};
 
-  /// How to cut short the last copy of each effect still playing.
-  final Map<Sfx, StopFunction> _stoppers = <Sfx, StopFunction>{};
+  /// The copies of the long effects, playing or still starting.
+  final LingeringShots _lingering = LingeringShots();
 
   Timer? _fader;
   bool _muted = false;
@@ -169,22 +170,20 @@ final class PlayerAudio implements GameAudio {
     }
     final file = sfx.files[_random.nextInt(sfx.files.length)];
     final level = (sfx.volume * volume).clamp(0.0, 1.0);
-    unawaited(
-      _guard(
-        _pool(file, voices: sfx.voices).then((pool) async {
-          _stoppers[sfx] = await pool.start(volume: level);
-        }),
-      ),
-    );
+    final starting = _pool(
+      file,
+      voices: sfx.voices,
+    ).then((pool) => pool.start(volume: level));
+    if (sfx.lingers) {
+      _lingering.add(sfx, starting);
+    } else {
+      // A short one is over before anything could want it stopped.
+      unawaited(_guard(starting));
+    }
   }
 
   @override
-  void stop(Sfx sfx) {
-    final stopper = _stoppers.remove(sfx);
-    if (stopper != null) {
-      unawaited(_guard(stopper()));
-    }
-  }
+  void stop(Sfx sfx) => _lingering.stop(sfx);
 
   Future<AudioPool> _pool(String file, {required int voices}) =>
       _pools.putIfAbsent(
@@ -216,11 +215,9 @@ final class PlayerAudio implements GameAudio {
     // The effects play from their own pools, not from the channels, so
     // pausing those leaves them running: the game over sting is long
     // enough to carry on over whatever the phone does next. Cut every
-    // one still playing; a one-shot has nothing to come back to.
-    for (final stopper in _stoppers.values.toList()) {
-      unawaited(_guard(stopper()));
-    }
-    _stoppers.clear();
+    // long one, even one still starting; a one-shot has nothing to come
+    // back to.
+    _lingering.stopAll();
   }
 
   @override
