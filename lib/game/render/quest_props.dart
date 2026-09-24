@@ -61,8 +61,8 @@ final class ChurchyardGateComponent extends PositionComponent {
 }
 
 /// The Bar Arcobaleno's service door. The background contains the open
-/// doorway; the closed leaf and white interaction hand disappear when the
-/// key turns its tile into floor.
+/// doorway; the closed leaf disappears when the key turns its tile into
+/// floor, and with it the glint every interactable object wears.
 final class BarServiceDoorComponent extends PositionComponent {
   BarServiceDoorComponent({
     required this.door,
@@ -102,24 +102,12 @@ final class BarServiceDoorComponent extends PositionComponent {
     _rect(canvas, 4, 3, 8, 2, const ui.Color(0xff6c4c32));
     _rect(canvas, 4, 18, 8, 1, const ui.Color(0xff2c1e18));
     _rect(canvas, 11, 23, 2, 2, const ui.Color(0xffbc9e52));
-
-    const white = ui.Color(0xfff4f0e4);
-    const shadow = ui.Color(0xff181616);
-    for (final part in <(double, double, double, double)>[
-      (7, 8, 2, 8),
-      (5, 12, 6, 5),
-      (4, 13, 2, 3),
-    ]) {
-      final (x, y, w, h) = part;
-      _rect(canvas, x + 1, y + 1, w, h, shadow);
-      _rect(canvas, x, y, w, h, white);
-    }
   }
 }
 
 /// The folded occultist robe upstairs in the Duomo. Its tile becoming
-/// walkable means it has been collected, so both the robe and its white
-/// interaction sparkle disappear together.
+/// walkable means it has been collected, so the robe disappears, and with
+/// it the glint every interactable object wears.
 final class DuomoRobeComponent extends PositionComponent {
   DuomoRobeComponent({
     required this.robe,
@@ -163,10 +151,5 @@ final class DuomoRobeComponent extends PositionComponent {
     _rect(canvas, 5, 9, 6, 3, clothLight);
     _rect(canvas, 4, 13, 8, 1, clothLight);
     _rect(canvas, 7, 11, 2, 6, gold);
-
-    const white = ui.Color(0xfffff6e8);
-    _rect(canvas, 7, 1, 2, 7, white);
-    _rect(canvas, 4, 4, 8, 2, white);
-    _rect(canvas, 6, 3, 4, 4, white);
   }
 }
