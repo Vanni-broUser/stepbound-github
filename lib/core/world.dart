@@ -49,10 +49,12 @@ final class WorldState {
     Iterable<GridPoint> campfires = const <GridPoint>[],
     Map<GridPoint, GridRect> controls = const <GridPoint, GridRect>{},
     Iterable<GridPoint> travelMaps = const <GridPoint>[],
+    Iterable<GridPoint> lookouts = const <GridPoint>[],
   }) : controls = Map<GridPoint, GridRect>.of(controls),
        portals = Map<GridPoint, Portal>.unmodifiable(portals),
        campfires = Set<GridPoint>.unmodifiable(campfires),
        travelMaps = Set<GridPoint>.unmodifiable(travelMaps),
+       lookouts = Set<GridPoint>.unmodifiable(lookouts),
        _entities = <String, Entity>{
          for (final entity in entities) entity.id: entity,
        },
@@ -90,6 +92,8 @@ final class WorldState {
         json['controls'] as List<Object?>? ?? const <Object?>[];
     final encodedTravelMaps =
         json['travelMaps'] as List<Object?>? ?? const <Object?>[];
+    final encodedLookouts =
+        json['lookouts'] as List<Object?>? ?? const <Object?>[];
     return WorldState(
       map: map ?? TileMap.fromJson(json['map']! as Map<String, Object?>),
       entities: encodedEntities.map(
@@ -125,6 +129,9 @@ final class WorldState {
               GridRect.fromJson(encoded['opens']! as Map<String, Object?>),
       },
       travelMaps: encodedTravelMaps.map(
+        (point) => GridPoint.fromJson(point! as Map<String, Object?>),
+      ),
+      lookouts: encodedLookouts.map(
         (point) => GridPoint.fromJson(point! as Map<String, Object?>),
       ),
     );
@@ -171,6 +178,10 @@ final class WorldState {
 
   /// Route maps that return gameplay to the destination-selection screen.
   final Set<GridPoint> travelMaps;
+
+  /// Places worth a closer look: interacting with one says what the
+  /// player is looking at, and leaves it there to be looked at again.
+  final Set<GridPoint> lookouts;
   final String playerId;
   final SeededRandom random;
   final List<NoisePulse> _pendingNoises;
@@ -376,5 +387,6 @@ final class WorldState {
         },
     ],
     'travelMaps': <Object?>[for (final point in travelMaps) point.toJson()],
+    'lookouts': <Object?>[for (final point in lookouts) point.toJson()],
   };
 }

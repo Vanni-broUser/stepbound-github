@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/core/core.dart';
@@ -17,6 +18,8 @@ void main() {
       stationRows,
       stationUnderpassRows,
       stationFarSideRows,
+      airlinerCabinRows,
+      airlinerRoofRows,
     ]) {
       final width = rows.first.length;
       expect(rows.every((row) => row.length == width), isTrue);
@@ -1242,6 +1245,178 @@ void main() {
           isTrue,
         );
       }
+    });
+  });
+
+  group('the crashed airliner', () {
+    final street = place(PlaceId.mallNorthStreet);
+    final cabin = place(PlaceId.airlinerCabin);
+    final roofs = place(PlaceId.airlinerRoofs);
+
+    Map<GridPoint, int> from(WorldState world, GridPoint start, Place place) =>
+        world.map.floodFillDistances(
+          start,
+          maxDistance: place.width * place.height,
+        );
+
+    GridPoint travel(WorldState world, GridPoint threshold, Direction facing) {
+      world.player.component<PositionComponent>().position = threshold.step(
+        facing.opposite,
+      );
+      final events = const TurnScheduler().advance(world, MoveAction(facing));
+      expect(events.whereType<TeleportedEvent>(), hasLength(1));
+      return world.player.component<PositionComponent>().position;
+    }
+
+    test('it lies across the crossroads, wings where the street sees '
+        'them', () {
+      final world = createTutorialWorld();
+      final body = street.tilesOf('_');
+      final wings = street.tilesOf('+');
+      expect(body, isNotEmpty);
+      expect(wings, isNotEmpty);
+      for (final tile in body) {
+        expect(world.map.tileAt(tile).isWalkable, isFalse);
+      }
+      for (final tile in wings) {
+        expect(world.map.tileAt(tile).kind, TileKind.obstacle);
+      }
+      // It runs off the east edge of the map: the tail is somewhere else.
+      expect(body.map((tile) => tile.x).reduce(math.max), street.bounds.right);
+      // Nose in the road, tail high up in the palazzi.
+      final nose = body.reduce((a, b) => a.x < b.x ? a : b);
+      final tail = body.reduce((a, b) => a.x > b.x ? a : b);
+      expect(tail.y, lessThan(nose.y), reason: 'it climbed as it went');
+
+      final reached = from(world, mallNorthStreetEntry, street);
+      // Everywhere the block was walked for before is still walked for:
+      // the wreck narrows the junction, it never shuts a way to anything.
+      for (final way in <GridPoint>[
+        ...street.tilesOf('<'),
+        ...stationWestDoor,
+        ...stationEastDoor,
+        ...airlinerTear,
+      ]) {
+        expect(reached.containsKey(way), isTrue, reason: '$way is cut off');
+      }
+      // The wings came down on the junction, not away over roofs nobody
+      // can walk to: a good half of them are within three tiles of ground
+      // the player stands on, so they are seen from the street.
+      bool seenFrom(GridPoint wing) {
+        for (var dx = -3; dx <= 3; dx++) {
+          for (var dy = -3; dy <= 3; dy++) {
+            if (reached.containsKey(GridPoint(wing.x + dx, wing.y + dy))) {
+              return true;
+            }
+          }
+        }
+        return false;
+      }
+
+      expect(wings.where(seenFrom).length * 2, greaterThan(wings.length));
+    });
+
+    test('the tear in its belly leads into the cabin and back out', () {
+      final world = createTutorialWorld();
+      expect(airlinerTear, hasLength(2), reason: 'as wide as the aisle');
+      final inside = travel(world, airlinerTear.first, Direction.north);
+      expect(cabin.bounds.contains(inside), isTrue);
+      expect(inside, airlinerCabinTear.first.step(Direction.north));
+
+      final back = travel(world, airlinerCabinTear.first, Direction.south);
+      expect(back, airlinerTear.first.step(Direction.south));
+      expect(street.bounds.contains(back), isTrue);
+      expect(
+        world.map.tileAt(back).isWalkable,
+        isTrue,
+        reason: 'it comes out in the lane the wreck left open',
+      );
+    });
+
+    test('the cabin walks from the tear to the tail break', () {
+      final world = createTutorialWorld();
+      final reached = from(
+        world,
+        airlinerCabinTear.first.step(Direction.north),
+        cabin,
+      );
+      for (final door in airlinerTailBreak) {
+        expect(
+          reached.containsKey(door.step(Direction.south)),
+          isTrue,
+          reason: 'the aisle runs the length of the cabin',
+        );
+      }
+      expect(cabin.lights, isNotEmpty, reason: 'a room on a dark background');
+    });
+
+    test('two wanderers are left in the cabin', () {
+      final world = createTutorialWorld();
+      final zombies = world.entities.values
+          .where((entity) => entity.id.startsWith(airlinerZombiePrefix))
+          .toList();
+      expect(zombies, hasLength(2));
+      for (final zombie in zombies) {
+        expect(zombie.kind, EntityKind.wanderer);
+        final at = zombie.component<PositionComponent>().position;
+        expect(cabin.bounds.contains(at), isTrue);
+        expect(world.map.tileAt(at).isWalkable, isTrue);
+      }
+    });
+
+    test('the tail break comes out on the roofs, and goes back in', () {
+      final world = createTutorialWorld();
+      final roof = travel(world, airlinerTailBreak.first, Direction.south);
+      expect(roofs.bounds.contains(roof), isTrue);
+      expect(roof, airlinerRoofBreak.first.step(Direction.south));
+
+      final back = travel(world, airlinerRoofBreak.first, Direction.south);
+      expect(cabin.bounds.contains(back), isTrue);
+      expect(back, airlinerTailBreak.first.step(Direction.south));
+    });
+
+    test('the roofs end at the gap, which can only be looked at', () {
+      final world = createTutorialWorld();
+      final reached = from(
+        world,
+        airlinerRoofBreak.first.step(Direction.south),
+        roofs,
+      );
+      expect(
+        reached.containsKey(rooftopGapTile.step(Direction.north)),
+        isTrue,
+        reason: 'both terraces walk, the lower one down to the parapet',
+      );
+      expect(world.map.tileAt(rooftopGapTile).isWalkable, isFalse);
+      expect(world.lookouts, contains(rooftopGapTile));
+      // Beyond the parapet there is the drop, and then a roof nobody can
+      // reach from here.
+      for (final tile in roofs.tilesOf('%')) {
+        expect(reached.containsKey(tile), isFalse);
+      }
+      for (final tile in reached.keys) {
+        expect(roofs.bounds.contains(tile), isTrue);
+      }
+    });
+
+    test('looking at the gap says what it would take to cross it', () {
+      final world = createTutorialWorld();
+      world.player.component<PositionComponent>()
+        ..position = rooftopGapTile.step(Direction.north)
+        ..facing = Direction.south;
+
+      final events = const TurnScheduler().advance(
+        world,
+        const InteractAction(),
+      );
+
+      expect(events.whereType<LookedOutEvent>().single.at, rooftopGapTile);
+      expect(events.whereType<NoInteractionEvent>(), isEmpty);
+      expect(
+        world.lookouts,
+        contains(rooftopGapTile),
+        reason: 'looking changes nothing: it can be looked at again',
+      );
     });
   });
 

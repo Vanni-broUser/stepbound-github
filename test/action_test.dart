@@ -28,6 +28,18 @@ void main() {
     expect(world.travelMaps, contains(map));
   });
 
+  test('interact with a lookout says so, and leaves it to be looked at '
+      'again', () {
+    const gap = GridPoint(2, 1);
+    final world = playerOnlyWorld(lookouts: const <GridPoint>[gap]);
+
+    final events = const TurnScheduler().advance(world, const InteractAction());
+
+    expect(events.whereType<LookedOutEvent>().single.at, gap);
+    expect(events.whereType<NoInteractionEvent>(), isEmpty);
+    expect(world.lookouts, contains(gap));
+  });
+
   test('shooting consumes ammo and hits the first zombie in line', () {
     final world = corridorWorld(
       EntityKind.wanderer,

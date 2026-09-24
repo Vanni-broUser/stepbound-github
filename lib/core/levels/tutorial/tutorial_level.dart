@@ -8,6 +8,7 @@ import 'package:stepbound/core/grid/tile.dart';
 import 'package:stepbound/core/grid/tile_map.dart';
 import 'package:stepbound/core/items/pickup.dart';
 import 'package:stepbound/core/levels/place.dart';
+import 'package:stepbound/core/levels/tutorial/airliner.dart';
 import 'package:stepbound/core/levels/tutorial/bar_arcobaleno.dart';
 import 'package:stepbound/core/levels/tutorial/barracks.dart';
 import 'package:stepbound/core/levels/tutorial/church.dart';
@@ -21,6 +22,7 @@ import 'package:stepbound/core/levels/tutorial/train.dart';
 import 'package:stepbound/core/seeded_random.dart';
 import 'package:stepbound/core/world.dart';
 
+export 'package:stepbound/core/levels/tutorial/airliner.dart';
 export 'package:stepbound/core/levels/tutorial/bar_arcobaleno.dart';
 export 'package:stepbound/core/levels/tutorial/barracks.dart';
 export 'package:stepbound/core/levels/tutorial/church.dart';
@@ -36,8 +38,8 @@ export 'package:stepbound/core/levels/tutorial/train.dart';
 /// street.dart), of the barracks (barracks.dart) and of the hypermarket
 /// (mall.dart).
 const Legend outdoorLegend = Legend(
-  walls: 'BHfKMGW#%0',
-  obstacles: 'CXUvkDFTSOyJQaAnI~RNbpx*i&!^;/',
+  walls: 'BHfKMGW#%0_',
+  obstacles: 'CXUvkDFTSOyJQaAnI~RNbpx*i&!^;/+',
   debris: ':q',
 );
 const Legend barracksLegend = Legend(walls: 'xWQNSIw', obstacles: 'TCAh');
@@ -59,6 +61,17 @@ const Legend stationLegend = Legend(walls: 'xWwMP#', obstacles: 'TKmn');
 /// tables, luggage, controls, the engine cabinet and the route map can be
 /// seen over but not walked through.
 const Legend trainLegend = Legend(walls: 'xWwIi', obstacles: 'STLCGP');
+
+/// Inside the crashed airliner (airliner.dart) the hull is a wall all
+/// round; the blocks of seats `T` and the galley trolleys `K` are waist
+/// high, and the buckled panelling `:` is walked over.
+const Legend airlinerLegend = Legend(walls: 'xWwI', obstacles: 'TK');
+
+/// The roofs the tail came down in: the drop `x`, the party walls `W`,
+/// the tail `#` and the roof across the gap `%` are all walls, while the
+/// parapets `^`, the low stretch `>` Mario measures the gap from, the
+/// chimney stacks `T` and the aerial masts `n` can be seen over.
+const Legend rooftopLegend = Legend(walls: 'xW#%', obstacles: 'Tn^>');
 
 /// The card shown on the way into the harbour.
 const String harbourName = 'Porto e centro storico';
@@ -173,6 +186,22 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     indoor: true,
     daylight: 'E*',
   ),
+  PlaceSpec(
+    id: PlaceId.airlinerCabin,
+    rows: airlinerCabinRows,
+    legend: airlinerLegend,
+    background: 'assets/levels/airliner_cabin.png',
+    indoor: true,
+    // Daylight at the tear in the belly and at the tail break.
+    daylight: 'EO',
+  ),
+  // The roofs are open to the sky, so they are lit throughout.
+  PlaceSpec(
+    id: PlaceId.airlinerRoofs,
+    rows: airlinerRoofRows,
+    legend: rooftopLegend,
+    background: 'assets/levels/airliner_roofs.png',
+  ),
 ]);
 
 final Map<PlaceId, Place> _placesById = <PlaceId, Place>{
@@ -204,6 +233,8 @@ final Place _station = place(PlaceId.station);
 final Place _underpass = place(PlaceId.stationUnderpass);
 final Place _farSide = place(PlaceId.stationFarSide);
 final Place _train = place(PlaceId.trainInterior);
+final Place _airlinerCabin = place(PlaceId.airlinerCabin);
+final Place _airlinerRoofs = place(PlaceId.airlinerRoofs);
 
 /// The four places [outdoorLegend] describes, the ones tools/
 /// build_street_level.py bakes: what walks the streets, what burns in them
@@ -248,6 +279,9 @@ const String mallGroundZombiePrefix = 'mall-ground-wanderer-';
 
 /// The two wanderers roaming the station's underground corridor.
 const String stationUnderpassZombiePrefix = 'station-underpass-wanderer-';
+
+/// The two wanderers left in the cabin of the crashed airliner.
+const String airlinerZombiePrefix = 'airliner-wanderer-';
 
 /// Walking into the crossroads makes the tutorial zombie notice the player
 /// even if it is not looking that way.
@@ -458,6 +492,24 @@ final GridPoint trainExitTile = _train.tileOf('E');
 /// The yellowed Europe map mounted on the locomotive's control console.
 final GridPoint trainMapPanelTile = _train.tileOf('P');
 
+/// The tear in the belly of the airliner, in the lane the wreck left open
+/// at the crossroads behind the hypermarket: two tiles wide, like the
+/// aisle it opens on.
+final List<GridPoint> airlinerTear = _mallNorthStreet.doorRow('[');
+
+/// The two breaks in the hull, seen from inside: the tear `E` back out
+/// onto the road, and the tail break `O` out onto the roofs.
+final List<GridPoint> airlinerCabinTear = _airlinerCabin.doorRow('E');
+final List<GridPoint> airlinerTailBreak = _airlinerCabin.doorRow('O');
+
+/// Where the tail break lands, in the roofline it came to rest in.
+final List<GridPoint> airlinerRoofBreak = _airlinerRoofs.doorRow('D');
+
+/// The low stretch of parapet at the south edge of the lower terrace,
+/// where the next block stands just across the gap: looking at it is all
+/// Mario can do about it for now.
+final GridPoint rooftopGapTile = _airlinerRoofs.tileOf('>');
+
 /// Doors [from] one place [to] another, tile by tile in order: stepping on
 /// a tile of [from] lands on the tile of [to] one step towards [facing].
 Map<GridPoint, Portal> _pairedDoors(
@@ -490,7 +542,12 @@ Map<GridPoint, Portal> _pairedDoors(
 ///   that hall to the far platform (every flight climbs into the back wall
 ///   of the place it leaves, so Mario lands on the step below it -- south,
 ///   but for the flight up onto the far platform, whose wall runs along
-///   the bottom of the map).
+///   the bottom of the map);
+/// - the tear in the belly of the crashed airliner, off the lane it left
+///   open at the crossroads behind the hypermarket, and the break in its
+///   tail at the far end of the cabin, out onto the roofs it stopped in
+///   (both breaks are in a roof, so either way Mario lands below the one
+///   he steps through).
 Map<GridPoint, Portal> _portals() {
   final northEdge = _north.walkableRow(_north.height - 1);
   final harbourEdge = _harbour.walkableRow(0);
@@ -589,6 +646,12 @@ Map<GridPoint, Portal> _portals() {
       <GridPoint>[stationTrainDoorTile],
       Direction.south,
     ),
+    ..._pairedDoors(airlinerTear, airlinerCabinTear, Direction.north),
+    ..._pairedDoors(airlinerCabinTear, airlinerTear, Direction.south),
+    // Both breaks are in a roof, so either way Mario lands below the one
+    // he steps through.
+    ..._pairedDoors(airlinerTailBreak, airlinerRoofBreak, Direction.south),
+    ..._pairedDoors(airlinerRoofBreak, airlinerTailBreak, Direction.south),
   };
 }
 
@@ -690,6 +753,7 @@ WorldState createTutorialWorld({int seed = 20260920}) {
   for (final (place, prefix) in <(Place, String)>[
     (_mallGround, mallGroundZombiePrefix),
     (_underpass, stationUnderpassZombiePrefix),
+    (_airlinerCabin, airlinerZombiePrefix),
   ]) {
     for (final (index, tile) in place.tilesOf('Z').indexed) {
       entities.add(
@@ -717,6 +781,7 @@ WorldState createTutorialWorld({int seed = 20260920}) {
     campfires: campfireNames.keys,
     controls: <GridPoint, GridRect>{mallPanelTile: luigiBars},
     travelMaps: <GridPoint>[trainMapPanelTile],
+    lookouts: <GridPoint>[rooftopGapTile],
     playerId: 'player',
     random: SeededRandom(seed),
   );

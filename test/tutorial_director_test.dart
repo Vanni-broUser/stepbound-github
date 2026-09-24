@@ -144,6 +144,28 @@ void main() {
     expect(host.shown.single.single.text, 'Ecco');
   });
 
+  test('looking over the gap between the roofs tells Mario what it would '
+      'take, every time he looks', () {
+    for (var look = 0; look < 2; look++) {
+      director.onEvents(<WorldEvent>[LookedOutEvent(at: rooftopGapTile)]);
+      settle();
+      expect(host.shown.last.single.text, RooftopsScript.gapLesson);
+      expect(
+        host.shown.last.single.speaker,
+        isNull,
+        reason: 'a voice over the roofs, not Mario talking to himself',
+      );
+      host.dismiss();
+    }
+    expect(host.shown, hasLength(2));
+  });
+
+  test('a look anywhere else is no business of the rooftops script', () {
+    director.onEvents(<WorldEvent>[const LookedOutEvent(at: GridPoint(0, 0))]);
+    settle();
+    expect(host.shown, isEmpty);
+  });
+
   test('the zombie lesson follows its alert, framing the zombie', () {
     director
       ..onEvents(<WorldEvent>[

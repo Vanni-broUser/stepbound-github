@@ -18,6 +18,8 @@ enum PlaceId {
   stationUnderpass,
   stationFarSide,
   trainInterior,
+  airlinerCabin,
+  airlinerRoofs,
 }
 
 /// What the glyphs of a place's ASCII map mean for movement and sight: the
