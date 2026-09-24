@@ -12,11 +12,6 @@ final class BarracksScript extends TutorialScript {
   static const String barracksReached =
       "Ecco, ce l'ho fatta! La caserma dei carabinieri";
   static const String barracksSafe = 'Questo sarà un posto sicuro?';
-  static const String carabiniereLesson =
-      'Gli zombi carabinieri possono raggiungerti a due celle di distanza '
-      'grazie al loro manganello';
-  static const String carabinierePortrait =
-      'assets/story/portrait_carabiniere.png';
 
   /// Steps inside the barracks before the carabinieri come out.
   static const int stepsBeforeCarabinieri = 4;
@@ -116,17 +111,7 @@ final class BarracksScript extends TutorialScript {
       return;
     }
     _carabiniereLessonGiven = true;
-    progress.meet(EntityKind.carabiniere);
-    host.focusOn(id);
-    say(
-      TutorialPrompt(
-        const <TutorialLine>[
-          TutorialLine(carabiniereLesson, portrait: carabinierePortrait),
-        ],
-        delay: TutorialDirector.focusDelay,
-        onDismissed: () => host.focusOn(null),
-      ),
-    );
+    director.introduceZombie(world.entities[id]!);
   }
 
   @override

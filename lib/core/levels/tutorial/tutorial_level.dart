@@ -83,8 +83,13 @@ const Legend airlinerLegend = Legend(walls: 'xWwI', obstacles: 'TK');
 /// The roofs the tail came down in: the drop `x`, the party walls `W`,
 /// the tail `#` and the roof across the gap `%` are all walls, while the
 /// parapets `^`, the low stretch `>` Mario measures the gap from, the
-/// chimney stacks `T` and the aerial masts `n` can be seen over.
-const Legend rooftopLegend = Legend(walls: 'xW#%', obstacles: 'Tn^>');
+/// chimney stacks `T` and the aerial masts `n` can be seen over, and the
+/// corner on fire `&` burns from the start.
+const Legend rooftopLegend = Legend(
+  walls: 'xW#%',
+  obstacles: 'Tn^>',
+  fire: '&',
+);
 
 /// The card shown on the way into the harbour.
 const String harbourName = 'Porto e centro storico';
@@ -344,6 +349,23 @@ const String stationUnderpassZombiePrefix = 'station-underpass-wanderer-';
 
 /// The two wanderers left in the cabin of the crashed airliner.
 const String airlinerZombiePrefix = 'airliner-wanderer-';
+
+/// The mutilated zombies `M` lying in the cabin of the crashed airliner.
+const String airlinerMutilatedPrefix = 'airliner-mutilated-';
+
+/// The flight bag `9` in the airliner's cabin: enough rounds for the
+/// mutilated zombie lying in the way out, whatever Mario came in with.
+const String airlinerBackpackId = 'backpack-airliner';
+
+/// How many rounds it holds.
+const int airlinerBackpackAmmo = 2;
+
+/// The zombie on fire `Y` that walked out of the burning corner of the
+/// roofs past the airliner.
+const String rooftopBurningZombieId = 'rooftop-burning-0';
+
+/// The drunk zombie `U` staggering about the Bar Arcobaleno.
+const String barDrunkZombieId = 'bar-drunk-0';
 
 /// Walking into the crossroads makes the tutorial zombie notice the player
 /// even if it is not looking that way.
@@ -874,6 +896,11 @@ WorldState createTutorialWorld({int seed = 20260920}) {
       position: _station.tileOf('9'),
       ammo: stationBackpackAmmo,
     ),
+    Pickup(
+      id: airlinerBackpackId,
+      position: _airlinerCabin.tileOf('9'),
+      ammo: airlinerBackpackAmmo,
+    ),
   ]);
   var indoorZombies = 0;
   for (final place in <Place>[_church, _station]) {
@@ -902,6 +929,34 @@ WorldState createTutorialWorld({int seed = 20260920}) {
       );
     }
   }
+  // Lying on the floor, each one looks towards the middle of the cabin,
+  // where the aisle runs.
+  final cabinMiddle = _airlinerCabin.origin.y + airlinerCabinRows.length ~/ 2;
+  for (final (index, tile) in _airlinerCabin.tilesOf('M').indexed) {
+    entities.add(
+      factory.zombie(
+        id: '$airlinerMutilatedPrefix$index',
+        kind: EntityKind.mutilated,
+        position: tile,
+        facing: tile.y < cabinMiddle ? Direction.south : Direction.north,
+      ),
+    );
+  }
+  entities
+    ..add(
+      factory.zombie(
+        id: rooftopBurningZombieId,
+        kind: EntityKind.burning,
+        position: _airlinerRoofs.tileOf('Y'),
+      ),
+    )
+    ..add(
+      factory.zombie(
+        id: barDrunkZombieId,
+        kind: EntityKind.drunk,
+        position: _bar.tileOf('U'),
+      ),
+    );
 
   return WorldState(
     map: TileMap(

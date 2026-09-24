@@ -30,5 +30,8 @@ final class AsciiRenderer {
     EntityKind.brute => 'B',
     EntityKind.blind => 'C',
     EntityKind.carabiniere => 'K',
+    EntityKind.mutilated => 'M',
+    EntityKind.burning => 'F',
+    EntityKind.drunk => 'U',
   };
 }

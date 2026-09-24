@@ -31,6 +31,7 @@ final List<WorldEvent> _oneOfEach = <WorldEvent>[
   const ControlUsedEvent(at: _a, opened: GridRect(1, 2, 3, 4)),
   const TravelMapUsedEvent(at: _b),
   const LookedOutEvent(at: _a),
+  const FireStartedEvent(at: _b, entityId: 'zombie-burning'),
   const TeleportedEvent(entityId: 'player', from: _a, to: _b),
   const PickedUpEvent(
     pickupId: 'backpack-ammo',
@@ -58,6 +59,7 @@ Type _kindOf(WorldEvent event) => switch (event) {
   ControlUsedEvent() => ControlUsedEvent,
   TravelMapUsedEvent() => TravelMapUsedEvent,
   LookedOutEvent() => LookedOutEvent,
+  FireStartedEvent() => FireStartedEvent,
   TeleportedEvent() => TeleportedEvent,
   PickedUpEvent() => PickedUpEvent,
   DamagedEvent() => DamagedEvent,

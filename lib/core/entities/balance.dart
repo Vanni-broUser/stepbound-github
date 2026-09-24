@@ -10,6 +10,9 @@ final class ActorStats {
     required this.hearing,
     required this.contactDamage,
     this.attackReach = 1,
+    this.stationary = false,
+    this.trailsFire = false,
+    this.staggers = false,
   });
 
   factory ActorStats.fromJson(Map<String, Object?> json) {
@@ -20,6 +23,9 @@ final class ActorStats {
       hearing: json['hearing']! as int,
       contactDamage: json['contactDamage']! as int,
       attackReach: json['attackReach'] as int? ?? 1,
+      stationary: json['stationary'] as bool? ?? false,
+      trailsFire: json['trailsFire'] as bool? ?? false,
+      staggers: json['staggers'] as bool? ?? false,
     );
   }
 
@@ -32,6 +38,15 @@ final class ActorStats {
   /// Tiles in a straight line the attack reaches: 1 is a bite, 2 a baton.
   final int attackReach;
 
+  /// True for a zombie that cannot walk: it stays on its tile for good.
+  final bool stationary;
+
+  /// True for a zombie that sets alight every tile it steps off.
+  final bool trailsFire;
+
+  /// True for a zombie that staggers about at random instead of hunting.
+  final bool staggers;
+
   Map<String, Object?> toJson() => <String, Object?>{
     'tickCost': tickCost,
     'health': health,
@@ -39,6 +54,9 @@ final class ActorStats {
     'hearing': hearing,
     'contactDamage': contactDamage,
     'attackReach': attackReach,
+    'stationary': stationary,
+    'trailsFire': trailsFire,
+    'staggers': staggers,
   };
 }
 

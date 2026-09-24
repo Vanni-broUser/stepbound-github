@@ -173,6 +173,9 @@ final class ActorComponent extends EntityComponent {
     required this.contactDamage,
     this.energy = 0,
     this.attackReach = 1,
+    this.stationary = false,
+    this.trailsFire = false,
+    this.staggers = false,
   });
 
   factory ActorComponent.fromJson(Map<String, Object?> json) {
@@ -181,6 +184,9 @@ final class ActorComponent extends EntityComponent {
       contactDamage: json['contactDamage']! as int,
       energy: json['energy']! as int,
       attackReach: json['attackReach'] as int? ?? 1,
+      stationary: json['stationary'] as bool? ?? false,
+      trailsFire: json['trailsFire'] as bool? ?? false,
+      staggers: json['staggers'] as bool? ?? false,
     );
   }
 
@@ -189,6 +195,17 @@ final class ActorComponent extends EntityComponent {
 
   /// Tiles in a straight line the attack reaches.
   final int attackReach;
+
+  /// Never leaves its tile: it only turns towards the player and bites
+  /// whoever comes within [attackReach].
+  final bool stationary;
+
+  /// Every tile it steps off is left burning, for good.
+  final bool trailsFire;
+
+  /// Never goes after anything: every turn it steps a random way, unless
+  /// it has the player next to it to bite.
+  final bool staggers;
   int energy;
 
   bool gainEnergy() {
@@ -210,6 +227,9 @@ final class ActorComponent extends EntityComponent {
     'contactDamage': contactDamage,
     'energy': energy,
     'attackReach': attackReach,
+    'stationary': stationary,
+    'trailsFire': trailsFire,
+    'staggers': staggers,
   };
 }
 

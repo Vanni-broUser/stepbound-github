@@ -372,6 +372,13 @@ final class CharacterComponent extends PositionComponent {
     final facing = entity.component<simulation.PositionComponent>().facing;
     _paint.color = const ui.Color(0x55000000);
     canvas.drawRect(const ui.Rect.fromLTWH(3, 21, 10, 2), _paint);
+    // No legs: the head and the chest lie on the floor, the stumps bloody.
+    final legless = entity.kind == EntityKind.mutilated;
+    if (legless) {
+      canvas
+        ..save()
+        ..translate(0, 6);
+    }
     _paint.color = colors.$1;
     canvas.drawRect(const ui.Rect.fromLTWH(4, 3, 8, 7), _paint);
     _paint.color = colors.$2;
@@ -379,9 +386,13 @@ final class CharacterComponent extends PositionComponent {
     _paint.color = colors.$3;
     canvas.drawRect(const ui.Rect.fromLTWH(3, 10, 10, 8), _paint);
     _paint.color = colors.$4;
-    canvas
-      ..drawRect(const ui.Rect.fromLTWH(4, 18, 3, 4), _paint)
-      ..drawRect(const ui.Rect.fromLTWH(9, 18, 3, 4), _paint);
+    if (legless) {
+      canvas.drawRect(const ui.Rect.fromLTWH(3, 16, 10, 2), _paint);
+    } else {
+      canvas
+        ..drawRect(const ui.Rect.fromLTWH(4, 18, 3, 4), _paint)
+        ..drawRect(const ui.Rect.fromLTWH(9, 18, 3, 4), _paint);
+    }
     _paint.color = PixelPalette.voidBlack;
     final eyeY = facing == Direction.north ? 5.0 : 6.0;
     if (facing != Direction.west) {
@@ -389,6 +400,9 @@ final class CharacterComponent extends PositionComponent {
     }
     if (facing != Direction.east) {
       canvas.drawRect(ui.Rect.fromLTWH(6, eyeY, 1, 1), _paint);
+    }
+    if (legless) {
+      canvas.restore();
     }
     if (entity.kind == EntityKind.player) {
       _paint.color = PixelPalette.brickRed;
@@ -434,6 +448,24 @@ final class CharacterComponent extends PositionComponent {
           PixelPalette.jacket,
           PixelPalette.brickRed,
         ),
+        EntityKind.mutilated => (
+          PixelPalette.zombie,
+          PixelPalette.zombieDark,
+          PixelPalette.wall,
+          PixelPalette.brickRed,
+        ),
+        EntityKind.burning => (
+          PixelPalette.hair,
+          PixelPalette.blood,
+          PixelPalette.brickRed,
+          PixelPalette.voidBlack,
+        ),
+        EntityKind.drunk => (
+          PixelPalette.zombie,
+          PixelPalette.hair,
+          PixelPalette.sprinter,
+          PixelPalette.zombieDark,
+        ),
       };
 
   String _atlasName(EntityKind kind) => switch (kind) {
@@ -443,5 +475,8 @@ final class CharacterComponent extends PositionComponent {
     EntityKind.brute => 'zombie_brute',
     EntityKind.blind => 'zombie_blind',
     EntityKind.carabiniere => 'zombie_carabiniere',
+    EntityKind.mutilated => 'zombie_mutilated',
+    EntityKind.burning => 'zombie_burning',
+    EntityKind.drunk => 'zombie_drunk',
   };
 }

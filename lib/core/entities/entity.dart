@@ -1,7 +1,22 @@
 import 'package:stepbound/core/entities/components.dart';
 
 /// [carabiniere]: a wanderer in uniform whose baton reaches two tiles.
-enum EntityKind { player, wanderer, sprinter, brute, blind, carabiniere }
+/// [mutilated]: a zombie with no legs left, which never leaves its tile but
+/// bites whoever comes next to it.
+/// [burning]: a wanderer on fire, which sets alight every tile it leaves.
+/// [drunk]: a wanderer that staggers about at random, aware of the player or
+/// not, and only bites straight when he is next to it.
+enum EntityKind {
+  player,
+  wanderer,
+  sprinter,
+  brute,
+  blind,
+  carabiniere,
+  mutilated,
+  burning,
+  drunk,
+}
 
 final class Entity {
   Entity({

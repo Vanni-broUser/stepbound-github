@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/game/zombie_lore.dart';
 
 final class _FakeHost implements TutorialHost {
   final Set<GridPoint> visible = <GridPoint>{};
@@ -335,8 +336,14 @@ void main() {
     expect(host.shown, isEmpty, reason: 'the balloon shows first');
     expect(host.focus, tutorialZombieId);
     settle();
-    expect(host.shown.single.single.text, StreetScript.zombieLesson);
-    expect(host.shown.single.single.portrait, StreetScript.wandererPortrait);
+    expect(
+      host.shown.single.single.text,
+      zombieLore[EntityKind.wanderer]!.lesson,
+    );
+    expect(
+      host.shown.single.single.portrait,
+      zombieLore[EntityKind.wanderer]!.portrait,
+    );
     host.dismiss();
     expect(host.focus, isNull);
   });
@@ -354,8 +361,8 @@ void main() {
     expect(host.focus, zombies.first.id);
     settle();
     final line = host.shown.single.single;
-    expect(line.text, BarracksScript.carabiniereLesson);
-    expect(line.portrait, BarracksScript.carabinierePortrait);
+    expect(line.text, zombieLore[EntityKind.carabiniere]!.lesson);
+    expect(line.portrait, zombieLore[EntityKind.carabiniere]!.portrait);
     host.dismiss();
 
     director.onEvents(<WorldEvent>[alert(zombies.last)]);
@@ -372,7 +379,10 @@ void main() {
     zombie.component<HearingComponent>().lastHeard = const GridPoint(0, 0);
     settle();
     expect(host.focus, zombie.id);
-    expect(host.shown.single.single.text, BarracksScript.carabiniereLesson);
+    expect(
+      host.shown.single.single.text,
+      zombieLore[EntityKind.carabiniere]!.lesson,
+    );
   });
 
   test('the carabinieri in the hospital hordes never give the lesson', () {
@@ -414,6 +424,9 @@ void main() {
       EntityKind.wanderer,
       EntityKind.carabiniere,
     });
+    // The wanderer's lesson is read first: a new type waits its turn.
+    settle();
+    host.dismiss();
     final sprinter = world.entities.values.firstWhere(
       (entity) => entity.kind == EntityKind.sprinter,
     );
@@ -660,13 +673,168 @@ void main() {
     settle();
     expect(host.focus, sprinter.id);
     final line = host.shown.single.single;
-    expect(line.text, NorthDistrictScript.sprinterLesson);
-    expect(line.portrait, NorthDistrictScript.sprinterPortrait);
+    expect(line.text, zombieLore[EntityKind.sprinter]!.lesson);
+    expect(line.portrait, zombieLore[EntityKind.sprinter]!.portrait);
     expect(line.speaker, isNull);
     host.dismiss();
     expect(host.focus, isNull);
     settle();
     expect(host.shown, hasLength(1), reason: 'the lesson is given once');
+  });
+
+  group('zombie discovery', () {
+    List<Entity> mutilated() => world.entities.values
+        .where((entity) => entity.kind == EntityKind.mutilated)
+        .toList();
+
+    GridPoint at(Entity zombie) =>
+        zombie.component<PositionComponent>().position;
+
+    test('the first mutilated in sight is framed, introduced with its '
+        'portrait and entered in the book', () {
+      final zombies = mutilated();
+      expect(zombies, isNotEmpty);
+      settle();
+      expect(host.shown, isEmpty, reason: 'none is on screen yet');
+      expect(progress.knownZombies, isNot(contains(EntityKind.mutilated)));
+
+      host.visible.add(at(zombies.first));
+      director.update(0.1, turnAnimating: false);
+      expect(host.focus, zombies.first.id);
+      expect(progress.knownZombies, contains(EntityKind.mutilated));
+      expect(host.shown, isEmpty, reason: 'the camera pans first');
+      settle();
+      final line = host.shown.single.single;
+      expect(line.text, zombieLore[EntityKind.mutilated]!.lesson);
+      expect(line.portrait, zombieLore[EntityKind.mutilated]!.portrait);
+      expect(line.speaker, isNull);
+      host.dismiss();
+      expect(host.focus, isNull);
+
+      // The others in sight later say nothing more.
+      host.visible.addAll(zombies.map(at));
+      settle();
+      expect(host.shown, hasLength(1), reason: 'the lesson is given once');
+    });
+
+    test('the burning zombie on the roofs is introduced when first seen', () {
+      final zombie = world.entities[rooftopBurningZombieId]!;
+      host.visible.add(at(zombie));
+      settle();
+      expect(host.focus, zombie.id);
+      expect(progress.knownZombies, contains(EntityKind.burning));
+      final line = host.shown.single.single;
+      expect(line.text, zombieLore[EntityKind.burning]!.lesson);
+      expect(line.portrait, zombieLore[EntityKind.burning]!.portrait);
+    });
+
+    test('the drunk in the Bar Arcobaleno is introduced when first seen', () {
+      final zombie = world.entities[barDrunkZombieId]!;
+      expect(zombie.kind, EntityKind.drunk);
+      expect(place(PlaceId.barArcobaleno).bounds.contains(at(zombie)), isTrue);
+      host.visible.add(at(zombie));
+      settle();
+      expect(host.focus, zombie.id);
+      expect(progress.knownZombies, contains(EntityKind.drunk));
+      final line = host.shown.single.single;
+      expect(line.text, zombieLore[EntityKind.drunk]!.lesson);
+      expect(line.portrait, zombieLore[EntityKind.drunk]!.portrait);
+    });
+
+    test('a dead one is no introduction', () {
+      final zombie = mutilated().first;
+      zombie.component<HealthComponent>().current = 0;
+      host.visible.add(at(zombie));
+      settle();
+      expect(host.shown, isEmpty);
+      expect(progress.knownZombies, isNot(contains(EntityKind.mutilated)));
+    });
+
+    test('a type met before, in this level or another, is not introduced '
+        'again', () {
+      final known = TutorialDirector(
+        world: world,
+        host: host,
+        progress: Progress(knownZombies: <EntityKind>[EntityKind.mutilated]),
+      );
+      host.visible.add(at(mutilated().first));
+      for (var i = 0; i < 20; i++) {
+        known.update(0.1, turnAnimating: false);
+      }
+      expect(host.shown, isEmpty);
+      expect(host.focus, isNull);
+    });
+
+    test('it survives a save through the progress, not the tutorial', () {
+      host.visible.add(at(mutilated().first));
+      settle();
+      host.dismiss();
+      final restored = TutorialDirector(
+        world: world,
+        host: host,
+        progress: Progress.fromJson(progress.toJson()),
+      )..restore(director.toJson());
+      for (var i = 0; i < 20; i++) {
+        restored.update(0.1, turnAnimating: false);
+      }
+      expect(host.shown, hasLength(1));
+    });
+
+    test('two new types in sight at once are introduced one after the '
+        'other, each framed in turn', () {
+      final sprinter = world.entities.values.firstWhere(
+        (entity) => entity.kind == EntityKind.sprinter,
+      );
+      final zombie = mutilated().first;
+      host.visible
+        ..add(at(sprinter))
+        ..add(at(zombie));
+      settle();
+      expect(host.shown, hasLength(1));
+      final first = host.focus;
+      host.dismiss();
+      settle();
+      expect(host.shown, hasLength(2));
+      expect(host.focus, isNot(first));
+      expect(<String?>{first, host.focus}, <String>{sprinter.id, zombie.id});
+      expect(
+        <String>{for (final lines in host.shown) lines.single.text},
+        <String>{
+          zombieLore[EntityKind.sprinter]!.lesson,
+          zombieLore[EntityKind.mutilated]!.lesson,
+        },
+      );
+    });
+
+    test('a new type waits for what is being said to be over', () {
+      host.showPrompt(const <TutorialLine>[TutorialLine('...')]);
+      host.visible.add(at(mutilated().first));
+      settle();
+      expect(host.focus, isNull, reason: 'the camera stays on Mario');
+      expect(progress.knownZombies, isNot(contains(EntityKind.mutilated)));
+      host.dismiss();
+      settle();
+      expect(
+        host.shown.last.single.text,
+        zombieLore[EntityKind.mutilated]!.lesson,
+      );
+    });
+
+    test('every zombie type the game places has its lore', () {
+      final kinds = <EntityKind>{
+        for (final entity in world.entities.values)
+          if (entity.kind != EntityKind.player) entity.kind,
+        // The barracks' carabinieri come out of the dark later.
+        EntityKind.carabiniere,
+      };
+      for (final kind in kinds) {
+        final lore = zombieLore[kind];
+        expect(lore, isNotNull, reason: '$kind has no lore');
+        expect(lore!.lesson, isNotEmpty, reason: '$kind');
+        expect(lore.description, isNotEmpty, reason: '$kind');
+        expect(lore.portrait, startsWith('assets/story/portrait_'));
+      }
+    });
   });
 
   group('hypermarket', () {

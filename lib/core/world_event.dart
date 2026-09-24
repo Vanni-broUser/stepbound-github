@@ -24,6 +24,7 @@ sealed class WorldEvent {
       'controlUsed' => ControlUsedEvent.fromJson(json),
       'travelMapUsed' => TravelMapUsedEvent.fromJson(json),
       'lookedOut' => LookedOutEvent.fromJson(json),
+      'fireStarted' => FireStartedEvent.fromJson(json),
       _ => throw FormatException('Unknown world event: ${json['type']}'),
     };
   }
@@ -364,6 +365,31 @@ final class TravelMapUsedEvent extends WorldEvent {
   Map<String, Object?> toJson() => <String, Object?>{
     'type': 'travelMapUsed',
     'at': at.toJson(),
+  };
+}
+
+/// The ground at [at] caught fire: a burning zombie stepped off it.
+final class FireStartedEvent extends WorldEvent {
+  const FireStartedEvent({required this.at, required this.entityId});
+
+  factory FireStartedEvent.fromJson(Map<String, Object?> json) {
+    return FireStartedEvent(
+      at: GridPoint.fromJson(json['at']! as Map<String, Object?>),
+      entityId: json['entityId']! as String,
+    );
+  }
+
+  final GridPoint at;
+  final String entityId;
+
+  @override
+  String get description => '$entityId sets $at alight';
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+    'type': 'fireStarted',
+    'at': at.toJson(),
+    'entityId': entityId,
   };
 }
 

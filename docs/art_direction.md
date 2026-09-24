@@ -35,13 +35,16 @@ Keep the designs readable and non-gory. Archetypes should be distinguishable by 
 
 ## Current production assets
 
-The five atlases in `assets/sprites/` were generated as original high-resolution pixel-art sheets, converted to the runtime 96×96 contract with nearest-neighbor sampling, and verified in the Flame browser build. The runtime files are:
+The zombie atlases in `assets/sprites/` are original pixel art, converted to the runtime 96×96 contract with nearest-neighbor sampling and verified in the Flame build. The runtime files are:
 
-- `protagonist.png`
 - `zombie_wanderer.png`
 - `zombie_sprinter.png`
 - `zombie_brute.png`
 - `zombie_blind.png`
+- `zombie_carabiniere.png`
+- `zombie_mutilated.png`
+- `zombie_burning.png`
+- `zombie_drunk.png`
 
 `assets/sprites/atlas_manifest.json` is the machine-readable contract used by the project.
 
@@ -54,4 +57,4 @@ Combat animations share the same 96×96, 4-rows-by-6-columns grid and are listed
 - `zombie_<type>_bite.png`: wind-up, two lunge frames with an open maw, recovery.
 - `zombie_<type>_death.png`: six-frame collapse from flinch to prone.
 
-The sheets are produced by `tools/generate_action_sprites.py` (Python + Pillow); run it from the repository root to regenerate them.
+The common sheets are produced by `tools/generate_action_sprites.py`; the carabiniere and special archetypes are derived by `tools/generate_carabiniere.py` and `tools/generate_special_zombies.py`. Run the scripts from the repository root with Python and Pillow.

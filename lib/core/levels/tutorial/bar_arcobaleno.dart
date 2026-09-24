@@ -8,6 +8,8 @@
 ///   obstacles.
 /// - `.` floor, `:` broken glass and `q` a chair knocked over (both
 ///   noisy), `b` blood, `*` ceiling lamp, `+` flickering lamp.
+/// - `U` the drunk zombie, the last customer, still at the bar: it
+///   staggers about the room at random, whether it has seen Mario or not.
 // bar-rows-start
 const List<String> barArcobalenoRows = <String>[
   'xxxxxxxxxxxxxxxxxxxxxx',
@@ -15,7 +17,7 @@ const List<String> barArcobalenoRows = <String>[
   'xWWWWWWWWWWWWWWWWWWWWx',
   'x...*......*......*.Dx',
   'xKKKKKKKKKKKK........x',
-  'x...:...q.......JJ...x',
+  'x...:...q.U.....JJ...x',
   'x.q..TT.....:........x',
   'x...:TT..b....q..TT..x',
   'x..q.........*...TT..x',

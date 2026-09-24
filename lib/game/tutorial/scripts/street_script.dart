@@ -6,11 +6,6 @@ import 'package:stepbound/game/tutorial/tutorial_director.dart';
 final class StreetScript extends TutorialScript {
   StreetScript(super.director);
 
-  static const String zombieLesson =
-      'I normali zombi vaganti faranno un passo verso di te ogni due passi '
-      'tuoi';
-  static const String wandererPortrait = 'assets/story/portrait_wanderer.png';
-
   bool _zombieLessonGiven = false;
 
   @override
@@ -22,18 +17,9 @@ final class StreetScript extends TutorialScript {
       entityId: tutorialZombieId,
     ) when !_zombieLessonGiven) {
       _zombieLessonGiven = true;
-      progress.meet(EntityKind.wanderer);
-      // Pan so the alert balloon and the zombie's step are on screen.
-      host.focusOn(tutorialZombieId);
-      say(
-        TutorialPrompt(
-          const <TutorialLine>[
-            TutorialLine(zombieLesson, portrait: wandererPortrait),
-          ],
-          delay: TutorialDirector.focusDelay,
-          onDismissed: () => host.focusOn(null),
-        ),
-      );
+      // The framing pans so the alert balloon and the zombie's step are on
+      // screen.
+      director.introduceZombie(world.entities[tutorialZombieId]!);
     }
   }
 

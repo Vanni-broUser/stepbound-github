@@ -15,6 +15,7 @@ import 'package:stepbound/game/game_cover.dart';
 import 'package:stepbound/game/haptics/game_haptics.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/aim_line_component.dart';
+import 'package:stepbound/game/render/burning_ground_component.dart';
 import 'package:stepbound/game/render/character_component.dart';
 import 'package:stepbound/game/render/debug_overlay.dart';
 import 'package:stepbound/game/render/fire_component.dart';
@@ -271,6 +272,15 @@ final class StepboundGame extends FlameGame
       BarServiceDoorComponent(door: barLockedDoorTile, map: simulation.map),
       DuomoRobeComponent(robe: duomoUpperRobeTile, map: simulation.map),
     ]);
+    // The ground burning from the start, and any a burning zombie set
+    // alight before the game was saved.
+    final map = simulation.map;
+    await world.addAll(<Component>[
+      for (var y = 0; y < map.height; y++)
+        for (var x = 0; x < map.width; x++)
+          if (map.tileAt(GridPoint(x, y)).kind == TileKind.fire)
+            ...burningGround(GridPoint(x, y)),
+    ]);
     for (final entity in simulation.entities.values) {
       final component = CharacterComponent(
         entity: entity,
@@ -414,6 +424,8 @@ final class StepboundGame extends FlameGame
           _goThrough(from: from, to: to);
         case AlertedEvent(entityId: final spotter):
           _characters[spotter]?.playAlert();
+        case FireStartedEvent(:final at):
+          unawaited(world.addAll(burningGround(at)));
         case ShotEvent(entityId: final shooter) when shooter == playerId:
           _characters[playerId]?.playFire(_facingOf(playerId));
         case DamagedEvent(entityId: final target, sourceEntityId: final source)

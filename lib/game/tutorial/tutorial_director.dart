@@ -11,6 +11,8 @@ import 'package:stepbound/game/tutorial/scripts/rooftops_script.dart';
 import 'package:stepbound/game/tutorial/scripts/station_script.dart';
 import 'package:stepbound/game/tutorial/scripts/street_script.dart';
 import 'package:stepbound/game/tutorial/scripts/train_script.dart';
+import 'package:stepbound/game/tutorial/scripts/zombie_sightings_script.dart';
+import 'package:stepbound/game/zombie_lore.dart';
 
 export 'package:stepbound/game/tutorial/scripts/backpacks_script.dart';
 export 'package:stepbound/game/tutorial/scripts/bar_script.dart';
@@ -23,6 +25,7 @@ export 'package:stepbound/game/tutorial/scripts/rooftops_script.dart';
 export 'package:stepbound/game/tutorial/scripts/station_script.dart';
 export 'package:stepbound/game/tutorial/scripts/street_script.dart';
 export 'package:stepbound/game/tutorial/scripts/train_script.dart';
+export 'package:stepbound/game/tutorial/scripts/zombie_sightings_script.dart';
 
 /// A line shown in the dialogue box over the gameplay.
 final class TutorialLine {
@@ -188,8 +191,9 @@ abstract class TutorialScript {
 /// Runs the tutorial's scripts and shows their prompts one after the
 /// other: the backpacks, the first street, the barracks, the north
 /// district, the hypermarket, the Duomo, the station, the train Mario and
-/// Luigi live in and the roofs the crashed airliner came down in. It
-/// records what the player comes to know in [progress].
+/// Luigi live in, the roofs the crashed airliner came down in and the zombie
+/// types met on sight. It records what the player comes to know in
+/// [progress].
 final class TutorialDirector {
   TutorialDirector({
     required this.world,
@@ -208,6 +212,7 @@ final class TutorialDirector {
       StationScript(this),
       TrainScript(this),
       RooftopsScript(this),
+      ZombieSightingsScript(this),
     ];
   }
 
@@ -227,6 +232,26 @@ final class TutorialDirector {
   final List<TutorialPrompt> _queue = <TutorialPrompt>[];
 
   void queue(TutorialPrompt prompt) => _queue.add(prompt);
+
+  /// Nothing waiting to be said and nothing covering the game.
+  bool get isIdle => _queue.isEmpty && !host.isPromptVisible;
+
+  /// The first meeting with [zombie]'s type, the same for every type (see
+  /// [ZombieLore]): the type is known from now on, and the book lists it;
+  /// the camera frames the zombie with Mario while its lesson is shown with
+  /// its portrait, and goes back to Mario alone once it is dismissed.
+  void introduceZombie(Entity zombie) {
+    final lore = zombieLore[zombie.kind]!;
+    progress.meet(zombie.kind);
+    host.focusOn(zombie.id);
+    queue(
+      TutorialPrompt(
+        <TutorialLine>[TutorialLine(lore.lesson, portrait: lore.portrait)],
+        delay: focusDelay,
+        onDismissed: () => host.focusOn(null),
+      ),
+    );
+  }
 
   /// What has already happened, script by script, to be saved.
   Map<String, Object?> toJson() => <String, Object?>{

@@ -47,4 +47,28 @@ const Map<EntityKind, ActorStats> _defaultActorStats = <EntityKind, ActorStats>{
     contactDamage: 1,
     attackReach: 2,
   ),
+  EntityKind.mutilated: ActorStats(
+    tickCost: 1,
+    health: 1,
+    vision: 4,
+    hearing: 6,
+    contactDamage: 1,
+    stationary: true,
+  ),
+  EntityKind.burning: ActorStats(
+    tickCost: 2,
+    health: 1,
+    vision: 6,
+    hearing: 8,
+    contactDamage: 1,
+    trailsFire: true,
+  ),
+  EntityKind.drunk: ActorStats(
+    tickCost: 2,
+    health: 1,
+    vision: 6,
+    hearing: 8,
+    contactDamage: 1,
+    staggers: true,
+  ),
 };
