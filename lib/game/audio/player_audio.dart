@@ -1,31 +1,38 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:stepbound/game/audio/audio_device.dart';
+import 'package:stepbound/game/audio/audioplayers_device.dart';
 import 'package:stepbound/game/audio/game_audio.dart';
 import 'package:stepbound/game/audio/lingering_shots.dart';
 import 'package:stepbound/game/audio/sound.dart';
 
-/// The device's sound, through audioplayers. Music and ambience are looping
-/// players whose volumes glide towards a target on a small timer; effects
-/// come from pools of players, one pool per file.
+/// The game's sound on an [AudioDevice], the phone's through audioplayers
+/// unless another is given. Music and ambience are looping players whose
+/// volumes glide towards a target on a small timer; effects are shots the
+/// device plays side by side.
 final class PlayerAudio implements GameAudio {
-  PlayerAudio({SharedPreferencesAsync? preferences})
-    : _preferences = preferences ?? SharedPreferencesAsync() {
-    // Plays along with the other sounds of the game (and of the phone):
-    // with the default focus every effect would pause the music on Android.
-    unawaited(_guard(AudioPlayer.global.setAudioContext(_context)));
+  PlayerAudio({SharedPreferencesAsync? preferences, AudioDevice? device})
+    : _preferences = preferences ?? SharedPreferencesAsync(),
+      _device = device ?? AudioplayersDevice() {
     unawaited(_loadMuted());
     // The sounds of the first minutes are loaded ahead, so they are not
     // late the first time.
-    for (final sfx in const <Sfx>[Sfx.step, Sfx.uiClick, Sfx.zombieAlert]) {
+    for (final sfx in preloaded) {
       for (final file in sfx.files) {
-        unawaited(_guard(_pool(file, voices: sfx.voices)));
+        unawaited(_guard(_device.preload(file, voices: sfx.voices)));
       }
     }
   }
+
+  /// Loaded as soon as the audio starts.
+  static const List<Sfx> preloaded = <Sfx>[
+    Sfx.step,
+    Sfx.uiClick,
+    Sfx.zombieAlert,
+  ];
 
   static const String mutedKey = 'stepbound.audio.muted';
 
@@ -35,12 +42,8 @@ final class PlayerAudio implements GameAudio {
   static const Duration _tick = Duration(milliseconds: 50);
   static const double _crossfadeSeconds = 1.6;
 
-  static final AudioContext _context = AudioContextConfig(
-    focus: AudioContextConfigFocus.mixWithOthers,
-  ).build();
-
   final SharedPreferencesAsync _preferences;
-  final AudioCache _cache = AudioCache(prefix: 'assets/audio/');
+  final AudioDevice _device;
   final Random _random = Random();
 
   /// Two decks, so the next piece fades in while the last one fades out.
@@ -53,7 +56,6 @@ final class PlayerAudio implements GameAudio {
   double _musicLevel = 1;
 
   final Map<Ambience, _Channel> _ambience = <Ambience, _Channel>{};
-  final Map<String, Future<AudioPool>> _pools = <String, Future<AudioPool>>{};
 
   /// The copies of the long effects, playing or still starting.
   final LingeringShots _lingering = LingeringShots();
@@ -62,12 +64,7 @@ final class PlayerAudio implements GameAudio {
   bool _muted = false;
   bool _paused = false;
 
-  AudioPlayer _newPlayer(String id) {
-    final player = AudioPlayer(playerId: 'stepbound-$id')..audioCache = _cache;
-    unawaited(_guard(player.setAudioContext(_context)));
-    unawaited(_guard(player.setReleaseMode(ReleaseMode.loop)));
-    return player;
-  }
+  LoopingPlayer _newPlayer(String id) => _device.loopingPlayer(id);
 
   Future<void> _loadMuted() async {
     try {
@@ -170,10 +167,7 @@ final class PlayerAudio implements GameAudio {
     }
     final file = sfx.files[_random.nextInt(sfx.files.length)];
     final level = (sfx.volume * volume).clamp(0.0, 1.0);
-    final starting = _pool(
-      file,
-      voices: sfx.voices,
-    ).then((pool) => pool.start(volume: level));
+    final starting = _device.shoot(file, voices: sfx.voices, volume: level);
     if (sfx.lingers) {
       _lingering.add(sfx, starting);
     } else {
@@ -184,17 +178,6 @@ final class PlayerAudio implements GameAudio {
 
   @override
   void stop(Sfx sfx) => _lingering.stop(sfx);
-
-  Future<AudioPool> _pool(String file, {required int voices}) =>
-      _pools.putIfAbsent(
-        file,
-        () => AudioPool.create(
-          source: AssetSource(file),
-          maxPlayers: voices,
-          audioCache: _cache,
-          audioContext: _context,
-        ),
-      );
 
   @override
   void unlock() {
@@ -253,9 +236,7 @@ final class PlayerAudio implements GameAudio {
     for (final channel in _channels) {
       await channel.player.dispose();
     }
-    for (final pool in _pools.values) {
-      await _guard(pool.then((pool) => pool.dispose()));
-    }
+    await _guard(_device.dispose());
   }
 }
 
@@ -263,7 +244,7 @@ final class PlayerAudio implements GameAudio {
 final class _Channel {
   _Channel(this.player);
 
-  final AudioPlayer player;
+  final LoopingPlayer player;
   double volume = 0;
   double target = 0;
 
@@ -283,7 +264,7 @@ final class _Channel {
       _guard(() async {
         await player.stop();
         await player.setVolume(0);
-        await player.setSource(AssetSource(file));
+        await player.setSource(file);
         if (!paused) {
           await _start();
         }
