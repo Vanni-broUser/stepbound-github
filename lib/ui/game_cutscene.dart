@@ -16,11 +16,13 @@ final class GameCutscene extends StatefulWidget {
   const GameCutscene({
     required this.frames,
     required this.onFinished,
+    this.stayBlack = false,
     super.key,
   });
 
   final List<CutsceneFrame> frames;
   final VoidCallback onFinished;
+  final bool stayBlack;
 
   @override
   State<GameCutscene> createState() => _GameCutsceneState();
@@ -63,7 +65,9 @@ final class _GameCutsceneState extends State<GameCutscene> {
               ),
           ],
           fadeOutAtEnd: true,
-          onFinished: () => setState(() => _stage = _Stage.fromBlack),
+          onFinished: widget.stayBlack
+              ? widget.onFinished
+              : () => setState(() => _stage = _Stage.fromBlack),
         ),
       ),
       _Stage.fromBlack => BlackFade(

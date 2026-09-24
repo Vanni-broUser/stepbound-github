@@ -167,6 +167,7 @@ void main() {
       StoryMemory.priestMet,
       StoryMemory.luigiTrapped,
       StoryMemory.priestErrand,
+      StoryMemory.priestWelcomed,
     ];
     await pumpMenu(tester, memories: lived);
     await tap(tester, 'camp-memories');

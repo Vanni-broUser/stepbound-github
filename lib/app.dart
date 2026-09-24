@@ -17,17 +17,30 @@ import 'package:stepbound/ui/blood_decor.dart';
 import 'package:stepbound/ui/camp_menu.dart';
 import 'package:stepbound/ui/game_cutscene.dart';
 import 'package:stepbound/ui/gameplay_dialogue.dart';
+import 'package:stepbound/ui/level_complete.dart';
+import 'package:stepbound/ui/level_map.dart';
 import 'package:stepbound/ui/loading_art.dart';
 import 'package:stepbound/ui/location_card.dart';
 import 'package:stepbound/ui/main_menu.dart';
 import 'package:stepbound/ui/pause_menu.dart';
+import 'package:stepbound/ui/rome_placeholder.dart';
 import 'package:stepbound/ui/story_intro.dart';
 import 'package:stepbound/ui/title_splash.dart';
 
 /// The main menu first; a new game then plays the story scenes, the title
 /// card and the protagonist's line before the controls appear, while a
 /// loaded game goes straight to playing.
-enum _Phase { menu, story, title, outbreak, dialogue, playing }
+enum _Phase {
+  menu,
+  story,
+  title,
+  outbreak,
+  dialogue,
+  playing,
+  levelComplete,
+  levelMap,
+  romePlaceholder,
+}
 
 final class StepboundApp extends StatefulWidget {
   const StepboundApp({this.saves, this.audio, super.key});
@@ -51,6 +64,12 @@ final class _StepboundAppState extends State<StepboundApp> {
   late final AppLifecycleListener _lifecycle;
   StepboundGame? _game;
   _Phase _phase = _Phase.menu;
+  GameSnapshot? _completedSnapshot;
+  int _foundBackpacks = 0;
+  int _totalBackpacks = 0;
+  int _foundMemoryImages = 0;
+  int _totalMemoryImages = 0;
+  String _gameLoadingCaption = 'Caricamento della partita';
 
   /// The slot this game saves into at campfires.
   int _slot = 1;
@@ -123,12 +142,14 @@ final class _StepboundAppState extends State<StepboundApp> {
     setState(() {
       _slot = slot;
       _hasCampSave = false;
+      _completedSnapshot = null;
       _phase = _Phase.story;
     });
   }
 
   void _loadGame(SaveGame save) {
     _startClock(save.played);
+    _gameLoadingCaption = 'Caricamento della partita';
     setState(() {
       _slot = save.slot;
       _hasCampSave = save.atCampfire;
@@ -147,6 +168,7 @@ final class _StepboundAppState extends State<StepboundApp> {
           if (element.name == name) element,
     },
     onRest: _store,
+    onLevelCompleted: _completeLevel,
     audio: _audio,
   );
 
@@ -178,7 +200,11 @@ final class _StepboundAppState extends State<StepboundApp> {
   void _finishOutbreak() {
     setState(() {
       _phase = _Phase.dialogue;
-      _game = StepboundGame(onRest: _store, audio: _audio)..inputLocked = true;
+      _game = StepboundGame(
+        onRest: _store,
+        onLevelCompleted: _completeLevel,
+        audio: _audio,
+      )..inputLocked = true;
     });
   }
 
@@ -202,6 +228,7 @@ final class _StepboundAppState extends State<StepboundApp> {
       return;
     }
     _startClock(save.played);
+    _gameLoadingCaption = 'Caricamento della partita';
     setState(() {
       _game = _gameFrom(save);
       _phase = _Phase.playing;
@@ -278,6 +305,7 @@ final class _StepboundAppState extends State<StepboundApp> {
     CutsceneCover(:final frames) => GameCutscene(
       key: ObjectKey(cover),
       frames: frames,
+      stayBlack: cover.stayBlack,
       onFinished: game.finishCutscene,
     ),
     PlaceCardCover(:final name, :final image) => LocationCard(
@@ -320,12 +348,63 @@ final class _StepboundAppState extends State<StepboundApp> {
   /// What a save made by starting the level over is called in the slots.
   static const String levelStartPlace = 'Inizio del livello';
 
+  void _completeLevel(GameSnapshot snapshot) {
+    final world = restoreTutorialWorld(snapshot.world);
+    final progress = Progress.fromJson(snapshot.progress);
+    Set<String> pictures(Iterable<StoryMemory> memories) => <String>{
+      for (final memory in memories)
+        for (final scene in memoryScenes[memory] ?? const <StoryScene>[])
+          scene.image,
+    };
+    _playStoryAudio();
+    setState(() {
+      _completedSnapshot = snapshot;
+      _foundBackpacks = world.pickups.values
+          .where((pickup) => pickup.collected)
+          .length;
+      _totalBackpacks = world.pickups.length;
+      _foundMemoryImages = pictures(progress.memories).length;
+      _totalMemoryImages = pictures(StoryMemory.values).length;
+      _game = null;
+      _phase = _Phase.levelComplete;
+    });
+  }
+
+  void _openLevelMap() => setState(() => _phase = _Phase.levelMap);
+
+  void _startHometown() {
+    final snapshot = _completedSnapshot;
+    if (snapshot == null) {
+      return;
+    }
+    _gameLoadingCaption = 'Caricamento di Città Natale';
+    setState(() {
+      _game = StepboundGame(
+        world: restoreTutorialWorld(snapshot.world),
+        tutorialState: snapshot.tutorial,
+        progress: Progress.fromJson(snapshot.progress),
+        unlocked: <HudElement>{
+          for (final name in snapshot.hud)
+            for (final element in HudElement.values)
+              if (element.name == name) element,
+        },
+        onRest: _store,
+        onLevelCompleted: _completeLevel,
+        audio: _audio,
+      );
+      _phase = _Phase.playing;
+    });
+  }
+
+  void _startRome() => setState(() => _phase = _Phase.romePlaceholder);
+
   void _backToMenu() {
     _audio
       ..silenceAmbience()
       ..playMusic(Music.menu);
     setState(() {
       _game = null;
+      _completedSnapshot = null;
       _phase = _Phase.menu;
     });
   }
@@ -376,6 +455,20 @@ final class _StepboundAppState extends State<StepboundApp> {
                   fadeOutAtEnd: true,
                   onFinished: _finishOutbreak,
                 ),
+                _Phase.levelComplete => LevelComplete(
+                  foundBackpacks: _foundBackpacks,
+                  totalBackpacks: _totalBackpacks,
+                  foundMemories: _foundMemoryImages,
+                  totalMemories: _totalMemoryImages,
+                  onContinue: _openLevelMap,
+                ),
+                _Phase.levelMap => LevelMap(
+                  onStartHometown: _startHometown,
+                  onStartRome: _startRome,
+                ),
+                _Phase.romePlaceholder => RomePlaceholder(
+                  onBack: _openLevelMap,
+                ),
                 _Phase.dialogue || _Phase.playing when game != null => Stack(
                   fit: StackFit.expand,
                   children: <Widget>[
@@ -411,7 +504,7 @@ final class _StepboundAppState extends State<StepboundApp> {
                       fadeIn: _phase == _Phase.dialogue,
                       caption: _phase == _Phase.dialogue
                           ? 'Caricamento del tutorial'
-                          : 'Caricamento della partita',
+                          : _gameLoadingCaption,
                     ),
                   ],
                 ),

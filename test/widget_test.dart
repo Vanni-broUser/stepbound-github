@@ -866,6 +866,70 @@ void main() {
     });
   });
 
+  testWidgets('level completion opens the Europe map, Rome returns to it, '
+      'and Città Natale resumes gameplay', (tester) {
+    return tester.runAsync(() async {
+      final game = await _pumpReadyGame(tester);
+      final before = GridPoint(
+        (stationPlatform.left + stationPlatform.right) ~/ 2,
+        stationPlatform.bottom,
+      );
+      game.simulation.player.component<PositionComponent>().position = before;
+
+      game.completeLevel();
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey<String>('level-complete')),
+        findsOneWidget,
+      );
+      expect(find.text('ZAINI TROVATI'), findsOneWidget);
+      expect(find.text('RICORDI TROVATI'), findsOneWidget);
+
+      await tester.tap(
+        find.byKey(const ValueKey<String>('level-complete-continue')),
+      );
+      await tester.pump();
+      expect(find.byKey(const ValueKey<String>('level-map')), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey<String>('level-city-rome')));
+      await tester.pump();
+      expect(find.text('Roma'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey<String>('level-start')));
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey<String>('rome-placeholder')),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'Vanni deve ancora programmarla questa parte\n'
+          'Fagli sapere se ti piace il gioco',
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const ValueKey<String>('rome-placeholder')));
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('level-city-hometown')),
+      );
+      await tester.pump();
+      expect(find.text('Città Natale'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey<String>('level-start')));
+      await tester.pump();
+      final returned = tester
+          .state<GameWidgetState<StepboundGame>>(
+            find.byType(GameWidget<StepboundGame>),
+          )
+          .currentGame;
+      expect(
+        returned.simulation.player.component<PositionComponent>().position,
+        before,
+        reason: 'Città Natale keeps the completed world at the station',
+      );
+    });
+  });
+
   testWidgets('the arrows stay on the left and the actions on the right', (
     tester,
   ) async {

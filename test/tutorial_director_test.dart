@@ -59,12 +59,22 @@ final class _FakeHost implements TutorialHost {
 
   final List<List<CutsceneFrame>> cutscenes = <List<CutsceneFrame>>[];
   void Function()? onCutsceneFinished;
+  bool cutsceneStaysBlack = false;
+  int levelsCompleted = 0;
 
   @override
-  void playCutscene(List<CutsceneFrame> frames, {void Function()? onFinished}) {
+  void playCutscene(
+    List<CutsceneFrame> frames, {
+    void Function()? onFinished,
+    bool stayBlack = false,
+  }) {
     cutscenes.add(frames);
     onCutsceneFinished = onFinished;
+    cutsceneStaysBlack = stayBlack;
   }
+
+  @override
+  void completeLevel() => levelsCompleted++;
 
   int luigiSent = 0;
 
@@ -629,17 +639,46 @@ void main() {
       stationPlatform.bottom,
     );
 
-    test('coming up onto the far platform plays the meeting with Luigi', () {
+    void takeAPlatformStep() {
+      final to = onTheFarPlatform();
+      world.player.component<PositionComponent>().position = to;
+      director.onEvents(<WorldEvent>[
+        MovedEvent(
+          entityId: world.playerId,
+          from: to.step(Direction.west),
+          to: to,
+        ),
+      ]);
+      settle();
+    }
+
+    test('after Luigi is rescued, his meeting waits for the first step', () {
+      progress.remember(StoryMemory.luigiRescued);
       world.player.component<PositionComponent>().position = onTheFarPlatform();
       settle();
+      expect(
+        host.cutscenes,
+        isEmpty,
+        reason: 'arriving through the stairs leaves time to see the map',
+      );
+
+      takeAPlatformStep();
       expect(host.shown, isEmpty, reason: 'the picture comes first');
-      final frame = host.cutscenes.single.single;
+      final scene = host.cutscenes.single;
+      expect(scene, StationScript.reunionScene);
+      expect(scene, hasLength(6));
+      final frame = scene.first;
       expect(frame.speaker, StationScript.luigi);
       expect(frame.text, "Eccoti ragazzo, ce l'hai fatta finalmente!");
       expect(frame.image, StationScript.platformScene);
+      expect(scene[1].image, StationScript.planScene);
+      expect(scene[4].text, 'La nostra meta é Capo Nord ragazzo. In Norvegia');
+      expect(scene[4].image, StationScript.northCapeScene);
+      expect(host.cutsceneStaysBlack, isTrue);
       expect(progress.memories, contains(StoryMemory.luigiAtStation));
 
       host.onCutsceneFinished?.call();
+      expect(host.levelsCompleted, 1);
       settle();
       expect(
         host.cutscenes,
@@ -648,18 +687,25 @@ void main() {
       );
     });
 
+    test('the meeting cannot happen before Luigi has been rescued', () {
+      takeAPlatformStep();
+      expect(host.cutscenes, isEmpty);
+      expect(progress.memories, isNot(contains(StoryMemory.luigiAtStation)));
+    });
+
     test('nothing plays anywhere short of that platform', () {
+      progress.remember(StoryMemory.luigiRescued);
       world.player.component<PositionComponent>().position = place(
         PlaceId.station,
       ).doorRow('E').first;
       settle();
       expect(host.cutscenes, isEmpty);
-      expect(progress.memories, isEmpty);
+      expect(progress.memories, isNot(contains(StoryMemory.luigiAtStation)));
     });
 
     test('a save taken after it does not play it again on the way back', () {
-      world.player.component<PositionComponent>().position = onTheFarPlatform();
-      settle();
+      progress.remember(StoryMemory.luigiRescued);
+      takeAPlatformStep();
       expect(host.cutscenes, hasLength(1));
 
       final resumed = TutorialDirector(
@@ -700,6 +746,27 @@ void main() {
       walkTo(onTheSeafront());
       settle();
       host.onCutsceneFinished!();
+      settle();
+      host.dismiss();
+    }
+
+    /// Clears the first danger, hears the price and accepts the errand.
+    void acceptIncenseErrand() {
+      meetThePriest();
+      killTheZombiesAtTheGate();
+      walkTo(atTheGate());
+      settle();
+      host.onCutsceneFinished!();
+      settle();
+      host.dismiss();
+    }
+
+    /// Picks up the incense far from the Duomo and reads its notification.
+    void collectIncense() {
+      walkTo(world.pickups[incenseBackpackId]!.position);
+      director.onEvents(<WorldEvent>[
+        pickedUp(incenseBackpackId, incense: true),
+      ]);
       settle();
       host.dismiss();
     }
@@ -827,6 +894,78 @@ void main() {
       walkTo(atTheGate());
       settle();
       expect(host.cutscenes, hasLength(1));
+    });
+
+    test('returning with the incense to a clear gate plays the welcome', () {
+      acceptIncenseErrand();
+      collectIncense();
+
+      walkTo(atTheGate());
+      settle();
+
+      expect(host.cutscenes, hasLength(3));
+      final welcome = host.cutscenes.last.single;
+      expect(welcome.image, PriestScript.welcomeSceneImage);
+      expect(welcome.speaker, PriestScript.priest);
+      expect(welcome.text, PriestScript.welcomeLine);
+      expect(progress.memories.last, StoryMemory.priestWelcomed);
+
+      settle();
+      expect(host.cutscenes, hasLength(3), reason: 'the welcome plays once');
+    });
+
+    test('a zombie by the entrance makes Don Angelo repeat his warning', () {
+      acceptIncenseErrand();
+      collectIncense();
+      final nearbyZombie = world.entities[tutorialZombieId]!
+        ..component<PositionComponent>().position = atTheGate().step(
+          Direction.east,
+        );
+
+      walkTo(atTheGate());
+      settle();
+
+      expect(host.cutscenes, hasLength(2), reason: 'the welcome must wait');
+      final warning = host.shown.last.single;
+      expect(warning.text, PriestScript.clearThemOut);
+      expect(warning.speaker, PriestScript.priest);
+      expect(warning.portrait, PriestScript.priestPortrait);
+
+      final warnings = host.shown.length;
+      host.dismiss();
+      settle();
+      expect(
+        host.shown,
+        hasLength(warnings),
+        reason: 'standing still does not reopen the same box',
+      );
+
+      walkTo(onTheSeafront());
+      settle();
+      walkTo(atTheGate());
+      settle();
+      expect(host.shown, hasLength(warnings + 1), reason: 'a new visit warns');
+
+      host.dismiss();
+      nearbyZombie.component<HealthComponent>().current = 0;
+      settle();
+      expect(host.cutscenes.last, PriestScript.welcomeScene);
+    });
+
+    test('a save after the welcome does not play it again', () {
+      acceptIncenseErrand();
+      collectIncense();
+      walkTo(atTheGate());
+      settle();
+      final saved = director.toJson();
+
+      host = _FakeHost()..unlock(HudElement.incense);
+      director = TutorialDirector(world: world, host: host, progress: progress)
+        ..restore(saved);
+      settle();
+
+      expect(host.cutscenes, isEmpty);
+      expect(progress.memories, contains(StoryMemory.priestWelcomed));
     });
 
     test('a save between the two halves resumes where the priest left off', () {

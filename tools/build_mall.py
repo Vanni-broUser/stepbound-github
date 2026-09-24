@@ -72,13 +72,13 @@ GROUND_SHOPS = {
     (25, 1): (6, "FERRAMENTA", (70, 70, 80), (230, 230, 236), "boards"),
     (31, 1): (6, "SPORT", (20, 90, 130), (235, 245, 250), "glass"),
     (37, 1): (6, "CARTOLERIA", (190, 120, 40), (255, 240, 210), "smashed"),
-    # The hall's, below it, between the passage and the stairs.
+    # The hall's, below it, three on either side of the central stairs.
     (4, 15): (6, "ELETTRONICA", (26, 46, 96), (120, 220, 240), "smashed"),
     (10, 15): (6, "SCARPE", (60, 60, 64), (240, 200, 90), "shutter"),
     (16, 15): (6, "PROFUMERIA", (120, 60, 110), (246, 226, 240), "glass"),
-    (22, 15): (6, "BAR", (70, 44, 30), (236, 214, 160), "boards"),
-    (28, 15): (6, "GIOIELLERIA", (90, 70, 110), (240, 225, 160), "shutter"),
-    (34, 15): (6, "CASALINGHI", (40, 100, 100), (230, 245, 240), "smashed"),
+    (25, 15): (6, "BAR", (70, 44, 30), (236, 214, 160), "boards"),
+    (31, 15): (6, "GIOIELLERIA", (90, 70, 110), (240, 225, 160), "shutter"),
+    (37, 15): (6, "CASALINGHI", (40, 100, 100), (230, 245, 240), "smashed"),
 }
 FIRST_SHOPS = {
     (5, 3): (6, "FARMACIA", (30, 120, 70), (236, 250, 236), "shutter"),

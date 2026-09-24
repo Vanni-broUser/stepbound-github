@@ -345,6 +345,22 @@ def paint_railcar(d, rng, area, wrecked):
              GLASS_BROKEN if rng.random() < (0.75 if wrecked else 0.3)
              else GLASS)
         rect(d, wx + 1, body + 9, 15, 2, shade(GLASS, 26))
+    if not wrecked:
+        # One passenger door has been forced open towards the platform.
+        # The train remains a wall for now, but this makes the entrance
+        # players will be able to use in a later chapter visible already.
+        door_x = px + w - 68
+        door_top = body + 5
+        door_bottom = py + h - 6
+        rect(d, door_x - 2, door_top - 2, 22, door_bottom - door_top + 4,
+             METAL_DARK)
+        rect(d, door_x, door_top, 18, door_bottom - door_top, (18, 18, 22))
+        rect(d, door_x + 2, door_top + 2, 4, door_bottom - door_top - 3,
+             shade(LIVERY_WHITE, -54))
+        rect(d, door_x + 16, door_top, 2, door_bottom - door_top,
+             METAL_LIGHT)
+        rect(d, door_x - 1, door_bottom, 20, 3, METAL_DARK)
+        rect(d, door_x + 2, door_bottom + 1, 14, 2, METAL)
     rect(d, px, py + h - 12, w, 6, shade(LIVERY_WHITE, -64))  # the skirt
     for bx in (px + cab + 4, px + w - 48):  # the bogies under it
         rect(d, bx, py + h - 9, 38, 7, METAL_DARK)

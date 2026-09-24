@@ -493,8 +493,8 @@ void main() {
       expectWalkableStraightPath(createTutorialWorld(), luigiExitPath);
     });
 
-    test('the hall and the upper row of shops sit one above the other, '
-        'joined on the west, with the fire exit above the stairs', () {
+    test('the hall and upper shops join on the west, with central stairs '
+        'below and the fire exit in the second area', () {
       final world = createTutorialWorld();
       final ground = place(PlaceId.mallGround);
       final entrance = ground.doorRow('E').first;
@@ -503,8 +503,11 @@ void main() {
       // and the fire exit is north of them, in the area above.
       expect(entrance.y, greaterThan(stairs.first.y));
       expect(mallExitTile.y, lessThan(stairs.first.y));
-      expect(mallExitTile.x, greaterThanOrEqualTo(stairs.first.x));
-      expect(mallExitTile.x, lessThanOrEqualTo(stairs.last.x));
+      expect(
+        <int>[for (final tile in stairs) tile.x - ground.origin.x],
+        <int>[for (final tile in ground.doorRow('E')) tile.x - ground.origin.x],
+        reason: 'the stairs align exactly with the entrance below',
+      );
       // The only way between the two areas: two cells wide, on the west.
       final passage = <List<GridPoint>>[
         for (var y = 0; y < ground.height; y++)
@@ -522,7 +525,7 @@ void main() {
       final west = passage.first.first.x;
       expect(
         stairs.first.x - west,
-        greaterThan(30),
+        greaterThan(ground.width ~/ 3),
         reason: 'the long way round, not a nook',
       );
       // Down the passage into the hall, and back up and east to the exit.
@@ -557,6 +560,24 @@ void main() {
       }
       final back = walk(world, beyond, Direction.south);
       expect(back, mallExitTile.step(Direction.south));
+    });
+
+    test('two wanderers wait by the north exit on the ground floor', () {
+      final world = createTutorialWorld();
+      final ground = place(PlaceId.mallGround);
+      final zombies = world.entities.values
+          .where((entity) => entity.id.startsWith(mallGroundZombiePrefix))
+          .toList();
+      expect(zombies, hasLength(2));
+      for (final zombie in zombies) {
+        expect(zombie.kind, EntityKind.wanderer);
+        final position = zombie.component<PositionComponent>().position;
+        expect(ground.bounds.contains(position), isTrue);
+        expect(
+          position.manhattanDistanceTo(mallExitTile),
+          lessThanOrEqualTo(4),
+        );
+      }
     });
 
     test('the panel beyond the gate lifts the shutter in front of Luigi', () {
@@ -1167,6 +1188,34 @@ void main() {
         );
       }
     });
+
+    test('two wanderers roam the station underpass', () {
+      final world = createTutorialWorld();
+      final zombies = world.entities.values
+          .where((entity) => entity.id.startsWith(stationUnderpassZombiePrefix))
+          .toList();
+      expect(zombies, hasLength(2));
+      for (final zombie in zombies) {
+        expect(zombie.kind, EntityKind.wanderer);
+        expect(
+          underpass.bounds.contains(
+            zombie.component<PositionComponent>().position,
+          ),
+          isTrue,
+        );
+      }
+    });
+  });
+
+  test('a carabiniere zombie patrols the park behind the mall', () {
+    final world = createTutorialWorld();
+    final park = place(PlaceId.mallNorthStreet);
+    final carabinieri = world.entities.values.where(
+      (entity) =>
+          entity.kind == EntityKind.carabiniere &&
+          park.bounds.contains(entity.component<PositionComponent>().position),
+    );
+    expect(carabinieri, hasLength(1));
   });
 
   test('the barracks has lamps and two carabinieri waiting in the dark', () {
@@ -1346,6 +1395,68 @@ void main() {
       );
       expect(restored.player.component<AmmoComponent>().loaded, 3);
       expect(restored.map.width, world.map.width);
+    });
+
+    test('an older save gains backpacks added by the current level', () {
+      final world = createTutorialWorld();
+      world.pickups[ammoBackpackId]!
+        ..active = false
+        ..collected = true;
+      final oldSave = throughStorage(saveTutorialWorld(world));
+      (oldSave['pickups']! as List<Object?>).removeWhere(
+        (encoded) =>
+            (encoded! as Map<String, Object?>)['id'] == incenseBackpackId,
+      );
+
+      final restored = restoreTutorialWorld(oldSave);
+
+      expect(restored.pickups[incenseBackpackId], isNotNull);
+      expect(restored.pickups[incenseBackpackId]!.active, isTrue);
+      expect(restored.pickups[incenseBackpackId]!.collected, isFalse);
+      expect(
+        restored.pickups[incenseBackpackId]!.position,
+        createTutorialWorld().pickups[incenseBackpackId]!.position,
+      );
+      expect(
+        restored.pickups[ammoBackpackId]!.collected,
+        isTrue,
+        reason: 'saved pickup state must win over the level default',
+      );
+    });
+
+    test('an older save gains zombies added by the current level', () {
+      final world = createTutorialWorld();
+      world.entities[tutorialZombieId]!.component<HealthComponent>().current =
+          0;
+      final park = place(PlaceId.mallNorthStreet);
+      final addedIds = <String>{
+        for (final entity in world.entities.values)
+          if (entity.id.startsWith(mallGroundZombiePrefix) ||
+              entity.id.startsWith(stationUnderpassZombiePrefix) ||
+              (entity.kind == EntityKind.carabiniere &&
+                  park.bounds.contains(
+                    entity.component<PositionComponent>().position,
+                  )))
+            entity.id,
+      };
+      expect(addedIds, hasLength(5));
+      final oldSave = throughStorage(saveTutorialWorld(world));
+      (oldSave['entities']! as List<Object?>).removeWhere(
+        (encoded) =>
+            addedIds.contains((encoded! as Map<String, Object?>)['id']),
+      );
+
+      final restored = restoreTutorialWorld(oldSave);
+
+      for (final id in addedIds) {
+        expect(restored.entities[id], isNotNull, reason: id);
+        expect(restored.entities[id]!.isAlive, isTrue, reason: id);
+      }
+      expect(
+        restored.entities[tutorialZombieId]!.isAlive,
+        isFalse,
+        reason: 'saved entity state must win over the level default',
+      );
     });
 
     test('saving at the new camp behind the mall, after the first one, '
