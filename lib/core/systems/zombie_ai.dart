@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:stepbound/core/entities/components.dart';
 import 'package:stepbound/core/entities/entity.dart';
 import 'package:stepbound/core/grid/grid_point.dart';
+import 'package:stepbound/core/grid/tile.dart';
 import 'package:stepbound/core/world.dart';
 import 'package:stepbound/core/world_event.dart';
 
@@ -84,6 +85,11 @@ final class ZombieAi {
       return;
     }
 
+    if (zombie.component<ActorComponent>().staggers) {
+      _stagger(world, zombie);
+      return;
+    }
+
     final hearing = zombie.component<HearingComponent>();
     final seesPlayer =
         _canSeePlayer(world, zombie) || _isTracking(world, zombie);
@@ -97,6 +103,21 @@ final class ZombieAi {
     }
 
     if (target == zombiePosition.position) {
+      if (!seesPlayer) {
+        hearing.lastHeard = null;
+      }
+      world.emit(WaitedEvent(zombie.id));
+      return;
+    }
+
+    if (zombie.component<ActorComponent>().stationary) {
+      // It cannot go after what it saw or heard: it turns towards it, and
+      // once the player is out of its senses it lets the sound go, back to
+      // looking ahead of it.
+      zombiePosition.facing = _directionBetween(
+        zombiePosition.position,
+        target,
+      );
       if (!seesPlayer) {
         hearing.lastHeard = null;
       }
@@ -127,9 +148,61 @@ final class ZombieAi {
       return;
     }
 
-    final previous = zombiePosition.position;
-    zombiePosition.position = next;
+    _step(world, zombie, next);
+  }
+
+  void _step(WorldState world, Entity zombie, GridPoint next) {
+    final position = zombie.component<PositionComponent>();
+    final previous = position.position;
+    position.position = next;
     world.emit(MovedEvent(entityId: zombie.id, from: previous, to: next));
+    if (zombie.component<ActorComponent>().trailsFire) {
+      _setAlight(world, zombie, previous);
+    }
+  }
+
+  /// One lurch a random way, whether it has seen the player or not: of the
+  /// four directions, shuffled, the first it can step into. Never onto a
+  /// doorway, where it would stand in the way in or out, and never into
+  /// the player, who is bitten instead when he is next to it.
+  void _stagger(WorldState world, Entity zombie) {
+    final position = zombie.component<PositionComponent>();
+    final directions = List<Direction>.of(Direction.values);
+    for (var i = directions.length - 1; i > 0; i--) {
+      final j = world.random.nextInt(i + 1);
+      final swap = directions[i];
+      directions[i] = directions[j];
+      directions[j] = swap;
+    }
+    for (final direction in directions) {
+      final next = position.position.step(direction);
+      if (!world.map.contains(next) ||
+          !world.map.tileAt(next).isWalkable ||
+          world.portals.containsKey(next) ||
+          world.isBlocked(next, excluding: zombie.id)) {
+        continue;
+      }
+      position.facing = direction;
+      _step(world, zombie, next);
+      return;
+    }
+    world.emit(WaitedEvent(zombie.id));
+  }
+
+  /// The tile a burning zombie has just left catches fire and never goes
+  /// out. Doorways, and the tiles in front of them, never do: a way in or
+  /// out of a place must not be shut for good.
+  void _setAlight(WorldState world, Entity zombie, GridPoint tile) {
+    for (final near in <GridPoint>[
+      tile,
+      for (final direction in Direction.values) tile.step(direction),
+    ]) {
+      if (world.portals.containsKey(near)) {
+        return;
+      }
+    }
+    world.map.setTile(tile, const Tile(TileKind.fire));
+    world.emit(FireStartedEvent(at: tile, entityId: zombie.id));
   }
 
   bool _canSeePlayer(WorldState world, Entity zombie) {

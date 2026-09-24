@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/progress.dart';
+import 'package:stepbound/game/zombie_lore.dart';
 import 'package:stepbound/ui/story_intro.dart';
 import 'package:stepbound/ui/zombie_book.dart';
 
@@ -72,6 +74,52 @@ void main() {
     );
     expect(find.text('VELOCE'), findsOneWidget);
   });
+
+  testWidgets('the mutilated is listed, with its page, once it has been met', (
+    tester,
+  ) async {
+    final index = zombieCards.indexWhere(
+      (card) => card.kind == EntityKind.mutilated,
+    );
+    await pumpBook(tester);
+    expect(find.text('MUTILATO'), findsNothing);
+    await pumpBook(
+      tester,
+      known: const <EntityKind>{EntityKind.wanderer, EntityKind.mutilated},
+    );
+    expect(find.text('MUTILATO'), findsOneWidget);
+    await tap(tester, 'zombie-book-$index');
+    expect(find.text('MUTILATO'), findsNWidgets(2), reason: 'list and card');
+    expect(find.textContaining('gambe'), findsOneWidget);
+    expect(
+      find.byKey(ValueKey<String>('zombie-book-portrait-$index')),
+      findsOne,
+    );
+  });
+
+  test('every zombie type of the game has its card, once, with its lore', () {
+    for (final MapEntry(key: kind, value: lore) in zombieLore.entries) {
+      final cards = zombieCards.where((card) => card.kind == kind);
+      expect(cards, hasLength(1), reason: '$kind');
+      expect(cards.single.name, lore.name);
+      expect(cards.single.portrait, lore.portrait);
+      expect(cards.single.description, lore.description);
+    }
+  });
+
+  test(
+    'every portrait the lessons and the book show is in the assets',
+    () async {
+      TestWidgetsFlutterBinding.ensureInitialized();
+      for (final lore in zombieLore.values) {
+        await expectLater(
+          rootBundle.load(lore.portrait),
+          completes,
+          reason: '${lore.name}: ${lore.portrait} is missing',
+        );
+      }
+    },
+  );
 
   testWidgets('the book closes', (tester) async {
     await pumpBook(tester);

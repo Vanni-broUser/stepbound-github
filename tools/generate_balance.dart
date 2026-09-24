@@ -27,6 +27,9 @@ const List<String> _actorKinds = <String>[
   'brute',
   'blind',
   'carabiniere',
+  'mutilated',
+  'burning',
+  'drunk',
 ];
 
 /// The stats every actor must carry, in generated order, with the smallest
@@ -42,6 +45,14 @@ const Map<String, int> _requiredStats = <String, int>{
 /// Optional: an actor without it bites the tile in front of it.
 const String _attackReach = 'attackReach';
 const int _minimumAttackReach = 1;
+
+/// Optional flags: only `true` is written. [_stationary] for an actor that
+/// never walks, [_trailsFire] for one that sets alight the tiles it leaves,
+/// [_staggers] for one that walks a random way instead of hunting.
+const String _stationary = 'stationary';
+const String _trailsFire = 'trailsFire';
+const String _staggers = 'staggers';
+const List<String> _flags = <String>[_stationary, _trailsFire, _staggers];
 
 void main(List<String> arguments) {
   final check = arguments.length == 1 && arguments.single == '--check';
@@ -142,6 +153,11 @@ String _generate(Map<String, Object?> actors) {
     if (encoded.containsKey(_attackReach)) {
       buffer.writeln('    $_attackReach: ${encoded[_attackReach]},');
     }
+    for (final flag in _flags) {
+      if (encoded[flag] == true) {
+        buffer.writeln('    $flag: true,');
+      }
+    }
     buffer.writeln('  ),');
   }
 
@@ -150,7 +166,7 @@ String _generate(Map<String, Object?> actors) {
 }
 
 void _validateStats(String kind, Map<String, Object?> stats) {
-  final allowed = <String>{..._requiredStats.keys, _attackReach};
+  final allowed = <String>{..._requiredStats.keys, _attackReach, ..._flags};
   final unknown = stats.keys.where((key) => !allowed.contains(key));
   if (unknown.isNotEmpty) {
     _fail('Actor "$kind" has unknown fields: ${unknown.join(', ')}.');
@@ -166,6 +182,11 @@ void _validateStats(String kind, Map<String, Object?> stats) {
       _minimumAttackReach,
       required: false,
     );
+  }
+  for (final flag in _flags) {
+    if (stats.containsKey(flag) && stats[flag] is! bool) {
+      _fail('Actor "$kind" field "$flag" must be true or false.');
+    }
   }
 }
 

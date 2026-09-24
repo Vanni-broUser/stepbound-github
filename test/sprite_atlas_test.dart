@@ -7,8 +7,8 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  Future<ui.Image> loadSheet(String name) async {
-    final data = await rootBundle.load('assets/sprites/$name.png');
+  Future<ui.Image> loadAsset(String path) async {
+    final data = await rootBundle.load(path);
     final bytes = data.buffer.asUint8List(
       data.offsetInBytes,
       data.lengthInBytes,
@@ -19,6 +19,9 @@ void main() {
     return frame.image;
   }
 
+  Future<ui.Image> loadSheet(String name) =>
+      loadAsset('assets/sprites/$name.png');
+
   test('production sprite atlases match the 4x6 runtime contract', () async {
     const names = <String>[
       'protagonist',
@@ -28,6 +31,9 @@ void main() {
       'zombie_brute',
       'zombie_blind',
       'zombie_carabiniere',
+      'zombie_mutilated',
+      'zombie_burning',
+      'zombie_drunk',
     ];
     for (final name in names) {
       final image = await loadSheet(name);
@@ -74,6 +80,27 @@ void main() {
           expect((minX + maxX) / 2, closeTo(7.5, 1), reason: frameName);
         }
       }
+      image.dispose();
+    }
+  });
+
+  test('special-zombie portraits match the story portrait contract', () async {
+    for (final name in <String>['mutilated', 'burning', 'drunk']) {
+      final image = await loadAsset('assets/story/portrait_$name.png');
+      expect(image.width, 1048, reason: name);
+      expect(image.height, 1501, reason: name);
+      final rgba = await pixelsOf(image);
+      var hasTransparentPixel = false;
+      var hasOpaquePixel = false;
+      for (var index = 3; index < rgba.length; index += 4) {
+        hasTransparentPixel |= rgba[index] == 0;
+        hasOpaquePixel |= rgba[index] == 255;
+        if (hasTransparentPixel && hasOpaquePixel) {
+          break;
+        }
+      }
+      expect(hasTransparentPixel, isTrue, reason: '$name needs alpha');
+      expect(hasOpaquePixel, isTrue, reason: '$name needs visible pixels');
       image.dispose();
     }
   });

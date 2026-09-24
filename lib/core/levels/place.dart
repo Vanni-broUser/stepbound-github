@@ -34,11 +34,15 @@ final class Legend {
     required this.walls,
     required this.obstacles,
     this.debris = ':',
+    this.fire = '',
   });
 
   final String walls;
   final String obstacles;
   final String debris;
+
+  /// Ground already burning when the level starts.
+  final String fire;
 
   TileKind kindOf(String glyph) {
     if (walls.contains(glyph)) {
@@ -49,6 +53,9 @@ final class Legend {
     }
     if (debris.contains(glyph)) {
       return TileKind.debris;
+    }
+    if (fire.contains(glyph)) {
+      return TileKind.fire;
     }
     return TileKind.floor;
   }

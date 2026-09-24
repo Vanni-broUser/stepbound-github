@@ -163,7 +163,8 @@ final class InteractAction extends PlayerAction {
       case TileKind.floor ||
           TileKind.wall ||
           TileKind.debris ||
-          TileKind.obstacle:
+          TileKind.obstacle ||
+          TileKind.fire:
         world.emit(NoInteractionEvent(target));
     }
   }

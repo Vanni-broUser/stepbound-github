@@ -55,6 +55,9 @@ final class EntityFactory {
           tickCost: stats.tickCost,
           contactDamage: stats.contactDamage,
           attackReach: stats.attackReach,
+          stationary: stats.stationary,
+          trailsFire: stats.trailsFire,
+          staggers: stats.staggers,
         ),
       ],
     );

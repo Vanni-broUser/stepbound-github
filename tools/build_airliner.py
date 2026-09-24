@@ -223,6 +223,9 @@ MAST_DARK = (72, 74, 80)
 FAR_ROOF = (44, 44, 48)
 FAR_ROOF_ALT = (40, 40, 44)
 DROP = (16, 16, 20)
+SCORCH = (28, 22, 20)
+SCORCH_ASH = (58, 50, 46)
+SCORCH_EMBER = (150, 52, 24)
 DROP_LIGHT = (28, 28, 34)
 HULL = (206, 204, 198)
 HULL_LIGHT = (232, 230, 224)
@@ -255,6 +258,15 @@ def roof_rubble(d, rng, px, py):
         rect(d, px + rng.randrange(13), py + rng.randrange(13),
              rng.randint(2, 4), rng.randint(1, 3), rng.choice(GRAVEL))
     rect(d, px + rng.randrange(11), py + rng.randrange(11), 5, 2, COPING_DARK)
+
+
+def roof_scorch(d, px, py):
+    """Felt burnt down to the boards where the fuel is still alight; the
+    flames themselves are drawn by the game."""
+    rect(d, px, py, TILE, TILE, SCORCH)
+    rect(d, px + 2, py + 3, 5, 2, SCORCH_ASH)
+    rect(d, px + 9, py + 10, 4, 2, SCORCH_ASH)
+    rect(d, px + 11, py + 4, 2, 1, SCORCH_EMBER)
 
 
 def roof_blood(d, rng, px, py):
@@ -447,6 +459,8 @@ def bake_roofs():
                 roof_rubble(d, rng, px, py)
             elif glyph == "b":
                 roof_blood(d, rng, px, py)
+            elif glyph == "&":
+                roof_scorch(d, px, py)
             elif glyph == "T":
                 roof_stack(d, rng, px, py)
             elif glyph == "n":

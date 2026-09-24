@@ -34,6 +34,7 @@ final class TileMap {
             '/' => TileKind.openDoor,
             ':' => TileKind.debris,
             'o' => TileKind.obstacle,
+            '*' => TileKind.fire,
             _ => TileKind.floor,
           }),
         );

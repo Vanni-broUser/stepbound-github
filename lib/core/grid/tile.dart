@@ -1,6 +1,7 @@
 /// [obstacle] blocks movement but not sight, like a wrecked car you can
-/// see and shoot over.
-enum TileKind { floor, wall, closedDoor, openDoor, debris, obstacle }
+/// see and shoot over. [fire] is ground that is burning and will not stop:
+/// nobody walks through it, but it is seen and shot across.
+enum TileKind { floor, wall, closedDoor, openDoor, debris, obstacle, fire }
 
 final class Tile {
   const Tile(this.kind);
@@ -12,7 +13,10 @@ final class Tile {
   final TileKind kind;
 
   bool get isWalkable => switch (kind) {
-    TileKind.wall || TileKind.closedDoor || TileKind.obstacle => false,
+    TileKind.wall ||
+    TileKind.closedDoor ||
+    TileKind.obstacle ||
+    TileKind.fire => false,
     TileKind.floor || TileKind.openDoor || TileKind.debris => true,
   };
 
@@ -21,7 +25,8 @@ final class Tile {
     TileKind.floor ||
     TileKind.openDoor ||
     TileKind.debris ||
-    TileKind.obstacle => false,
+    TileKind.obstacle ||
+    TileKind.fire => false,
   };
 
   int get movementNoiseRadius => kind == TileKind.debris ? 7 : 2;
@@ -33,6 +38,7 @@ final class Tile {
     TileKind.openDoor => '/',
     TileKind.debris => ':',
     TileKind.obstacle => 'o',
+    TileKind.fire => '*',
   };
 
   Map<String, Object?> toJson() => <String, Object?>{'kind': kind.name};

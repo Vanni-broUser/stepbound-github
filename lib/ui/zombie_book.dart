@@ -3,6 +3,7 @@ import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/game/zombie_lore.dart';
 import 'package:stepbound/ui/blood_decor.dart';
 import 'package:stepbound/ui/main_menu.dart';
 import 'package:stepbound/ui/story_intro.dart';
@@ -25,34 +26,17 @@ final class ZombieCard {
 
 const String _unknownPortrait = 'assets/story/portrait_wanderer.png';
 
-/// Every card, known or not. Many are still "???": more types will come.
+/// Every card, known or not: first the types the game has, as
+/// [zombieLore] tells them, then the ones still to come, "???" until they
+/// are in the game too.
 final List<ZombieCard> zombieCards = <ZombieCard>[
-  const ZombieCard(
-    kind: EntityKind.wanderer,
-    name: 'Vagante',
-    portrait: 'assets/story/portrait_wanderer.png',
-    description:
-        'Il più comune: fino a poco fa era una persona qualunque. Lento e '
-        'goffo, fa un passo ogni due dei tuoi. Da solo si evita, in gruppo '
-        'ti chiude la strada.',
-  ),
-  const ZombieCard(
-    kind: EntityKind.carabiniere,
-    name: 'Carabiniere',
-    portrait: 'assets/story/portrait_carabiniere.png',
-    description:
-        'Porta ancora la divisa e stringe il manganello: ti colpisce fino a '
-        'due celle di distanza. Si muove come un vagante, ma non lasciarlo '
-        'avvicinare.',
-  ),
-  const ZombieCard(
-    kind: EntityKind.sprinter,
-    name: 'Veloce',
-    portrait: 'assets/story/portrait_sprinter.png',
-    description:
-        'Si muove alla tua stessa velocità: correndo non lo semini. Ti vede '
-        'e ti sente da più lontano degli altri.',
-  ),
+  for (final MapEntry(key: kind, value: lore) in zombieLore.entries)
+    ZombieCard(
+      kind: kind,
+      name: lore.name,
+      portrait: lore.portrait,
+      description: lore.description,
+    ),
   const ZombieCard(
     kind: EntityKind.brute,
     name: 'Bruto',
@@ -65,7 +49,7 @@ final List<ZombieCard> zombieCards = <ZombieCard>[
     portrait: _unknownPortrait,
     description: '',
   ),
-  for (var i = 0; i < 7; i++)
+  for (var i = 0; i < 4; i++)
     const ZombieCard(
       kind: null,
       name: '',
