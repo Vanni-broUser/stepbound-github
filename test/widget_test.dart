@@ -50,8 +50,9 @@ Future<void> _waitForGame(WidgetTester tester) async {
 Future<void> _pumpAppThroughIntro(
   WidgetTester tester, {
   GameAudio? audio,
+  SaveRepository? saves,
 }) async {
-  await _startNewGame(tester, audio: audio);
+  await _startNewGame(tester, audio: audio, saves: saves);
   final intro = find.byKey(const ValueKey<String>('story-intro'));
   for (var i = 0; i < _introTapCount; i++) {
     await tester.tap(intro);
@@ -92,8 +93,9 @@ Future<void> _pumpBlackFade(WidgetTester tester) async {
 Future<StepboundGame> _pumpReadyGame(
   WidgetTester tester, {
   GameAudio? audio,
+  SaveRepository? saves,
 }) async {
-  await _pumpAppThroughIntro(tester, audio: audio);
+  await _pumpAppThroughIntro(tester, audio: audio, saves: saves);
   final gameState = tester.state<GameWidgetState<StepboundGame>>(
     find.byType(GameWidget<StepboundGame>),
   );
@@ -572,10 +574,11 @@ void main() {
     });
   });
 
-  testWidgets('resting at a campfire opens the camp menu, without saving on '
-      'its own', (tester) {
+  testWidgets('resting at a campfire saves at once and just says so, with '
+      'no menu', (tester) {
     return tester.runAsync(() async {
-      final game = await _pumpReadyGame(tester);
+      final saves = MemorySaveRepository();
+      final game = await _pumpReadyGame(tester, saves: saves);
       // Teleported to the camp: its lessons count as given already.
       game.tutorial.restore(const <String, Object?>{
         'north': <String, Object?>{'campLesson': true},
@@ -594,17 +597,59 @@ void main() {
       for (var i = 0; i < 60; i++) {
         game.update(1 / 20);
       }
-      expect(game.cover.value, isA<CampCover>());
       await tester.pump();
-      expect(find.byKey(const ValueKey<String>('camp-menu')), findsOneWidget);
+      final saved = (await saves.load(1))!;
+      expect(saved.place, 'Dietro la caserma');
+      expect(saved.atCampfire, isTrue);
+      final prompt = game.cover.value! as PromptCover;
+      expect(prompt.lines.single.text, 'Salvataggio completato');
+      expect(prompt.lines.single.speaker, isNull);
+      await tester.pump();
+      expect(find.text('Salvataggio completato'), findsOneWidget);
+      for (final gone in <String>['SALVA IL GIOCO', 'TIPI DI ZOMBI']) {
+        expect(find.text(gone), findsNothing, reason: 'the fire has no menu');
+      }
       expect(find.byKey(const ValueKey<String>('touch-up')), findsNothing);
-      expect(find.text('SALVA IL GIOCO'), findsOneWidget);
 
-      await tester.tap(find.byKey(const ValueKey<String>('camp-close')));
+      await tester.tap(find.byKey(const ValueKey<String>('gameplay-dialogue')));
       await tester.pump();
       expect(game.cover.value, isNull);
       expect(game.inputLocked, isFalse);
       expect(find.byKey(const ValueKey<String>('touch-up')), findsOneWidget);
+      game
+        ..pressDirection(Direction.west)
+        ..update(1 / 20);
+      expect(
+        game.simulation.player.component<PositionComponent>().position,
+        isNot(camp.step(Direction.west)),
+        reason: 'Mario is up again once the line is gone',
+      );
+    });
+  });
+
+  testWidgets('aboard, the books open the zombie types and the cot plays '
+      'the memories', (tester) {
+    return tester.runAsync(() async {
+      final game = await _pumpReadyGame(tester);
+      game.openZombieBook();
+      await tester.pump();
+      expect(find.byKey(const ValueKey<String>('zombie-book')), findsOneWidget);
+      expect(find.text('VAGANTE'), findsNothing, reason: 'none met yet');
+      await tester.tap(find.byKey(const ValueKey<String>('zombie-book-close')));
+      await tester.pump();
+      expect(game.cover.value, isNull);
+
+      game.replayMemories();
+      await tester.pump();
+      expect(game.soundscapePaused, isTrue, reason: "the story's sound");
+      final story = tester.widget<StoryIntro>(
+        find.byKey(const ValueKey<String>('train-memories-story')),
+      );
+      expect(story.scenes.length, introScenes.length + outbreakScenes.length);
+      await tester.tap(find.byKey(const ValueKey<String>('story-exit')));
+      await tester.pump();
+      expect(game.cover.value, isNull);
+      expect(game.soundscapePaused, isFalse, reason: "the game's is back");
     });
   });
 
@@ -918,18 +963,22 @@ void main() {
     });
   });
 
-  testWidgets('level completion opens the Europe map, Rome returns to it, '
-      'and Città Natale resumes gameplay', (tester) {
+  testWidgets('level completion saves aboard the train, opens the Europe '
+      'map, Rome returns to it, and Città Natale resumes at the map in the '
+      'train', (tester) {
     return tester.runAsync(() async {
-      final game = await _pumpReadyGame(tester);
-      final before = GridPoint(
-        (stationPlatform.left + stationPlatform.right) ~/ 2,
-        stationPlatform.bottom,
-      );
-      game.simulation.player.component<PositionComponent>().position = before;
+      final saves = MemorySaveRepository();
+      final game = await _pumpReadyGame(tester, saves: saves);
+      // Where the station's scene leaves him.
+      game.simulation.player.component<PositionComponent>()
+        ..position = trainMapStandTile
+        ..facing = Direction.south;
 
       game.completeLevel();
       await tester.pump();
+      final saved = (await saves.load(1))!;
+      expect(saved.place, 'Treno', reason: 'the label in the save slots');
+      expect(saved.atCampfire, isTrue, reason: 'it can be resumed from');
       expect(
         find.byKey(const ValueKey<String>('level-complete')),
         findsOneWidget,
@@ -985,11 +1034,64 @@ void main() {
             find.byType(GameWidget<StepboundGame>),
           )
           .currentGame;
+      await returned.ready();
+      final mario = returned.simulation.player.component<PositionComponent>();
       expect(
-        returned.simulation.player.component<PositionComponent>().position,
-        before,
-        reason: 'Città Natale keeps the completed world at the station',
+        mario.position,
+        trainMapStandTile,
+        reason: 'back home in the train, in front of the map',
       );
+      expect(mario.facing, Direction.south);
+
+      returned.cover.value = const GameOverCover();
+      await tester.pump();
+      expect(
+        find.text('RIPRENDI DAL TRENO (60)'),
+        findsOneWidget,
+        reason: 'the last save was made on the train',
+      );
+    });
+  });
+
+  testWidgets('a game loaded from the train offers the train back', (tester) {
+    return tester.runAsync(() async {
+      final saves = MemorySaveRepository();
+      final world = createTutorialWorld();
+      world.player.component<PositionComponent>().position = trainMapStandTile;
+      await saves.save(
+        SaveGame(
+          slot: 1,
+          savedAt: DateTime(2026),
+          place: 'Treno',
+          world: saveTutorialWorld(world),
+          tutorial: const <String, Object?>{},
+          progress: Progress.newGame().toJson(),
+          hud: const <String>['interact'],
+        ),
+      );
+      await tester.pumpWidget(StepboundApp(saves: saves, audio: SilentAudio()));
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey<String>('menu-load')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey<String>('menu-slot-1')));
+      await tester.pump();
+      await _waitForGame(tester);
+      final game =
+          tester
+              .state<GameWidgetState<StepboundGame>>(
+                find.byType(GameWidget<StepboundGame>),
+              )
+              .currentGame
+            ..openMenu();
+      await tester.pump();
+      expect(find.text('RIPRENDI DAL TRENO'), findsOneWidget);
+      expect(find.text('RIPRENDI DAL FALÒ'), findsNothing);
+      game
+        ..closeMenu()
+        ..cover.value = const GameOverCover();
+      await tester.pump();
+      expect(find.text('RIPRENDI DAL TRENO (60)'), findsOneWidget);
     });
   });
 

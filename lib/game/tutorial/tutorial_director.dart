@@ -8,6 +8,7 @@ import 'package:stepbound/game/tutorial/scripts/priest_script.dart';
 import 'package:stepbound/game/tutorial/scripts/rooftops_script.dart';
 import 'package:stepbound/game/tutorial/scripts/station_script.dart';
 import 'package:stepbound/game/tutorial/scripts/street_script.dart';
+import 'package:stepbound/game/tutorial/scripts/train_script.dart';
 
 export 'package:stepbound/game/tutorial/scripts/backpacks_script.dart';
 export 'package:stepbound/game/tutorial/scripts/barracks_script.dart';
@@ -17,6 +18,7 @@ export 'package:stepbound/game/tutorial/scripts/priest_script.dart';
 export 'package:stepbound/game/tutorial/scripts/rooftops_script.dart';
 export 'package:stepbound/game/tutorial/scripts/station_script.dart';
 export 'package:stepbound/game/tutorial/scripts/street_script.dart';
+export 'package:stepbound/game/tutorial/scripts/train_script.dart';
 
 /// A line shown in the dialogue box over the gameplay.
 final class TutorialLine {
@@ -105,11 +107,18 @@ abstract interface class TutorialHost {
     bool stayBlack = false,
   });
 
-  /// Leaves gameplay for the results screen after the last story frame.
+  /// Saves the game as it is, Mario aboard the train, and leaves gameplay
+  /// for the results screen after the last story frame.
   void completeLevel();
 
   /// Leaves the train and opens the destination map immediately.
   void openTravelMap();
+
+  /// Opens the book of the zombie types met so far.
+  void openZombieBook();
+
+  /// Plays again every story scene seen so far.
+  void replayMemories();
 
   /// Luigi walks off through the shop's open shutter and vanishes, once he
   /// has agreed to meet Mario again; calls [onFinished] once he is gone.
@@ -157,9 +166,9 @@ abstract class TutorialScript {
 
 /// Runs the tutorial's scripts and shows their prompts one after the
 /// other: the backpacks, the first street, the barracks, the north
-/// district, the hypermarket, the Duomo, the station and the roofs the
-/// crashed airliner came down in. It records what the player comes to
-/// know in [progress].
+/// district, the hypermarket, the Duomo, the station, the train Mario and
+/// Luigi live in and the roofs the crashed airliner came down in. It
+/// records what the player comes to know in [progress].
 final class TutorialDirector {
   TutorialDirector({
     required this.world,
@@ -174,6 +183,7 @@ final class TutorialDirector {
       MallScript(this),
       PriestScript(this),
       StationScript(this),
+      TrainScript(this),
       RooftopsScript(this),
     ];
   }

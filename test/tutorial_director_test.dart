@@ -80,6 +80,15 @@ final class _FakeHost implements TutorialHost {
   @override
   void openTravelMap() => travelMapsOpened++;
 
+  int zombieBooksOpened = 0;
+  int memoriesReplayed = 0;
+
+  @override
+  void openZombieBook() => zombieBooksOpened++;
+
+  @override
+  void replayMemories() => memoriesReplayed++;
+
   int luigiSent = 0;
 
   @override
@@ -700,26 +709,59 @@ void main() {
       expect(scene[1].image, StationScript.planScene);
       expect(scene[4].text, 'La nostra meta é Capo Nord ragazzo. In Norvegia');
       expect(scene[4].image, StationScript.northCapeScene);
-      expect(host.cutsceneStaysBlack, isFalse);
+      expect(
+        host.cutsceneStaysBlack,
+        isTrue,
+        reason: 'the level ends behind it, not back on the platform',
+      );
       expect(progress.memories, contains(StoryMemory.luigiAtStation));
+      expect(host.levelsCompleted, 0, reason: 'not before the scene is over');
 
       host.onCutsceneFinished?.call();
+      expect(host.levelsCompleted, 1);
+      final mario = world.player.component<PositionComponent>();
       expect(
-        host.levelsCompleted,
-        0,
-        reason: 'the journey continues through the train interior',
+        mario.position,
+        trainMapStandTile,
+        reason: 'the save, and the way back home, find him at the map',
       );
+      expect(mario.facing, Direction.south);
+      expect(mario.position.step(mario.facing), trainMapPanelTile);
       director.onEvents(<WorldEvent>[
-        TravelMapUsedEvent(at: trainMapPanelTile),
+        TravelMapUsedEvent(at: trainMapTiles.last),
       ]);
       expect(host.travelMapsOpened, 1);
-      expect(host.levelsCompleted, 0);
+      expect(host.levelsCompleted, 1);
       settle();
       expect(
         host.cutscenes,
         hasLength(1),
         reason: 'walking the platform again does not play it twice',
       );
+    });
+
+    test('aboard, Luigi talks, the books hold the zombie types and the '
+        'cot the memories, as often as asked', () {
+      for (var i = 0; i < 2; i++) {
+        director.onEvents(<WorldEvent>[LookedOutEvent(at: trainLuigiTile)]);
+        settle();
+        final line = host.shown.last.single;
+        expect(line.speaker, 'Luigi Rovaga');
+        expect(line.portrait, 'assets/story/portrait_luigi.png');
+        expect(line.text, "Sarà un viaggio per l'Europa molto impegnativo");
+        host.dismiss();
+      }
+      expect(host.shown, hasLength(2));
+
+      for (final book in trainBookTiles) {
+        director.onEvents(<WorldEvent>[LookedOutEvent(at: book)]);
+      }
+      expect(host.zombieBooksOpened, trainBookTiles.length);
+      for (final cot in trainCotTiles) {
+        director.onEvents(<WorldEvent>[LookedOutEvent(at: cot)]);
+      }
+      expect(host.memoriesReplayed, trainCotTiles.length);
+      expect(host.shown, hasLength(2), reason: 'neither says anything');
     });
 
     test('the meeting cannot happen before Luigi has been rescued', () {

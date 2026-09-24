@@ -62,8 +62,9 @@ final class LightSpot {
 /// A place as a level describes it: its ASCII [rows], what they mean, its
 /// baked [background]. Indoors (a room on a dark background) it is lit by
 /// its lamps, `*` (steady) and `+` (flickering), and by daylight at the
-/// [daylight] glyphs. A place with a [cardImage] is announced, on the way
-/// in, by that picture and its [name] between two fades to black.
+/// [daylight] glyphs, unless it is [lit] throughout. A place with a
+/// [cardImage] is announced, on the way in, by that picture and its [name]
+/// between two fades to black.
 final class PlaceSpec {
   const PlaceSpec({
     required this.id,
@@ -71,6 +72,7 @@ final class PlaceSpec {
     required this.legend,
     required this.background,
     this.indoor = false,
+    this.lit = false,
     this.daylight = '',
     this.name,
     this.cardImage,
@@ -82,6 +84,10 @@ final class PlaceSpec {
   final Legend legend;
   final String background;
   final bool indoor;
+
+  /// An indoor place with every light on: it sounds and is entered like a
+  /// room, but no darkness is drawn over it.
+  final bool lit;
   final String daylight;
   final String? name;
   final String? cardImage;
@@ -105,6 +111,7 @@ final class Place {
   String get background => spec.background;
   String? get alternateBackground => spec.alternateBackground;
   bool get indoor => spec.indoor;
+  bool get lit => spec.lit;
   String? get name => spec.name;
   String? get cardImage => spec.cardImage;
 
