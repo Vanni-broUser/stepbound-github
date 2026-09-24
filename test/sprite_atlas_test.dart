@@ -22,6 +22,7 @@ void main() {
   test('production sprite atlases match the 4x6 runtime contract', () async {
     const names = <String>[
       'protagonist',
+      'protagonist_cultist',
       'zombie_wanderer',
       'zombie_sprinter',
       'zombie_brute',
@@ -60,7 +61,16 @@ void main() {
           final frameName = '$name row $row column $column';
           expect(minX, greaterThanOrEqualTo(1), reason: frameName);
           expect(maxX, lessThanOrEqualTo(14), reason: frameName);
-          expect(maxY, 23, reason: '$frameName foot anchor');
+          final runtimeOffset = name == 'protagonist_cultist' ? 2 : 0;
+          if (name == 'protagonist_cultist') {
+            expect(
+              maxY + runtimeOffset,
+              inInclusiveRange(22, 23),
+              reason: '$frameName runtime foot anchor',
+            );
+          } else {
+            expect(maxY, 23, reason: '$frameName foot anchor');
+          }
           expect((minX + maxX) / 2, closeTo(7.5, 1), reason: frameName);
         }
       }

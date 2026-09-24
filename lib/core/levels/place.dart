@@ -20,6 +20,9 @@ enum PlaceId {
   trainInterior,
   airlinerCabin,
   airlinerRoofs,
+  duomo,
+  barBackroom,
+  duomoUpper,
 }
 
 /// What the glyphs of a place's ASCII map mean for movement and sight: the

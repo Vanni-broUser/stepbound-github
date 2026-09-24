@@ -19,6 +19,10 @@ final class PriestScript extends TutorialScript {
   static const String dealSceneImage = 'assets/story/scene_priest_deal.jpg';
   static const String welcomeSceneImage =
       'assets/story/scene_priest_welcome.jpg';
+  static const String communitySceneImage =
+      'assets/story/scene_priest_community.jpg';
+  static const String barKeySceneImage =
+      'assets/story/scene_priest_bar_key.jpg';
 
   static const String clearThemOut =
       'Sbarazzati di questi zombi così potremmo parlare meglio';
@@ -29,6 +33,17 @@ final class PriestScript extends TutorialScript {
       'Suvvia giovanotto, siamo in Italia! Nei centri storici trovi una '
       'chiesa ogni due strade';
   static const String welcomeLine = 'Benvenuto nella nostra chiesa giovanotto';
+  static const String notCommunityYetLine =
+      'Ora puoi entrare qui ma non sei ancora davvero parte della nostra '
+      'comunità';
+  static const String moreWorkLine =
+      'Ah... Immagino che vi aspettate che faccia altro per voi';
+  static const String useYourSkillsLine =
+      'Giovanotto sembri così bravo a muoverti nella città desolata, '
+      'sarebbe un peccato non sfruttare queste tue capacità';
+  static const String barKeyLine =
+      'Usa questa chiave per aprire una porta nel bar Arcobaleno sul porto, '
+      'lì troverai il mio anello episcopale';
 
   /// Don Angelo calls out from behind his gate, Mario answers.
   static const List<CutsceneFrame> meetingScene = <CutsceneFrame>[
@@ -82,6 +97,22 @@ final class PriestScript extends TutorialScript {
   /// Don Angelo receives Mario once he returns with the incense.
   static const List<CutsceneFrame> welcomeScene = <CutsceneFrame>[
     CutsceneFrame(image: welcomeSceneImage, speaker: priest, text: welcomeLine),
+    CutsceneFrame(
+      image: communitySceneImage,
+      speaker: priest,
+      text: notCommunityYetLine,
+    ),
+    CutsceneFrame(
+      image: communitySceneImage,
+      speaker: 'Mario Rossi',
+      text: moreWorkLine,
+    ),
+    CutsceneFrame(
+      image: communitySceneImage,
+      speaker: priest,
+      text: useYourSkillsLine,
+    ),
+    CutsceneFrame(image: barKeySceneImage, speaker: priest, text: barKeyLine),
   ];
 
   /// How far a zombie still on its feet has to be, in tiles, for Mario to
@@ -98,6 +129,7 @@ final class PriestScript extends TutorialScript {
 
   /// True once Don Angelo has asked for the incense: the errand is open.
   bool get errandGiven => _errandGiven;
+  bool get welcomePlayed => _welcomePlayed;
 
   @override
   String get key => 'priest';
@@ -139,7 +171,7 @@ final class PriestScript extends TutorialScript {
     if (_gateIsClear(position)) {
       _welcomePlayed = true;
       progress.remember(StoryMemory.priestWelcomed);
-      host.playCutscene(welcomeScene);
+      host.playCutscene(welcomeScene, onFinished: _finishWelcome);
       return;
     }
     if (!_blockedAtGate) {
@@ -190,6 +222,15 @@ final class PriestScript extends TutorialScript {
         TutorialLine.priest(everyTwoStreetsLine),
       ], onDismissed: () => _errandGiven = true),
     );
+  }
+
+  /// The incense has been handed over. Back in gameplay the churchyard is
+  /// open, Don Angelo waits at the altar and Mario carries the bar key.
+  void _finishWelcome() {
+    host
+      ..removeHud(HudElement.incense)
+      ..unlock(HudElement.barKey)
+      ..openDuomo();
   }
 
   @override

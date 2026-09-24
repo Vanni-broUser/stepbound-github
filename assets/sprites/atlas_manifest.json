@@ -18,6 +18,7 @@
   ],
   "files": [
     "protagonist.png",
+    "protagonist_cultist.png",
     "zombie_wanderer.png",
     "zombie_sprinter.png",
     "zombie_brute.png",
@@ -42,6 +43,35 @@
     },
     {
       "file": "protagonist_pickup.png",
+      "columns": [
+        "pick_0",
+        "pick_1",
+        "pick_2",
+        "pick_3",
+        "pick_4",
+        "pick_5"
+      ],
+      "actions": [
+        "pickup"
+      ]
+    },
+    {
+      "file": "protagonist_cultist_gun.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "fire_0",
+        "fire_1",
+        "fire_2"
+      ],
+      "actions": [
+        "aim",
+        "fire"
+      ]
+    },
+    {
+      "file": "protagonist_cultist_pickup.png",
       "columns": [
         "pick_0",
         "pick_1",

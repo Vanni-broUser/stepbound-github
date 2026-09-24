@@ -25,6 +25,7 @@ final class NpcComponent extends PositionComponent {
 
   static const String luigiAsset = 'assets/sprites/luigi.png';
   static const String priestAsset = 'assets/sprites/priest.png';
+  static const String cultistAsset = 'assets/sprites/cultist.png';
   static const double frameSeconds = 0.55;
 
   /// Tiles per second while walking away: about the player's own pace.

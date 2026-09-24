@@ -141,6 +141,74 @@ void main() {
     });
   });
 
+  testWidgets('quest inventory badges show their item name when tapped', (
+    tester,
+  ) {
+    return tester.runAsync(() async {
+      final game = await _pumpReadyGame(tester)
+        ..unlock(HudElement.incense)
+        ..unlock(HudElement.barKey)
+        ..unlock(HudElement.episcopalRing);
+      await tester.pump();
+
+      final incense = find.byKey(const ValueKey<String>('hud-incense'));
+      final key = find.byKey(const ValueKey<String>('hud-bar-key'));
+      final ring = find.byKey(const ValueKey<String>('hud-episcopal-ring'));
+      expect(incense, findsOneWidget);
+      expect(key, findsOneWidget);
+      expect(ring, findsOneWidget);
+
+      await tester.tap(incense);
+      await tester.pump();
+      expect(find.text('Incenso'), findsOneWidget);
+
+      game.dismissPrompt();
+      await tester.pump();
+      await tester.tap(key);
+      await tester.pump();
+      expect(find.text('Chiave del Bar Arcobaleno'), findsOneWidget);
+
+      game.dismissPrompt();
+      await tester.pump();
+      await tester.tap(ring);
+      await tester.pump();
+      expect(find.text('Anello episcopale'), findsOneWidget);
+    });
+  });
+
+  testWidgets('the Duomo robe fades Mario into the occultist outfit and '
+      'changes his portrait', (tester) {
+    return tester.runAsync(() async {
+      final game = await _pumpReadyGame(tester);
+      expect(game.progress.activeOutfit, PlayerOutfit.base);
+      expect(
+        game.simulation.map.tileAt(duomoUpperRobeTile).isWalkable,
+        isFalse,
+      );
+
+      game.collectCultistRobe();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(game.progress.unlockedOutfits, contains(PlayerOutfit.cultist));
+      expect(game.progress.activeOutfit, PlayerOutfit.cultist);
+      expect(game.simulation.map.tileAt(duomoUpperRobeTile).isWalkable, isTrue);
+
+      await tester.pump(const Duration(seconds: 2));
+      game.showPrompt(const <TutorialLine>[
+        TutorialLine.mario('La tunica mi sta bene.'),
+      ]);
+      await tester.pump();
+      final portrait = tester.widget<Image>(
+        find.byKey(const ValueKey<String>('dialogue-portrait-0')),
+      );
+      expect(
+        (portrait.image as AssetImage).assetName,
+        PlayerOutfit.cultist.portrait,
+      );
+    });
+  });
+
   testWidgets('intro scenes reveal text on tap, then advance to the next', (
     tester,
   ) async {

@@ -2,6 +2,7 @@
 /// style, a room on a dark background):
 /// - `x` darkness, `W` the back wall, bottles on its shelves and the
 ///   rainbow painted over them, `w` the front wall with its window: walls.
+/// - `D` the locked service door in the top-right corner: a wall.
 /// - `E` the door onto the alley.
 /// - `K` the counter, `T` a table still standing, `J` the jukebox:
 ///   obstacles.
@@ -12,7 +13,7 @@ const List<String> barArcobalenoRows = <String>[
   'xxxxxxxxxxxxxxxxxxxxxx',
   'xWWWWWWWWWWWWWWWWWWWWx',
   'xWWWWWWWWWWWWWWWWWWWWx',
-  'x....:......*.....b..x',
+  'x...*......*......*.Dx',
   'xKKKKKKKKKKKK........x',
   'x...:...q.......JJ...x',
   'x.q..TT.....:........x',

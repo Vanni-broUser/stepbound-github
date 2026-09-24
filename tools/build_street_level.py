@@ -1524,18 +1524,18 @@ def paint_duomo(d, rng, level):
             rect(d, round(cx + s * math.cos(rad)), round(ry + s * math.sin(rad)),
                  1, 1, DUOMO_SHADE)
     rect(d, cx - 1, ry - 1, 3, 3, DUOMO_LIGHT)
-    # the portal: a deep round arch, its door shut
+    # the portal: a deep round arch, both leaves folded open. The churchyard
+    # gate, not this door, keeps Mario out until Don Angelo accepts him.
     pw, ph = 26, 42
     px, py = cx - pw // 2, bottom - ph
     _arch_window(d, px - 4, py - 4, pw + 8, ph + 4, DUOMO_LIGHT)
     rect(d, px - 4, py + 9, pw + 8, ph - 9, DUOMO_SHADE)
     _arch_window(d, px, py, pw, ph, DUOMO_SHADE)
-    rect(d, px + 2, py + 13, pw - 4, ph - 13, (84, 44, 30))  # the door
-    rect(d, cx - 1, py + 13, 2, ph - 13, (58, 30, 22))
-    for sy in range(py + 18, bottom, 7):
-        rect(d, px + 2, sy, pw - 4, 1, (64, 34, 24))
-    rect(d, cx - 4, py + 28, 2, 2, (180, 150, 80))  # its rings
-    rect(d, cx + 2, py + 28, 2, 2, (180, 150, 80))
+    rect(d, px + 3, py + 13, pw - 6, ph - 13, (28, 24, 26))
+    for leaf_x in (px, px + pw - 5):
+        rect(d, leaf_x, py + 12, 5, ph - 12, (84, 44, 30))
+        rect(d, leaf_x + 1, py + 13, 2, ph - 14, (118, 70, 42))
+    rect(d, px + 5, bottom - 4, pw - 10, 4, (170, 156, 132))
     # grime climbing from the sidewalk, and the blood of the first night
     for _ in range(40):
         gx = x0 + rng.randrange(w)
@@ -2021,20 +2021,11 @@ def paint_road_block(d, px, py):
 
 
 def paint_gate(d, level, px, py, x, y):
-    """The churchyard gate of the Duomo, across the alley: wrought iron
-    railings between two stone piers, the leaves chained shut. Painted in
-    its own tile, so whoever stands behind it is drawn over it in game."""
-    iron, shine, rust = (38, 38, 42), (92, 94, 100), (122, 74, 44)
+    """The open churchyard gate under its dynamic closed-gate component."""
+    iron, shine = (38, 38, 42), (92, 94, 100)
     rect(d, px, py + 13, 16, 3, shade(PAVING, -30))  # the threshold slab
     left_pier = level.at(x - 1, y) != "x"
     right_pier = level.at(x + 1, y) != "x"
-    for bx in range(px + (5 if left_pier else 0), px + (11 if right_pier else 16), 3):
-        rect(d, bx, py + 1, 2, 13, iron)
-        rect(d, bx, py + 1, 1, 13, shine)
-        rect(d, bx, py, 2, 1, iron)  # spear finial
-    rect(d, px, py + 3, 16, 2, iron)  # top rail
-    rect(d, px, py + 3, 16, 1, shine)
-    rect(d, px, py + 9, 16, 1, iron)  # mid rail
     if left_pier or right_pier:
         sx = px if left_pier else px + 11
         rect(d, sx, py - 1, 5, 17, OLD_TOWN_STONE[0])
@@ -2042,12 +2033,10 @@ def paint_gate(d, level, px, py, x, y):
         rect(d, sx + 4, py - 1, 1, 17, shade(OLD_TOWN_STONE[0], -40))
         rect(d, sx, py + 5, 5, 1, shade(OLD_TOWN_STONE[0], -26))
         rect(d, sx, py + 11, 5, 1, shade(OLD_TOWN_STONE[0], -26))
-    else:  # the chain and padlock where the two leaves meet
-        rect(d, px + 7, py + 2, 2, 12, iron)
-        for cy in range(py + 5, py + 12, 2):
-            rect(d, px + 5, cy, 6, 1, rust)
-        rect(d, px + 6, py + 7, 4, 4, shade(rust, 22))
-        rect(d, px + 7, py + 8, 2, 2, iron)
+        # The corresponding leaf is folded flat against its pier.
+        lx = px + 5 if left_pier else px + 8
+        rect(d, lx, py + 1, 3, 13, iron)
+        rect(d, lx, py + 1, 1, 13, shine)
 
 
 def paint_car(d, px, py, body, burnt=False, flipped=False):

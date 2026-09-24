@@ -14,7 +14,11 @@ void main() {
       mallGroundRows,
       mallFirstRows,
       mallNorthStreetRows,
+      barArcobalenoRows,
       churchRows,
+      duomoRows,
+      duomoUpperRows,
+      barBackroomRows,
       stationRows,
       stationUnderpassRows,
       stationFarSideRows,
@@ -681,7 +685,22 @@ void main() {
       final inside = world.player.component<PositionComponent>().position;
       final bar = place(PlaceId.barArcobaleno);
       expect(bar.indoor, isTrue);
-      expect(bar.lights, isNotEmpty);
+      expect(bar.tilesOf('*'), hasLength(greaterThanOrEqualTo(4)));
+      expect(
+        bar.lights.where((light) => light.tile.y == bar.origin.y + 3),
+        hasLength(3),
+        reason: 'three lamps wash the sign across the back wall',
+      );
+      expect(
+        bar.lights.any(
+          (light) =>
+              (light.tile.x - barLockedDoorTile.x).abs() <= 2 &&
+              (light.tile.y - barLockedDoorTile.y).abs() <= 1,
+        ),
+        isTrue,
+        reason: 'the locked door has a lamp beside it',
+      );
+      expect(world.map.tileAt(barLockedDoorTile).isWalkable, isFalse);
       expect(bar.bounds.contains(inside), isTrue);
       events = const TurnScheduler().advance(
         world,
@@ -921,6 +940,196 @@ void main() {
     });
   });
 
+  group('Duomo', () {
+    final duomo = place(PlaceId.duomo);
+
+    test('it is larger than San Nicola and has three furnished naves', () {
+      final church = place(PlaceId.church);
+      expect(
+        duomo.width * duomo.height,
+        greaterThan(church.width * church.height),
+      );
+      expect(duomo.tilesOf('P'), hasLength(greaterThanOrEqualTo(8)));
+      expect(duomo.tilesOf('T'), hasLength(greaterThanOrEqualTo(30)));
+      expect(duomo.tilesOf('S'), hasLength(greaterThanOrEqualTo(6)));
+
+      final columnXs = duomo.tilesOf('P').map((tile) => tile.x).toSet().toList()
+        ..sort();
+      expect(columnXs, hasLength(2), reason: 'two colonnades make three naves');
+      expect(
+        duomo
+            .tilesOf('T')
+            .every((pew) => pew.x > columnXs.first && pew.x < columnXs.last),
+        isTrue,
+        reason: 'the pews belong to the central nave',
+      );
+
+      final stairs = duomo.tilesOf('U');
+      expect(stairs, hasLength(4));
+      expect(
+        stairs.every(
+          (tile) => tile.x > duomo.bounds.left + duomo.width * 2 ~/ 3,
+        ),
+        isTrue,
+      );
+      expect(
+        stairs.every((tile) => tile.y < duomo.bounds.top + duomo.height ~/ 3),
+        isTrue,
+      );
+      expect(
+        stairs
+            .map(duomoStairCultistTile.manhattanDistanceTo)
+            .reduce((left, right) => left < right ? left : right),
+        1,
+      );
+    });
+
+    test(
+      'the open portal is initially reachable only after opening the gate',
+      () {
+        final world = createTutorialWorld();
+        expect(world.map.tileAt(duomoPortalTile).isWalkable, isTrue);
+        expect(world.portals[duomoPortalTile], isNotNull);
+        expect(
+          priestGateTiles.every((tile) => !world.map.tileAt(tile).isWalkable),
+          isTrue,
+        );
+
+        final start = GridPoint(priestGateFront.left, priestGateFront.bottom);
+        var reached = world.map.floodFillDistances(start, maxDistance: 80);
+        expect(reached.containsKey(duomoPortalTile), isFalse);
+        for (final tile in priestGateTiles) {
+          world.map.setTile(tile, const Tile(TileKind.floor));
+        }
+        reached = world.map.floodFillDistances(start, maxDistance: 80);
+        expect(reached.containsKey(duomoPortalTile), isTrue);
+
+        world.player.component<PositionComponent>().position = duomoPortalTile
+            .step(Direction.south);
+        final events = const TurnScheduler().advance(
+          world,
+          const MoveAction(Direction.north),
+        );
+        expect(events.whereType<TeleportedEvent>(), hasLength(1));
+        expect(
+          duomo.bounds.contains(
+            world.player.component<PositionComponent>().position,
+          ),
+          isTrue,
+        );
+      },
+    );
+
+    test('the upper floor contains a dining hall and communal dormitory', () {
+      final upper = place(PlaceId.duomoUpper);
+      final world = createTutorialWorld();
+      expect(upper.indoor, isTrue);
+      expect(upper.tilesOf('T'), hasLength(greaterThanOrEqualTo(20)));
+      expect(upper.tilesOf('C'), hasLength(greaterThanOrEqualTo(20)));
+      expect(upper.tilesOf('B'), hasLength(greaterThanOrEqualTo(24)));
+      expect(upper.tilesOf('K'), hasLength(1));
+      expect(upper.tilesOf('d'), hasLength(1));
+      expect(upper.tilesOf('L'), hasLength(1));
+      expect(upper.tilesOf('R'), hasLength(1));
+      expect(world.map.tileAt(duomoUpperRobeTile).isWalkable, isFalse);
+
+      final divider = upper.tilesOf('I').map((tile) => tile.x).toSet();
+      expect(
+        divider,
+        contains(upper.tileOf('d').x),
+        reason: 'the open doorway interrupts the wall between both rooms',
+      );
+      expect(
+        upper.tilesOf('T').every((tile) => tile.x < upper.tileOf('d').x),
+        isTrue,
+      );
+      expect(
+        upper.tilesOf('B').every((tile) => tile.x > upper.tileOf('d').x),
+        isTrue,
+      );
+    });
+
+    test('the guarded stair opens onto the upper floor and returns', () {
+      final world = createTutorialWorld();
+      final upper = place(PlaceId.duomoUpper);
+      expect(world.map.tileAt(duomoStairEntryTile).isWalkable, isFalse);
+      expect(world.map.tileAt(duomoUpperLockedDoorTile).isWalkable, isFalse);
+      expect(
+        world.portals[duomoStairEntryTile]!.to,
+        duomoUpperStairTile.step(Direction.north),
+      );
+      expect(
+        world.portals[duomoUpperStairTile]!.to,
+        duomoStairEntryTile.step(Direction.south),
+      );
+
+      world.map
+        ..setTile(duomoStairCultistTile, const Tile(TileKind.floor))
+        ..setTile(duomoStairEntryTile, const Tile(TileKind.floor));
+      world.player.component<PositionComponent>().position =
+          duomoStairCultistTile;
+      var events = const TurnScheduler().advance(
+        world,
+        const MoveAction(Direction.north),
+      );
+      expect(events.whereType<TeleportedEvent>(), hasLength(1));
+      expect(
+        upper.bounds.contains(
+          world.player.component<PositionComponent>().position,
+        ),
+        isTrue,
+      );
+
+      world.player.component<PositionComponent>().position = duomoUpperStairTile
+          .step(Direction.north);
+      events = const TurnScheduler().advance(
+        world,
+        const MoveAction(Direction.south),
+      );
+      expect(events.whereType<TeleportedEvent>(), hasLength(1));
+      expect(
+        place(
+          PlaceId.duomo,
+        ).bounds.contains(world.player.component<PositionComponent>().position),
+        isTrue,
+      );
+    });
+
+    test(
+      'the bar storeroom contains the episcopal ring and returns to the bar',
+      () {
+        final world = createTutorialWorld();
+        final backroom = place(PlaceId.barBackroom);
+        final ring = world.pickups[episcopalRingPickupId]!;
+        expect(backroom.bounds.contains(ring.position), isTrue);
+        expect(ring.episcopalRing, isTrue);
+        expect(
+          world.pickups.values.where((pickup) => pickup.episcopalRing),
+          hasLength(1),
+        );
+        expect(
+          world.portals[barLockedDoorTile]!.to,
+          barBackroomDoorTile.step(Direction.north),
+        );
+        expect(
+          world.portals[barBackroomDoorTile]!.to,
+          barLockedDoorTile.step(Direction.south),
+        );
+
+        world.player.component<PositionComponent>()
+          ..position = ring.position.step(Direction.south)
+          ..facing = Direction.north;
+        final events = const TurnScheduler().advance(
+          world,
+          const InteractAction(),
+        );
+        final pickedUp = events.whereType<PickedUpEvent>().single;
+        expect(pickedUp.episcopalRing, isTrue);
+        expect(ring.collected, isTrue);
+      },
+    );
+  });
+
   group('San Nicola', () {
     final church = place(PlaceId.church);
 
@@ -959,14 +1168,22 @@ void main() {
       expect(world.player.component<PositionComponent>().position, square);
     });
 
-    test('the nave is lit only by the portal and the holes in its roof', () {
+    test('the nave lights the portal, roof holes and incense backpack', () {
       expect(church.indoor, isTrue);
       expect(
         church.lights,
-        hasLength(church.tilesOf('^').length + 1),
-        reason: 'no lamp burns in it: the daylight is all there is',
+        hasLength(church.tilesOf('^').length + 2),
+        reason: 'the backpack has a dedicated pool of light',
       );
       expect(church.lights.every((light) => !light.flickers), isTrue);
+      expect(
+        church.lights.any(
+          (light) =>
+              light.tile ==
+              createTutorialWorld().pickups[incenseBackpackId]!.position,
+        ),
+        isTrue,
+      );
     });
 
     test('the backpack by the east wall holds the incense, and nothing '
