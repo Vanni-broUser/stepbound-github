@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/ui/blood_decor.dart';
@@ -28,10 +29,30 @@ final class LevelMap extends StatefulWidget {
 }
 
 final class _LevelMapState extends State<LevelMap> {
-  // Fractions of the supplied map artwork.
-  static const Offset _rome = Offset(0.508, 0.730);
-  static const Offset _molfetta = Offset(0.543, 0.716);
-  static const Offset _northCape = Offset(0.583, 0.068);
+  // Pixels of the 1376x768 map artwork, as fractions of it.
+  static const Size _artwork = Size(1376, 768);
+  // Rome sits just inland of the Tyrrhenian coast, level with the Gargano.
+  static final Offset _rome = _pixel(668, 588);
+  // Molfetta is on the Adriatic, south-east of the Gargano towards Bari.
+  static final Offset _molfetta = _pixel(738, 601);
+  // Capo Nord is the tip of Norway, straight above the Gulf of Bothnia.
+  static final Offset _northCape = _pixel(808, 59);
+  // The railway from Rome: down the Liri valley through Frosinone and Cassino
+  // to Caserta, across the Apennines by Benevento to Foggia, then along the
+  // Adriatic through Barletta to Molfetta.
+  static final List<Offset> _railway = <Offset>[
+    _rome,
+    _pixel(683, 593),
+    _pixel(692, 597),
+    _pixel(700, 603),
+    _pixel(708, 602),
+    _pixel(720, 596),
+    _pixel(733, 598),
+    _molfetta,
+  ];
+
+  static Offset _pixel(double x, double y) =>
+      Offset(x / _artwork.width, y / _artwork.height);
 
   LevelDestination? _selected;
 
@@ -50,7 +71,7 @@ final class _LevelMapState extends State<LevelMap> {
               fit: BoxFit.fill,
               filterQuality: FilterQuality.none,
             ),
-            const CustomPaint(painter: _RoutePainter(_rome, _molfetta)),
+            CustomPaint(painter: _RoutePainter(_railway)),
             _marker(
               constraints,
               unit,
@@ -217,30 +238,30 @@ final class _LevelMapState extends State<LevelMap> {
 }
 
 final class _RoutePainter extends CustomPainter {
-  const _RoutePainter(this.from, this.to);
+  const _RoutePainter(this.stops);
 
-  final Offset from;
-  final Offset to;
+  final List<Offset> stops;
 
   @override
   void paint(Canvas canvas, Size size) {
     Offset scale(Offset point) =>
         Offset(point.dx * size.width, point.dy * size.height);
-    final path = Path()
-      ..moveTo(scale(from).dx, scale(from).dy)
-      ..quadraticBezierTo(
-        size.width * 0.526,
-        size.height * 0.716,
-        scale(to).dx,
-        scale(to).dy,
-      );
+    final points = stops.map(scale).toList();
+    // Rounded through the midpoints, so the line curves like a track instead
+    // of turning sharp corners at each town.
+    final path = Path()..moveTo(points.first.dx, points.first.dy);
+    for (var i = 1; i < points.length - 1; i++) {
+      final middle = Offset.lerp(points[i], points[i + 1], 0.5)!;
+      path.quadraticBezierTo(points[i].dx, points[i].dy, middle.dx, middle.dy);
+    }
+    path.lineTo(points.last.dx, points.last.dy);
     canvas
       ..drawPath(
         path,
         Paint()
           ..color = const Color(0xcc1b0505)
           ..style = PaintingStyle.stroke
-          ..strokeWidth = size.height / 65
+          ..strokeWidth = size.height / 90
           ..strokeCap = StrokeCap.round,
       )
       ..drawPath(
@@ -248,12 +269,12 @@ final class _RoutePainter extends CustomPainter {
         Paint()
           ..color = BloodColors.bright
           ..style = PaintingStyle.stroke
-          ..strokeWidth = size.height / 130
+          ..strokeWidth = size.height / 180
           ..strokeCap = StrokeCap.round,
       );
   }
 
   @override
   bool shouldRepaint(_RoutePainter oldDelegate) =>
-      oldDelegate.from != from || oldDelegate.to != to;
+      !listEquals(oldDelegate.stops, stops);
 }
