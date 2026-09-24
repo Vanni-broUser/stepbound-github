@@ -58,6 +58,7 @@ final class StepboundGame extends FlameGame
     Set<HudElement> unlocked = const <HudElement>{},
     this.onRest,
     this.onLevelCompleted,
+    this.onTravelMapRequested,
     GameAudio? audio,
     GameplayHaptics? haptics,
     Progress? progress,
@@ -110,6 +111,9 @@ final class StepboundGame extends FlameGame
   late final PlaceLayers _places = PlaceLayers(
     places: tutorialPlaces,
     playerFeet: () => _characters[playerId]!.position,
+    useAlternateBackground: (place) =>
+        place.id == PlaceId.stationFarSide &&
+        progress.memories.contains(StoryMemory.luigiRescued),
   );
   final Map<String, CharacterComponent> _characters =
       <String, CharacterComponent>{};
@@ -143,6 +147,9 @@ final class StepboundGame extends FlameGame
 
   /// Leaves gameplay for the results screen after the final cutscene.
   final void Function(GameSnapshot snapshot)? onLevelCompleted;
+
+  /// Leaves gameplay directly for the destination map from the train.
+  final void Function(GameSnapshot snapshot)? onTravelMapRequested;
   final Map<String, Object?>? _tutorialState;
 
   bool _acceptsInput = false;
@@ -179,6 +186,7 @@ final class StepboundGame extends FlameGame
     if (tutorialState != null) {
       tutorial.restore(tutorialState);
     }
+    _syncTrainDoor();
     await world.addAll(_places.components);
     await world.addAll(<Component>[
       for (final (index, spot) in outdoorFireSpots.indexed)
@@ -199,7 +207,14 @@ final class StepboundGame extends FlameGame
       // Don Angelo never leaves his churchyard: he is there from the start.
       NpcComponent(asset: NpcComponent.priestAsset, tile: priestTile),
       ShutterComponent(bars: luigiBars, map: simulation.map),
-      PanelGlintComponent(panel: mallPanelTile, world: simulation),
+      PanelGlintComponent(
+        panel: mallPanelTile,
+        active: () => simulation.controls.containsKey(mallPanelTile),
+      ),
+      PanelGlintComponent(
+        panel: trainMapPanelTile,
+        active: () => progress.memories.contains(StoryMemory.luigiRescued),
+      ),
     ]);
     for (final entity in simulation.entities.values) {
       final component = CharacterComponent(entity: entity);
@@ -225,6 +240,7 @@ final class StepboundGame extends FlameGame
     _routeNewEvents();
     _updateGameOverCountdown(dt);
     tutorial.update(dt, turnAnimating: presentation.isAnimating);
+    _syncTrainDoor();
     _updateRest(dt);
     if (_entranceHoldLeft > 0) {
       _entranceHoldLeft -= dt;
@@ -250,6 +266,17 @@ final class StepboundGame extends FlameGame
     final loaded = simulation.player.component<AmmoComponent>().loaded;
     if (ammoLoaded.value != loaded) {
       ammoLoaded.value = loaded;
+    }
+  }
+
+  /// Luigi carries the keys: rescuing him opens the visible passenger door
+  /// and its matching tile in the same frame. Before that the train remains
+  /// a solid wall even though its portal already belongs to the level.
+  void _syncTrainDoor() {
+    final open = progress.memories.contains(StoryMemory.luigiRescued);
+    final kind = open ? TileKind.floor : TileKind.wall;
+    if (simulation.map.tileAt(stationTrainDoorTile).kind != kind) {
+      simulation.map.setTile(stationTrainDoorTile, Tile(kind));
     }
   }
 
@@ -372,6 +399,17 @@ final class StepboundGame extends FlameGame
     inputLocked = true;
     soundscapePaused = true;
     onLevelCompleted?.call(snapshot(place: 'Stazione'));
+  }
+
+  @override
+  void openTravelMap() {
+    if (_levelCompleted) {
+      return;
+    }
+    _levelCompleted = true;
+    inputLocked = true;
+    soundscapePaused = true;
+    onTravelMapRequested?.call(snapshot(place: 'Treno'));
   }
 
   @override

@@ -17,6 +17,7 @@ import 'package:stepbound/core/levels/tutorial/mall_north_street.dart';
 import 'package:stepbound/core/levels/tutorial/north_district.dart';
 import 'package:stepbound/core/levels/tutorial/station.dart';
 import 'package:stepbound/core/levels/tutorial/street.dart';
+import 'package:stepbound/core/levels/tutorial/train.dart';
 import 'package:stepbound/core/seeded_random.dart';
 import 'package:stepbound/core/world.dart';
 
@@ -29,6 +30,7 @@ export 'package:stepbound/core/levels/tutorial/mall_north_street.dart';
 export 'package:stepbound/core/levels/tutorial/north_district.dart';
 export 'package:stepbound/core/levels/tutorial/station.dart';
 export 'package:stepbound/core/levels/tutorial/street.dart';
+export 'package:stepbound/core/levels/tutorial/train.dart';
 
 /// The glyphs of the street, the north district and the harbour (see
 /// street.dart), of the barracks (barracks.dart) and of the hypermarket
@@ -51,7 +53,12 @@ const Legend churchLegend = Legend(walls: 'xWwIA', obstacles: 'TK');
 /// the rubble `#` shut the way like walls, the coach on its side `m`, the
 /// benches `T`, the ticket windows `K` and the canopy posts `n` can be
 /// seen over.
-const Legend stationLegend = Legend(walls: 'xWwM#', obstacles: 'TKmn');
+const Legend stationLegend = Legend(walls: 'xWwMP#', obstacles: 'TKmn');
+
+/// Inside the train the shell and the gangway partitions are walls. Seats,
+/// tables, luggage, controls, the engine cabinet and the route map can be
+/// seen over but not walked through.
+const Legend trainLegend = Legend(walls: 'xWwIi', obstacles: 'STLCGP');
 
 /// The card shown on the way into the harbour.
 const String harbourName = 'Porto e centro storico';
@@ -156,6 +163,15 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     rows: stationFarSideRows,
     legend: stationLegend,
     background: 'assets/levels/station_far_side.png',
+    alternateBackground: 'assets/levels/station_far_side_open.png',
+  ),
+  PlaceSpec(
+    id: PlaceId.trainInterior,
+    rows: trainInteriorRows,
+    legend: trainLegend,
+    background: 'assets/levels/train_interior.png',
+    indoor: true,
+    daylight: 'E*',
   ),
 ]);
 
@@ -187,6 +203,7 @@ final Place _church = place(PlaceId.church);
 final Place _station = place(PlaceId.station);
 final Place _underpass = place(PlaceId.stationUnderpass);
 final Place _farSide = place(PlaceId.stationFarSide);
+final Place _train = place(PlaceId.trainInterior);
 
 /// The four places [outdoorLegend] describes, the ones tools/
 /// build_street_level.py bakes: what walks the streets, what burns in them
@@ -431,6 +448,16 @@ final GridRect stationPlatform = () {
   );
 }();
 
+/// The passenger door in the train on the far platform. Its tile starts as
+/// a wall and is made walkable by the game as soon as Luigi is rescued.
+final GridPoint stationTrainDoorTile = _farSide.tileOf('P');
+
+/// The door through which Mario enters and leaves the first passenger car.
+final GridPoint trainExitTile = _train.tileOf('E');
+
+/// The yellowed Europe map mounted on the locomotive's control console.
+final GridPoint trainMapPanelTile = _train.tileOf('P');
+
 /// Doors [from] one place [to] another, tile by tile in order: stepping on
 /// a tile of [from] lands on the tile of [to] one step towards [facing].
 Map<GridPoint, Portal> _pairedDoors(
@@ -550,6 +577,16 @@ Map<GridPoint, Portal> _portals() {
     ..._pairedDoors(
       _farSide.doorRow('D'),
       _underpass.doorRow('U'),
+      Direction.south,
+    ),
+    ..._pairedDoors(
+      <GridPoint>[stationTrainDoorTile],
+      <GridPoint>[trainExitTile],
+      Direction.north,
+    ),
+    ..._pairedDoors(
+      <GridPoint>[trainExitTile],
+      <GridPoint>[stationTrainDoorTile],
       Direction.south,
     ),
   };
@@ -679,6 +716,7 @@ WorldState createTutorialWorld({int seed = 20260920}) {
     portals: _portals(),
     campfires: campfireNames.keys,
     controls: <GridPoint, GridRect>{mallPanelTile: luigiBars},
+    travelMaps: <GridPoint>[trainMapPanelTile],
     playerId: 'player',
     random: SeededRandom(seed),
   );
@@ -737,8 +775,14 @@ WorldState restoreTutorialWorld(Map<String, Object?> json) {
   final savedEntityIds = <String>{
     for (final entity in savedEntities) entity['id']! as String,
   };
+  final currentLevelJson = currentLevel.toJson(includeMap: false);
   final migrated = <String, Object?>{
     ...json,
+    // Doors between places and travel maps are level structure rather than
+    // player state. Taking the current definitions lets older saves enter
+    // the newly added train and use its locomotive map.
+    'portals': currentLevelJson['portals'],
+    'travelMaps': currentLevelJson['travelMaps'],
     'entities': <Object?>[
       ...savedEntities,
       for (final entity in currentLevel.entities.values)

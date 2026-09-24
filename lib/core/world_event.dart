@@ -22,6 +22,7 @@ sealed class WorldEvent {
       'teleported' => TeleportedEvent.fromJson(json),
       'campfireUsed' => CampfireUsedEvent.fromJson(json),
       'controlUsed' => ControlUsedEvent.fromJson(json),
+      'travelMapUsed' => TravelMapUsedEvent.fromJson(json),
       _ => throw FormatException('Unknown world event: ${json['type']}'),
     };
   }
@@ -340,6 +341,28 @@ final class ControlUsedEvent extends WorldEvent {
     'type': 'controlUsed',
     'at': at.toJson(),
     'opened': opened.toJson(),
+  };
+}
+
+/// The player consulted a route map mounted in the train locomotive.
+final class TravelMapUsedEvent extends WorldEvent {
+  const TravelMapUsedEvent({required this.at});
+
+  factory TravelMapUsedEvent.fromJson(Map<String, Object?> json) {
+    return TravelMapUsedEvent(
+      at: GridPoint.fromJson(json['at']! as Map<String, Object?>),
+    );
+  }
+
+  final GridPoint at;
+
+  @override
+  String get description => 'player consults the route map at $at';
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+    'type': 'travelMapUsed',
+    'at': at.toJson(),
   };
 }
 

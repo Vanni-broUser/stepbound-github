@@ -169,6 +169,7 @@ final class _StepboundAppState extends State<StepboundApp> {
     },
     onRest: _store,
     onLevelCompleted: _completeLevel,
+    onTravelMapRequested: _travelFromTrain,
     audio: _audio,
   );
 
@@ -203,6 +204,7 @@ final class _StepboundAppState extends State<StepboundApp> {
       _game = StepboundGame(
         onRest: _store,
         onLevelCompleted: _completeLevel,
+        onTravelMapRequested: _travelFromTrain,
         audio: _audio,
       )..inputLocked = true;
     });
@@ -372,6 +374,15 @@ final class _StepboundAppState extends State<StepboundApp> {
 
   void _openLevelMap() => setState(() => _phase = _Phase.levelMap);
 
+  void _travelFromTrain(GameSnapshot snapshot) {
+    _playStoryAudio();
+    setState(() {
+      _completedSnapshot = snapshot;
+      _game = null;
+      _phase = _Phase.levelMap;
+    });
+  }
+
   void _startHometown() {
     final snapshot = _completedSnapshot;
     if (snapshot == null) {
@@ -390,6 +401,7 @@ final class _StepboundAppState extends State<StepboundApp> {
         },
         onRest: _store,
         onLevelCompleted: _completeLevel,
+        onTravelMapRequested: _travelFromTrain,
         audio: _audio,
       );
       _phase = _Phase.playing;

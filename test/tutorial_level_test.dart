@@ -1004,6 +1004,15 @@ void main() {
           maxDistance: place.width * place.height,
         );
 
+    GridPoint travel(WorldState world, GridPoint threshold, Direction facing) {
+      world.player.component<PositionComponent>().position = threshold.step(
+        facing.opposite,
+      );
+      final events = const TurnScheduler().advance(world, MoveAction(facing));
+      expect(events.whereType<TeleportedEvent>(), hasLength(1));
+      return world.player.component<PositionComponent>().position;
+    }
+
     test('the two doorways land in two corners of the hall with no way '
         'between them', () {
       final world = createTutorialWorld();
@@ -1164,6 +1173,35 @@ void main() {
           expect(reached.containsKey(tile), isTrue, reason: '$tile');
         }
       }
+    });
+
+    test('the passenger door is closed by default and leads through two '
+        'coaches to the locomotive when opened', () {
+      final world = createTutorialWorld();
+      final train = place(PlaceId.trainInterior);
+      expect(
+        world.map.tileAt(stationTrainDoorTile).isWalkable,
+        isFalse,
+        reason: 'without Luigi the train remains locked',
+      );
+      expect(world.portals, contains(stationTrainDoorTile));
+
+      world.map.setTile(stationTrainDoorTile, const Tile(TileKind.floor));
+      final inside = travel(world, stationTrainDoorTile, Direction.north);
+      expect(train.bounds.contains(inside), isTrue);
+      expect(inside, trainExitTile.step(Direction.north));
+
+      final reached = from(world, inside, train);
+      expect(
+        reached.containsKey(trainMapPanelTile.step(Direction.south)),
+        isTrue,
+        reason: 'the clear gangways join both coaches to the locomotive',
+      );
+      expect(world.map.tileAt(trainMapPanelTile).isWalkable, isFalse);
+      expect(world.travelMaps, contains(trainMapPanelTile));
+
+      final platform = travel(world, trainExitTile, Direction.south);
+      expect(stationPlatform.contains(platform), isTrue);
     });
 
     test('two wanderers wait in the booking hall and one in the church', () {

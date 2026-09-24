@@ -473,6 +473,37 @@ void main() {
     });
   });
 
+  testWidgets('rescuing Luigi opens both the train tile and its artwork', (
+    tester,
+  ) {
+    return tester.runAsync(() async {
+      final world = createTutorialWorld();
+      world.player.component<PositionComponent>().position = GridPoint(
+        (stationPlatform.left + stationPlatform.right) ~/ 2,
+        stationPlatform.bottom,
+      );
+      final progress = Progress();
+      final game = StepboundGame(world: world, progress: progress);
+      await tester.pumpWidget(GameWidget<StepboundGame>(game: game));
+      final state = tester.state<GameWidgetState<StepboundGame>>(
+        find.byType(GameWidget<StepboundGame>),
+      );
+      await state.loaderFuture;
+      await game.ready();
+      game.update(1 / 30);
+
+      expect(world.map.tileAt(stationTrainDoorTile).isWalkable, isFalse);
+      expect(game.drawnPlaces, <String>['assets/levels/station_far_side.png']);
+
+      progress.remember(StoryMemory.luigiRescued);
+      game.update(1 / 30);
+      expect(world.map.tileAt(stationTrainDoorTile).isWalkable, isTrue);
+      expect(game.drawnPlaces, <String>[
+        'assets/levels/station_far_side_open.png',
+      ]);
+    });
+  });
+
   testWidgets('the harbour stays unseen until its card has gone black', (
     tester,
   ) {
@@ -891,6 +922,17 @@ void main() {
       await tester.pump();
       expect(find.byKey(const ValueKey<String>('level-map')), findsOneWidget);
 
+      await tester.tap(
+        find.byKey(const ValueKey<String>('level-city-north-cape')),
+      );
+      await tester.pump();
+      expect(find.text('Capo Nord'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('level-start')),
+        findsNothing,
+        reason: 'Capo Nord is visible but has no playable level yet',
+      );
+
       await tester.tap(find.byKey(const ValueKey<String>('level-city-rome')));
       await tester.pump();
       expect(find.text('Roma'), findsOneWidget);
@@ -926,6 +968,23 @@ void main() {
         returned.simulation.player.component<PositionComponent>().position,
         before,
         reason: 'Città Natale keeps the completed world at the station',
+      );
+    });
+  });
+
+  testWidgets('the locomotive map returns directly to destination selection', (
+    tester,
+  ) {
+    return tester.runAsync(() async {
+      final game = await _pumpReadyGame(tester);
+
+      game.openTravelMap();
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey<String>('level-map')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('level-complete')),
+        findsNothing,
       );
     });
   });

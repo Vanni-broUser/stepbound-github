@@ -11,27 +11,34 @@ import 'package:stepbound/game/render/lighting_component.dart';
 /// others lie far away on the shared grid and would cost a big image, or a
 /// full-room layer, every frame for nothing.
 final class PlaceLayers {
-  PlaceLayers({required Iterable<Place> places, required this.playerFeet})
-    : _layers = <_Layers>[
-        for (final place in places)
-          (
-            area: pixelRect(place.bounds),
-            background: LevelBackgroundComponent(
-              assetPath: place.background,
-              offset: Offset(
-                pixelRect(place.bounds).left,
-                pixelRect(place.bounds).top,
-              ),
-            ),
-            lighting: place.indoor
-                ? LightingComponent(
-                    area: pixelRect(place.bounds),
-                    lights: place.lights,
-                    playerPosition: playerFeet,
-                  )
-                : null,
-          ),
-      ];
+  PlaceLayers({
+    required Iterable<Place> places,
+    required this.playerFeet,
+    bool Function(Place place)? useAlternateBackground,
+  }) : _layers = <_Layers>[
+         for (final place in places)
+           (
+             area: pixelRect(place.bounds),
+             background: LevelBackgroundComponent(
+               assetPath: place.background,
+               alternateAssetPath: place.alternateBackground,
+               useAlternate: place.alternateBackground == null
+                   ? null
+                   : () => useAlternateBackground?.call(place) ?? false,
+               offset: Offset(
+                 pixelRect(place.bounds).left,
+                 pixelRect(place.bounds).top,
+               ),
+             ),
+             lighting: place.indoor
+                 ? LightingComponent(
+                     area: pixelRect(place.bounds),
+                     lights: place.lights,
+                     playerPosition: playerFeet,
+                   )
+                 : null,
+           ),
+       ];
 
   /// Where Mario's feet are, in pixels, for the glow around him indoors.
   final Vector2 Function() playerFeet;
@@ -56,7 +63,7 @@ final class PlaceLayers {
   /// The backgrounds being drawn.
   List<String> get drawn => <String>[
     for (final layer in _layers)
-      if (layer.background.onScreen) layer.background.assetPath,
+      if (layer.background.onScreen) layer.background.activeAssetPath,
   ];
 }
 

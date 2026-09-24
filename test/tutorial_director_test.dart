@@ -61,6 +61,7 @@ final class _FakeHost implements TutorialHost {
   void Function()? onCutsceneFinished;
   bool cutsceneStaysBlack = false;
   int levelsCompleted = 0;
+  int travelMapsOpened = 0;
 
   @override
   void playCutscene(
@@ -75,6 +76,9 @@ final class _FakeHost implements TutorialHost {
 
   @override
   void completeLevel() => levelsCompleted++;
+
+  @override
+  void openTravelMap() => travelMapsOpened++;
 
   int luigiSent = 0;
 
@@ -674,11 +678,20 @@ void main() {
       expect(scene[1].image, StationScript.planScene);
       expect(scene[4].text, 'La nostra meta é Capo Nord ragazzo. In Norvegia');
       expect(scene[4].image, StationScript.northCapeScene);
-      expect(host.cutsceneStaysBlack, isTrue);
+      expect(host.cutsceneStaysBlack, isFalse);
       expect(progress.memories, contains(StoryMemory.luigiAtStation));
 
       host.onCutsceneFinished?.call();
-      expect(host.levelsCompleted, 1);
+      expect(
+        host.levelsCompleted,
+        0,
+        reason: 'the journey continues through the train interior',
+      );
+      director.onEvents(<WorldEvent>[
+        TravelMapUsedEvent(at: trainMapPanelTile),
+      ]);
+      expect(host.travelMapsOpened, 1);
+      expect(host.levelsCompleted, 0);
       settle();
       expect(
         host.cutscenes,
@@ -691,6 +704,11 @@ void main() {
       takeAPlatformStep();
       expect(host.cutscenes, isEmpty);
       expect(progress.memories, isNot(contains(StoryMemory.luigiAtStation)));
+      director.onEvents(<WorldEvent>[
+        TravelMapUsedEvent(at: trainMapPanelTile),
+      ]);
+      expect(host.travelMapsOpened, 0);
+      expect(host.levelsCompleted, 0);
     });
 
     test('nothing plays anywhere short of that platform', () {

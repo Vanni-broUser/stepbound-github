@@ -17,6 +17,7 @@ enum PlaceId {
   station,
   stationUnderpass,
   stationFarSide,
+  trainInterior,
 }
 
 /// What the glyphs of a place's ASCII map mean for movement and sight: the
@@ -71,6 +72,7 @@ final class PlaceSpec {
     this.daylight = '',
     this.name,
     this.cardImage,
+    this.alternateBackground,
   });
 
   final PlaceId id;
@@ -81,6 +83,10 @@ final class PlaceSpec {
   final String daylight;
   final String? name;
   final String? cardImage;
+
+  /// A second baked view of the same place, selected by the game when
+  /// story state changes something visual without changing the layout.
+  final String? alternateBackground;
 }
 
 /// A place laid on the level's grid at [origin].
@@ -95,6 +101,7 @@ final class Place {
   PlaceId get id => spec.id;
   List<String> get rows => spec.rows;
   String get background => spec.background;
+  String? get alternateBackground => spec.alternateBackground;
   bool get indoor => spec.indoor;
   String? get name => spec.name;
   String? get cardImage => spec.cardImage;

@@ -106,6 +106,9 @@ abstract interface class TutorialHost {
   /// Leaves gameplay for the results screen after the last story frame.
   void completeLevel();
 
+  /// Leaves the train and opens the destination map immediately.
+  void openTravelMap();
+
   /// Luigi walks off through the shop's open shutter and vanishes, once he
   /// has agreed to meet Mario again; calls [onFinished] once he is gone.
   void sendLuigiAway({void Function()? onFinished});

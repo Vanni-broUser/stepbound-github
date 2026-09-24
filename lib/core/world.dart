@@ -48,9 +48,11 @@ final class WorldState {
     Map<GridPoint, Portal> portals = const <GridPoint, Portal>{},
     Iterable<GridPoint> campfires = const <GridPoint>[],
     Map<GridPoint, GridRect> controls = const <GridPoint, GridRect>{},
+    Iterable<GridPoint> travelMaps = const <GridPoint>[],
   }) : controls = Map<GridPoint, GridRect>.of(controls),
        portals = Map<GridPoint, Portal>.unmodifiable(portals),
        campfires = Set<GridPoint>.unmodifiable(campfires),
+       travelMaps = Set<GridPoint>.unmodifiable(travelMaps),
        _entities = <String, Entity>{
          for (final entity in entities) entity.id: entity,
        },
@@ -86,6 +88,8 @@ final class WorldState {
         json['campfires'] as List<Object?>? ?? const <Object?>[];
     final encodedControls =
         json['controls'] as List<Object?>? ?? const <Object?>[];
+    final encodedTravelMaps =
+        json['travelMaps'] as List<Object?>? ?? const <Object?>[];
     return WorldState(
       map: map ?? TileMap.fromJson(json['map']! as Map<String, Object?>),
       entities: encodedEntities.map(
@@ -120,6 +124,9 @@ final class WorldState {
           GridPoint.fromJson(encoded['at']! as Map<String, Object?>):
               GridRect.fromJson(encoded['opens']! as Map<String, Object?>),
       },
+      travelMaps: encodedTravelMaps.map(
+        (point) => GridPoint.fromJson(point! as Map<String, Object?>),
+      ),
     );
   }
 
@@ -161,6 +168,9 @@ final class WorldState {
 
   /// Control panels not used yet, by tile, with the bars each one opens.
   final Map<GridPoint, GridRect> controls;
+
+  /// Route maps that return gameplay to the destination-selection screen.
+  final Set<GridPoint> travelMaps;
   final String playerId;
   final SeededRandom random;
   final List<NoisePulse> _pendingNoises;
@@ -365,5 +375,6 @@ final class WorldState {
           'opens': entry.value.toJson(),
         },
     ],
+    'travelMaps': <Object?>[for (final point in travelMaps) point.toJson()],
   };
 }

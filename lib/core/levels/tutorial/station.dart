@@ -72,7 +72,8 @@ const List<String> stationUnderpassRows = <String>[
 /// The far side of the station, up the second flight `D`: one long
 /// platform under what is left of its canopy and, standing on the near
 /// track, a railcar `M` that is filthy but whole, both tracks running past
-/// it. Luigi is waiting in its cab.
+/// it. `P` is its passenger door: still part of the wall until Luigi has
+/// been rescued, then the game opens it onto the train interior.
 // far-platform-rows-start
 const List<String> stationFarSideRows = <String>[
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
@@ -83,7 +84,7 @@ const List<String> stationFarSideRows = <String>[
   'x,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,x',
   'x,,,MMMMMMMMMMMMMMMMMMMMMMMMMMM,,,,x',
   'x---MMMMMMMMMMMMMMMMMMMMMMMMMMM----x',
-  'x,,,MMMMMMMMMMMMMMMMMMMMMMMMMMM,,,,x',
+  'x,,,MMMMMMMMMMMMMMMMMMMMMMMPMMM,,,,x',
   'x==================================x',
   'x==nn======T=========nn=====T======x',
   'x=:=========================:======x',

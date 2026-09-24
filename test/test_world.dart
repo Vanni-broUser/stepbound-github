@@ -23,6 +23,7 @@ WorldState playerOnlyWorld({
   GridPoint position = const GridPoint(1, 1),
   Direction facing = Direction.east,
   int seed = 7,
+  Iterable<GridPoint> travelMaps = const <GridPoint>[],
 }) {
   final factory = EntityFactory(BalanceConfig.standard());
   return WorldState(
@@ -32,5 +33,6 @@ WorldState playerOnlyWorld({
     ],
     playerId: 'player',
     random: SeededRandom(seed),
+    travelMaps: travelMaps,
   );
 }
