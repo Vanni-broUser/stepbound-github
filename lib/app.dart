@@ -136,7 +136,16 @@ final class _StepboundAppState extends State<StepboundApp> {
   }
 
   Future<void> _newGame(int slot) async {
-    await _saves.clear(slot);
+    try {
+      await _saves.clear(slot);
+    } on Object catch (error) {
+      // The old game stays in the slot until the first campfire writes
+      // over it: no reason to keep the new one from starting.
+      debugPrint('save: could not clear slot $slot ($error)');
+    }
+    if (!mounted) {
+      return;
+    }
     _playStoryAudio();
     _startClock(Duration.zero);
     setState(() {
@@ -180,23 +189,31 @@ final class _StepboundAppState extends State<StepboundApp> {
       : ResumePoint.campfire;
 
   /// Called by the game when Mario rests at a campfire, and when the level
-  /// ends with him aboard the train.
-  Future<void> _store(GameSnapshot snapshot) async {
-    await _saves.save(
-      SaveGame(
-        slot: _slot,
-        savedAt: DateTime.now(),
-        place: snapshot.place,
-        world: snapshot.world,
-        tutorial: snapshot.tutorial,
-        progress: snapshot.progress,
-        hud: snapshot.hud,
-        played: _played,
-      ),
-    );
+  /// ends with him aboard the train. False when the save could not be
+  /// written: the slot still holds the one before, and so does
+  /// [_resumePoint].
+  Future<bool> _store(GameSnapshot snapshot) async {
+    try {
+      await _saves.save(
+        SaveGame(
+          slot: _slot,
+          savedAt: DateTime.now(),
+          place: snapshot.place,
+          world: snapshot.world,
+          tutorial: snapshot.tutorial,
+          progress: snapshot.progress,
+          hud: snapshot.hud,
+          played: _played,
+        ),
+      );
+    } on SaveWriteException catch (error) {
+      debugPrint('save: $error');
+      return false;
+    }
     _resumePoint = snapshot.place == trainPlaceName
         ? ResumePoint.train
         : ResumePoint.campfire;
+    return true;
   }
 
   void _finishIntro() {
@@ -256,25 +273,35 @@ final class _StepboundAppState extends State<StepboundApp> {
     // The camp's fire and hushed music stop at once: the story plays.
     _game?.soundscapePaused = true;
     _playStoryAudio();
-    await _saves.save(
-      SaveGame(
-        slot: _slot,
-        savedAt: DateTime.now(),
-        place: levelStartPlace,
-        world: saveTutorialWorld(createTutorialWorld()),
-        tutorial: const <String, Object?>{},
-        progress: Progress.newGame().toJson(),
-        hud: const <String>[],
-        atCampfire: false,
-        // The hours played are the one thing starting over keeps.
-        played: _played,
-      ),
-    );
+    var saved = true;
+    try {
+      await _saves.save(
+        SaveGame(
+          slot: _slot,
+          savedAt: DateTime.now(),
+          place: levelStartPlace,
+          world: saveTutorialWorld(createTutorialWorld()),
+          tutorial: const <String, Object?>{},
+          progress: Progress.newGame().toJson(),
+          hud: const <String>[],
+          atCampfire: false,
+          // The hours played are the one thing starting over keeps.
+          played: _played,
+        ),
+      );
+    } on SaveWriteException catch (error) {
+      // The level starts over all the same; the slot keeps the save it
+      // had, and with it the fire to go back to.
+      debugPrint('save: $error');
+      saved = false;
+    }
     if (!mounted) {
       return;
     }
     setState(() {
-      _resumePoint = null;
+      if (saved) {
+        _resumePoint = null;
+      }
       _game = null;
       _phase = _Phase.story;
     });
