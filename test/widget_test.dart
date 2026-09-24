@@ -6,6 +6,7 @@ import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/game_audio.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
+import 'package:stepbound/game/render/interact_marker_component.dart';
 import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
 import 'package:stepbound/save/save_game.dart';
@@ -501,6 +502,26 @@ void main() {
       expect(game.drawnPlaces, <String>[
         'assets/levels/station_far_side_open.png',
       ]);
+    });
+  });
+
+  testWidgets('the gap between the roofs wears the interact symbol, once '
+      'the button is there to press', (tester) {
+    return tester.runAsync(() async {
+      final game = await _pumpReadyGame(tester);
+      final marker = game.world.children
+          .whereType<InteractMarkerComponent>()
+          .single;
+      expect(
+        marker.position,
+        Vector2(
+          rooftopGapTile.x * StepboundGame.tileSize,
+          rooftopGapTile.y * StepboundGame.tileSize,
+        ),
+      );
+      expect(marker.active(), isFalse, reason: 'no interact button yet');
+      game.unlock(HudElement.interact);
+      expect(marker.active(), isTrue);
     });
   });
 

@@ -23,6 +23,7 @@ sealed class WorldEvent {
       'campfireUsed' => CampfireUsedEvent.fromJson(json),
       'controlUsed' => ControlUsedEvent.fromJson(json),
       'travelMapUsed' => TravelMapUsedEvent.fromJson(json),
+      'lookedOut' => LookedOutEvent.fromJson(json),
       _ => throw FormatException('Unknown world event: ${json['type']}'),
     };
   }
@@ -362,6 +363,30 @@ final class TravelMapUsedEvent extends WorldEvent {
   @override
   Map<String, Object?> toJson() => <String, Object?>{
     'type': 'travelMapUsed',
+    'at': at.toJson(),
+  };
+}
+
+/// The player stopped to look at something the map cannot say on its own:
+/// the gap between two roofs and what it would take to cross it. Looking
+/// changes nothing, so the same place can be looked at again.
+final class LookedOutEvent extends WorldEvent {
+  const LookedOutEvent({required this.at});
+
+  factory LookedOutEvent.fromJson(Map<String, Object?> json) {
+    return LookedOutEvent(
+      at: GridPoint.fromJson(json['at']! as Map<String, Object?>),
+    );
+  }
+
+  final GridPoint at;
+
+  @override
+  String get description => 'player looks at $at';
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+    'type': 'lookedOut',
     'at': at.toJson(),
   };
 }

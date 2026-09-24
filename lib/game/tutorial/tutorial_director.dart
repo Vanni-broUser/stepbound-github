@@ -5,6 +5,7 @@ import 'package:stepbound/game/tutorial/scripts/barracks_script.dart';
 import 'package:stepbound/game/tutorial/scripts/mall_script.dart';
 import 'package:stepbound/game/tutorial/scripts/north_district_script.dart';
 import 'package:stepbound/game/tutorial/scripts/priest_script.dart';
+import 'package:stepbound/game/tutorial/scripts/rooftops_script.dart';
 import 'package:stepbound/game/tutorial/scripts/station_script.dart';
 import 'package:stepbound/game/tutorial/scripts/street_script.dart';
 
@@ -13,6 +14,7 @@ export 'package:stepbound/game/tutorial/scripts/barracks_script.dart';
 export 'package:stepbound/game/tutorial/scripts/mall_script.dart';
 export 'package:stepbound/game/tutorial/scripts/north_district_script.dart';
 export 'package:stepbound/game/tutorial/scripts/priest_script.dart';
+export 'package:stepbound/game/tutorial/scripts/rooftops_script.dart';
 export 'package:stepbound/game/tutorial/scripts/station_script.dart';
 export 'package:stepbound/game/tutorial/scripts/street_script.dart';
 
@@ -155,8 +157,9 @@ abstract class TutorialScript {
 
 /// Runs the tutorial's scripts and shows their prompts one after the
 /// other: the backpacks, the first street, the barracks, the north
-/// district, the hypermarket, the Duomo and the station. It records what
-/// the player comes to know in [progress].
+/// district, the hypermarket, the Duomo, the station and the roofs the
+/// crashed airliner came down in. It records what the player comes to
+/// know in [progress].
 final class TutorialDirector {
   TutorialDirector({
     required this.world,
@@ -171,6 +174,7 @@ final class TutorialDirector {
       MallScript(this),
       PriestScript(this),
       StationScript(this),
+      RooftopsScript(this),
     ];
   }
 

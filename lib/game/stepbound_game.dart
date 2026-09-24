@@ -21,6 +21,7 @@ import 'package:stepbound/game/render/fire_component.dart';
 import 'package:stepbound/game/render/flag_component.dart';
 import 'package:stepbound/game/render/follow_camera.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
+import 'package:stepbound/game/render/interact_marker_component.dart';
 import 'package:stepbound/game/render/mall_props.dart';
 import 'package:stepbound/game/render/npc_component.dart';
 import 'package:stepbound/game/render/pickup_component.dart';
@@ -214,6 +215,13 @@ final class StepboundGame extends FlameGame
       PanelGlintComponent(
         panel: trainMapPanelTile,
         active: () => progress.memories.contains(StoryMemory.luigiRescued),
+      ),
+      // The gap between the roofs is the one thing on the map that is
+      // worth the interact button and shows nothing for it, so it wears
+      // the button's own symbol.
+      InteractMarkerComponent(
+        tile: rooftopGapTile,
+        active: () => hud.value.contains(HudElement.interact),
       ),
     ]);
     for (final entity in simulation.entities.values) {
