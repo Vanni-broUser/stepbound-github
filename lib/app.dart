@@ -328,7 +328,9 @@ final class _StepboundAppState extends State<StepboundApp> {
           DialogueLine(
             speaker: line.speaker,
             text: line.text,
-            portrait: line.portrait,
+            portrait: line.speaker == 'Mario Rossi'
+                ? game.progress.activeOutfit.portrait
+                : line.portrait,
           ),
       ],
       onFinished: game.dismissPrompt,
@@ -357,11 +359,13 @@ final class _StepboundAppState extends State<StepboundApp> {
       onExit: game.closeMemories,
     ),
     PauseCover() => PauseMenu(
+      progress: game.progress,
       resumePoint: _resumePoint,
       onResumeFromCamp: () => unawaited(_resumeFromCamp()),
       onRestartLevel: () => unawaited(_restartLevel()),
       onMainMenu: _backToMenu,
       onClose: game.closeMenu,
+      onWearOutfit: game.wearOutfit,
     ),
     GameOverCover() => _GameOverOverlay(
       resumePoint: _resumePoint,

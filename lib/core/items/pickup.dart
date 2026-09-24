@@ -11,6 +11,7 @@ final class Pickup {
     this.ammo = 0,
     this.gun = false,
     this.incense = false,
+    this.episcopalRing = false,
     this.active = true,
     this.collected = false,
   });
@@ -22,6 +23,7 @@ final class Pickup {
       ammo: json['ammo']! as int,
       gun: json['gun']! as bool,
       incense: json['incense']! as bool,
+      episcopalRing: json['episcopalRing'] as bool? ?? false,
       active: json['active']! as bool,
       collected: json['collected'] as bool? ?? false,
     );
@@ -36,6 +38,9 @@ final class Pickup {
   /// such backpack, in San Nicola.
   final bool incense;
 
+  /// Don Angelo's episcopal ring, hidden in the Bar Arcobaleno storeroom.
+  final bool episcopalRing;
+
   /// False while hidden by a script and after it has been collected.
   bool active;
 
@@ -47,6 +52,7 @@ final class Pickup {
     'ammo': ammo,
     'gun': gun,
     'incense': incense,
+    'episcopalRing': episcopalRing,
     'active': active,
     'collected': collected,
   };

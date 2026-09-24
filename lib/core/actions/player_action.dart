@@ -124,6 +124,7 @@ final class InteractAction extends PlayerAction {
           ammo: pickup.ammo,
           gun: pickup.gun,
           incense: pickup.incense,
+          episcopalRing: pickup.episcopalRing,
         ),
       );
       return;

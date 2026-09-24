@@ -10,8 +10,11 @@ import 'package:stepbound/core/items/pickup.dart';
 import 'package:stepbound/core/levels/place.dart';
 import 'package:stepbound/core/levels/tutorial/airliner.dart';
 import 'package:stepbound/core/levels/tutorial/bar_arcobaleno.dart';
+import 'package:stepbound/core/levels/tutorial/bar_backroom.dart';
 import 'package:stepbound/core/levels/tutorial/barracks.dart';
 import 'package:stepbound/core/levels/tutorial/church.dart';
+import 'package:stepbound/core/levels/tutorial/duomo.dart';
+import 'package:stepbound/core/levels/tutorial/duomo_upper.dart';
 import 'package:stepbound/core/levels/tutorial/harbour.dart';
 import 'package:stepbound/core/levels/tutorial/mall.dart';
 import 'package:stepbound/core/levels/tutorial/mall_north_street.dart';
@@ -24,8 +27,11 @@ import 'package:stepbound/core/world.dart';
 
 export 'package:stepbound/core/levels/tutorial/airliner.dart';
 export 'package:stepbound/core/levels/tutorial/bar_arcobaleno.dart';
+export 'package:stepbound/core/levels/tutorial/bar_backroom.dart';
 export 'package:stepbound/core/levels/tutorial/barracks.dart';
 export 'package:stepbound/core/levels/tutorial/church.dart';
+export 'package:stepbound/core/levels/tutorial/duomo.dart';
+export 'package:stepbound/core/levels/tutorial/duomo_upper.dart';
 export 'package:stepbound/core/levels/tutorial/harbour.dart';
 export 'package:stepbound/core/levels/tutorial/mall.dart';
 export 'package:stepbound/core/levels/tutorial/mall_north_street.dart';
@@ -44,12 +50,18 @@ const Legend outdoorLegend = Legend(
 );
 const Legend barracksLegend = Legend(walls: 'xWQNSIw', obstacles: 'TCAh');
 const Legend mallLegend = Legend(walls: 'xWwISQ', obstacles: 'PTKBGHL');
-const Legend barLegend = Legend(walls: 'xWw', obstacles: 'KTJ', debris: ':q');
+const Legend barLegend = Legend(walls: 'xWwD', obstacles: 'KTJ', debris: ':q');
 
 /// San Nicola (church.dart): the altar `A` and the side walls `I` are as
 /// solid as the outer ones, the pews `T` and the column drums `K` are
 /// waist high.
 const Legend churchLegend = Legend(walls: 'xWwIA', obstacles: 'TK');
+
+/// The Duomo and the Bar Arcobaleno's storeroom share the indoor masonry
+/// vocabulary, with their own furnishings as waist-high obstacles.
+const Legend duomoLegend = Legend(walls: 'xWwIA', obstacles: 'PTSU12p');
+const Legend barBackroomLegend = Legend(walls: 'xWwI', obstacles: 'KB');
+const Legend duomoUpperLegend = Legend(walls: 'xWwIL', obstacles: 'TCBKR');
 
 /// The three places of the station (station.dart): the railcar `M` and
 /// the rubble `#` shut the way like walls, the coach on its side `m`, the
@@ -153,7 +165,7 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     background: 'assets/levels/church.png',
     indoor: true,
     // The open portal, and the sky through the holes in the roof.
-    daylight: 'E^',
+    daylight: 'E^9',
   ),
   // Over the platforms the roof is gone, so the station and the far side
   // are lit throughout; only the underpass is dark.
@@ -204,6 +216,32 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     legend: rooftopLegend,
     background: 'assets/levels/airliner_roofs.png',
   ),
+  // Appended so adding these places does not move any existing place in a
+  // saved world's shared coordinate grid.
+  PlaceSpec(
+    id: PlaceId.duomo,
+    rows: duomoRows,
+    legend: duomoLegend,
+    background: 'assets/levels/duomo.png',
+    indoor: true,
+    daylight: 'E',
+  ),
+  PlaceSpec(
+    id: PlaceId.barBackroom,
+    rows: barBackroomRows,
+    legend: barBackroomLegend,
+    background: 'assets/levels/bar_backroom.png',
+    indoor: true,
+    daylight: 'E',
+  ),
+  PlaceSpec(
+    id: PlaceId.duomoUpper,
+    rows: duomoUpperRows,
+    legend: duomoUpperLegend,
+    background: 'assets/levels/duomo_upper.png',
+    indoor: true,
+    daylight: 'D',
+  ),
 ]);
 
 final Map<PlaceId, Place> _placesById = <PlaceId, Place>{
@@ -237,6 +275,9 @@ final Place _farSide = place(PlaceId.stationFarSide);
 final Place _train = place(PlaceId.trainInterior);
 final Place _airlinerCabin = place(PlaceId.airlinerCabin);
 final Place _airlinerRoofs = place(PlaceId.airlinerRoofs);
+final Place _duomo = place(PlaceId.duomo);
+final Place _barBackroom = place(PlaceId.barBackroom);
+final Place _duomoUpper = place(PlaceId.duomoUpper);
 
 /// The four places [outdoorLegend] describes, the ones tools/
 /// build_street_level.py bakes: what walks the streets, what burns in them
@@ -263,6 +304,25 @@ const String boatBackpackId = 'backpack-boat';
 /// The backpack `9` against the east wall of San Nicola: the incense Don
 /// Angelo asked for.
 const String incenseBackpackId = 'backpack-incense';
+const String episcopalRingPickupId = 'episcopal-ring';
+
+/// The service door in the top-right corner of the Bar Arcobaleno. It is
+/// scenery until Don Angelo gives Mario its key; it then becomes the portal
+/// to the storeroom.
+final GridPoint barLockedDoorTile = _bar.tileOf('D');
+final GridPoint barBackroomDoorTile = _barBackroom.tileOf('E');
+
+/// People and the blocked stair inside the Duomo.
+final GridPoint duomoPriestTile = _duomo.tileOf('p');
+final GridPoint duomoStairCultistTile = _duomo.tileOf('1');
+final GridPoint duomoWelcomingCultistTile = _duomo.tileOf('2');
+final GridPoint duomoStairCultistMovedTile = _duomo.tileOf('3');
+final GridPoint duomoStairEntryTile = duomoStairCultistTile.step(
+  Direction.north,
+);
+final GridPoint duomoUpperStairTile = _duomoUpper.tileOf('D');
+final GridPoint duomoUpperLockedDoorTile = _duomoUpper.tileOf('L');
+final GridPoint duomoUpperRobeTile = _duomoUpper.tileOf('R');
 
 /// The backpack `9` in the ballast between the two wrecks, at the dead end
 /// of the station's tracks: two rounds.
@@ -365,6 +425,20 @@ final List<GridPoint> carabiniereSpawns = _barracks.tilesOf('c');
 /// Where Don Angelo waits, on the sagrato just beyond the churchyard gate.
 final GridPoint priestTile = _harbour.tileOf('s');
 
+/// The three wrought-iron gate tiles across the alley. The extended priest
+/// scene turns them into floor, leaving the open leaves drawn at the sides.
+final List<GridPoint> priestGateTiles = _harbour.tilesOf('x');
+final GridRect priestGate = GridRect(
+  priestGateTiles.first.x,
+  priestGateTiles.first.y,
+  priestGateTiles.last.x,
+  priestGateTiles.last.y,
+);
+
+/// The Duomo's open portal is directly north of Don Angelo's original spot.
+/// The gate, not this doorway, keeps Mario out until the incense is delivered.
+final GridPoint duomoPortalTile = GridPoint(priestTile.x, priestTile.y - 2);
+
 /// The two zombies pressed against the gate, west to east: the priest asks
 /// Mario to get rid of them before he will talk.
 final List<GridPoint> priestZombieTiles = _harbour.tilesOf('t');
@@ -375,7 +449,7 @@ const String priestZombiePrefix = 'priest-zombie-';
 /// The alley between the seafront road and the churchyard gate: standing
 /// here is standing in front of Don Angelo.
 final GridRect priestGateFront = () {
-  final alley = _harbour.tilesOf('x');
+  final alley = priestGateTiles;
   return GridRect(
     alley.first.x,
     alley.first.y + 1,
@@ -562,7 +636,9 @@ Map<GridPoint, Portal> _pairedDoors(
 ///   the car park behind the hypermarket, cut off from the rest of the
 ///   north district;
 /// - the door of the Bar Arcobaleno, up the harbour's alley;
+/// - its locked service door into the storeroom;
 /// - the open portal of San Nicola, deep in the old town;
+/// - the Duomo's open portal behind its story-gated churchyard;
 /// - the station's two doorways, each into its own corner of the booking
 ///   hall, and the two flights of the underpass that join the far end of
 ///   that hall to the far platform (every flight climbs into the back wall
@@ -629,6 +705,16 @@ Map<GridPoint, Portal> _portals() {
       Direction.south,
     ),
     ..._pairedDoors(
+      <GridPoint>[barLockedDoorTile],
+      <GridPoint>[barBackroomDoorTile],
+      Direction.north,
+    ),
+    ..._pairedDoors(
+      <GridPoint>[barBackroomDoorTile],
+      <GridPoint>[barLockedDoorTile],
+      Direction.south,
+    ),
+    ..._pairedDoors(
       <GridPoint>[churchPortalTile],
       <GridPoint>[_church.tileOf('E')],
       Direction.north,
@@ -636,6 +722,26 @@ Map<GridPoint, Portal> _portals() {
     ..._pairedDoors(
       <GridPoint>[_church.tileOf('E')],
       <GridPoint>[churchPortalTile],
+      Direction.south,
+    ),
+    ..._pairedDoors(
+      <GridPoint>[duomoPortalTile],
+      <GridPoint>[_duomo.tileOf('E')],
+      Direction.north,
+    ),
+    ..._pairedDoors(
+      <GridPoint>[_duomo.tileOf('E')],
+      <GridPoint>[duomoPortalTile],
+      Direction.south,
+    ),
+    ..._pairedDoors(
+      <GridPoint>[duomoStairEntryTile],
+      <GridPoint>[duomoUpperStairTile],
+      Direction.north,
+    ),
+    ..._pairedDoors(
+      <GridPoint>[duomoUpperStairTile],
+      <GridPoint>[duomoStairEntryTile],
       Direction.south,
     ),
     ..._pairedDoors(stationWestDoor, _station.doorRow('E'), Direction.north),
@@ -758,6 +864,11 @@ WorldState createTutorialWorld({int seed = 20260920}) {
   pickups.addAll(<Pickup>[
     Pickup(id: gunBackpackId, position: _barracks.tileOf('3'), gun: true),
     Pickup(id: incenseBackpackId, position: _church.tileOf('9'), incense: true),
+    Pickup(
+      id: episcopalRingPickupId,
+      position: _barBackroom.tileOf('8'),
+      episcopalRing: true,
+    ),
     Pickup(
       id: stationBackpackId,
       position: _station.tileOf('9'),

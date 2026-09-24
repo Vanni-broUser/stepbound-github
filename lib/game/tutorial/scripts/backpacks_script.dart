@@ -31,8 +31,17 @@ final class BackpacksScript extends TutorialScript {
 
   @override
   void onEvent(WorldEvent event) {
-    if (event case PickedUpEvent(:final ammo, :final gun, :final incense)) {
+    if (event case PickedUpEvent(
+      :final ammo,
+      :final gun,
+      :final incense,
+      :final episcopalRing,
+    )) {
       host.playPickupAnimation();
+      if (episcopalRing) {
+        host.unlock(HudElement.episcopalRing);
+        return;
+      }
       say(_found(ammo: ammo, gun: gun, incense: incense));
     }
   }

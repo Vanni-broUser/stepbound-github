@@ -59,8 +59,23 @@ final class TouchControls extends StatelessWidget {
               Positioned(right: 0, top: 0, child: _PauseButton(game: game)),
               // No button at all: what Mario is carrying for Don Angelo.
               // The far top corner from the menu, out of both thumbs' way.
-              if (unlocked.contains(HudElement.incense))
-                const Positioned(left: 0, top: 0, child: _IncenseBadge()),
+              if (unlocked.contains(HudElement.incense) ||
+                  unlocked.contains(HudElement.barKey) ||
+                  unlocked.contains(HudElement.episcopalRing))
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  child: Column(
+                    children: <Widget>[
+                      if (unlocked.contains(HudElement.incense))
+                        _IncenseBadge(game: game),
+                      if (unlocked.contains(HudElement.barKey))
+                        _BarKeyBadge(game: game),
+                      if (unlocked.contains(HudElement.episcopalRing))
+                        _EpiscopalRingBadge(game: game),
+                    ],
+                  ),
+                ),
             ],
           ),
         );
@@ -233,34 +248,137 @@ final class _AmmoCounter extends StatelessWidget {
 /// The censer found in San Nicola, hanging in the top corner for as long
 /// as Mario carries it: the errand he is on, always in sight.
 final class _IncenseBadge extends StatelessWidget {
-  const _IncenseBadge();
+  const _IncenseBadge({required this.game});
 
   static const double size = 44;
+  final StepboundGame game;
 
   @override
   Widget build(BuildContext context) {
     return Semantics(
+      button: true,
       label: 'Incenso per Don Angelo',
-      child: BloodOverlay(
-        painter: const BloodPainter(
-          band: 3,
-          cornerRadius: 8,
-          drips: <BloodDrip>[BloodDrip(0.3, 13, 4), BloodDrip(0.74, 8, 3)],
-        ),
-        child: Container(
-          key: const ValueKey<String>('hud-incense'),
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            color: const Color(0xcc241a1a),
-            border: Border.all(color: BloodColors.fresh, width: 2),
-            borderRadius: BorderRadius.circular(8),
-            boxShadow: const <BoxShadow>[
-              BoxShadow(color: Color(0x99000000), offset: Offset(2, 2)),
-            ],
+      child: GestureDetector(
+        onTap: () {
+          AudioScope.of(context).play(Sfx.uiClick);
+          game.inspectInventory('Incenso');
+        },
+        child: BloodOverlay(
+          painter: const BloodPainter(
+            band: 3,
+            cornerRadius: 8,
+            drips: <BloodDrip>[BloodDrip(0.3, 13, 4), BloodDrip(0.74, 8, 3)],
           ),
-          child: const Center(
-            child: CustomPaint(size: Size(26, 30), painter: _CenserIcon()),
+          child: Container(
+            key: const ValueKey<String>('hud-incense'),
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              color: const Color(0xcc241a1a),
+              border: Border.all(color: BloodColors.fresh, width: 2),
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: const <BoxShadow>[
+                BoxShadow(color: Color(0x99000000), offset: Offset(2, 2)),
+              ],
+            ),
+            child: const Center(
+              child: CustomPaint(size: Size(26, 30), painter: _CenserIcon()),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The key Don Angelo gives Mario for the Bar Arcobaleno service door.
+final class _BarKeyBadge extends StatelessWidget {
+  const _BarKeyBadge({required this.game});
+
+  static const double size = 44;
+  final StepboundGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Chiave del Bar Arcobaleno',
+      child: GestureDetector(
+        onTap: () {
+          AudioScope.of(context).play(Sfx.uiClick);
+          game.inspectInventory('Chiave del Bar Arcobaleno');
+        },
+        child: BloodOverlay(
+          painter: const BloodPainter(
+            band: 3,
+            cornerRadius: 8,
+            drips: <BloodDrip>[BloodDrip(0.24, 8, 3), BloodDrip(0.68, 12, 4)],
+          ),
+          child: Container(
+            key: const ValueKey<String>('hud-bar-key'),
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              color: const Color(0xcc241a1a),
+              border: Border.all(color: BloodColors.fresh, width: 2),
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: const <BoxShadow>[
+                BoxShadow(color: Color(0x99000000), offset: Offset(2, 2)),
+              ],
+            ),
+            child: const Center(
+              child: CustomPaint(size: Size(28, 28), painter: _KeyIcon()),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Don Angelo's ring, carried only from the bar storeroom to the altar.
+final class _EpiscopalRingBadge extends StatelessWidget {
+  const _EpiscopalRingBadge({required this.game});
+
+  static const double size = 44;
+  final StepboundGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Anello episcopale',
+      child: GestureDetector(
+        onTap: () {
+          AudioScope.of(context).play(Sfx.uiClick);
+          game.inspectInventory('Anello episcopale');
+        },
+        child: BloodOverlay(
+          painter: const BloodPainter(
+            band: 3,
+            cornerRadius: 8,
+            drips: <BloodDrip>[BloodDrip(0.34, 10, 3), BloodDrip(0.78, 7, 3)],
+          ),
+          child: Container(
+            key: const ValueKey<String>('hud-episcopal-ring'),
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              color: const Color(0xcc241a1a),
+              border: Border.all(color: BloodColors.fresh, width: 2),
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: const <BoxShadow>[
+                BoxShadow(color: Color(0x99000000), offset: Offset(2, 2)),
+              ],
+            ),
+            child: Center(
+              child: Image.asset(
+                'assets/sprites/episcopal_ring.png',
+                width: 28,
+                height: 28,
+                filterQuality: FilterQuality.none,
+              ),
+            ),
           ),
         ),
       ),
@@ -531,6 +649,31 @@ final class _CenserIcon extends CustomPainter {
 
   @override
   bool shouldRepaint(_CenserIcon oldDelegate) => false;
+}
+
+final class _KeyIcon extends CustomPainter {
+  const _KeyIcon();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final gold = Paint()..color = const Color(0xffd6b25c);
+    final dark = Paint()..color = const Color(0xff8a6a2e);
+    final hole = Paint()..color = const Color(0xff3a2618);
+    canvas
+      ..save()
+      ..scale(size.width / 24)
+      ..drawCircle(const Offset(7, 8), 6, dark)
+      ..drawCircle(const Offset(7, 8), 4.5, gold)
+      ..drawCircle(const Offset(7, 8), 2.2, hole)
+      ..drawRect(const Rect.fromLTWH(10, 7, 12, 3), gold)
+      ..drawRect(const Rect.fromLTWH(17, 10, 3, 4), gold)
+      ..drawRect(const Rect.fromLTWH(20, 10, 2, 3), gold)
+      ..drawRect(const Rect.fromLTWH(11, 9, 11, 1), dark)
+      ..restore();
+  }
+
+  @override
+  bool shouldRepaint(_KeyIcon oldDelegate) => false;
 }
 
 final class _BulletIcon extends CustomPainter {

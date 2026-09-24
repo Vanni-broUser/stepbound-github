@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/ui/pause_menu.dart';
 
 void main() {
@@ -7,6 +8,8 @@ void main() {
   late int restarts;
   late int quits;
   late int closes;
+  late Progress progress;
+  late List<PlayerOutfit> outfitsWorn;
 
   Future<void> pumpMenu(
     WidgetTester tester, {
@@ -16,18 +19,26 @@ void main() {
     restarts = 0;
     quits = 0;
     closes = 0;
+    progress = Progress();
+    outfitsWorn = <PlayerOutfit>[];
     tester.view.physicalSize = const Size(768, 432);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
       MaterialApp(
         home: PauseMenu(
+          progress: progress,
           key: ValueKey<ResumePoint?>(resumePoint),
           resumePoint: resumePoint,
           onResumeFromCamp: () => resumes++,
           onRestartLevel: () => restarts++,
           onMainMenu: () => quits++,
           onClose: () => closes++,
+          onWearOutfit: (outfit) {
+            if (progress.wearOutfit(outfit)) {
+              outfitsWorn.add(outfit);
+            }
+          },
         ),
       ),
     );
@@ -42,6 +53,7 @@ void main() {
     await pumpMenu(tester);
     for (final text in <String>[
       'RIPRENDI DAL FALÒ',
+      'CAMBIA ABBIGLIAMENTO',
       'RICOMINCIA IL LIVELLO',
       'VAI AL MENÙ PRINCIPALE',
       'TORNA AL GIOCO',
@@ -83,6 +95,47 @@ void main() {
     final beforeTheWayBack = topOf('pause-close') - bottomOf('pause-quit');
 
     expect(beforeTheWayBack, greaterThan(betweenChoices * 2));
+  });
+
+  testWidgets('the top-right menu changes between unlocked outfits', (
+    tester,
+  ) async {
+    await pumpMenu(tester);
+    await tap(tester, 'pause-outfits');
+
+    expect(find.text('BASE'), findsNWidgets(2));
+    expect(find.text('OCCULTISTA'), findsOneWidget);
+    expect(find.text('GIÀ IN USO'), findsOneWidget);
+    final basePortrait = tester.widget<Image>(
+      find.byKey(const ValueKey<String>('pause-outfit-portrait-0')),
+    );
+    expect(
+      (basePortrait.image as AssetImage).assetName,
+      PlayerOutfit.base.portrait,
+    );
+
+    await tap(tester, 'pause-outfit-1');
+    expect(find.text('NON DISPONIBILE'), findsOneWidget);
+    expect(outfitsWorn, isEmpty);
+
+    progress.unlockOutfit(PlayerOutfit.cultist);
+    await tap(tester, 'pause-outfit-1');
+    expect(find.text('INDOSSA'), findsOneWidget);
+    final cultistPortrait = tester.widget<Image>(
+      find.byKey(const ValueKey<String>('pause-outfit-portrait-1')),
+    );
+    expect(
+      (cultistPortrait.image as AssetImage).assetName,
+      PlayerOutfit.cultist.portrait,
+    );
+
+    await tap(tester, 'pause-outfit-wear');
+    expect(outfitsWorn, <PlayerOutfit>[PlayerOutfit.cultist]);
+    expect(progress.activeOutfit, PlayerOutfit.cultist);
+    expect(find.text('GIÀ IN USO'), findsOneWidget);
+
+    await tap(tester, 'pause-outfit-back');
+    expect(find.text('TORNA AL GIOCO'), findsOneWidget);
   });
 
   for (final (choice, name, count) in <(String, String, int Function())>[

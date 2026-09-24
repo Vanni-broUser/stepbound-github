@@ -19,7 +19,9 @@ final class PickupComponent extends PositionComponent {
         priority: 15,
       );
 
-  static const String assetPath = 'assets/sprites/backpack.png';
+  static const String backpackAssetPath = 'assets/sprites/backpack.png';
+  static const String episcopalRingAssetPath =
+      'assets/sprites/episcopal_ring.png';
   static const double dropDuration = 0.45;
   static const double lingerDuration = 0.3;
 
@@ -38,7 +40,9 @@ final class PickupComponent extends PositionComponent {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    _image = await loadAssetImage(assetPath);
+    _image = await loadAssetImage(
+      pickup.episcopalRing ? episcopalRingAssetPath : backpackAssetPath,
+    );
   }
 
   @override

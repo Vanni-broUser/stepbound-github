@@ -70,6 +70,26 @@ void main() {
     ]);
   });
 
+  test('a save keeps unlocked clothes and the outfit in use', () {
+    final progress = Progress.newGame()
+      ..unlockOutfit(PlayerOutfit.cultist)
+      ..wearOutfit(PlayerOutfit.cultist);
+    final loaded = Progress.fromJson(progress.toJson());
+
+    expect(loaded.unlockedOutfits, <PlayerOutfit>{
+      PlayerOutfit.base,
+      PlayerOutfit.cultist,
+    });
+    expect(loaded.activeOutfit, PlayerOutfit.cultist);
+
+    final oldSave = Progress.newGame().toJson()
+      ..remove('unlockedOutfits')
+      ..remove('activeOutfit');
+    final migrated = Progress.fromJson(oldSave);
+    expect(migrated.unlockedOutfits, <PlayerOutfit>{PlayerOutfit.base});
+    expect(migrated.activeOutfit, PlayerOutfit.base);
+  });
+
   group('reading a slot', () {
     test('a save of another format reads as an empty slot', () {
       final older = save().toJson()..['format'] = SaveGame.format - 1;

@@ -144,6 +144,16 @@ def paint_door(d, x, y):
     rect(d, px + 5, py + 6, 3, 2, (120, 30, 30))
 
 
+def paint_locked_door(d, px, py):
+    """The open service doorway under the dynamic locked-door component."""
+    top = py - TILE
+    rect(d, px + 1, top, TILE - 2, TILE * 2, OUTLINE)
+    rect(d, px + 3, top + 2, TILE - 6, TILE * 2 - 3, (18, 16, 18))
+    rect(d, px + 2, top + 1, 2, TILE * 2 - 2, (88, 58, 38))
+    rect(d, px + 12, top + 1, 2, TILE * 2 - 2, (88, 58, 38))
+    rect(d, px + 4, py + 12, TILE - 8, 4, (104, 96, 86))
+
+
 def bake(room: Room, rng, output):
     image = Image.new("RGB", (room.width * TILE, room.height * TILE), VOID)
     d = ImageDraw.Draw(image)
@@ -160,6 +170,8 @@ def bake(room: Room, rng, output):
                 paint_front_wall(d, x, y)
             elif glyph == "E":
                 paint_door(d, x, y)
+            elif glyph == "D":
+                paint_locked_door(d, px, py)
             elif glyph == ":":
                 paint_glass(d, rng, px, py)
             elif glyph == "b":

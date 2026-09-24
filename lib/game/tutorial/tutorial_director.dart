@@ -1,7 +1,9 @@
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/tutorial/scripts/backpacks_script.dart';
+import 'package:stepbound/game/tutorial/scripts/bar_script.dart';
 import 'package:stepbound/game/tutorial/scripts/barracks_script.dart';
+import 'package:stepbound/game/tutorial/scripts/duomo_script.dart';
 import 'package:stepbound/game/tutorial/scripts/mall_script.dart';
 import 'package:stepbound/game/tutorial/scripts/north_district_script.dart';
 import 'package:stepbound/game/tutorial/scripts/priest_script.dart';
@@ -11,7 +13,9 @@ import 'package:stepbound/game/tutorial/scripts/street_script.dart';
 import 'package:stepbound/game/tutorial/scripts/train_script.dart';
 
 export 'package:stepbound/game/tutorial/scripts/backpacks_script.dart';
+export 'package:stepbound/game/tutorial/scripts/bar_script.dart';
 export 'package:stepbound/game/tutorial/scripts/barracks_script.dart';
+export 'package:stepbound/game/tutorial/scripts/duomo_script.dart';
 export 'package:stepbound/game/tutorial/scripts/mall_script.dart';
 export 'package:stepbound/game/tutorial/scripts/north_district_script.dart';
 export 'package:stepbound/game/tutorial/scripts/priest_script.dart';
@@ -41,6 +45,11 @@ final class TutorialLine {
     : speaker = PriestScript.priest,
       portrait = 'assets/story/portrait_priest.png';
 
+  /// A member of Don Angelo's community inside the Duomo.
+  const TutorialLine.cultist(this.text)
+    : speaker = DuomoScript.cultist,
+      portrait = DuomoScript.cultistPortrait;
+
   /// Set only when a person is talking.
   final String? speaker;
   final String text;
@@ -57,11 +66,10 @@ final class CutsceneFrame {
   final String text;
 }
 
-/// What the tutorial puts on the HUD, one at a time: the three action
-/// buttons, and [incense], which is no button at all but the censer badge
-/// in the corner, up for good once the incense is in the backpack. The
-/// arrows are always there.
-enum HudElement { interact, ammo, shoot, incense }
+/// What the tutorial puts on the HUD: the three action buttons and the
+/// temporary quest-item badges in the top-left corner. The arrows are
+/// always there.
+enum HudElement { interact, ammo, shoot, incense, barKey, episcopalRing }
 
 /// What the director needs from the game.
 abstract interface class TutorialHost {
@@ -97,6 +105,19 @@ abstract interface class TutorialHost {
   bool isUnlocked(HudElement element);
 
   void unlock(HudElement element);
+
+  /// Removes a quest object from the inventory HUD when it is handed over
+  /// or consumed.
+  void removeHud(HudElement element);
+
+  /// Opens the churchyard and moves Don Angelo from the gate to the altar.
+  void openDuomo();
+
+  /// Clears the Duomo stair, moves its guard aside and consumes the ring.
+  void openDuomoUpper();
+
+  /// Collects the robe upstairs, fades to black and dresses Mario in it.
+  void collectCultistRobe();
 
   /// Fades to black and plays [frames] like the intro story, then calls
   /// [onFinished]. Unless [stayBlack] is true, it fades back to the game
@@ -177,8 +198,10 @@ final class TutorialDirector {
   }) {
     scripts = <TutorialScript>[
       BackpacksScript(this),
+      BarScript(this),
       StreetScript(this),
       BarracksScript(this),
+      DuomoScript(this),
       NorthDistrictScript(this),
       MallScript(this),
       PriestScript(this),
