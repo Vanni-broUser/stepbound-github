@@ -37,9 +37,9 @@ final class MainMenu extends StatefulWidget {
 
 final class _MainMenuState extends State<MainMenu> {
   _MenuPage _page = _MenuPage.home;
-  List<SaveGame?> _slots = List<SaveGame?>.filled(
+  List<SaveRead> _slots = List<SaveRead>.filled(
     SaveRepository.slotCount,
-    null,
+    const EmptySave(),
   );
 
   /// Slot waiting for the "overwrite?" answer.
@@ -69,7 +69,7 @@ final class _MainMenuState extends State<MainMenu> {
   }
 
   void _pickNewGameSlot(int slot) {
-    if (_slots[slot - 1] != null && _confirming != slot) {
+    if (_slots[slot - 1] is LoadedSave && _confirming != slot) {
       setState(() => _confirming = slot);
       return;
     }
@@ -88,14 +88,16 @@ final class _MainMenuState extends State<MainMenu> {
     return '${played.inHours}h ${minutes}m';
   }
 
-  String _slotLabel(int slot) {
-    final save = _slots[slot - 1];
-    if (save == null) {
-      return 'SLOT $slot\nvuoto';
-    }
-    return 'SLOT $slot  ${_date(save.savedAt)}\n'
-        '${save.place}  ·  ${_played(save.played)}';
-  }
+  /// A slot whose save is damaged says so, and cannot be loaded; one whose
+  /// save was damaged but had a good one before it shows that one, marked
+  /// as the backup it is.
+  String _slotLabel(int slot) => switch (_slots[slot - 1]) {
+    EmptySave() => 'SLOT $slot\nvuoto',
+    DamagedSave() => 'SLOT $slot\ndanneggiato, non si può caricare',
+    LoadedSave(:final save, :final fromBackup) =>
+      'SLOT $slot  ${_date(save.savedAt)}${fromBackup ? '  (riserva)' : ''}\n'
+          '${save.place}  ·  ${_played(save.played)}',
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -136,7 +138,7 @@ final class _MainMenuState extends State<MainMenu> {
   }
 
   Widget _buttons(double unit) {
-    final hasSaves = _slots.any((save) => save != null);
+    final hasSaves = _slots.any((slot) => slot is LoadedSave);
     final buttons = switch (_page) {
       _MenuPage.home => <Widget>[
         MenuButton(
@@ -234,7 +236,7 @@ final class _MainMenuState extends State<MainMenu> {
         onPressed: () => _pickNewGameSlot(slot),
       );
     }
-    final save = _slots[slot - 1];
+    final save = _slots[slot - 1].game;
     return MenuButton(
       key: ValueKey<String>('menu-slot-$slot'),
       label: _slotLabel(slot),

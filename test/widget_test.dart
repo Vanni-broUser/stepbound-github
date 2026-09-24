@@ -627,6 +627,57 @@ void main() {
     });
   });
 
+  testWidgets('a save that cannot be written at a campfire says so, lets '
+      'Mario up and can be tried again at the fire', (tester) {
+    return tester.runAsync(() async {
+      final saves = MemorySaveRepository();
+      final game = await _pumpReadyGame(tester, saves: saves);
+      game.tutorial.restore(const <String, Object?>{
+        'north': <String, Object?>{'campLesson': true},
+        'backpacks': <String, Object?>{'lesson': true},
+        'street': <String, Object?>{'zombieLesson': true},
+      });
+      final camp = game.simulation.campfires.firstWhere(
+        place(PlaceId.northDistrict).bounds.contains,
+      );
+      game.simulation.player.component<PositionComponent>()
+        ..position = camp.step(Direction.west)
+        ..facing = Direction.east;
+      Future<void> rest() async {
+        game.pressInteract();
+        for (var i = 0; i < 60; i++) {
+          game.update(1 / 20);
+        }
+        // The write happens off the frame loop.
+        await Future<void>.delayed(Duration.zero);
+        await tester.pump();
+      }
+
+      saves.failWrites = true;
+      game.unlock(HudElement.interact);
+      await rest();
+      final prompt = game.cover.value! as PromptCover;
+      expect(prompt.lines.single.text, StepboundGame.saveFailedLine);
+      expect(await saves.load(1), isNull, reason: 'nothing was written');
+      await tester.tap(find.byKey(const ValueKey<String>('gameplay-dialogue')));
+      await tester.pump();
+      expect(game.cover.value, isNull);
+      // Not stuck kneeling: the pause menu opens, as it does not while
+      // Mario is saving.
+      game.openMenu();
+      expect(game.cover.value, isA<PauseCover>());
+      game.closeMenu();
+
+      saves.failWrites = false;
+      await rest();
+      expect(
+        (game.cover.value! as PromptCover).lines.single.text,
+        StepboundGame.savedLine,
+      );
+      expect((await saves.load(1))!.place, 'Dietro la caserma');
+    });
+  });
+
   testWidgets('aboard, the books open the zombie types and the cot plays '
       'the memories', (tester) {
     return tester.runAsync(() async {
@@ -651,6 +702,43 @@ void main() {
       expect(game.cover.value, isNull);
       expect(game.soundscapePaused, isFalse, reason: "the game's is back");
     });
+  });
+
+  testWidgets('a damaged slot says so in the menu and does not load; one '
+      'with a good backup loads that, marked as such', (tester) async {
+    final saves = MemorySaveRepository();
+    SaveGame at(int slot, String place) => SaveGame(
+      slot: slot,
+      savedAt: DateTime(2026, 9, 21, 17, 5),
+      place: place,
+      world: saveTutorialWorld(createTutorialWorld()),
+      tutorial: const <String, Object?>{},
+      progress: Progress.newGame().toJson(),
+      hud: const <String>[],
+    );
+    await saves.save(at(1, 'Il porto'));
+    await saves.save(at(1, 'Dietro la caserma'));
+    await saves.save(at(2, 'La stazione'));
+    // Both cut short on their way to the disk; only slot 1 had a save
+    // before it.
+    for (final slot in <int>[1, 2]) {
+      saves.values[StoredSaveRepository.slotKey(slot)] = '{"format": 1';
+    }
+    await tester.pumpWidget(StepboundApp(saves: saves));
+    await tester.pump();
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey<String>('menu-load')));
+    await tester.pump();
+
+    expect(find.textContaining('danneggiato'), findsOne);
+    expect(find.textContaining('Il porto'), findsOne);
+    expect(find.textContaining('(riserva)'), findsOne);
+    await tester.tap(find.byKey(const ValueKey<String>('menu-slot-2')));
+    await tester.pump();
+    expect(find.byType(GameWidget<StepboundGame>), findsNothing);
+    await tester.tap(find.byKey(const ValueKey<String>('menu-slot-1')));
+    await tester.pump();
+    expect(find.byType(GameWidget<StepboundGame>), findsOneWidget);
   });
 
   testWidgets('the game opens on the main menu with the Stepbound sign', (
@@ -836,6 +924,47 @@ void main() {
         restored.player.component<PositionComponent>().position,
         createTutorialWorld().player.component<PositionComponent>().position,
       );
+    });
+  });
+
+  testWidgets('starting the level over still happens when the save cannot '
+      'be written, and the slot keeps its fire', (tester) {
+    return tester.runAsync(() async {
+      final saves = MemorySaveRepository();
+      await saves.save(
+        SaveGame(
+          slot: 1,
+          savedAt: DateTime(2026),
+          place: 'Dietro la caserma',
+          world: saveTutorialWorld(createTutorialWorld()),
+          tutorial: const <String, Object?>{},
+          progress: Progress.newGame().toJson(),
+          hud: const <String>[],
+        ),
+      );
+      await tester.pumpWidget(StepboundApp(saves: saves));
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey<String>('menu-load')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey<String>('menu-slot-1')));
+      await tester.pump();
+      await _waitForGame(tester);
+
+      saves.failWrites = true;
+      await tester.tap(find.byKey(const ValueKey<String>('touch-menu')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey<String>('pause-restart')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey<String>('pause-confirm')));
+      await tester.pump();
+      await tester.pump();
+
+      expect(
+        find.byKey(const ValueKey<String>('story-image-0')),
+        findsOneWidget,
+      );
+      expect((await saves.load(1))!.place, 'Dietro la caserma');
     });
   });
 

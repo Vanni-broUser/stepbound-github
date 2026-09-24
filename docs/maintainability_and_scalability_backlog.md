@@ -4,21 +4,6 @@ This backlog records the findings still open from the review of `main` at
 `7061d62`. What has been dealt with leaves the list: the commits say what was
 done and why.
 
-## P1 — Make saves resilient
-
-`SaveGame.fromJson` relies on runtime casts, while the repository catches only
-`FormatException`. Valid JSON with a missing field or an unexpected type can
-therefore escape as a type error and break slot loading. A failed write also
-leaves the camp menu in its saving state, without feedback or a retry path.
-
-- Introduce a validated decoder returning a typed success or failure.
-- Keep bumping `SaveGame.format` for every change of shape. Migrations are
-  deliberately out of scope: an old save reads as an empty slot, and that is
-  the rule for this project.
-- Preserve a last-known-good value before replacing a slot.
-- Surface read and write failures in the menu and always leave the saving state.
-- Test truncated JSON, missing fields, unknown enum values and failed writes.
-
 ## P2 — Split application and game orchestration
 
 `StepboundApp` combines application phases, persistence, audio lifecycle,
@@ -60,6 +45,17 @@ does not prove that checked-in assets can be regenerated reproducibly.
 - Provide one documented asset-build entry point and deterministic seeds.
 - Split the street generator into surfaces, buildings and props modules.
 - Add a CI check for dimensions, manifests and deterministic output hashes.
+
+## P3 — What is left of the save hardening
+
+Slots are now read as a typed result, damaged ones fall back on the save they
+replaced, and failed writes never leave the game stuck. Two corners remain:
+
+- The tutorial scripts' state is not checked before loading: `restore` reads
+  with lenient casts, but a field of the wrong type still throws when the game
+  starts. Checking it needs a `TutorialHost`, which only the game has.
+- The save written aboard the train when the level ends is logged when it
+  fails, but the results screen does not say so; the next campfire writes it.
 
 ## P3 — Clarify service ownership and disposal
 

@@ -146,8 +146,8 @@ final class StepboundGame extends FlameGame
   bool soundscapePaused = false;
 
   /// Saves the progress when the player rests at a campfire, and aboard
-  /// the train when the level ends.
-  final Future<void> Function(GameSnapshot snapshot)? onRest;
+  /// the train when the level ends; completes with whether it was written.
+  final Future<bool> Function(GameSnapshot snapshot)? onRest;
 
   /// Leaves gameplay for the results screen after the final cutscene.
   final void Function(GameSnapshot snapshot)? onLevelCompleted;
@@ -543,13 +543,25 @@ final class StepboundGame extends FlameGame
   }
 
   static const String savedLine = 'Salvataggio completato';
+  static const String saveFailedLine =
+      'Salvataggio non riuscito. Riposati di nuovo accanto al fuoco per '
+      'riprovare';
 
-  /// Saves the game as it is at this campfire, then says so; Mario gets up
-  /// once the line is gone.
+  /// Saves the game as it is at this campfire, then says whether it
+  /// worked; Mario gets up once the line is gone either way, and a failed
+  /// save is tried again by resting at the fire again.
   Future<void> _saveAtCamp() async {
-    await onRest?.call(snapshot(place: campfireNames[_campfire] ?? ''));
-    showPrompt(const <TutorialLine>[
-      TutorialLine(savedLine),
+    var saved = true;
+    try {
+      saved =
+          await onRest?.call(snapshot(place: campfireNames[_campfire] ?? '')) ??
+          true;
+    } on Object catch (error) {
+      debugPrint('save: $error');
+      saved = false;
+    }
+    showPrompt(<TutorialLine>[
+      TutorialLine(saved ? savedLine : saveFailedLine),
     ], onDismissed: () => _campfire = null);
   }
 
