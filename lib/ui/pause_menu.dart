@@ -6,10 +6,6 @@ import 'package:stepbound/ui/main_menu.dart';
 
 enum _PausePage { home, outfits, resume, restart, quit }
 
-/// How many places the outfit page has: the outfits still to come stay
-/// "???", as the zombie book's cards do.
-const int outfitSlots = 12;
-
 /// Where the save the game can go back to was made, and how the menus
 /// name it.
 enum ResumePoint {
@@ -150,15 +146,13 @@ final class _PauseMenuState extends State<PauseMenu> {
           compact: true,
           onPressed: () => _open(_PausePage.resume),
         ),
-      // Offered once there is something besides the base clothes to wear.
-      if (widget.progress.unlockedOutfits.length > 1)
-        MenuButton(
-          key: const ValueKey<String>('pause-outfits'),
-          label: 'CAMBIA ABBIGLIAMENTO',
-          unit: unit,
-          compact: true,
-          onPressed: () => _open(_PausePage.outfits),
-        ),
+      MenuButton(
+        key: const ValueKey<String>('pause-outfits'),
+        label: 'CAMBIA ABBIGLIAMENTO',
+        unit: unit,
+        compact: true,
+        onPressed: () => _open(_PausePage.outfits),
+      ),
       MenuButton(
         key: const ValueKey<String>('pause-restart'),
         label: 'RICOMINCIA IL LIVELLO',
@@ -218,19 +212,11 @@ final class _PauseMenuState extends State<PauseMenu> {
     );
   }
 
-  /// The outfit in [slot], null for the places still to come.
-  static PlayerOutfit? _outfitAt(int slot) =>
-      slot < PlayerOutfit.values.length ? PlayerOutfit.values[slot] : null;
-
-  bool _unlocked(PlayerOutfit? outfit) =>
-      outfit != null && widget.progress.unlockedOutfits.contains(outfit);
-
   /// The same catalogue layout as the known-zombie page: choices on the
   /// left, portrait on the right and a wear button in place of a description.
-  /// Outfits not found yet are "???" and a black shape.
   Widget _outfits(double unit) {
-    final outfit = _outfitAt(_selectedOutfit);
-    final unlocked = _unlocked(outfit);
+    final outfit = PlayerOutfit.values[_selectedOutfit];
+    final unlocked = widget.progress.unlockedOutfits.contains(outfit);
     final active = widget.progress.activeOutfit == outfit;
     final buttonLabel = active
         ? 'GIÀ IN USO'
@@ -247,16 +233,14 @@ final class _PauseMenuState extends State<PauseMenu> {
               SizedBox(
                 width: 96 * unit,
                 child: ListView.builder(
-                  itemCount: outfitSlots,
+                  itemCount: PlayerOutfit.values.length,
                   itemBuilder: (context, index) {
-                    final entry = _outfitAt(index);
+                    final entry = PlayerOutfit.values[index];
                     return Padding(
                       padding: EdgeInsets.only(bottom: 3 * unit),
                       child: MenuButton(
                         key: ValueKey<String>('pause-outfit-$index'),
-                        label: _unlocked(entry)
-                            ? entry!.label.toUpperCase()
-                            : '???',
+                        label: entry.label.toUpperCase(),
                         unit: unit,
                         compact: true,
                         warning: index == _selectedOutfit,
@@ -276,29 +260,17 @@ final class _PauseMenuState extends State<PauseMenu> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
                       Expanded(
-                        child: unlocked
-                            ? Image.asset(
-                                outfit!.portrait,
-                                key: ValueKey<String>(
-                                  'pause-outfit-portrait-$_selectedOutfit',
-                                ),
-                                fit: BoxFit.contain,
-                              )
-                            // Not found yet: just a black shape.
-                            : ColorFiltered(
-                                colorFilter: const ColorFilter.mode(
-                                  Color(0xff050303),
-                                  BlendMode.srcIn,
-                                ),
-                                child: Image.asset(
-                                  PlayerOutfit.base.portrait,
-                                  fit: BoxFit.contain,
-                                ),
-                              ),
+                        child: Image.asset(
+                          outfit.portrait,
+                          key: ValueKey<String>(
+                            'pause-outfit-portrait-$_selectedOutfit',
+                          ),
+                          fit: BoxFit.contain,
+                        ),
                       ),
                       SizedBox(height: 4 * unit),
                       Text(
-                        unlocked ? outfit!.label.toUpperCase() : '???',
+                        outfit.label.toUpperCase(),
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: BloodColors.bright,
@@ -319,7 +291,7 @@ final class _PauseMenuState extends State<PauseMenu> {
                           onPressed: !unlocked || active
                               ? null
                               : () {
-                                  widget.onWearOutfit(outfit!);
+                                  widget.onWearOutfit(outfit);
                                   setState(() {});
                                 },
                         ),
