@@ -21,7 +21,7 @@ import 'package:stepbound/game/render/fire_component.dart';
 import 'package:stepbound/game/render/flag_component.dart';
 import 'package:stepbound/game/render/follow_camera.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
-import 'package:stepbound/game/render/interact_marker_component.dart';
+import 'package:stepbound/game/render/interact_glint_component.dart';
 import 'package:stepbound/game/render/mall_props.dart';
 import 'package:stepbound/game/render/npc_component.dart';
 import 'package:stepbound/game/render/pickup_component.dart';
@@ -215,21 +215,7 @@ final class StepboundGame extends FlameGame
       // opened the door, so he can be there all along.
       NpcComponent(asset: NpcComponent.luigiAsset, tile: trainLuigiTile),
       ShutterComponent(bars: luigiBars, map: simulation.map),
-      PanelGlintComponent(
-        panel: mallPanelTile,
-        active: () => simulation.controls.containsKey(mallPanelTile),
-      ),
-      PanelGlintComponent(
-        panel: trainMapPanelTile,
-        active: () => progress.memories.contains(StoryMemory.luigiRescued),
-      ),
-      // The gap between the roofs is the one thing on the map that is
-      // worth the interact button and shows nothing for it, so it wears
-      // the button's own symbol.
-      InteractMarkerComponent(
-        tile: rooftopGapTile,
-        active: () => hud.value.contains(HudElement.interact),
-      ),
+      ..._interactGlints(),
     ]);
     for (final entity in simulation.entities.values) {
       final component = CharacterComponent(entity: entity);
@@ -282,6 +268,50 @@ final class StepboundGame extends FlameGame
     if (ammoLoaded.value != loaded) {
       ammoLoaded.value = loaded;
     }
+  }
+
+  /// The glint on everything Mario can use, the same one the backpacks
+  /// give off (they draw their own, as it rides their drop): the panel
+  /// until it is pulled, the map once there is somewhere to go, and the
+  /// rest once there is an interact button to press.
+  List<InteractGlintComponent> _interactGlints() {
+    bool canInteract() => hud.value.contains(HudElement.interact);
+    return <InteractGlintComponent>[
+      InteractGlintComponent(
+        tile: mallPanelTile,
+        spot: const Offset(11, 6),
+        active: () => simulation.controls.containsKey(mallPanelTile),
+      ),
+      InteractGlintComponent(
+        tile: trainMapPanelTile,
+        spot: const Offset(11, 6),
+        active: () => progress.memories.contains(StoryMemory.luigiRescued),
+      ),
+      InteractGlintComponent(tile: rooftopGapTile, active: canInteract),
+      // Between the two open books of the crate.
+      InteractGlintComponent(
+        tile: trainBookTiles.first,
+        spot: const Offset(16, 6),
+        active: canInteract,
+      ),
+      // On the middle of Mario's cot.
+      InteractGlintComponent(
+        tile: trainCotTiles[trainCotTiles.length ~/ 2],
+        active: canInteract,
+      ),
+      // Over Luigi's head, as he stands a tile taller than his tile.
+      InteractGlintComponent(
+        tile: trainLuigiTile,
+        spot: const Offset(13, -6),
+        active: canInteract,
+      ),
+      for (final fire in campfireNames.keys)
+        InteractGlintComponent(
+          tile: fire,
+          spot: const Offset(11, 3),
+          active: canInteract,
+        ),
+    ];
   }
 
   /// Luigi carries the keys: rescuing him opens the visible passenger door

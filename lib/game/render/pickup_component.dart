@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flame/components.dart';
 import 'package:stepbound/core/core.dart' hide PositionComponent;
 import 'package:stepbound/game/render/asset_image.dart';
+import 'package:stepbound/game/render/interact_glint_component.dart';
 
 /// A backpack on the street. It drops in with a bounce when a script
 /// reveals it, glints now and then to catch the eye, and lingers for a
@@ -81,13 +82,10 @@ final class PickupComponent extends PositionComponent {
     }
     final y = _dropOffset().roundToDouble();
     canvas.drawImage(image, ui.Offset(0, y), _paint);
-    // A glint on the buckle every couple of seconds.
-    final phase = (_time * 0.6) % 1;
-    if (!isDropping && phase < 0.12) {
-      _paint.color = const ui.Color(0xfffff6d8);
-      canvas
-        ..drawRect(ui.Rect.fromLTWH(10, 9 + y, 1, 3), _paint)
-        ..drawRect(ui.Rect.fromLTWH(9, 10 + y, 3, 1), _paint);
+    // The glint of everything to interact with, on the buckle.
+    if (!isDropping && Glint.litAt(_time)) {
+      _paint.color = Glint.color;
+      Glint.paint(canvas, 10, 10 + y, _paint);
     }
   }
 }

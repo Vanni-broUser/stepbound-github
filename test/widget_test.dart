@@ -6,7 +6,7 @@ import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/game_audio.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
-import 'package:stepbound/game/render/interact_marker_component.dart';
+import 'package:stepbound/game/render/interact_glint_component.dart';
 import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
 import 'package:stepbound/save/save_game.dart';
@@ -507,23 +507,39 @@ void main() {
     });
   });
 
-  testWidgets('the gap between the roofs wears the interact symbol, once '
-      'the button is there to press', (tester) {
+  testWidgets('everything Mario can interact with glints like a backpack, '
+      'once the button is there to press', (tester) {
     return tester.runAsync(() async {
       final game = await _pumpReadyGame(tester);
-      final marker = game.world.children
-          .whereType<InteractMarkerComponent>()
-          .single;
-      expect(
-        marker.position,
-        Vector2(
-          rooftopGapTile.x * StepboundGame.tileSize,
-          rooftopGapTile.y * StepboundGame.tileSize,
-        ),
+      final glints = game.world.children.whereType<InteractGlintComponent>();
+      GridPoint tileOf(InteractGlintComponent glint) => GridPoint(
+        (glint.position.x / StepboundGame.tileSize).round(),
+        (glint.position.y / StepboundGame.tileSize).round(),
       );
-      expect(marker.active(), isFalse, reason: 'no interact button yet');
+      final world = game.simulation;
+      // A glint on the thing itself, or on the tile of it that shows it
+      // best: a crate or a cot spans a few tiles.
+      bool glinted(GridPoint tile) =>
+          glints.any((glint) => tileOf(glint).manhattanDistanceTo(tile) <= 1);
+      for (final tile in <GridPoint>[
+        ...world.campfires,
+        ...world.lookouts,
+        ...world.controls.keys,
+      ]) {
+        expect(glinted(tile), isTrue, reason: 'nothing glints near $tile');
+      }
+      expect(
+        world.travelMaps.any(glinted),
+        isTrue,
+        reason: 'the map on the table',
+      );
+
+      final gap = glints.singleWhere(
+        (glint) => tileOf(glint) == rooftopGapTile,
+      );
+      expect(gap.active(), isFalse, reason: 'no interact button yet');
       game.unlock(HudElement.interact);
-      expect(marker.active(), isTrue);
+      expect(gap.active(), isTrue);
     });
   });
 
