@@ -9,7 +9,7 @@ final class NorthDistrictScript extends TutorialScript {
   NorthDistrictScript(super.director);
 
   static const String campLesson =
-      'Usa gli accampamenti per salvare i tuoi progressi';
+      'Interagisci con i falò per salvare il gioco';
   static const String sprinterLesson =
       'Gli zombi veloci si muovono alla tua stessa velocità';
   static const String sprinterPortrait = 'assets/story/portrait_sprinter.png';
