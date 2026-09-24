@@ -121,7 +121,7 @@ MALL_NORTH_STOREFRONTS = {
     ],
 }
 HARBOUR_STOREFRONTS = {
-    7: [(75, 5, "arcobaleno")],  # up the alley, its door `h` at column 77
+    7: [(123, 5, "arcobaleno")],  # up the alley, its door `h` at column 125
     15: [
         (54, 6, "gelateria"),
         (78, 6, "pescheria"),  # past the alley, with the palazzi east of it

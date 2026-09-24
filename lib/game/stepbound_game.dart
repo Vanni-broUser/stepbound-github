@@ -57,6 +57,7 @@ final class StepboundGame extends FlameGame
     this._tutorialState,
     Set<HudElement> unlocked = const <HudElement>{},
     this.onRest,
+    this.onLevelCompleted,
     GameAudio? audio,
     GameplayHaptics? haptics,
     Progress? progress,
@@ -139,6 +140,9 @@ final class StepboundGame extends FlameGame
 
   /// Saves the progress when the player rests at a campfire.
   final Future<void> Function(GameSnapshot snapshot)? onRest;
+
+  /// Leaves gameplay for the results screen after the final cutscene.
+  final void Function(GameSnapshot snapshot)? onLevelCompleted;
   final Map<String, Object?>? _tutorialState;
 
   bool _acceptsInput = false;
@@ -148,6 +152,7 @@ final class StepboundGame extends FlameGame
   String? _focusId;
   double _gameOverCountdown = 0;
   double _entranceHoldLeft = 0;
+  bool _levelCompleted = false;
 
   /// The campfire Mario is resting at (kneeling, then the camp menu).
   GridPoint? _campfire;
@@ -340,10 +345,12 @@ final class StepboundGame extends FlameGame
   void playCutscene(
     List<CutsceneFrame> frames, {
     void Function()? onFinished,
+    bool stayBlack = false,
   }) => _cover(
     CutsceneCover(
       List<CutsceneFrame>.unmodifiable(frames),
       onFinished: onFinished,
+      stayBlack: stayBlack,
     ),
   );
 
@@ -354,6 +361,17 @@ final class StepboundGame extends FlameGame
       cover.value = null;
       cutscene.onFinished?.call();
     }
+  }
+
+  @override
+  void completeLevel() {
+    if (_levelCompleted) {
+      return;
+    }
+    _levelCompleted = true;
+    inputLocked = true;
+    soundscapePaused = true;
+    onLevelCompleted?.call(snapshot(place: 'Stazione'));
   }
 
   @override

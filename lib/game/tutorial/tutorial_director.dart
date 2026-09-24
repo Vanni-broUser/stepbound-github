@@ -94,9 +94,17 @@ abstract interface class TutorialHost {
 
   void unlock(HudElement element);
 
-  /// Fades to black and plays [frames] like the intro story, then fades
-  /// back to the game and calls [onFinished].
-  void playCutscene(List<CutsceneFrame> frames, {void Function()? onFinished});
+  /// Fades to black and plays [frames] like the intro story, then calls
+  /// [onFinished]. Unless [stayBlack] is true, it fades back to the game
+  /// first.
+  void playCutscene(
+    List<CutsceneFrame> frames, {
+    void Function()? onFinished,
+    bool stayBlack = false,
+  });
+
+  /// Leaves gameplay for the results screen after the last story frame.
+  void completeLevel();
 
   /// Luigi walks off through the shop's open shutter and vanishes, once he
   /// has agreed to meet Mario again; calls [onFinished] once he is gone.

@@ -11,6 +11,7 @@ enum StoryMemory {
   luigiRescued,
   priestMet,
   priestErrand,
+  priestWelcomed,
   luigiAtStation,
 }
 

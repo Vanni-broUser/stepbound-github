@@ -7,9 +7,10 @@
 /// - `E` entrance from the car park, `U` stairs up, `D` stairs down: doors.
 ///   The ground floor is two areas one above the other, joined by a
 ///   two-cell passage down their west side: the hall below, with the
-///   entrance in its front wall and the stairs in its back wall, and above
-///   it a second row of shops whose back wall holds `X`, the fire exit onto
-///   the car park behind the building, straight above the stairs.
+///   entrance in its front wall and the stairs at the centre of its back
+///   wall, and above it a second row of shops whose back wall holds `X`,
+///   the fire exit onto the car park behind the building. Two wanderers
+///   stand close to that exit.
 /// - `P` planter, `T` abandoned trolley, `K` kiosk, `BBB` bench, `G` gate
 ///   post, `H` the shutter's bars, `L` Luigi behind them: obstacles.
 /// - `.` floor, `o` floor of a shop, `d` floor of the service area beyond
@@ -21,7 +22,7 @@ const List<String> mallGroundRows = <String>[
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
   'xWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWx',
   'xWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWXWWx',
-  'x.....:..............:........b........:.......x',
+  'x.....:..............:........b........:..Z...Zx',
   'x.........PP......*......T..........PP.....*...x',
   'x....T........:.............KK..........b......x',
   'x.......*........BBB.............*...........T.x',
@@ -33,8 +34,8 @@ const List<String> mallGroundRows = <String>[
   'xx..xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
   'xx+.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
   'xx..xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-  'xW..WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWUUUWx',
-  'xW..WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWUUUWx',
+  'xW..WWWWWWWWWWWWWWWWWWUUUWWWWWWWWWWWWWWWWWWWWWWx',
+  'xW..WWWWWWWWWWWWWWWWWWUUUWWWWWWWWWWWWWWWWWWWWWWx',
   'x........:..........*............:......b......x',
   'x......T.......PP............TT.......P........x',
   'x....*......:.............*..............*.....x',

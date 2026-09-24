@@ -225,6 +225,13 @@ const int stationBackpackAmmo = 2;
 /// the nave of San Nicola and the station's booking hall, both `Z`.
 const String indoorZombiePrefix = 'indoor-wanderer-';
 
+/// The two wanderers guarding the fire exit in the mall's upper ground-
+/// floor area.
+const String mallGroundZombiePrefix = 'mall-ground-wanderer-';
+
+/// The two wanderers roaming the station's underground corridor.
+const String stationUnderpassZombiePrefix = 'station-underpass-wanderer-';
+
 /// Walking into the crossroads makes the tutorial zombie notice the player
 /// even if it is not looking that way.
 const GridRect tutorialZombieTrigger = GridRect(14, 33, 23, 39);
@@ -643,6 +650,20 @@ WorldState createTutorialWorld({int seed = 20260920}) {
       );
     }
   }
+  for (final (place, prefix) in <(Place, String)>[
+    (_mallGround, mallGroundZombiePrefix),
+    (_underpass, stationUnderpassZombiePrefix),
+  ]) {
+    for (final (index, tile) in place.tilesOf('Z').indexed) {
+      entities.add(
+        factory.zombie(
+          id: '$prefix$index',
+          kind: EntityKind.wanderer,
+          position: tile,
+        ),
+      );
+    }
+  }
 
   return WorldState(
     map: TileMap(
@@ -690,7 +711,8 @@ Map<String, Object?> saveTutorialWorld(WorldState world) {
 /// A world resumed from a [saveTutorialWorld] save: the level's map with
 /// the saved changes, and everything else as it was.
 WorldState restoreTutorialWorld(Map<String, Object?> json) {
-  final map = createTutorialWorld().map;
+  final currentLevel = createTutorialWorld();
+  final map = currentLevel.map;
   for (final change
       in (json['mapChanges']! as List<Object?>).cast<Map<String, Object?>>()) {
     map.setTile(
@@ -698,7 +720,37 @@ WorldState restoreTutorialWorld(Map<String, Object?> json) {
       Tile(TileKind.values.byName(change['kind']! as String)),
     );
   }
-  return WorldState.fromJson(json, map: map);
+  // Saves keep the complete pickup and entity lists. When a newer level
+  // adds a backpack or a zombie, an older save therefore knows nothing
+  // about it even though the current map around it has already been
+  // rebuilt above. Merge only missing defaults: saved state (including
+  // collected backpacks and dead zombies) wins, while newly shipped
+  // inhabitants and items appear where the level puts them.
+  final savedPickups = (json['pickups'] as List<Object?>? ?? const <Object?>[])
+      .cast<Map<String, Object?>>();
+  final savedPickupIds = <String>{
+    for (final pickup in savedPickups) pickup['id']! as String,
+  };
+  final savedEntities =
+      (json['entities'] as List<Object?>? ?? const <Object?>[])
+          .cast<Map<String, Object?>>();
+  final savedEntityIds = <String>{
+    for (final entity in savedEntities) entity['id']! as String,
+  };
+  final migrated = <String, Object?>{
+    ...json,
+    'entities': <Object?>[
+      ...savedEntities,
+      for (final entity in currentLevel.entities.values)
+        if (!savedEntityIds.contains(entity.id)) entity.toJson(),
+    ],
+    'pickups': <Object?>[
+      ...savedPickups,
+      for (final pickup in currentLevel.pickups.values)
+        if (!savedPickupIds.contains(pickup.id)) pickup.toJson(),
+    ],
+  };
+  return WorldState.fromJson(migrated, map: map);
 }
 
 /// A wanderer coming in through the hypermarket's gate at [position],

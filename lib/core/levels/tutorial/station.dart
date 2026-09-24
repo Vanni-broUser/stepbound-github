@@ -26,7 +26,7 @@
 /// bench, `K` a ticket window, `n` a canopy post are obstacles you can see
 /// over; `.` the hall floor, `=` the platform, `,` ballast, `-` the rails,
 /// `:` litter (noisy), `b` blood, `*` a working lamp, `+` a flickering
-/// one, `Z` a wanderer.
+/// one, `Z` a wanderer. Two wanderers roam the underpass too.
 // station-rows-start
 const List<String> stationRows = <String>[
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
@@ -61,7 +61,7 @@ const List<String> stationUnderpassRows = <String>[
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
   'xWWWWWWWWWWWWWWWWWWWWWWWWWWWWx',
   'xWDDWWWWWWWWWWWWWWWWWWWWWWUUWx',
-  'x...:......*.......:......:..x',
+  'x...:......*..Z....:...Z..:..x',
   'x.b........:...+..........b..x',
   'x..:...*.........:.....*.....x',
   'xwwwwwwwwwwwwwwwwwwwwwwwwwwwwx',

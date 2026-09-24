@@ -6,7 +6,9 @@ import 'package:stepbound/game/tutorial/tutorial_director.dart';
 /// gets Mario hailed by Don Angelo, who wants the two zombies at his gate
 /// gone before he will talk. Once they are dead, or far enough away for
 /// Mario to stand at the gate unbothered, the priest names his price: a
-/// censer's worth of incense, and only then the gate.
+/// censer's worth of incense. Bringing it back to a clear gate earns Mario
+/// his welcome inside; coming back while zombies crowd the entrance makes
+/// Don Angelo repeat his warning.
 final class PriestScript extends TutorialScript {
   PriestScript(super.director);
 
@@ -15,6 +17,8 @@ final class PriestScript extends TutorialScript {
   static const String gateScene = 'assets/story/scene_priest_gate.jpg';
   static const String seafrontScene = 'assets/story/scene_mario_seafront.jpg';
   static const String dealSceneImage = 'assets/story/scene_priest_deal.jpg';
+  static const String welcomeSceneImage =
+      'assets/story/scene_priest_welcome.jpg';
 
   static const String clearThemOut =
       'Sbarazzati di questi zombi così potremmo parlare meglio';
@@ -24,6 +28,7 @@ final class PriestScript extends TutorialScript {
   static const String everyTwoStreetsLine =
       'Suvvia giovanotto, siamo in Italia! Nei centri storici trovi una '
       'chiesa ogni due strade';
+  static const String welcomeLine = 'Benvenuto nella nostra chiesa giovanotto';
 
   /// Don Angelo calls out from behind his gate, Mario answers.
   static const List<CutsceneFrame> meetingScene = <CutsceneFrame>[
@@ -74,6 +79,11 @@ final class PriestScript extends TutorialScript {
     ),
   ];
 
+  /// Don Angelo receives Mario once he returns with the incense.
+  static const List<CutsceneFrame> welcomeScene = <CutsceneFrame>[
+    CutsceneFrame(image: welcomeSceneImage, speaker: priest, text: welcomeLine),
+  ];
+
   /// How far a zombie still on its feet has to be, in tiles, for Mario to
   /// stand at the gate without it coming after him: past both a
   /// wanderer's sight and its hearing.
@@ -83,6 +93,8 @@ final class PriestScript extends TutorialScript {
   bool _clearAsked = false;
   bool _dealPlayed = false;
   bool _errandGiven = false;
+  bool _welcomePlayed = false;
+  bool _blockedAtGate = false;
 
   /// True once Don Angelo has asked for the incense: the errand is open.
   bool get errandGiven => _errandGiven;
@@ -92,7 +104,9 @@ final class PriestScript extends TutorialScript {
 
   /// Walking up to the gate plays the priest's first scene, and he asks for
   /// the zombies to be dealt with. Standing at the gate with them gone
-  /// plays the second, and he names his price.
+  /// plays the second, and he names his price. Once Mario has the incense,
+  /// returning to a clear gate plays the welcome; at a blocked gate Don
+  /// Angelo repeats his original warning once per visit.
   @override
   void update({required bool turnAnimating}) {
     if (turnAnimating || host.isPromptVisible) {
@@ -111,6 +125,26 @@ final class PriestScript extends TutorialScript {
       _dealPlayed = true;
       progress.remember(StoryMemory.priestErrand);
       host.playCutscene(dealScene, onFinished: _askForIncense);
+      return;
+    }
+    if (!_errandGiven ||
+        _welcomePlayed ||
+        !host.isUnlocked(HudElement.incense)) {
+      return;
+    }
+    if (!priestGateFront.contains(position)) {
+      _blockedAtGate = false;
+      return;
+    }
+    if (_gateIsClear(position)) {
+      _welcomePlayed = true;
+      progress.remember(StoryMemory.priestWelcomed);
+      host.playCutscene(welcomeScene);
+      return;
+    }
+    if (!_blockedAtGate) {
+      _blockedAtGate = true;
+      _askToClearTheGate();
     }
   }
 
@@ -122,10 +156,11 @@ final class PriestScript extends TutorialScript {
       return false;
     }
     for (final zombie in world.entities.values) {
-      if (!zombie.id.startsWith(priestZombiePrefix) || !zombie.isAlive) {
+      if (zombie.kind == EntityKind.player || !zombie.isAlive) {
         continue;
       }
-      if (zombie.component<HearingComponent>().hunting) {
+      final isPriestZombie = zombie.id.startsWith(priestZombiePrefix);
+      if (isPriestZombie && zombie.component<HearingComponent>().hunting) {
         return false;
       }
       final where = zombie.component<PositionComponent>().position;
@@ -163,6 +198,7 @@ final class PriestScript extends TutorialScript {
     'clearAsked': _clearAsked,
     'deal': _dealPlayed,
     'errand': _errandGiven,
+    'welcome': _welcomePlayed,
   };
 
   @override
@@ -171,5 +207,6 @@ final class PriestScript extends TutorialScript {
     _clearAsked = json['clearAsked'] as bool? ?? false;
     _dealPlayed = json['deal'] as bool? ?? false;
     _errandGiven = json['errand'] as bool? ?? false;
+    _welcomePlayed = json['welcome'] as bool? ?? false;
   }
 }

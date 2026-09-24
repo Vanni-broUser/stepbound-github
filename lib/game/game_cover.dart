@@ -17,10 +17,11 @@ final class PromptCover extends GameCover {
 
 /// A story scene: pictures and lines between two fades to black.
 final class CutsceneCover extends GameCover {
-  CutsceneCover(this.frames, {this.onFinished});
+  CutsceneCover(this.frames, {this.onFinished, this.stayBlack = false});
 
   final List<CutsceneFrame> frames;
   final void Function()? onFinished;
+  final bool stayBlack;
 }
 
 /// A place announced on the way in: its picture and its name between two
