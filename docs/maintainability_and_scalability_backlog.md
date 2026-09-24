@@ -21,18 +21,6 @@ management framework:
 - `GameInputController` for keyboard, touch and held-direction repeat;
 - `PlaceTransitionController` for portals, location cards and camera hand-off.
 
-## P2 — Make coverage account for every production library
-
-The aggregate LCOV threshold counts only libraries loaded by tests. Production
-adapters such as `PlayerAudio` and bootstrap code can be absent from both the
-numerator and denominator, while the reported percentage still passes.
-
-- Compare the LCOV file list with `lib/**/*.dart` and report missing libraries.
-- Add per-area thresholds for core, persistence, UI and platform adapters.
-- Cover corrupt saves, storage failures, every world-event codec and audio
-  lifecycle behaviour.
-- Add direct tests for currently uncovered cutscene and location-card widgets.
-
 ## P2 — Make asset generation reproducible
 
 The Python asset tools have no pinned Python/Pillow environment, the largest

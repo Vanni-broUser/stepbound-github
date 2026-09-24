@@ -9,11 +9,13 @@ workflow:
       when: never
     - if: '$CI_COMMIT_BRANCH'
 
-# Un solo stage dopo le verifiche: i job che producono qualcosa sono tutti
-# manuali e indipendenti fra loro, quindi non c'e niente da mettere in fila.
+# La build viene prima delle verifiche: i job che producono qualcosa sono
+# tutti manuali e non bloccanti (allow_failure), quindi si possono lanciare
+# appena parte la pipeline senza aspettare analisi e test. Le verifiche hanno
+# `needs: []` e partono subito comunque, nello stage successivo.
 stages:
-  - verify
   - build
+  - verify
 
 variables:
   PUB_CACHE: "$CI_PROJECT_DIR/.pub-cache"
