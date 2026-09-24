@@ -1,6 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
+import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/save/save_game.dart';
@@ -65,6 +68,26 @@ void main() {
       StoryMemory.luigiTrapped,
       StoryMemory.priestErrand,
     ]);
+  });
+
+  test('a save keeps unlocked clothes and the outfit in use', () {
+    final progress = Progress.newGame()
+      ..unlockOutfit(PlayerOutfit.cultist)
+      ..wearOutfit(PlayerOutfit.cultist);
+    final loaded = Progress.fromJson(progress.toJson());
+
+    expect(loaded.unlockedOutfits, <PlayerOutfit>{
+      PlayerOutfit.base,
+      PlayerOutfit.cultist,
+    });
+    expect(loaded.activeOutfit, PlayerOutfit.cultist);
+
+    final oldSave = Progress.newGame().toJson()
+      ..remove('unlockedOutfits')
+      ..remove('activeOutfit');
+    final migrated = Progress.fromJson(oldSave);
+    expect(migrated.unlockedOutfits, <PlayerOutfit>{PlayerOutfit.base});
+    expect(migrated.activeOutfit, PlayerOutfit.base);
   });
 
   group('reading a slot', () {
@@ -212,6 +235,46 @@ void main() {
       await saves.clear(1);
       expect(saves.values, isEmpty);
       expect(await saves.read(1), isA<EmptySave>());
+    });
+  });
+
+  group('on the device', () {
+    setUp(
+      () => SharedPreferencesAsyncPlatform.instance =
+          InMemorySharedPreferencesAsync.empty(),
+    );
+
+    test('saves go through the preferences, backup and all', () async {
+      final saves = PreferencesSaveRepository();
+      await saves.save(save(place: 'Il porto'));
+      await saves.save(save());
+      final preferences = SharedPreferencesAsync();
+      expect(
+        await preferences.getString(StoredSaveRepository.slotKey(1)),
+        contains('Dietro la caserma'),
+      );
+      expect(
+        await preferences.getString(StoredSaveRepository.backupKey(1)),
+        contains('Il porto'),
+      );
+      expect((await saves.load(1))!.place, 'Dietro la caserma');
+      expect((await saves.all()).whereType<EmptySave>(), hasLength(3));
+
+      await saves.clear(1);
+      expect(await preferences.getKeys(), isEmpty);
+    });
+
+    test('a slot damaged on the device falls back on its backup', () async {
+      final saves = PreferencesSaveRepository(
+        preferences: SharedPreferencesAsync(),
+      );
+      await saves.save(save(place: 'Il porto'));
+      await saves.save(save());
+      await SharedPreferencesAsync().setString(
+        StoredSaveRepository.slotKey(1),
+        '{"format"',
+      );
+      expect((await saves.load(1))!.place, 'Il porto');
     });
   });
 

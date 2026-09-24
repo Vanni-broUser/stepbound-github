@@ -55,6 +55,22 @@ final class _FakeHost implements TutorialHost {
   void unlock(HudElement element) => unlocked.add(element);
 
   @override
+  void removeHud(HudElement element) => unlocked.remove(element);
+
+  int duomoOpenings = 0;
+  int duomoUpperOpenings = 0;
+  int cultistRobesCollected = 0;
+
+  @override
+  void openDuomo() => duomoOpenings++;
+
+  @override
+  void openDuomoUpper() => duomoUpperOpenings++;
+
+  @override
+  void collectCultistRobe() => cultistRobesCollected++;
+
+  @override
   bool isUnlocked(HudElement element) => unlocked.contains(element);
 
   final List<List<CutsceneFrame>> cutscenes = <List<CutsceneFrame>>[];
@@ -119,12 +135,14 @@ void main() {
     int ammo = 0,
     bool gun = false,
     bool incense = false,
+    bool episcopalRing = false,
   }) => PickedUpEvent(
     pickupId: id,
     at: world.pickups[id]!.position,
     ammo: ammo,
     gun: gun,
     incense: incense,
+    episcopalRing: episcopalRing,
   );
 
   setUp(() {
@@ -151,6 +169,139 @@ void main() {
 
     director.update(0.05, turnAnimating: false);
     expect(host.shown.single.single.text, 'Ecco');
+  });
+
+  test('the locked bar door explains that it needs a key', () {
+    world.player.component<PositionComponent>()
+      ..position = barLockedDoorTile.step(Direction.south)
+      ..facing = Direction.north;
+
+    final events = const TurnScheduler().advance(world, const InteractAction());
+    director.onEvents(events);
+    settle();
+
+    expect(events.whereType<NoInteractionEvent>(), hasLength(1));
+    expect(host.shown.single.single.text, BarScript.lockedDoorLine);
+    expect(
+      world.map.tileAt(barLockedDoorTile).kind,
+      TileKind.wall,
+      reason: 'the locked service door must not open like a normal door',
+    );
+  });
+
+  test('the bar key opens the service door and is consumed', () {
+    host.unlock(HudElement.barKey);
+    world.player.component<PositionComponent>()
+      ..position = barLockedDoorTile.step(Direction.south)
+      ..facing = Direction.north;
+
+    final events = const TurnScheduler().advance(world, const InteractAction());
+    director.onEvents(events);
+
+    expect(events.whereType<NoInteractionEvent>(), hasLength(1));
+    expect(world.map.tileAt(barLockedDoorTile).isWalkable, isTrue);
+    expect(host.unlocked, isNot(contains(HudElement.barKey)));
+    expect(host.shown, isEmpty);
+  });
+
+  test('everyone in the Duomo speaks with a portrait', () {
+    for (final (tile, text, speaker, portrait)
+        in <(GridPoint, String, String, String)>[
+          (
+            duomoStairCultistTile,
+            DuomoScript.stairBlockedLine,
+            DuomoScript.cultist,
+            DuomoScript.cultistPortrait,
+          ),
+          (
+            duomoWelcomingCultistTile,
+            DuomoScript.welcomeLine,
+            DuomoScript.cultist,
+            DuomoScript.cultistPortrait,
+          ),
+          (
+            duomoPriestTile,
+            DuomoScript.ringReminderLine,
+            PriestScript.priest,
+            PriestScript.priestPortrait,
+          ),
+        ]) {
+      world.player.component<PositionComponent>()
+        ..position = tile.step(Direction.south)
+        ..facing = Direction.north;
+      final events = const TurnScheduler().advance(
+        world,
+        const InteractAction(),
+      );
+      director.onEvents(events);
+      settle();
+
+      final line = host.shown.last.single;
+      expect(line.text, text);
+      expect(line.speaker, speaker);
+      expect(line.portrait, portrait);
+      host.dismiss();
+    }
+  });
+
+  test('the episcopal ring enters the HUD without a pickup message', () {
+    director.onEvents(<WorldEvent>[
+      pickedUp(episcopalRingPickupId, episcopalRing: true),
+    ]);
+    settle();
+
+    expect(host.pickupAnimations, 1);
+    expect(host.unlocked, contains(HudElement.episcopalRing));
+    expect(host.shown, isEmpty);
+  });
+
+  test('entering the Duomo with the ring welcomes Mario into the family', () {
+    final ring = world.pickups[episcopalRingPickupId]!
+      ..active = false
+      ..collected = true;
+    host.unlock(HudElement.episcopalRing);
+    world.player.component<PositionComponent>().position =
+        world.portals[duomoPortalTile]!.to;
+
+    settle();
+
+    expect(ring.collected, isTrue);
+    expect(host.cutscenes.single, DuomoScript.initiationScene);
+    expect(host.cutscenes.single, hasLength(2));
+    expect(host.cutscenes.single.first.image, DuomoScript.initiationImage);
+    expect(host.cutscenes.single.first.text, DuomoScript.familyWelcomeLine);
+    expect(host.cutscenes.single.last.text, DuomoScript.robeLine);
+    expect(progress.memories, contains(StoryMemory.priestFamily));
+
+    host.onCutsceneFinished?.call();
+    expect(host.unlocked, isNot(contains(HudElement.episcopalRing)));
+    expect(host.duomoUpperOpenings, 1);
+
+    director.onEvents(<WorldEvent>[
+      NoInteractionEvent(duomoPriestTile),
+      NoInteractionEvent(duomoStairCultistMovedTile),
+      NoInteractionEvent(duomoUpperLockedDoorTile),
+    ]);
+    settle();
+    expect(host.shown[0].single.text, DuomoScript.initiationReminderLine);
+    host.dismiss();
+    settle();
+    expect(host.shown[1].single.text, DuomoScript.welcomeLine);
+    expect(host.shown[1].single.portrait, DuomoScript.cultistPortrait);
+    host.dismiss();
+    settle();
+    expect(host.shown[2].single.text, DuomoScript.lockedDoorLine);
+    expect(host.shown[2].single.portrait, isNull);
+  });
+
+  test('the robe upstairs is announced before Mario puts it on', () {
+    director.onEvents(<WorldEvent>[NoInteractionEvent(duomoUpperRobeTile)]);
+    settle();
+
+    expect(host.shown.single.single.text, DuomoScript.robeFoundLine);
+    expect(host.cultistRobesCollected, 0);
+    host.dismiss();
+    expect(host.cultistRobesCollected, 1);
   });
 
   test('looking over the gap between the roofs tells Mario what it would '
@@ -986,11 +1137,25 @@ void main() {
       settle();
 
       expect(host.cutscenes, hasLength(3));
-      final welcome = host.cutscenes.last.single;
-      expect(welcome.image, PriestScript.welcomeSceneImage);
-      expect(welcome.speaker, PriestScript.priest);
-      expect(welcome.text, PriestScript.welcomeLine);
+      final welcome = host.cutscenes.last;
+      expect(welcome, PriestScript.welcomeScene);
+      expect(welcome, hasLength(5));
+      expect(welcome.first.image, PriestScript.welcomeSceneImage);
+      expect(welcome.first.speaker, PriestScript.priest);
+      expect(welcome.first.text, PriestScript.welcomeLine);
+      expect(welcome[1].image, PriestScript.communitySceneImage);
+      expect(welcome[1].text, PriestScript.notCommunityYetLine);
+      expect(welcome[2].speaker, 'Mario Rossi');
+      expect(welcome[2].text, PriestScript.moreWorkLine);
+      expect(welcome[3].text, PriestScript.useYourSkillsLine);
+      expect(welcome.last.image, PriestScript.barKeySceneImage);
+      expect(welcome.last.text, PriestScript.barKeyLine);
       expect(progress.memories.last, StoryMemory.priestWelcomed);
+
+      host.onCutsceneFinished?.call();
+      expect(host.unlocked, isNot(contains(HudElement.incense)));
+      expect(host.unlocked, contains(HudElement.barKey));
+      expect(host.duomoOpenings, 1);
 
       settle();
       expect(host.cutscenes, hasLength(3), reason: 'the welcome plays once');

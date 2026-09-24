@@ -6,8 +6,9 @@ import 'package:stepbound/core/core.dart' hide PositionComponent;
 /// The small white four-pointed star that says "press interact here". The
 /// backpacks give it off, and so does everything else Mario can use: the
 /// panels, the map in the train, the gap between the roofs, the books, the
-/// cot, the campfires. One look for every object, so the player learns it
-/// once; the people Mario can talk to wear none.
+/// cot, the locked doors, the robe in the Duomo, the campfires. One look
+/// for every object, so the player learns it once; the people Mario can
+/// talk to wear none.
 abstract final class Glint {
   static const ui.Color color = ui.Color(0xfffff6d8);
 

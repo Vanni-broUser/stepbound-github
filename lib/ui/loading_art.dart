@@ -58,6 +58,7 @@ final class LoadingCover extends StatefulWidget {
     required this.caption,
     this.fadeIn = false,
     this.minimum = const Duration(milliseconds: 900),
+    this.artSize,
     super.key,
   });
 
@@ -68,6 +69,11 @@ final class LoadingCover extends StatefulWidget {
   final String caption;
   final bool fadeIn;
   final Duration minimum;
+
+  /// The size of the picture, centred on black; the whole of the space
+  /// when null. It covers the whole screen either way, so nothing laid out
+  /// beside the game shows through while it loads.
+  final Size? artSize;
 
   @override
   State<LoadingCover> createState() => _LoadingCoverState();
@@ -132,7 +138,15 @@ final class _LoadingCoverState extends State<LoadingCover>
         opacity: _opacity,
         child: ColoredBox(
           color: Colors.black,
-          child: LoadingArt(caption: widget.caption),
+          child: switch (widget.artSize) {
+            null => LoadingArt(caption: widget.caption),
+            final size => Center(
+              child: SizedBox.fromSize(
+                size: size,
+                child: LoadingArt(caption: widget.caption),
+              ),
+            ),
+          },
         ),
       ),
     );

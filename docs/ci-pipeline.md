@@ -4,15 +4,20 @@ Stepbound usa la stessa impostazione di base di Delivery: una sola pipeline per
 commit/MR, cache limitata a `.pub-cache`, job interrompibili e configurazione
 suddivisa per responsabilita in `gitlab/`.
 
-Gli stage sono due: `verify`, che blocca, e `build`, dove stanno tutti i job
-che producono un pacchetto. Sono tutti manuali e non dipendono l'uno
-dall'altro, quindi tenerli separati in due stage serviva solo a metterli in
-fila.
+Gli stage sono due: prima `build`, dove stanno tutti i job che producono un
+pacchetto, poi `verify`, che blocca. I job di build sono manuali e non
+bloccanti, quindi si possono lanciare appena parte la pipeline, senza aspettare
+analisi e test; le verifiche hanno `needs: []` e partono subito lo stesso.
+Un pacchetto costruito cosi non e ancora verificato: prima di distribuirlo
+guarda che `verify` sia verde.
 
 ## Verifiche e build
 
 - `analyze`: format e analisi statica bloccanti.
-- `unit_tests`: JUnit, LCOV e soglia iniziale di copertura al 75%.
+- `unit_tests`: JUnit, LCOV e `tools/check_coverage.dart`: soglie per area
+  (piattaforma, salvataggi, core, UI, gioco) e totale da
+  `tools/coverage_policy.json`, e nessuna libreria con codice lasciata fuori
+  dal report perche nessun test la carica.
 - `deps_check`: dipendenze obsolete, informativo.
 - `build_android_debug`: APK debug installabile, manuale e non bloccante.
 - `build_android_signed` / `build_ios_signed`: pacchetti release manuali solo su ref

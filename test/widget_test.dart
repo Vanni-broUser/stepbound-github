@@ -6,6 +6,7 @@ import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/game_audio.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
+import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/game/render/interact_glint_component.dart';
 import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
@@ -137,6 +138,74 @@ void main() {
       ]) {
         expect(find.byKey(ValueKey<String>(key)), findsNothing);
       }
+    });
+  });
+
+  testWidgets('quest inventory badges show their item name when tapped', (
+    tester,
+  ) {
+    return tester.runAsync(() async {
+      final game = await _pumpReadyGame(tester)
+        ..unlock(HudElement.incense)
+        ..unlock(HudElement.barKey)
+        ..unlock(HudElement.episcopalRing);
+      await tester.pump();
+
+      final incense = find.byKey(const ValueKey<String>('hud-incense'));
+      final key = find.byKey(const ValueKey<String>('hud-bar-key'));
+      final ring = find.byKey(const ValueKey<String>('hud-episcopal-ring'));
+      expect(incense, findsOneWidget);
+      expect(key, findsOneWidget);
+      expect(ring, findsOneWidget);
+
+      await tester.tap(incense);
+      await tester.pump();
+      expect(find.text('Incenso'), findsOneWidget);
+
+      game.dismissPrompt();
+      await tester.pump();
+      await tester.tap(key);
+      await tester.pump();
+      expect(find.text('Chiave del Bar Arcobaleno'), findsOneWidget);
+
+      game.dismissPrompt();
+      await tester.pump();
+      await tester.tap(ring);
+      await tester.pump();
+      expect(find.text('Anello episcopale'), findsOneWidget);
+    });
+  });
+
+  testWidgets('the Duomo robe fades Mario into the occultist outfit and '
+      'changes his portrait', (tester) {
+    return tester.runAsync(() async {
+      final game = await _pumpReadyGame(tester);
+      expect(game.progress.activeOutfit, PlayerOutfit.base);
+      expect(
+        game.simulation.map.tileAt(duomoUpperRobeTile).isWalkable,
+        isFalse,
+      );
+
+      game.collectCultistRobe();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      expect(game.progress.unlockedOutfits, contains(PlayerOutfit.cultist));
+      expect(game.progress.activeOutfit, PlayerOutfit.cultist);
+      expect(game.simulation.map.tileAt(duomoUpperRobeTile).isWalkable, isTrue);
+
+      await tester.pump(const Duration(seconds: 2));
+      game.showPrompt(const <TutorialLine>[
+        TutorialLine.mario('La tunica mi sta bene.'),
+      ]);
+      await tester.pump();
+      final portrait = tester.widget<Image>(
+        find.byKey(const ValueKey<String>('dialogue-portrait-0')),
+      );
+      expect(
+        (portrait.image as AssetImage).assetName,
+        PlayerOutfit.cultist.portrait,
+      );
     });
   });
 
@@ -525,6 +594,10 @@ void main() {
         ...world.campfires,
         ...world.lookouts.where((tile) => tile != trainLuigiTile),
         ...world.controls.keys,
+        // What the scripts answer when interacted with.
+        barLockedDoorTile,
+        duomoUpperRobeTile,
+        duomoUpperLockedDoorTile,
       ]) {
         expect(glinted(tile), isTrue, reason: 'nothing glints near $tile');
       }
@@ -1300,5 +1373,88 @@ void main() {
     }
     expect(centreOf('touch-shoot'), greaterThan(centreOf('touch-right')));
     expect(centreOf('touch-interact'), greaterThan(centreOf('touch-right')));
+  });
+
+  group('on a phone longer than 16:9, with the camera on the left', () {
+    /// A 20:9 phone in landscape: the picture leaves a band on each side.
+    const screen = Size(915, 412);
+    const cutout = 32.0;
+    final picture =
+        IntegerResolutionViewport.virtualWidth *
+        IntegerResolutionViewport.scaleFor(screen.width, screen.height);
+    final band = (screen.width - picture) / 2;
+
+    Future<StepboundGame> loadOnThePhone(WidgetTester tester) async {
+      tester.view
+        ..devicePixelRatio = 1
+        ..physicalSize = screen
+        ..padding = const FakeViewPadding(left: cutout);
+      addTearDown(tester.view.reset);
+      final saves = MemorySaveRepository();
+      await saves.save(
+        SaveGame(
+          slot: 1,
+          savedAt: DateTime(2026),
+          place: 'Dietro la caserma',
+          world: saveTutorialWorld(createTutorialWorld()),
+          tutorial: const <String, Object?>{},
+          progress: Progress.newGame().toJson(),
+          hud: const <String>['interact', 'ammo', 'shoot'],
+        ),
+      );
+      await tester.pumpWidget(StepboundApp(saves: saves));
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey<String>('menu-load')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey<String>('menu-slot-1')));
+      await tester.pump();
+      return tester
+          .state<GameWidgetState<StepboundGame>>(
+            find.byType(GameWidget<StepboundGame>),
+          )
+          .currentGame;
+    }
+
+    Rect rectOf(WidgetTester tester, String key) =>
+        tester.getRect(find.byKey(ValueKey<String>(key)));
+
+    testWidgets('the controls sit in the bands, as far from either edge', (
+      tester,
+    ) async {
+      await loadOnThePhone(tester);
+      expect(
+        rectOf(tester, 'stepbound-game').width,
+        moreOrLessEquals(picture),
+        reason: 'the picture keeps its 16:9',
+      );
+
+      final left = rectOf(tester, 'touch-left').left;
+      final right = screen.width - rectOf(tester, 'touch-ammo').right;
+      expect(left, moreOrLessEquals(cutout), reason: 'clear of the camera');
+      expect(right, moreOrLessEquals(left), reason: 'same gap both sides');
+      expect(left, lessThan(band), reason: 'out in the band, off the game');
+      expect(
+        screen.width - rectOf(tester, 'touch-menu').right,
+        moreOrLessEquals(left),
+      );
+    });
+
+    testWidgets('a text box spans the screen, as far from either edge', (
+      tester,
+    ) async {
+      final game = await loadOnThePhone(tester);
+      game.showPrompt(const <TutorialLine>[TutorialLine('Una battuta')]);
+      await tester.pump();
+
+      final box = rectOf(tester, 'story-text');
+      expect(box.left, lessThan(band), reason: 'out into the band');
+      expect(box.left, greaterThanOrEqualTo(cutout), reason: 'clear of it');
+      expect(
+        screen.width - box.right,
+        moreOrLessEquals(box.left),
+        reason: 'same gap both sides',
+      );
+    });
   });
 }

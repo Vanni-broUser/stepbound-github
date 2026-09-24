@@ -4,13 +4,16 @@ import 'package:flame/components.dart';
 import 'package:flutter/services.dart';
 import 'package:stepbound/core/core.dart' hide PositionComponent;
 import 'package:stepbound/core/entities/components.dart' as simulation;
+import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/pixel_palette.dart';
 
 enum CharacterAction { none, fire, hit, bite, death, pickup, rest }
 
 final class CharacterComponent extends PositionComponent {
-  CharacterComponent({required this.entity})
-    : super(size: Vector2(16, 24), anchor: Anchor.bottomCenter, priority: 20);
+  CharacterComponent({
+    required this.entity,
+    this.playerOutfit = PlayerOutfit.base,
+  }) : super(size: Vector2(16, 24), anchor: Anchor.bottomCenter, priority: 20);
 
   static const double fireDuration = 0.21;
   static const double hitDuration = 0.18;
@@ -28,6 +31,13 @@ final class CharacterComponent extends PositionComponent {
   ui.Image? _hitAtlas;
   ui.Image? _biteAtlas;
   ui.Image? _deathAtlas;
+  final Map<PlayerOutfit, ui.Image?> _outfitAtlases =
+      <PlayerOutfit, ui.Image?>{};
+  final Map<PlayerOutfit, ui.Image?> _outfitGunAtlases =
+      <PlayerOutfit, ui.Image?>{};
+  final Map<PlayerOutfit, ui.Image?> _outfitPickupAtlases =
+      <PlayerOutfit, ui.Image?>{};
+  PlayerOutfit playerOutfit;
   double animationProgress = 1;
   double _breathElapsed = 0;
   double _alertElapsed = alertDuration;
@@ -67,18 +77,26 @@ final class CharacterComponent extends PositionComponent {
     await super.onLoad();
     final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
     final assets = manifest.listAssets();
-    final name = _atlasName(entity.kind);
-    _atlas = await _loadImage(assets, 'assets/sprites/$name.png');
     if (entity.kind == EntityKind.player) {
-      _gunAtlas = await _loadImage(
-        assets,
-        'assets/sprites/protagonist_gun.png',
-      );
-      _pickupAtlas = await _loadImage(
-        assets,
-        'assets/sprites/protagonist_pickup.png',
-      );
+      for (final outfit in PlayerOutfit.values) {
+        final stem = outfit.spriteStem;
+        _outfitAtlases[outfit] = await _loadImage(
+          assets,
+          'assets/sprites/$stem.png',
+        );
+        _outfitGunAtlases[outfit] = await _loadImage(
+          assets,
+          'assets/sprites/${stem}_gun.png',
+        );
+        _outfitPickupAtlases[outfit] = await _loadImage(
+          assets,
+          'assets/sprites/${stem}_pickup.png',
+        );
+      }
+      wearOutfit(playerOutfit);
     } else {
+      final name = _atlasName(entity.kind);
+      _atlas = await _loadImage(assets, 'assets/sprites/$name.png');
       _hitAtlas = await _loadImage(assets, 'assets/sprites/${name}_hit.png');
       _biteAtlas = await _loadImage(assets, 'assets/sprites/${name}_bite.png');
       _deathAtlas = await _loadImage(
@@ -86,6 +104,18 @@ final class CharacterComponent extends PositionComponent {
         'assets/sprites/${name}_death.png',
       );
     }
+  }
+
+  /// Swaps the three player sheets together, including gun and pickup/rest
+  /// actions. They are preloaded, so the change can happen while black.
+  void wearOutfit(PlayerOutfit outfit) {
+    if (entity.kind != EntityKind.player) {
+      return;
+    }
+    playerOutfit = outfit;
+    _atlas = _outfitAtlases[outfit];
+    _gunAtlas = _outfitGunAtlases[outfit];
+    _pickupAtlas = _outfitPickupAtlases[outfit];
   }
 
   Future<ui.Image?> _loadImage(
@@ -322,10 +352,17 @@ final class CharacterComponent extends PositionComponent {
   }
 
   void _drawCell(ui.Canvas canvas, ui.Image atlas, int row, int column) {
+    // The supplied occultist sheets leave two transparent pixels under
+    // every frame. Compensate at draw time so Mario keeps the same foot
+    // anchor when changing clothes.
+    final outfitOffset =
+        entity.kind == EntityKind.player && playerOutfit == PlayerOutfit.cultist
+        ? 2.0
+        : 0.0;
     canvas.drawImageRect(
       atlas,
       ui.Rect.fromLTWH(column * 16, row * 24, 16, 24),
-      const ui.Rect.fromLTWH(0, 0, 16, 24),
+      ui.Rect.fromLTWH(0, outfitOffset, 16, 24),
       _paint,
     );
   }

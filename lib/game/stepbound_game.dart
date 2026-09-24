@@ -27,6 +27,7 @@ import 'package:stepbound/game/render/npc_component.dart';
 import 'package:stepbound/game/render/pickup_component.dart';
 import 'package:stepbound/game/render/pixel_palette.dart';
 import 'package:stepbound/game/render/place_layers.dart';
+import 'package:stepbound/game/render/quest_props.dart';
 import 'package:stepbound/game/render/screen_fade_component.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
 
@@ -122,8 +123,17 @@ final class StepboundGame extends FlameGame
       <String, CharacterComponent>{};
   final Map<GridPoint, FireComponent> _campfires = <GridPoint, FireComponent>{};
   NpcComponent? _luigi;
+  NpcComponent? _priest;
+  NpcComponent? _stairCultist;
+  bool _priestInside = false;
+  bool _stairCultistMoved = false;
+  bool _changingOutfit = false;
 
   MallScript get _mallScript => tutorial.scripts.whereType<MallScript>().first;
+  PriestScript get _priestScript =>
+      tutorial.scripts.whereType<PriestScript>().first;
+  DuomoScript get _duomoScript =>
+      tutorial.scripts.whereType<DuomoScript>().first;
 
   /// What covers the game, if anything.
   final ValueNotifier<GameCover?> cover = ValueNotifier<GameCover?>(null);
@@ -191,6 +201,35 @@ final class StepboundGame extends FlameGame
     if (tutorialState != null) {
       tutorial.restore(tutorialState);
     }
+    // Saves made before the key quest existed already know that the welcome
+    // scene played, but still carry incense and a shut gate. Migrate them to
+    // the first playable state after that scene. A used key stays used.
+    if (_priestScript.welcomePlayed) {
+      _openPriestGate();
+      final reconciled = <HudElement>{
+        ...hud.value.where((element) => element != HudElement.incense),
+        if (!simulation.map.tileAt(barLockedDoorTile).isWalkable)
+          HudElement.barKey,
+      };
+      hud.value = reconciled;
+    }
+    if (_duomoScript.ringDelivered) {
+      _openDuomoUpperAccess();
+      hud.value = <HudElement>{
+        ...hud.value.where((element) => element != HudElement.episcopalRing),
+      };
+    } else if (simulation.pickups[episcopalRingPickupId]?.collected ?? false) {
+      // Saves made after collecting the ring but before this quest item had
+      // its own badge should still show what Mario is carrying.
+      hud.value = <HudElement>{...hud.value, HudElement.episcopalRing};
+    }
+    if (progress.unlockedOutfits.contains(PlayerOutfit.cultist)) {
+      simulation.map.setTile(duomoUpperRobeTile, const Tile(TileKind.floor));
+    }
+    _priestInside = simulation.map.tileAt(priestGateTiles.first).isWalkable;
+    _stairCultistMoved = simulation.map
+        .tileAt(duomoStairCultistTile)
+        .isWalkable;
     _syncTrainDoor();
     await world.addAll(_places.components);
     await world.addAll(<Component>[
@@ -209,16 +248,34 @@ final class StepboundGame extends FlameGame
         PickupComponent(pickup: pickup),
       if (!_mallScript.luigiGone)
         _luigi = NpcComponent(asset: NpcComponent.luigiAsset, tile: luigiTile),
-      // Don Angelo never leaves his churchyard: he is there from the start.
-      NpcComponent(asset: NpcComponent.priestAsset, tile: priestTile),
+      _priest = NpcComponent(
+        asset: NpcComponent.priestAsset,
+        tile: _priestInside ? duomoPriestTile : priestTile,
+      ),
+      _stairCultist = NpcComponent(
+        asset: NpcComponent.cultistAsset,
+        tile: _stairCultistMoved
+            ? duomoStairCultistMovedTile
+            : duomoStairCultistTile,
+      ),
+      NpcComponent(
+        asset: NpcComponent.cultistAsset,
+        tile: duomoWelcomingCultistTile,
+      ),
       // Luigi at home in the locomotive. Nobody gets aboard before he has
       // opened the door, so he can be there all along.
       NpcComponent(asset: NpcComponent.luigiAsset, tile: trainLuigiTile),
       ShutterComponent(bars: luigiBars, map: simulation.map),
       ..._interactGlints(),
+      ChurchyardGateComponent(gate: priestGate, map: simulation.map),
+      BarServiceDoorComponent(door: barLockedDoorTile, map: simulation.map),
+      DuomoRobeComponent(robe: duomoUpperRobeTile, map: simulation.map),
     ]);
     for (final entity in simulation.entities.values) {
-      final component = CharacterComponent(entity: entity);
+      final component = CharacterComponent(
+        entity: entity,
+        playerOutfit: progress.activeOutfit,
+      );
       _characters[entity.id] = component;
       await world.add(component);
     }
@@ -300,6 +357,22 @@ final class StepboundGame extends FlameGame
         tile: trainCotTiles[trainCotTiles.length ~/ 2],
         active: canInteract,
       ),
+      // On the closed leaf, until the key opens it.
+      InteractGlintComponent(
+        tile: barLockedDoorTile,
+        spot: const Offset(8, -4),
+        active: () => !simulation.map.tileAt(barLockedDoorTile).isWalkable,
+      ),
+      // On the folded robe, until it is taken.
+      InteractGlintComponent(
+        tile: duomoUpperRobeTile,
+        spot: const Offset(10, 4),
+        active: () => !simulation.map.tileAt(duomoUpperRobeTile).isWalkable,
+      ),
+      InteractGlintComponent(
+        tile: duomoUpperLockedDoorTile,
+        active: canInteract,
+      ),
       for (final fire in campfireNames.keys)
         InteractGlintComponent(
           tile: fire,
@@ -365,6 +438,7 @@ final class StepboundGame extends FlameGame
   bool get _canAct =>
       _acceptsInput &&
       !inputLocked &&
+      !_changingOutfit &&
       cover.value == null &&
       _campfire == null &&
       _entranceHoldLeft <= 0;
@@ -678,6 +752,99 @@ final class StepboundGame extends FlameGame
   void unlock(HudElement element) {
     if (!hud.value.contains(element)) {
       hud.value = <HudElement>{...hud.value, element};
+    }
+  }
+
+  @override
+  void removeHud(HudElement element) {
+    if (hud.value.contains(element)) {
+      hud.value = <HudElement>{...hud.value.where((found) => found != element)};
+    }
+  }
+
+  void _openPriestGate() {
+    for (final tile in priestGateTiles) {
+      simulation.map.setTile(tile, const Tile(TileKind.floor));
+    }
+  }
+
+  @override
+  void openDuomo() {
+    _openPriestGate();
+    if (_priestInside) {
+      return;
+    }
+    _priestInside = true;
+    _priest?.removeFromParent();
+    _priest = NpcComponent(
+      asset: NpcComponent.priestAsset,
+      tile: duomoPriestTile,
+    );
+    _addWithoutWaiting(world, _priest!);
+  }
+
+  void _openDuomoUpperAccess() {
+    simulation.map
+      ..setTile(duomoStairCultistTile, const Tile(TileKind.floor))
+      ..setTile(duomoStairEntryTile, const Tile(TileKind.floor));
+  }
+
+  @override
+  void openDuomoUpper() {
+    _openDuomoUpperAccess();
+    if (_stairCultistMoved) {
+      return;
+    }
+    _stairCultistMoved = true;
+    _stairCultist?.removeFromParent();
+    _stairCultist = NpcComponent(
+      asset: NpcComponent.cultistAsset,
+      tile: duomoStairCultistMovedTile,
+    );
+    _addWithoutWaiting(world, _stairCultist!);
+  }
+
+  @override
+  void collectCultistRobe() {
+    if (progress.unlockedOutfits.contains(PlayerOutfit.cultist)) {
+      return;
+    }
+    _stopMario();
+    _changingOutfit = true;
+    _addWithoutWaiting(
+      camera.viewport,
+      ScreenFadeComponent(
+        size: Vector2(
+          IntegerResolutionViewport.virtualWidth,
+          IntegerResolutionViewport.virtualHeight,
+        ),
+        fadeIn: ScreenFadeComponent.slowFadeIn,
+        onBlack: () {
+          progress.unlockOutfit(PlayerOutfit.cultist);
+          wearOutfit(PlayerOutfit.cultist);
+          simulation.map.setTile(
+            duomoUpperRobeTile,
+            const Tile(TileKind.floor),
+          );
+        },
+        onFinished: () => _changingOutfit = false,
+      ),
+    );
+  }
+
+  /// Changes every player action sheet immediately. The pause-menu wardrobe
+  /// calls this only for clothes already found in the world.
+  void wearOutfit(PlayerOutfit outfit) {
+    if (!progress.wearOutfit(outfit)) {
+      return;
+    }
+    _characters[playerId]?.wearOutfit(outfit);
+  }
+
+  /// Opens a small system text box naming a carried quest item.
+  void inspectInventory(String name) {
+    if (_canAct) {
+      showPrompt(<TutorialLine>[TutorialLine(name)]);
     }
   }
 

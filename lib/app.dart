@@ -23,6 +23,7 @@ import 'package:stepbound/ui/location_card.dart';
 import 'package:stepbound/ui/main_menu.dart';
 import 'package:stepbound/ui/pause_menu.dart';
 import 'package:stepbound/ui/rome_placeholder.dart';
+import 'package:stepbound/ui/screen_wide_layer.dart';
 import 'package:stepbound/ui/story_intro.dart';
 import 'package:stepbound/ui/title_splash.dart';
 import 'package:stepbound/ui/zombie_book.dart';
@@ -327,7 +328,9 @@ final class _StepboundAppState extends State<StepboundApp> {
           DialogueLine(
             speaker: line.speaker,
             text: line.text,
-            portrait: line.portrait,
+            portrait: line.speaker == 'Mario Rossi'
+                ? game.progress.activeOutfit.portrait
+                : line.portrait,
           ),
       ],
       onFinished: game.dismissPrompt,
@@ -356,11 +359,13 @@ final class _StepboundAppState extends State<StepboundApp> {
       onExit: game.closeMemories,
     ),
     PauseCover() => PauseMenu(
+      progress: game.progress,
       resumePoint: _resumePoint,
       onResumeFromCamp: () => unawaited(_resumeFromCamp()),
       onRestartLevel: () => unawaited(_restartLevel()),
       onMainMenu: _backToMenu,
       onClose: game.closeMenu,
+      onWearOutfit: game.wearOutfit,
     ),
     GameOverCover() => _GameOverOverlay(
       resumePoint: _resumePoint,
@@ -481,6 +486,16 @@ final class _StepboundAppState extends State<StepboundApp> {
             constraints.maxWidth,
             constraints.maxHeight,
           );
+          if (game != null &&
+              (_phase == _Phase.dialogue || _phase == _Phase.playing)) {
+            return _playing(
+              game,
+              Size(
+                IntegerResolutionViewport.virtualWidth * scale,
+                IntegerResolutionViewport.virtualHeight * scale,
+              ),
+            );
+          }
           return Center(
             child: SizedBox(
               width: IntegerResolutionViewport.virtualWidth * scale,
@@ -513,51 +528,75 @@ final class _StepboundAppState extends State<StepboundApp> {
                 _Phase.romePlaceholder => RomePlaceholder(
                   onBack: _openLevelMap,
                 ),
-                _Phase.dialogue || _Phase.playing when game != null => Stack(
-                  fit: StackFit.expand,
-                  children: <Widget>[
-                    GameWidget<StepboundGame>(
-                      key: const ValueKey<String>('stepbound-game'),
-                      game: game,
-                    ),
-                    if (_phase == _Phase.dialogue) ...<Widget>[
-                      // Mario speaks once the game behind him is there, so
-                      // no line goes by unseen under the loading picture.
-                      ValueListenableBuilder<bool>(
-                        valueListenable: game.readyToShow,
-                        builder: (context, ready, _) => ready
-                            ? GameplayDialogue(onFinished: _finishDialogue)
-                            : const SizedBox.shrink(),
-                      ),
-                      const BlackFade(
-                        key: ValueKey<String>('gameplay-fade-in'),
-                        toBlack: false,
-                      ),
-                    ] else
-                      // Whatever covers the game, or else the controls.
-                      ValueListenableBuilder<GameCover?>(
-                        valueListenable: game.cover,
-                        builder: (context, cover, _) => _coverOf(game, cover),
-                      ),
-                    // The loading picture instead of a black screen while
-                    // the maps and sprites load.
-                    LoadingCover(
-                      key: ObjectKey(game),
-                      ready: game.readyToShow,
-                      // A new game comes out of the story's fade to black.
-                      fadeIn: _phase == _Phase.dialogue,
-                      caption: _phase == _Phase.dialogue
-                          ? 'Caricamento del tutorial'
-                          : _gameLoadingCaption,
-                    ),
-                  ],
-                ),
                 _ => const SizedBox.shrink(),
               },
             ),
           );
         },
       ),
+    );
+  }
+
+  /// The game picture keeps its 16:9 in the middle of the screen, while the
+  /// controls and the dialogue box spread sideways into the bands a longer
+  /// phone leaves beside it. Every other cover stays on the picture.
+  Widget _playing(StepboundGame game, Size picture) {
+    Widget onPicture(Widget child) => Center(
+      child: SizedBox.fromSize(size: picture, child: child),
+    );
+    Widget screenWide(Widget child) =>
+        ScreenWideLayer(pictureHeight: picture.height, child: child);
+    return Stack(
+      fit: StackFit.expand,
+      children: <Widget>[
+        onPicture(
+          GameWidget<StepboundGame>(
+            key: const ValueKey<String>('stepbound-game'),
+            game: game,
+          ),
+        ),
+        if (_phase == _Phase.dialogue) ...<Widget>[
+          // Mario speaks once the game behind him is there, so no line goes
+          // by unseen under the loading picture.
+          ValueListenableBuilder<bool>(
+            valueListenable: game.readyToShow,
+            builder: (context, ready, _) => ready
+                ? screenWide(
+                    SafeArea(
+                      child: GameplayDialogue(onFinished: _finishDialogue),
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+          const BlackFade(
+            key: ValueKey<String>('gameplay-fade-in'),
+            toBlack: false,
+          ),
+        ] else
+          // Whatever covers the game, or else the controls.
+          ValueListenableBuilder<GameCover?>(
+            valueListenable: game.cover,
+            builder: (context, cover, _) => switch (cover) {
+              null => screenWide(_coverOf(game, cover)),
+              PromptCover() => screenWide(
+                SafeArea(child: _coverOf(game, cover)),
+              ),
+              _ => onPicture(_coverOf(game, cover)),
+            },
+          ),
+        // The loading picture instead of a black screen while the maps and
+        // sprites load, over the bands too so no button shows beside it.
+        LoadingCover(
+          key: ObjectKey(game),
+          ready: game.readyToShow,
+          artSize: picture,
+          // A new game comes out of the story's fade to black.
+          fadeIn: _phase == _Phase.dialogue,
+          caption: _phase == _Phase.dialogue
+              ? 'Caricamento del tutorial'
+              : _gameLoadingCaption,
+        ),
+      ],
     );
   }
 }
