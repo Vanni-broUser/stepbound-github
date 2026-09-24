@@ -32,7 +32,7 @@ import 'package:stepbound/game/tutorial/tutorial_director.dart';
 
 export 'package:stepbound/game/game_cover.dart';
 
-/// What a campfire save stores: the simulation, the tutorial's scripts, the
+/// What a save stores: the simulation, the tutorial's scripts, the
 /// player's progress, the unlocked controls and the name of the place.
 typedef GameSnapshot = ({
   Map<String, Object?> world,
@@ -44,13 +44,15 @@ typedef GameSnapshot = ({
 
 /// The game: the simulation, drawn and animated, played with the keyboard
 /// or the touch controls. Whatever covers it (a text box, a story scene, a
-/// place card, the camp menu, game over) is a [GameCover] the app draws.
+/// place card, the books on the train, game over) is a [GameCover] the app
+/// draws.
 final class StepboundGame extends FlameGame
     with KeyboardEvents
     implements TutorialHost {
   /// A new game, or one resumed from a save: [world], `tutorialState` and
   /// [progress] come from `SaveGame`, [unlocked] lists the touch controls
-  /// already earned. [onRest] stores the snapshot taken at a campfire.
+  /// already earned. [onRest] stores the snapshot taken at a campfire, and
+  /// the one taken aboard the train when the level ends.
   /// Without [audio] the game is silent.
   StepboundGame({
     int seed = 20260920,
@@ -143,7 +145,8 @@ final class StepboundGame extends FlameGame
   /// playing over it (memories at a camp, the level starting over).
   bool soundscapePaused = false;
 
-  /// Saves the progress when the player rests at a campfire.
+  /// Saves the progress when the player rests at a campfire, and aboard
+  /// the train when the level ends.
   final Future<void> Function(GameSnapshot snapshot)? onRest;
 
   /// Leaves gameplay for the results screen after the final cutscene.
@@ -162,9 +165,10 @@ final class StepboundGame extends FlameGame
   double _entranceHoldLeft = 0;
   bool _levelCompleted = false;
 
-  /// The campfire Mario is resting at (kneeling, then the camp menu).
+  /// The campfire Mario is resting at (kneeling, then saving).
   GridPoint? _campfire;
   double _restLeft = 0;
+  bool _restSaving = false;
 
   /// Where Mario is drawn while a place card fades to black, if one does.
   GridPoint? _cardThreshold;
@@ -207,6 +211,9 @@ final class StepboundGame extends FlameGame
         _luigi = NpcComponent(asset: NpcComponent.luigiAsset, tile: luigiTile),
       // Don Angelo never leaves his churchyard: he is there from the start.
       NpcComponent(asset: NpcComponent.priestAsset, tile: priestTile),
+      // Luigi at home in the locomotive. Nobody gets aboard before he has
+      // opened the door, so he can be there all along.
+      NpcComponent(asset: NpcComponent.luigiAsset, tile: trainLuigiTile),
       ShutterComponent(bars: luigiBars, map: simulation.map),
       PanelGlintComponent(
         panel: mallPanelTile,
@@ -265,7 +272,7 @@ final class StepboundGame extends FlameGame
     final mix = soundscape.update(
       dt,
       indoor: _placeShown.indoor,
-      resting: _campfire != null && cover.value is! CampCover,
+      resting: _campfire != null && cover.value == null,
       gameOver: cover.value is GameOverCover,
     );
     if (!soundscapePaused) {
@@ -406,7 +413,9 @@ final class StepboundGame extends FlameGame
     _levelCompleted = true;
     inputLocked = true;
     soundscapePaused = true;
-    onLevelCompleted?.call(snapshot(place: 'Stazione'));
+    final aboard = snapshot(place: trainPlaceName);
+    unawaited(onRest?.call(aboard));
+    onLevelCompleted?.call(aboard);
   }
 
   @override
@@ -417,7 +426,37 @@ final class StepboundGame extends FlameGame
     _levelCompleted = true;
     inputLocked = true;
     soundscapePaused = true;
-    onTravelMapRequested?.call(snapshot(place: 'Treno'));
+    onTravelMapRequested?.call(snapshot(place: trainPlaceName));
+  }
+
+  @override
+  void openZombieBook() => _cover(const ZombieBookCover());
+
+  /// Called by the book once it is closed.
+  void closeZombieBook() {
+    if (cover.value is ZombieBookCover) {
+      cover.value = null;
+    }
+  }
+
+  /// The memories play with the story's sound; the game's comes back when
+  /// they end.
+  @override
+  void replayMemories() {
+    soundscapePaused = true;
+    audio
+      ..silenceAmbience()
+      ..setMusicLevel(1)
+      ..playMusic(Music.story);
+    _cover(const MemoriesCover());
+  }
+
+  /// Called once the memories are over, or left.
+  void closeMemories() {
+    if (cover.value is MemoriesCover) {
+      soundscapePaused = false;
+      cover.value = null;
+    }
   }
 
   @override
@@ -482,28 +521,36 @@ final class StepboundGame extends FlameGame
   // ------------------------------------------------------------- camps
 
   /// Mario kneels by the fire, which roars up; when the moment is over the
-  /// camp menu opens (save, start over, zombie types, memories).
+  /// game is saved, and a line says so.
   void _startRest(GridPoint campfire) {
     _stopMario();
     _campfire = campfire;
     _restLeft = CharacterComponent.restDuration;
+    _restSaving = false;
     _campfires[campfire]?.flare();
     _characters[playerId]?.playRest(_facingOf(playerId));
   }
 
   void _updateRest(double dt) {
-    if (_campfire == null || cover.value is CampCover) {
+    if (_campfire == null || _restSaving) {
       return;
     }
     _restLeft -= dt;
     if (_restLeft <= 0) {
-      _cover(const CampCover());
+      _restSaving = true;
+      unawaited(_saveAtCamp());
     }
   }
 
-  /// Saves the game as it is at this campfire.
-  Future<void> saveAtCamp() async {
+  static const String savedLine = 'Salvataggio completato';
+
+  /// Saves the game as it is at this campfire, then says so; Mario gets up
+  /// once the line is gone.
+  Future<void> _saveAtCamp() async {
     await onRest?.call(snapshot(place: campfireNames[_campfire] ?? ''));
+    showPrompt(const <TutorialLine>[
+      TutorialLine(savedLine),
+    ], onDismissed: () => _campfire = null);
   }
 
   // -------------------------------------------------------- pause menu
@@ -511,7 +558,7 @@ final class StepboundGame extends FlameGame
   /// Opens the menu from the button in the corner. Mario stops where he
   /// is, the touch controls step aside and the menu takes their place.
   /// Nothing doing while something else already covers the game, or while
-  /// Mario is kneeling at a fire: the camp menu is on its way.
+  /// Mario is kneeling at a fire: the game is being saved.
   void openMenu() {
     if (cover.value != null || _campfire != null) {
       return;
@@ -522,14 +569,6 @@ final class StepboundGame extends FlameGame
   /// Closes it and gives Mario back to the player.
   void closeMenu() {
     if (cover.value is PauseCover) {
-      cover.value = null;
-    }
-  }
-
-  /// Closes the camp menu and gives Mario back to the player.
-  void leaveCamp() {
-    _campfire = null;
-    if (cover.value is CampCover) {
       cover.value = null;
     }
   }

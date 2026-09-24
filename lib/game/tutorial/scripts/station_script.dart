@@ -6,7 +6,9 @@ import 'package:stepbound/game/tutorial/tutorial_director.dart';
 /// whole of it: the doorway onto the platform leads to a dead end behind
 /// the derailed train, and only the other one, through the underpass,
 /// comes out on the far side. Once Luigi has been rescued, taking the
-/// first step on that platform plays their meeting.
+/// first step on that platform plays their meeting, and that is the end of
+/// the level: Mario is aboard, at the map table in the locomotive, and
+/// the game is saved there.
 final class StationScript extends TutorialScript {
   StationScript(super.director);
 
@@ -67,7 +69,7 @@ final class StationScript extends TutorialScript {
       return;
     }
     if (event case TravelMapUsedEvent(:final at)
-        when at == trainMapPanelTile &&
+        when trainMapTiles.contains(at) &&
             progress.memories.contains(StoryMemory.luigiAtStation)) {
       host.openTravelMap();
       return;
@@ -95,7 +97,17 @@ final class StationScript extends TutorialScript {
     }
     _reunionPlayed = true;
     progress.remember(StoryMemory.luigiAtStation);
-    host.playCutscene(reunionScene);
+    host.playCutscene(reunionScene, stayBlack: true, onFinished: _board);
+  }
+
+  /// Behind the black the scene ends on, Mario gets on the train and
+  /// stands at the map table: that is where the save puts him, and where the
+  /// game picks up again when the map sends him back home.
+  void _board() {
+    world.player.component<PositionComponent>()
+      ..position = trainMapStandTile
+      ..facing = Direction.south;
+    host.completeLevel();
   }
 
   @override

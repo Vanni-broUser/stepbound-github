@@ -14,7 +14,6 @@ import 'package:stepbound/save/save_game.dart';
 import 'package:stepbound/ui/audio_scope.dart';
 import 'package:stepbound/ui/black_fade.dart';
 import 'package:stepbound/ui/blood_decor.dart';
-import 'package:stepbound/ui/camp_menu.dart';
 import 'package:stepbound/ui/game_cutscene.dart';
 import 'package:stepbound/ui/gameplay_dialogue.dart';
 import 'package:stepbound/ui/level_complete.dart';
@@ -26,6 +25,7 @@ import 'package:stepbound/ui/pause_menu.dart';
 import 'package:stepbound/ui/rome_placeholder.dart';
 import 'package:stepbound/ui/story_intro.dart';
 import 'package:stepbound/ui/title_splash.dart';
+import 'package:stepbound/ui/zombie_book.dart';
 
 /// The main menu first; a new game then plays the story scenes, the title
 /// card and the protagonist's line before the controls appear, while a
@@ -71,13 +71,13 @@ final class _StepboundAppState extends State<StepboundApp> {
   int _totalMemoryImages = 0;
   String _gameLoadingCaption = 'Caricamento della partita';
 
-  /// The slot this game saves into at campfires.
+  /// The slot this game saves into at campfires and on the train.
   int _slot = 1;
 
-  /// Whether the current slot holds a save made at a campfire. Only then
-  /// is there anywhere to go back to, so only then do the menus offer it.
-  /// The slot written when the level starts over does not count.
-  bool _hasCampSave = false;
+  /// Where the current slot's save was made: a campfire or the train. Only
+  /// with one is there anywhere to go back to, so only then do the menus
+  /// offer it. The slot written when the level starts over does not count.
+  ResumePoint? _resumePoint;
 
   /// What this game had been played for when it was loaded or started, and
   /// the clock running since. Together they are what a save records: it
@@ -141,7 +141,7 @@ final class _StepboundAppState extends State<StepboundApp> {
     _startClock(Duration.zero);
     setState(() {
       _slot = slot;
-      _hasCampSave = false;
+      _resumePoint = null;
       _completedSnapshot = null;
       _phase = _Phase.story;
     });
@@ -152,7 +152,7 @@ final class _StepboundAppState extends State<StepboundApp> {
     _gameLoadingCaption = 'Caricamento della partita';
     setState(() {
       _slot = save.slot;
-      _hasCampSave = save.atCampfire;
+      _resumePoint = _resumePointOf(save);
       _game = _gameFrom(save);
       _phase = _Phase.playing;
     });
@@ -173,7 +173,14 @@ final class _StepboundAppState extends State<StepboundApp> {
     audio: _audio,
   );
 
-  /// Called by the game when Mario rests at a campfire.
+  static ResumePoint? _resumePointOf(SaveGame save) => !save.atCampfire
+      ? null
+      : save.place == trainPlaceName
+      ? ResumePoint.train
+      : ResumePoint.campfire;
+
+  /// Called by the game when Mario rests at a campfire, and when the level
+  /// ends with him aboard the train.
   Future<void> _store(GameSnapshot snapshot) async {
     await _saves.save(
       SaveGame(
@@ -187,7 +194,9 @@ final class _StepboundAppState extends State<StepboundApp> {
         played: _played,
       ),
     );
-    _hasCampSave = true;
+    _resumePoint = snapshot.place == trainPlaceName
+        ? ResumePoint.train
+        : ResumePoint.campfire;
   }
 
   void _finishIntro() {
@@ -217,9 +226,10 @@ final class _StepboundAppState extends State<StepboundApp> {
     });
   }
 
-  /// Back to the last campfire, from the menu or after dying. Only
-  /// offered while [_hasCampSave]; if the slot has gone missing anyway,
-  /// the level starts over rather than leaving the player stuck.
+  /// Back to the last campfire or to the train, from the menu or after
+  /// dying. Only offered while there is a [_resumePoint]; if the slot has
+  /// gone missing anyway, the level starts over rather than leaving the
+  /// player stuck.
   Future<void> _resumeFromCamp() async {
     final save = await _saves.load(_slot);
     if (!mounted) {
@@ -264,7 +274,7 @@ final class _StepboundAppState extends State<StepboundApp> {
       return;
     }
     setState(() {
-      _hasCampSave = false;
+      _resumePoint = null;
       _game = null;
       _phase = _Phase.story;
     });
@@ -276,15 +286,6 @@ final class _StepboundAppState extends State<StepboundApp> {
       ..silenceAmbience()
       ..setMusicLevel(1)
       ..playMusic(Music.story);
-  }
-
-  /// Memories at a camp play with the story's sound; the game's comes back
-  /// when they end.
-  void _watchMemories(StepboundGame game, {required bool playing}) {
-    game.soundscapePaused = playing;
-    if (playing) {
-      _playStoryAudio();
-    }
   }
 
   /// What is drawn over the game for [cover]: the touch controls when
@@ -317,21 +318,25 @@ final class _StepboundAppState extends State<StepboundApp> {
       onBlack: game.placeCardBlack,
       onFinished: game.dismissPlaceCard,
     ),
-    CampCover() => CampMenu(
+    ZombieBookCover() => ZombieBook(
       progress: game.progress,
-      onSave: game.saveAtCamp,
-      onClose: game.leaveCamp,
-      onMemories: (playing) => _watchMemories(game, playing: playing),
+      onClose: game.closeZombieBook,
+    ),
+    MemoriesCover() => StoryIntro(
+      key: const ValueKey<String>('train-memories-story'),
+      scenes: seenScenes(game.progress),
+      onFinished: game.closeMemories,
+      onExit: game.closeMemories,
     ),
     PauseCover() => PauseMenu(
-      canResumeFromCamp: _hasCampSave,
+      resumePoint: _resumePoint,
       onResumeFromCamp: () => unawaited(_resumeFromCamp()),
       onRestartLevel: () => unawaited(_restartLevel()),
       onMainMenu: _backToMenu,
       onClose: game.closeMenu,
     ),
     GameOverCover() => _GameOverOverlay(
-      canResumeFromCamp: _hasCampSave,
+      resumePoint: _resumePoint,
       onResumeFromCamp: () {
         _audio.stop(Sfx.gameOver);
         unawaited(_resumeFromCamp());
@@ -532,17 +537,17 @@ final class _StepboundAppState extends State<StepboundApp> {
 
 final class _GameOverOverlay extends StatefulWidget {
   const _GameOverOverlay({
-    required this.canResumeFromCamp,
+    required this.resumePoint,
     required this.onResumeFromCamp,
     required this.onRestartLevel,
     required this.onMenu,
   });
 
-  /// Whether there is a campfire save to go back to. With one it is the
-  /// first choice and the one the countdown takes, and starting the level
-  /// over is offered under it; without one the level from the start is
-  /// the only way on.
-  final bool canResumeFromCamp;
+  /// Where the save to go back to was made, if there is one. With one it
+  /// is the first choice and the one the countdown takes, and starting the
+  /// level over is offered under it; without one the level from the start
+  /// is the only way on.
+  final ResumePoint? resumePoint;
   final VoidCallback onResumeFromCamp;
   final VoidCallback onRestartLevel;
   final VoidCallback onMenu;
@@ -556,8 +561,8 @@ final class _GameOverOverlayState extends State<_GameOverOverlay> {
   Timer? _timer;
   int _secondsLeft = autoRestartSeconds;
 
-  /// Starting the level over from here throws the campfire away, so it
-  /// asks first, as the menus do.
+  /// Starting the level over from here throws the save away, so it asks
+  /// first, as the menus do.
   bool _confirmingRestart = false;
 
   @override
@@ -580,10 +585,10 @@ final class _GameOverOverlayState extends State<_GameOverOverlay> {
     super.dispose();
   }
 
-  /// What the countdown runs out into: the campfire when there is one,
-  /// the level from the start when there is not.
+  /// What the countdown runs out into: the save when there is one, the
+  /// level from the start when there is not.
   void _takeCountdownChoice() {
-    if (widget.canResumeFromCamp) {
+    if (widget.resumePoint != null) {
       widget.onResumeFromCamp();
       return;
     }
@@ -629,12 +634,13 @@ final class _GameOverOverlayState extends State<_GameOverOverlay> {
   List<Widget> _choices(double unit) => <Widget>[
     _primary(
       key: const ValueKey<String>('restart-button'),
-      label: widget.canResumeFromCamp
-          ? 'RIPRENDI DAL FALÒ ($_secondsLeft)'
-          : 'RICOMINCIA IL LIVELLO ($_secondsLeft)',
+      label: switch (widget.resumePoint) {
+        final point? => '${point.resumeLabel} ($_secondsLeft)',
+        null => 'RICOMINCIA IL LIVELLO ($_secondsLeft)',
+      },
       onPressed: () => _tapped(_takeCountdownChoice),
     ),
-    if (widget.canResumeFromCamp) ...<Widget>[
+    if (widget.resumePoint != null) ...<Widget>[
       SizedBox(height: 6 * unit),
       _secondary(
         key: const ValueKey<String>('game-over-restart'),
@@ -656,9 +662,9 @@ final class _GameOverOverlayState extends State<_GameOverOverlay> {
       unit: unit,
       width: MenuButton.fullWidth,
       child: MenuParagraph(
-        'Ricominciare il livello? Il falò dove hai salvato va perso: si '
-        'riparte dalla prima scena della storia, e restano solo le ore di '
-        'gioco.',
+        'Ricominciare il livello? ${widget.resumePoint!.savedHere} '
+        'va perso: si riparte dalla prima scena della storia, e restano '
+        'solo le ore di gioco.',
         key: const ValueKey<String>('game-over-cost'),
         unit: unit,
         center: true,

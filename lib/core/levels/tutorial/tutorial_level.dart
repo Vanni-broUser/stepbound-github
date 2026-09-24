@@ -57,10 +57,11 @@ const Legend churchLegend = Legend(walls: 'xWwIA', obstacles: 'TK');
 /// seen over.
 const Legend stationLegend = Legend(walls: 'xWwMP#', obstacles: 'TKmn');
 
-/// Inside the train the shell and the gangway partitions are walls. Seats,
-/// tables, luggage, controls, the engine cabinet and the route map can be
-/// seen over but not walked through.
-const Legend trainLegend = Legend(walls: 'xWwIi', obstacles: 'STLCGP');
+/// Inside the train the shell, the windscreen and the gangway partitions
+/// are walls. Seats, tables, luggage, the controls, the driver's seat and
+/// the map table can be seen over but not walked through, and so can the
+/// two cots, the bin bags, the books and Luigi.
+const Legend trainLegend = Legend(walls: 'xWwIiV', obstacles: 'STLCPhbBukl');
 
 /// Inside the crashed airliner (airliner.dart) the hull is a wall all
 /// round; the blocks of seats `T` and the galley trolleys `K` are waist
@@ -184,7 +185,8 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     legend: trainLegend,
     background: 'assets/levels/train_interior.png',
     indoor: true,
-    daylight: 'E*',
+    // Luigi keeps the lights on: the whole train is bright, end to end.
+    lit: true,
   ),
   PlaceSpec(
     id: PlaceId.airlinerCabin,
@@ -489,8 +491,32 @@ final GridPoint stationTrainDoorTile = _farSide.tileOf('P');
 /// The door through which Mario enters and leaves the first passenger car.
 final GridPoint trainExitTile = _train.tileOf('E');
 
-/// The yellowed Europe map mounted on the locomotive's control console.
-final GridPoint trainMapPanelTile = _train.tileOf('P');
+/// The table in the middle of the locomotive, the yellowed Europe map
+/// spread over the whole of it: any side of it opens the map.
+final List<GridPoint> trainMapTiles = _train.tilesOf('P');
+
+/// Where Mario stands aboard when the story puts him there: at the map
+/// table, looking down at it from the aisle side.
+final GridPoint trainMapStandTile = GridPoint(
+  trainMapTiles.first.x + 1,
+  trainMapTiles.first.y - 1,
+);
+
+/// The part of the map Mario looks at from [trainMapStandTile], where the
+/// glint shows once there is somewhere to go.
+final GridPoint trainMapPanelTile = trainMapStandTile.step(Direction.south);
+
+/// What a save made aboard is called in the slots.
+const String trainPlaceName = 'Treno';
+
+/// Luigi, at home in his corner of the locomotive.
+final GridPoint trainLuigiTile = _train.tileOf('l');
+
+/// The crate of open books on Mario's side: the zombie types met so far.
+final List<GridPoint> trainBookTiles = _train.tilesOf('k');
+
+/// Mario's cot, where the memories come back.
+final List<GridPoint> trainCotTiles = _train.tilesOf('B');
 
 /// The tear in the belly of the airliner, in the lane the wreck left open
 /// at the crossroads behind the hypermarket: two tiles wide, like the
@@ -780,8 +806,13 @@ WorldState createTutorialWorld({int seed = 20260920}) {
     portals: _portals(),
     campfires: campfireNames.keys,
     controls: <GridPoint, GridRect>{mallPanelTile: luigiBars},
-    travelMaps: <GridPoint>[trainMapPanelTile],
-    lookouts: <GridPoint>[rooftopGapTile],
+    travelMaps: trainMapTiles,
+    lookouts: <GridPoint>[
+      rooftopGapTile,
+      trainLuigiTile,
+      ...trainBookTiles,
+      ...trainCotTiles,
+    ],
     playerId: 'player',
     random: SeededRandom(seed),
   );

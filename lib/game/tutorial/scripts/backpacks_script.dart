@@ -11,7 +11,7 @@ final class BackpacksScript extends TutorialScript {
   static const String backpackLesson =
       'Raccogli gli zaini in giro per trovare nuovo equipaggiamento';
   static const String interactLesson =
-      'Usa il nuovo bottone a sinistra per interagire con gli oggetti';
+      'Usa il nuovo bottone a destra per interagire con gli oggetti';
   static const String noGun = 'Non hai una pistola';
   static const String gunFound = 'Hai trovato una pistola';
   static const String incenseFound = "Hai trovato dell'incenso";

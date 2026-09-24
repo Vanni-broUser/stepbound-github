@@ -33,12 +33,17 @@ final class PlaceCardCover extends GameCover {
   final String image;
 }
 
-/// The camp menu, after resting at a campfire.
-final class CampCover extends GameCover {
-  const CampCover();
+/// The books by Mario's cot on the train: the zombie types met so far.
+final class ZombieBookCover extends GameCover {
+  const ZombieBookCover();
 }
 
-/// The menu the corner button opens, mid-game: back to the last campfire,
+/// Mario's cot on the train: the story scenes seen so far, played again.
+final class MemoriesCover extends GameCover {
+  const MemoriesCover();
+}
+
+/// The menu the corner button opens, mid-game: back to the last save,
 /// the level from the start, or out to the main menu.
 final class PauseCover extends GameCover {
   const PauseCover();

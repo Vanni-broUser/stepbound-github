@@ -1196,15 +1196,78 @@ void main() {
 
       final reached = from(world, inside, train);
       expect(
-        reached.containsKey(trainMapPanelTile.step(Direction.south)),
+        reached.containsKey(trainMapStandTile),
         isTrue,
         reason: 'the clear gangways join both coaches to the locomotive',
       );
-      expect(world.map.tileAt(trainMapPanelTile).isWalkable, isFalse);
-      expect(world.travelMaps, contains(trainMapPanelTile));
+      expect(trainMapTiles, hasLength(8), reason: 'a table four by two');
+      for (final map in trainMapTiles) {
+        expect(world.map.tileAt(map).isWalkable, isFalse);
+        expect(world.travelMaps, contains(map));
+      }
+      expect(trainMapTiles, contains(trainMapPanelTile));
+      expect(
+        trainMapTiles.any(
+          (map) => reached.containsKey(map.step(Direction.south)),
+        ),
+        isTrue,
+        reason:
+            'the table can be walked round, not only reached from the aisle',
+      );
 
       final platform = travel(world, trainExitTile, Direction.south);
       expect(stationPlatform.contains(platform), isTrue);
+    });
+
+    test('the train is a room with every light on: no darkness in it', () {
+      final train = place(PlaceId.trainInterior);
+      expect(train.indoor, isTrue, reason: 'it still sounds like a room');
+      expect(train.lit, isTrue);
+      expect(
+        tutorialPlaces.where((place) => place.lit).map((place) => place.id),
+        <PlaceId>[PlaceId.trainInterior],
+        reason: 'every other room stays in the dark',
+      );
+    });
+
+    test('behind the engine Luigi, the books and the cot can each be walked '
+        'up to and looked at, apart from each other', () {
+      final world = createTutorialWorld();
+      final train = place(PlaceId.trainInterior);
+      final reached = from(world, trainExitTile.step(Direction.north), train);
+      expect(reached.containsKey(trainMapStandTile), isTrue);
+      final things = <GridPoint>[
+        trainLuigiTile,
+        ...trainBookTiles,
+        ...trainCotTiles,
+      ];
+      expect(trainBookTiles, isNotEmpty);
+      expect(trainCotTiles, hasLength(3));
+      for (final thing in things) {
+        expect(world.map.tileAt(thing).isWalkable, isFalse, reason: '$thing');
+        expect(world.lookouts, contains(thing));
+        expect(
+          Direction.values.any((side) => reached.containsKey(thing.step(side))),
+          isTrue,
+          reason: '$thing can be stood next to',
+        );
+      }
+      // Mario above the aisle and Luigi below it, both at the back, walled
+      // off from the map table by the luggage.
+      final aisle = trainExitTile.y - 6;
+      final luggage = train
+          .tilesOf('L')
+          .where((tile) => tile.x > trainExitTile.x + 30);
+      final divider = luggage.map((tile) => tile.x).reduce(math.min);
+      expect(trainLuigiTile.x, lessThan(divider));
+      expect(trainLuigiTile.y, greaterThan(aisle));
+      for (final tile in <GridPoint>[...trainBookTiles, ...trainCotTiles]) {
+        expect(tile.x, lessThan(divider));
+        expect(tile.y, lessThan(aisle));
+      }
+      for (final map in trainMapTiles) {
+        expect(map.x, greaterThan(divider + 1));
+      }
     });
 
     test('two wanderers wait in the booking hall and one in the church', () {

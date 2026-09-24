@@ -10,7 +10,7 @@ void main() {
 
   Future<void> pumpMenu(
     WidgetTester tester, {
-    bool canResumeFromCamp = true,
+    ResumePoint? resumePoint = ResumePoint.campfire,
   }) async {
     resumes = 0;
     restarts = 0;
@@ -22,8 +22,8 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: PauseMenu(
-          key: ValueKey<bool>(canResumeFromCamp),
-          canResumeFromCamp: canResumeFromCamp,
+          key: ValueKey<ResumePoint?>(resumePoint),
+          resumePoint: resumePoint,
           onResumeFromCamp: () => resumes++,
           onRestartLevel: () => restarts++,
           onMainMenu: () => quits++,
@@ -52,8 +52,19 @@ void main() {
     expect(closes, 1);
   });
 
+  testWidgets('saved on the train, it is the train it goes back to', (
+    tester,
+  ) async {
+    await pumpMenu(tester, resumePoint: ResumePoint.train);
+    expect(find.text('RIPRENDI DAL TRENO'), findsOneWidget);
+    expect(find.text('RIPRENDI DAL FALÒ'), findsNothing);
+    await tap(tester, 'pause-resume');
+    expect(find.text('SÌ, TORNA AL TRENO'), findsOneWidget);
+    expect(find.textContaining('Tornare al treno?'), findsOneWidget);
+  });
+
   testWidgets('without one, there is nothing to resume', (tester) async {
-    await pumpMenu(tester, canResumeFromCamp: false);
+    await pumpMenu(tester, resumePoint: null);
     expect(find.text('RIPRENDI DAL FALÒ'), findsNothing);
     expect(find.text('RICOMINCIA IL LIVELLO'), findsOneWidget);
     expect(find.text('VAI AL MENÙ PRINCIPALE'), findsOneWidget);
@@ -122,7 +133,7 @@ void main() {
     expect(await costOf(tester, 'pause-quit'), contains('ultimo falò'));
 
     // Never saved: leaving costs the whole game, and it says so.
-    await pumpMenu(tester, canResumeFromCamp: false);
+    await pumpMenu(tester, resumePoint: null);
     expect(await costOf(tester, 'pause-quit'), contains('mai stata salvata'));
   });
 }
