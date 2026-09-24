@@ -507,7 +507,7 @@ void main() {
     });
   });
 
-  testWidgets('everything Mario can interact with glints like a backpack, '
+  testWidgets('every object Mario can interact with glints like a backpack, '
       'once the button is there to press', (tester) {
     return tester.runAsync(() async {
       final game = await _pumpReadyGame(tester);
@@ -523,11 +523,13 @@ void main() {
           glints.any((glint) => tileOf(glint).manhattanDistanceTo(tile) <= 1);
       for (final tile in <GridPoint>[
         ...world.campfires,
-        ...world.lookouts,
+        ...world.lookouts.where((tile) => tile != trainLuigiTile),
         ...world.controls.keys,
       ]) {
         expect(glinted(tile), isTrue, reason: 'nothing glints near $tile');
       }
+      // Only objects glint: Luigi, whom Mario talks to, does not.
+      expect(glints.where((glint) => tileOf(glint) == trainLuigiTile), isEmpty);
       expect(
         world.travelMaps.any(glinted),
         isTrue,

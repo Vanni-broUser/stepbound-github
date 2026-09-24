@@ -270,10 +270,11 @@ final class StepboundGame extends FlameGame
     }
   }
 
-  /// The glint on everything Mario can use, the same one the backpacks
+  /// The glint on every object Mario can use, the same one the backpacks
   /// give off (they draw their own, as it rides their drop): the panel
   /// until it is pulled, the map once there is somewhere to go, and the
-  /// rest once there is an interact button to press.
+  /// rest once there is an interact button to press. People go without:
+  /// someone standing there is reason enough to try talking to them.
   List<InteractGlintComponent> _interactGlints() {
     bool canInteract() => hud.value.contains(HudElement.interact);
     return <InteractGlintComponent>[
@@ -297,12 +298,6 @@ final class StepboundGame extends FlameGame
       // On the middle of Mario's cot.
       InteractGlintComponent(
         tile: trainCotTiles[trainCotTiles.length ~/ 2],
-        active: canInteract,
-      ),
-      // Over Luigi's head, as he stands a tile taller than his tile.
-      InteractGlintComponent(
-        tile: trainLuigiTile,
-        spot: const Offset(13, -6),
         active: canInteract,
       ),
       for (final fire in campfireNames.keys)
