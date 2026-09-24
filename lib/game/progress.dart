@@ -34,6 +34,7 @@ enum StoryMemory {
   priestErrand,
   priestWelcomed,
   priestFamily,
+  priestMass,
   luigiAtStation,
 }
 
