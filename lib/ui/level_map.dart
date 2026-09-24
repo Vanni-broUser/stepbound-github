@@ -3,10 +3,11 @@ import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/ui/blood_decor.dart';
 import 'package:stepbound/ui/main_menu.dart';
 
-enum LevelDestination { hometown, rome }
+enum LevelDestination { hometown, rome, northCape }
 
-/// Europe as the game's level selector. The route already travelled links
-/// Molfetta to Rome; tapping either red marker opens its level card.
+/// Europe as the game's level selector. The travelled route links Molfetta
+/// to Rome; Capo Nord is an unconnected preview and has no playable level.
+/// Tapping any marker opens its destination card.
 final class LevelMap extends StatefulWidget {
   const LevelMap({
     required this.onStartHometown,
@@ -17,6 +18,7 @@ final class LevelMap extends StatefulWidget {
   static const String mapImage = 'assets/story/level_map_europe.jpg';
   static const String hometownImage = 'assets/story/scene_harbour.jpg';
   static const String romeImage = 'assets/story/level_rome.jpg';
+  static const String northCapeImage = 'assets/story/level_north_cape.jpg';
 
   final VoidCallback onStartHometown;
   final VoidCallback onStartRome;
@@ -27,8 +29,9 @@ final class LevelMap extends StatefulWidget {
 
 final class _LevelMapState extends State<LevelMap> {
   // Fractions of the supplied map artwork.
-  static const Offset _rome = Offset(0.51, 0.72);
-  static const Offset _molfetta = Offset(0.57, 0.79);
+  static const Offset _rome = Offset(0.508, 0.730);
+  static const Offset _molfetta = Offset(0.543, 0.716);
+  static const Offset _northCape = Offset(0.583, 0.068);
 
   LevelDestination? _selected;
 
@@ -64,22 +67,32 @@ final class _LevelMapState extends State<LevelMap> {
               'ROMA',
               () => setState(() => _selected = LevelDestination.rome),
             ),
+            _marker(
+              constraints,
+              unit,
+              _northCape,
+              const ValueKey<String>('level-city-north-cape'),
+              'CAPO NORD',
+              () => setState(() => _selected = LevelDestination.northCape),
+            ),
             Positioned(
               left: 8 * unit,
               top: 7 * unit,
-              child: Text(
-                'SCEGLI LA DESTINAZIONE',
-                style: TextStyle(
-                  color: const Color(0xfff2e3c7),
-                  fontFamily: 'monospace',
-                  fontSize: 10 * unit,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: unit,
-                  decoration: TextDecoration.none,
-                  shadows: <Shadow>[
-                    Shadow(blurRadius: 4 * unit),
-                    Shadow(offset: Offset(unit, unit)),
-                  ],
+              child: IgnorePointer(
+                child: Text(
+                  'SCEGLI LA DESTINAZIONE',
+                  style: TextStyle(
+                    color: const Color(0xfff2e3c7),
+                    fontFamily: 'monospace',
+                    fontSize: 8 * unit,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.5 * unit,
+                    decoration: TextDecoration.none,
+                    shadows: <Shadow>[
+                      Shadow(blurRadius: 4 * unit),
+                      Shadow(offset: Offset(unit, unit)),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -146,6 +159,17 @@ final class _LevelMapState extends State<LevelMap> {
 
   Widget _card(LevelDestination destination, double unit) {
     final hometown = destination == LevelDestination.hometown;
+    final rome = destination == LevelDestination.rome;
+    final image = switch (destination) {
+      LevelDestination.hometown => LevelMap.hometownImage,
+      LevelDestination.rome => LevelMap.romeImage,
+      LevelDestination.northCape => LevelMap.northCapeImage,
+    };
+    final name = switch (destination) {
+      LevelDestination.hometown => 'Città Natale',
+      LevelDestination.rome => 'Roma',
+      LevelDestination.northCape => 'Capo Nord',
+    };
     return MenuPanel(
       key: const ValueKey<String>('level-card'),
       unit: unit,
@@ -156,7 +180,7 @@ final class _LevelMapState extends State<LevelMap> {
           ClipRRect(
             borderRadius: BorderRadius.circular(2 * unit),
             child: Image.asset(
-              hometown ? LevelMap.hometownImage : LevelMap.romeImage,
+              image,
               width: 104 * unit,
               height: 50 * unit,
               fit: BoxFit.cover,
@@ -165,7 +189,7 @@ final class _LevelMapState extends State<LevelMap> {
           ),
           SizedBox(height: 4 * unit),
           Text(
-            hometown ? 'Città Natale' : 'Roma',
+            name,
             key: const ValueKey<String>('level-card-name'),
             style: TextStyle(
               color: const Color(0xfff2e3c7),
@@ -175,15 +199,17 @@ final class _LevelMapState extends State<LevelMap> {
               decoration: TextDecoration.none,
             ),
           ),
-          SizedBox(height: 4 * unit),
-          MenuButton(
-            key: const ValueKey<String>('level-start'),
-            label: 'INIZIA LIVELLO',
-            unit: unit,
-            compact: true,
-            width: 102,
-            onPressed: hometown ? widget.onStartHometown : widget.onStartRome,
-          ),
+          if (hometown || rome) ...<Widget>[
+            SizedBox(height: 4 * unit),
+            MenuButton(
+              key: const ValueKey<String>('level-start'),
+              label: 'INIZIA LIVELLO',
+              unit: unit,
+              compact: true,
+              width: 102,
+              onPressed: hometown ? widget.onStartHometown : widget.onStartRome,
+            ),
+          ],
         ],
       ),
     );
@@ -203,8 +229,8 @@ final class _RoutePainter extends CustomPainter {
     final path = Path()
       ..moveTo(scale(from).dx, scale(from).dy)
       ..quadraticBezierTo(
-        size.width * 0.55,
-        size.height * 0.73,
+        size.width * 0.526,
+        size.height * 0.716,
         scale(to).dx,
         scale(to).dy,
       );

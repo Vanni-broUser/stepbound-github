@@ -85,6 +85,11 @@ final class InteractAction extends PlayerAction {
       return;
     }
 
+    if (world.travelMaps.contains(target)) {
+      world.emit(TravelMapUsedEvent(at: target));
+      return;
+    }
+
     final bars = world.controls.remove(target);
     if (bars != null) {
       for (var y = bars.top; y <= bars.bottom; y++) {

@@ -66,6 +66,12 @@ final class StationScript extends TutorialScript {
     if (!progress.memories.contains(StoryMemory.luigiRescued)) {
       return;
     }
+    if (event case TravelMapUsedEvent(:final at)
+        when at == trainMapPanelTile &&
+            progress.memories.contains(StoryMemory.luigiAtStation)) {
+      host.openTravelMap();
+      return;
+    }
     if (event case MovedEvent(
       entityId: final id,
       :final to,
@@ -89,11 +95,7 @@ final class StationScript extends TutorialScript {
     }
     _reunionPlayed = true;
     progress.remember(StoryMemory.luigiAtStation);
-    host.playCutscene(
-      reunionScene,
-      stayBlack: true,
-      onFinished: host.completeLevel,
-    );
+    host.playCutscene(reunionScene);
   }
 
   @override

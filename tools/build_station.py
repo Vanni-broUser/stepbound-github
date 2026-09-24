@@ -35,6 +35,8 @@ from build_street_level import (  # noqa: E402
 STATION_OUTPUT = os.path.join("assets", "levels", "station.png")
 UNDERPASS_OUTPUT = os.path.join("assets", "levels", "station_underpass.png")
 FAR_OUTPUT = os.path.join("assets", "levels", "station_far_side.png")
+FAR_OPEN_OUTPUT = os.path.join(
+    "assets", "levels", "station_far_side_open.png")
 
 VOID = (6, 6, 8)
 HALL_A = (172, 162, 146)
@@ -323,7 +325,7 @@ def _grime(d, rng, px, py, w, h, amount):
              rng.randint(2, 5), rng.choice(((136, 128, 112), (118, 112, 100))))
 
 
-def paint_railcar(d, rng, area, wrecked):
+def paint_railcar(d, rng, area, wrecked, door_x=None, open_door=False):
     """The railcar on the rails, `M`, side on: the roof with its vents, the
     body in the regional livery under years of grime, the windows, the
     skirt and the bogies, its cab at the west end where it is met. Derailed
@@ -345,22 +347,6 @@ def paint_railcar(d, rng, area, wrecked):
              GLASS_BROKEN if rng.random() < (0.75 if wrecked else 0.3)
              else GLASS)
         rect(d, wx + 1, body + 9, 15, 2, shade(GLASS, 26))
-    if not wrecked:
-        # One passenger door has been forced open towards the platform.
-        # The train remains a wall for now, but this makes the entrance
-        # players will be able to use in a later chapter visible already.
-        door_x = px + w - 68
-        door_top = body + 5
-        door_bottom = py + h - 6
-        rect(d, door_x - 2, door_top - 2, 22, door_bottom - door_top + 4,
-             METAL_DARK)
-        rect(d, door_x, door_top, 18, door_bottom - door_top, (18, 18, 22))
-        rect(d, door_x + 2, door_top + 2, 4, door_bottom - door_top - 3,
-             shade(LIVERY_WHITE, -54))
-        rect(d, door_x + 16, door_top, 2, door_bottom - door_top,
-             METAL_LIGHT)
-        rect(d, door_x - 1, door_bottom, 20, 3, METAL_DARK)
-        rect(d, door_x + 2, door_bottom + 1, 14, 2, METAL)
     rect(d, px, py + h - 12, w, 6, shade(LIVERY_WHITE, -64))  # the skirt
     for bx in (px + cab + 4, px + w - 48):  # the bogies under it
         rect(d, bx, py + h - 9, 38, 7, METAL_DARK)
@@ -375,6 +361,9 @@ def paint_railcar(d, rng, area, wrecked):
     rect(d, px, py + h - 12, cab, 6, shade(LIVERY_RED, -60))
     _grime(d, rng, px, body, w, h - 21, w // 3)
     if not wrecked:
+        if door_x is not None:
+            paint_passenger_door(
+                d, door_x, body + 3, py + h - 5, open_door)
         return
     # Derailed: the cab end slewed off the rails and burnt out, the body
     # buckled behind it and split along the waist.
@@ -423,6 +412,37 @@ def paint_toppled_coach(d, rng, area):
         gx, gy = px + rng.randrange(w - 4), py + 4 + rng.randrange(h - 12)
         rect(d, gx, gy, rng.randint(2, 5), rng.randint(1, 3),
              rng.choice((RAIL_RUST, shade(RAIL_RUST, -30), (72, 68, 64))))
+
+
+def paint_passenger_door(d, px, top, bottom, opened):
+    """The usable passenger door, unmistakably shut or open.
+
+    Open, the lit vestibule, yellow grab rails and steps projecting onto the
+    platform make the entrance readable even at the game's native scale.
+    """
+    width = 18
+    rect(d, px - 2, top - 2, width + 4, bottom - top + 5, METAL_DARK)
+    if not opened:
+        rect(d, px, top, width, bottom - top, shade(LIVERY_WHITE, -8))
+        rect(d, px, top, width, 5, LIVERY_GREEN)
+        rect(d, px + 3, top + 6, width - 6, 10, METAL_DARK)
+        rect(d, px + 4, top + 7, width - 8, 8, GLASS)
+        rect(d, px + width - 4, top + 18, 2, 6, METAL_LIGHT)
+        rect(d, px, bottom - 6, width, 5, LIVERY_BLUE)
+        return
+
+    rect(d, px, top, width, bottom - top, (16, 18, 22))
+    rect(d, px + 2, top + 2, width - 4, 4, (232, 218, 154))
+    rect(d, px + 3, top + 7, width - 6, bottom - top - 9, (54, 58, 62))
+    # High-contrast yellow handrails frame the black opening.
+    for rail_x in (px + 1, px + width - 3):
+        rect(d, rail_x, top + 5, 2, bottom - top - 3, SAFETY)
+        rect(d, rail_x, top + 5, 3, 2, shade(SAFETY, 34))
+    # Three bright-edged steps project onto the platform.
+    for i, (inset, step_width) in enumerate(((1, 16), (3, 12), (5, 8))):
+        y = bottom + i * 3
+        rect(d, px + inset, y, step_width, 3, METAL_DARK)
+        rect(d, px + inset + 1, y, step_width - 2, 1, METAL_LIGHT)
 
 
 # ---------------------------------------------------------------- underpass
@@ -487,7 +507,7 @@ def paint_lamp(d, px, py, dead):
 # --------------------------------------------------------------------- bake
 
 
-def bake_platform(room: Room, rng, output, wrecked):
+def bake_platform(room: Room, rng, output, wrecked, open_door=False):
     """The station itself or its far side: hall, platform, track, trains.
     With `wrecked` the railcar is the derailed one."""
     image = Image.new("RGB", (room.width * TILE, room.height * TILE), VOID)
@@ -532,7 +552,15 @@ def bake_platform(room: Room, rng, output, wrecked):
         paint_toppled_coach(d, rng, coach)
     railcar = block(room, "M")
     if railcar is not None:
-        paint_railcar(d, rng, railcar, wrecked=wrecked)
+        door = block(room, "P")
+        paint_railcar(
+            d,
+            rng,
+            railcar,
+            wrecked=wrecked,
+            door_x=None if door is None else door[0],
+            open_door=open_door,
+        )
     paint_side_edges(d, room)
     for y in range(room.height):
         for x in range(room.width):
@@ -587,6 +615,8 @@ def main() -> None:
                    UNDERPASS_OUTPUT)
     bake_platform(Room(read_rows("far-platform-rows")), random.Random(1948),
                   FAR_OUTPUT, wrecked=False)
+    bake_platform(Room(read_rows("far-platform-rows")), random.Random(1948),
+                  FAR_OPEN_OUTPUT, wrecked=False, open_door=True)
 
 
 if __name__ == "__main__":

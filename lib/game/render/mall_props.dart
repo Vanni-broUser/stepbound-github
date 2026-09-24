@@ -80,7 +80,7 @@ final class ShutterComponent extends PositionComponent {
 final class PanelGlintComponent extends PositionComponent {
   PanelGlintComponent({
     required this.panel,
-    required this.world,
+    required this.active,
     double tileSize = 16,
   }) : super(
          position: Vector2(panel.x * tileSize, panel.y * tileSize),
@@ -90,7 +90,7 @@ final class PanelGlintComponent extends PositionComponent {
        );
 
   final GridPoint panel;
-  final WorldState world;
+  final bool Function() active;
   double _time = 0;
   final ui.Paint _paint = ui.Paint()
     ..color = const ui.Color(0xfffff6d8)
@@ -104,7 +104,7 @@ final class PanelGlintComponent extends PositionComponent {
 
   @override
   void render(ui.Canvas canvas) {
-    if (!world.controls.containsKey(panel)) {
+    if (!active()) {
       return;
     }
     final phase = (_time * 0.6) % 1;

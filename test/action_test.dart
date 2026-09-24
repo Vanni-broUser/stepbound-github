@@ -17,6 +17,17 @@ void main() {
     expect(events.whereType<NoiseEvent>(), hasLength(1));
   });
 
+  test('interact with a travel map emits its dedicated event', () {
+    const map = GridPoint(2, 1);
+    final world = playerOnlyWorld(travelMaps: const <GridPoint>[map]);
+
+    final events = const TurnScheduler().advance(world, const InteractAction());
+
+    expect(events.whereType<TravelMapUsedEvent>().single.at, map);
+    expect(events.whereType<NoInteractionEvent>(), isEmpty);
+    expect(world.travelMaps, contains(map));
+  });
+
   test('shooting consumes ammo and hits the first zombie in line', () {
     final world = corridorWorld(
       EntityKind.wanderer,
