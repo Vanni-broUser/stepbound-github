@@ -6,6 +6,7 @@ import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/game_audio.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
+import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/game/render/interact_marker_component.dart';
 import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
@@ -1282,5 +1283,88 @@ void main() {
     }
     expect(centreOf('touch-shoot'), greaterThan(centreOf('touch-right')));
     expect(centreOf('touch-interact'), greaterThan(centreOf('touch-right')));
+  });
+
+  group('on a phone longer than 16:9, with the camera on the left', () {
+    /// A 20:9 phone in landscape: the picture leaves a band on each side.
+    const screen = Size(915, 412);
+    const cutout = 32.0;
+    final picture =
+        IntegerResolutionViewport.virtualWidth *
+        IntegerResolutionViewport.scaleFor(screen.width, screen.height);
+    final band = (screen.width - picture) / 2;
+
+    Future<StepboundGame> loadOnThePhone(WidgetTester tester) async {
+      tester.view
+        ..devicePixelRatio = 1
+        ..physicalSize = screen
+        ..padding = const FakeViewPadding(left: cutout);
+      addTearDown(tester.view.reset);
+      final saves = MemorySaveRepository();
+      await saves.save(
+        SaveGame(
+          slot: 1,
+          savedAt: DateTime(2026),
+          place: 'Dietro la caserma',
+          world: saveTutorialWorld(createTutorialWorld()),
+          tutorial: const <String, Object?>{},
+          progress: Progress.newGame().toJson(),
+          hud: const <String>['interact', 'ammo', 'shoot'],
+        ),
+      );
+      await tester.pumpWidget(StepboundApp(saves: saves));
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey<String>('menu-load')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey<String>('menu-slot-1')));
+      await tester.pump();
+      return tester
+          .state<GameWidgetState<StepboundGame>>(
+            find.byType(GameWidget<StepboundGame>),
+          )
+          .currentGame;
+    }
+
+    Rect rectOf(WidgetTester tester, String key) =>
+        tester.getRect(find.byKey(ValueKey<String>(key)));
+
+    testWidgets('the controls sit in the bands, as far from either edge', (
+      tester,
+    ) async {
+      await loadOnThePhone(tester);
+      expect(
+        rectOf(tester, 'stepbound-game').width,
+        moreOrLessEquals(picture),
+        reason: 'the picture keeps its 16:9',
+      );
+
+      final left = rectOf(tester, 'touch-left').left;
+      final right = screen.width - rectOf(tester, 'touch-ammo').right;
+      expect(left, moreOrLessEquals(cutout), reason: 'clear of the camera');
+      expect(right, moreOrLessEquals(left), reason: 'same gap both sides');
+      expect(left, lessThan(band), reason: 'out in the band, off the game');
+      expect(
+        screen.width - rectOf(tester, 'touch-menu').right,
+        moreOrLessEquals(left),
+      );
+    });
+
+    testWidgets('a text box spans the screen, as far from either edge', (
+      tester,
+    ) async {
+      final game = await loadOnThePhone(tester);
+      game.showPrompt(const <TutorialLine>[TutorialLine('Una battuta')]);
+      await tester.pump();
+
+      final box = rectOf(tester, 'story-text');
+      expect(box.left, lessThan(band), reason: 'out into the band');
+      expect(box.left, greaterThanOrEqualTo(cutout), reason: 'clear of it');
+      expect(
+        screen.width - box.right,
+        moreOrLessEquals(box.left),
+        reason: 'same gap both sides',
+      );
+    });
   });
 }
