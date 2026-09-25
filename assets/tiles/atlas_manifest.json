@@ -1774,7 +1774,7 @@
         },
         {
           "layer": "structures",
-          "glyphs": "!&(*,-.5:=ACDFNPRTUVXZbcdhilnostvwxz|~",
+          "glyphs": "!&(*,-.5:=ACDFNPRSTUVXZbcdhilnostvwxz|~",
           "keys": [
             {
               "kind": "neighbour",

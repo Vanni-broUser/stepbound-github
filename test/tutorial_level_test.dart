@@ -2183,15 +2183,20 @@ void main() {
     expect(count(all, FireKind.car), 11);
     expect(count(all, FireKind.bin), 10);
     expect(count(all, FireKind.window), 14);
-    expect(count(all, FireKind.campfire), 2);
+    expect(count(all, FireKind.campfire), 3);
     // One camp in the north district, one in the dead end the wrecks
-    // leave at the west end of the shopping street behind the mall.
+    // leave at the west end of the shopping street behind the mall, one in
+    // the shipyard at the harbour.
     expect(
       all
           .where((spot) => spot.kind == FireKind.campfire)
           .map((spot) => placeAt(spot.tile)?.id)
           .toSet(),
-      <PlaceId>{PlaceId.northDistrict, PlaceId.mallNorthStreet},
+      <PlaceId>{
+        PlaceId.northDistrict,
+        PlaceId.mallNorthStreet,
+        PlaceId.harbour,
+      },
     );
   });
 

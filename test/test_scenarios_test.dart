@@ -70,11 +70,8 @@ void main() {
     String fireIn(PlaceId id) => campfireNames.entries
         .singleWhere((fire) => placeAt(fire.key)?.id == id)
         .value;
-    expect(
-      savedAt('Porto, Don Angelo al cancello'),
-      fireIn(PlaceId.northDistrict),
-    );
-    expect(savedAt("Duomo, con l'anello"), fireIn(PlaceId.northDistrict));
+    expect(savedAt('Porto, Don Angelo al cancello'), fireIn(PlaceId.harbour));
+    expect(savedAt("Duomo, con l'anello"), fireIn(PlaceId.harbour));
     expect(
       savedAt('Luigi liberato, verso la stazione'),
       fireIn(PlaceId.mallNorthStreet),

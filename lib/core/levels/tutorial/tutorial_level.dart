@@ -411,6 +411,7 @@ const GridRect barracksForecourt = GridRect(13, 7, 19, 8);
 const Map<PlaceId, String> _campNames = <PlaceId, String>{
   PlaceId.northDistrict: 'Dietro la caserma',
   PlaceId.mallNorthStreet: 'Zona nord',
+  PlaceId.harbour: 'Cantiere navale',
 };
 
 /// Campfires, by tile, with the name shown in the save slots.
