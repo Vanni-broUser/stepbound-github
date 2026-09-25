@@ -136,20 +136,20 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     name: harbourName,
     cardImage: harbourCardImage,
   ),
+  // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.mallGround,
     rows: mallGroundRows,
     legend: mallLegend,
-    background: 'assets/levels/mall_ground.png',
     indoor: true,
     // The entrance, the stairs, and daylight through the fire exit.
     daylight: 'EUX',
   ),
+  // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.mallFirst,
     rows: mallFirstRows,
     legend: mallLegend,
-    background: 'assets/levels/mall_first.png',
     indoor: true,
     // The stairs, and the panel's screen.
     daylight: 'DQL',
