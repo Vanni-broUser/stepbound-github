@@ -50,14 +50,11 @@ const Legend outdoorLegend = Legend(
 );
 const Legend barracksLegend = Legend(walls: 'xWQNSIw', obstacles: 'TCAh');
 const Legend mallLegend = Legend(walls: 'xWwISQ', obstacles: 'PTKBGHL');
+
 /// The Bar Arcobaleno: the counter `K`, the tables `T`, the jukebox `J`
 /// and the two pool tables `P` are all waist high, so they stop a step
 /// but not a shot.
-const Legend barLegend = Legend(
-  walls: 'xWwD',
-  obstacles: 'KTJP',
-  debris: ':q',
-);
+const Legend barLegend = Legend(walls: 'xWwD', obstacles: 'KTJP', debris: ':q');
 
 /// San Nicola (church.dart): the altar `A` and the side walls `I` are as
 /// solid as the outer ones, the pews `T` and the column drums `K` are
