@@ -56,7 +56,8 @@ final class TouchControls extends StatelessWidget {
                   // The far top corner from the menu, out of both thumbs' way.
                   if (unlocked.contains(HudElement.incense) ||
                       unlocked.contains(HudElement.barKey) ||
-                      unlocked.contains(HudElement.episcopalRing))
+                      unlocked.contains(HudElement.episcopalRing) ||
+                      unlocked.contains(HudElement.duomoKey))
                     Positioned(
                       left: 0,
                       top: 0,
@@ -68,6 +69,8 @@ final class TouchControls extends StatelessWidget {
                             _BarKeyBadge(game: game),
                           if (unlocked.contains(HudElement.episcopalRing))
                             _EpiscopalRingBadge(game: game),
+                          if (unlocked.contains(HudElement.duomoKey))
+                            _DuomoKeyBadge(game: game),
                         ],
                       ),
                     ),
@@ -722,6 +725,51 @@ final class _BarKeyBadge extends StatelessWidget {
   }
 }
 
+/// The key taken from beside Don Angelo's body, for the door upstairs.
+final class _DuomoKeyBadge extends StatelessWidget {
+  const _DuomoKeyBadge({required this.game});
+
+  static const double size = 44;
+  final StepboundGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: 'Chiave del Duomo',
+      child: GestureDetector(
+        onTap: () {
+          AudioScope.of(context).play(Sfx.uiClick);
+          game.inspectInventory('Chiave del Duomo');
+        },
+        child: BloodOverlay(
+          painter: const BloodPainter(
+            band: 3,
+            cornerRadius: 8,
+            drips: <BloodDrip>[BloodDrip(0.28, 11, 4), BloodDrip(0.7, 9, 3)],
+          ),
+          child: Container(
+            key: const ValueKey<String>('hud-duomo-key'),
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              color: const Color(0xcc241a1a),
+              border: Border.all(color: BloodColors.fresh, width: 2),
+              borderRadius: BorderRadius.circular(8),
+              boxShadow: const <BoxShadow>[
+                BoxShadow(color: Color(0x99000000), offset: Offset(2, 2)),
+              ],
+            ),
+            child: const Center(
+              child: CustomPaint(size: Size(28, 28), painter: _ChurchKeyIcon()),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Don Angelo's ring, carried only from the bar storeroom to the altar.
 final class _EpiscopalRingBadge extends StatelessWidget {
   const _EpiscopalRingBadge({required this.game});
@@ -912,6 +960,32 @@ final class _CenserIcon extends CustomPainter {
 
   @override
   bool shouldRepaint(_CenserIcon oldDelegate) => false;
+}
+
+/// The Duomo's own key: old iron, its bow a cross, so that it is not the
+/// bar's brass key at a glance.
+final class _ChurchKeyIcon extends CustomPainter {
+  const _ChurchKeyIcon();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final iron = Paint()..color = const Color(0xff8e949c);
+    final dark = Paint()..color = const Color(0xff4e545c);
+    canvas
+      ..save()
+      ..scale(size.width / 24)
+      ..drawRect(const Rect.fromLTWH(4, 2, 3, 12), iron)
+      ..drawRect(const Rect.fromLTWH(1, 6, 9, 3), iron)
+      ..drawRect(const Rect.fromLTWH(1, 8, 9, 1), dark)
+      ..drawRect(const Rect.fromLTWH(7, 15, 15, 3), iron)
+      ..drawRect(const Rect.fromLTWH(7, 17, 15, 1), dark)
+      ..drawRect(const Rect.fromLTWH(17, 18, 3, 4), iron)
+      ..drawRect(const Rect.fromLTWH(20, 18, 2, 3), iron)
+      ..restore();
+  }
+
+  @override
+  bool shouldRepaint(_ChurchKeyIcon oldDelegate) => false;
 }
 
 final class _KeyIcon extends CustomPainter {

@@ -3,6 +3,13 @@ import 'package:stepbound/core/grid/tile.dart';
 import 'package:stepbound/core/items/pickup.dart';
 import 'package:stepbound/core/world.dart';
 
+/// The side of one tile, in pixels: the unit the baked backgrounds in
+/// assets/levels are painted at (`TILE` in tools/build_*.py) and the one
+/// the renderer draws the grid with. A place's background is therefore
+/// `width * levelTileSize` by `height * levelTileSize` pixels, an
+/// invariant checked by test/levels/level_background_dimensions_test.dart.
+const double levelTileSize = 16;
+
 /// Every place of the game, so code can name the one it means.
 enum PlaceId {
   street,
