@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
@@ -95,6 +97,21 @@ final class _StoryIntroState extends State<StoryIntro> {
   /// there, on the left of the screen as much as on the right.
   Offset? _tappedAt;
 
+  /// The picture shown before the current one: it stays up until the new
+  /// one is decoded, so turning a page never lets the game show through.
+  String? _previousImage;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Decoding every picture up front lets each page come up at once.
+    for (final image in <String>{
+      for (final scene in widget.scenes) scene.image,
+    }) {
+      unawaited(precacheImage(AssetImage(image), context));
+    }
+  }
+
   void _advance() {
     if (_fadingOut) {
       return;
@@ -114,6 +131,7 @@ final class _StoryIntroState extends State<StoryIntro> {
         // it; when the next line is spoken over the same one there is
         // nothing new to see, so it comes up with the tap.
         final shown = widget.scenes[_sceneIndex].image;
+        _previousImage = shown;
         _sceneIndex += 1;
         _showText = widget.scenes[_sceneIndex].image == shown;
         return;
@@ -139,11 +157,31 @@ final class _StoryIntroState extends State<StoryIntro> {
         child: Stack(
           fit: StackFit.expand,
           children: <Widget>[
+            const ColoredBox(color: Color(0xff000000)),
             Image.asset(
               scene.image,
               key: ValueKey<String>('story-image-$_sceneIndex'),
               fit: BoxFit.cover,
               filterQuality: FilterQuality.none,
+              frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                final previous = _previousImage;
+                if (frame != null ||
+                    wasSynchronouslyLoaded ||
+                    previous == null) {
+                  return child;
+                }
+                return Stack(
+                  fit: StackFit.expand,
+                  children: <Widget>[
+                    Image.asset(
+                      previous,
+                      fit: BoxFit.cover,
+                      filterQuality: FilterQuality.none,
+                    ),
+                    child,
+                  ],
+                );
+              },
             ),
             if (_showText)
               Align(
