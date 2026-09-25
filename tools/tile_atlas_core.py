@@ -59,7 +59,15 @@ class Atlas:
                 indices.append(index)
         return indices
 
-    def group(self, make, count: int = VARIANTS) -> list[list[int]]:
+    def odds(self, make, count: int = VARIANTS) -> list[int]:
+        """Like `bucket`, keeping the repeats: for a tile that is there only
+        now and then -- a unit on a roof, a speck of grit -- the blank ones
+        have to stay as many as they came out, or deduplicating them would
+        make the rare thing the common one."""
+        return [self.add(make()) for _ in range(count)]
+
+    def group(self, make, count: int = VARIANTS, keep_odds: bool = False
+              ) -> list[list[int]]:
         """Like `bucket`, for a picture cut over several cells: `make`
         returns its tiles in a fixed order, the anchor's first. The result
         has one list per cell with one entry per variant, so the
@@ -70,7 +78,7 @@ class Atlas:
         seen = set()
         for _ in range(count):
             indices = tuple(self.add(tile) for tile in make())
-            if indices in seen:
+            if indices in seen and not keep_odds:
                 continue
             seen.add(indices)
             if not out:
@@ -191,13 +199,18 @@ def rule(layer: str, glyphs: str, buckets: list[list[int]],
 
 def spread(atlas: Atlas, paint_for, keys: list[dict] | None = None,
            reach: tuple[int, int, int, int] = (0, 1, 0, 0),
-           count: int = VARIANTS):
+           count: int = VARIANTS, keep_odds: bool = False):
     """The buckets and pieces of a rule whose painters draw beyond their
     own cell. `paint_for(index)` returns the painter, `paint(d, px, py)`,
     for the bucket `index` the keys choose; it is painted with its cell at
     (px, py) on a canvas that reaches `reach` = (left, up, right, down)
     cells further, and cut up. Returns `(buckets, pieces)` for `rule`: a
-    piece that stays blank in every bucket is left out."""
+    piece that stays blank in every bucket is left out.
+
+    A painter may be handed back with the tile its cell has to be,
+    `(paint, (tx, ty))`: the painters of the city take tiles, not pixels,
+    and draw their patterns off them. `keep_odds` keeps repeated variants,
+    as `Atlas.odds` does."""
     left, up, right, down = reach
     offsets = [(dx, dy) for dy in range(-up, down + 1)
                for dx in range(-left, right + 1) if (dx, dy) != (0, 0)]
@@ -205,14 +218,21 @@ def spread(atlas: Atlas, paint_for, keys: list[dict] | None = None,
     by_offset: dict[tuple[int, int], list[list[int]]] = {o: [] for o in offsets}
     for index in range(2 ** len(keys or [])):
         def make(i=index):
-            canvas = Image.new("RGBA", ((left + 1 + right) * TILE,
-                                        (up + 1 + down) * TILE), TRANSPARENT)
-            paint_for(i)(ImageDraw.Draw(canvas), left * TILE, up * TILE)
-            return [canvas.crop(((left + dx) * TILE, (up + dy) * TILE,
-                                 (left + dx + 1) * TILE,
-                                 (up + dy + 1) * TILE))
+            # A painter that works in tiles, and has patterns on them, says
+            # which tile of the canvas its cell has to be: (paint, (tx, ty)).
+            paint = paint_for(i)
+            tx, ty = left, up
+            if isinstance(paint, tuple):
+                paint, (tx, ty) = paint
+                assert tx >= left and ty >= up, (tx, ty, reach)
+            canvas = Image.new("RGBA", ((tx + 1 + right) * TILE,
+                                        (ty + 1 + down) * TILE), TRANSPARENT)
+            paint(ImageDraw.Draw(canvas), tx * TILE, ty * TILE)
+            return [canvas.crop(((tx + dx) * TILE, (ty + dy) * TILE,
+                                 (tx + dx + 1) * TILE,
+                                 (ty + dy + 1) * TILE))
                     for dx, dy in [(0, 0)] + offsets]
-        grouped = atlas.group(make, count)
+        grouped = atlas.group(make, count, keep_odds)
         buckets.append(grouped[0])
         for offset, tiles in zip(offsets, grouped[1:]):
             blank = all(atlas.blank(t) for t in tiles)
@@ -275,6 +295,17 @@ class Block:
         if 0 <= x < self.width and 0 <= y < self.height:
             return self.glyph
         return "x"
+
+
+def find_cell(test, least: tuple[int, int] = (0, 0)) -> tuple[int, int]:
+    """The first cell, no nearer the origin than `least`, where `test(x, y)`
+    holds: where to paint a tile whose painter reads a pattern off its
+    position, so that it paints the side of the pattern wanted."""
+    for y in range(least[1], least[1] + 64):
+        for x in range(least[0], least[0] + 64):
+            if test(x, y):
+                return x, y
+    raise ValueError("no cell holds the pattern")
 
 
 def placed(rows: list[str], x: int, y: int, width: int, height: int

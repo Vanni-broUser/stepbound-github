@@ -108,12 +108,7 @@ const String harbourCardImage = 'assets/story/scene_harbour.jpg';
 /// places with no `background`: those the game paints from these same
 /// rows, out of assets/tiles (tools/build_tile_atlas.py).
 final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
-  PlaceSpec(
-    id: PlaceId.street,
-    rows: streetLevelRows,
-    legend: outdoorLegend,
-    background: 'assets/levels/first_street.png',
-  ),
+  PlaceSpec(id: PlaceId.street, rows: streetLevelRows, legend: outdoorLegend),
   // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.barracks,
@@ -126,13 +121,11 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     id: PlaceId.northDistrict,
     rows: northDistrictRows,
     legend: outdoorLegend,
-    background: 'assets/levels/north_district.png',
   ),
   PlaceSpec(
     id: PlaceId.harbour,
     rows: harbourRows,
     legend: outdoorLegend,
-    background: 'assets/levels/harbour.png',
     name: harbourName,
     cardImage: harbourCardImage,
   ),
@@ -158,7 +151,6 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     id: PlaceId.mallNorthStreet,
     rows: mallNorthStreetRows,
     legend: outdoorLegend,
-    background: 'assets/levels/mall_north_street.png',
   ),
   // Painted from its rows out of the tile atlas.
   PlaceSpec(

@@ -30,6 +30,7 @@ import argparse
 import json
 import os
 import random
+import re
 import sys
 import tempfile
 
@@ -55,7 +56,9 @@ from build_mall import Room, paint_blood  # noqa: E402
 import build_airliner as airliner  # noqa: E402
 import build_mall as mall  # noqa: E402
 import build_station as station  # noqa: E402
+import tile_atlas_city as city  # noqa: E402
 from tile_atlas_core import (  # noqa: E402
+    LAYERS,
     SEED,
     TRANSPARENT,
     Atlas,
@@ -74,6 +77,10 @@ from tile_atlas_core import (  # noqa: E402
     rule,
     tile_of,
 )
+
+# Tiles to a row of the atlas image: 64 keeps it square-ish and inside the
+# 4096 pixels every phone's GPU takes, up to four thousand tiles.
+COLUMNS = 64
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TILES = os.path.join("assets", "tiles")
@@ -2510,6 +2517,7 @@ PLACES = {
     "stationFarSide": station_far_side,
     "stationUnderpass": station_underpass,
     "trainInterior": train_interior,
+    **city.PLACES,
 }
 
 
@@ -2526,14 +2534,16 @@ def build() -> tuple[Atlas, dict]:
         "format": "stepbound-tile-atlas-v1",
         "tileWidth": TILE,
         "tileHeight": TILE,
-        "layers": ["ground", "structures", "foreground"],
+        "layers": [layer for layer in LAYERS if layer != "objects"],
         "palette": "assets/palette.gpl",
         "atlas": ATLAS.replace(os.sep, "/"),
-        "columns": 16,
+        "columns": COLUMNS,
         "places": {
             name: {
                 "void": place["void"],
                 "voidGlyph": place["voidGlyph"],
+                **{key: place[key] for key in ("outside", "ground")
+                   if key in place},
                 "rules": place["rules"],
                 "objects": [
                     {k: v for k, v in obj.items()
@@ -2545,6 +2555,23 @@ def build() -> tuple[Atlas, dict]:
         },
     }
     return atlas, {"manifest": manifest, "places": places}
+
+
+def manifest_json(manifest: dict) -> str:
+    """The manifest as JSON, indented for a diff to read, with every list
+    of numbers kept on one line: a bucket is a handful of tile numbers,
+    and one to a line made the city's rules half a megabyte of line
+    breaks."""
+    text = json.dumps(manifest, indent=2)
+    text = re.sub(r"\[\s*(-?\d+(?:,\s*-?\d+)*)\s*\]",
+                  lambda m: "[" + ", ".join(re.split(r",\s*", m.group(1)))
+                  + "]", text)
+    text = re.sub(r"\[\s*\]", "[]", text)
+    # and a list of those lists -- the buckets of a rule -- on one line too
+    text = re.sub(r"\[\s*(\[[^\[\]]*\](?:,\s*\[[^\[\]]*\])*)\s*\]",
+                  lambda m: "[" + ", ".join(
+                      re.findall(r"\[[^\[\]]*\]", m.group(1))) + "]", text)
+    return text + "\n"
 
 
 def save_object(sprite: Image.Image, path: str) -> None:
@@ -2572,8 +2599,7 @@ def write(root: str) -> None:
                 save_object(obj["openSprite"],
                             os.path.join(root, OBJECTS, obj["whenOpen"]))
     with open(os.path.join(root, MANIFEST), "w", encoding="utf-8") as out:
-        json.dump(built["manifest"], out, indent=2)
-        out.write("\n")
+        out.write(manifest_json(built["manifest"]))
     print(f"{ATLAS}: {len(atlas.tiles)} tile")
     for name in sorted(built["places"]):
         print(f"  {name}: {len(built['places'][name]['rules'])} regole, "
@@ -2597,6 +2623,7 @@ PREVIEW_ROWS = {
     "stationFarSide": "far-platform-rows",
     "stationUnderpass": "underpass-rows",
     "trainInterior": "train-interior-rows",
+    **city.PREVIEW_ROWS,
 }
 
 
@@ -2689,6 +2716,13 @@ def check() -> None:
                         f"commit the result:\n"
                         f"    python tools/build_tile_atlas.py")
             print(f"{OBJECTS}/{entry}: up to date")
+        made = set(os.listdir(os.path.join(tmp, OBJECTS)))
+        left_over = sorted(set(os.listdir(os.path.join(ROOT, OBJECTS)))
+                           - made)
+        if left_over:
+            raise SystemExit(
+                f"{OBJECTS} holds pictures no painter makes any more: "
+                f"{', '.join(left_over)}. Delete them.")
     print("the tile atlas matches its painters")
 
 

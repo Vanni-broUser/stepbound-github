@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:stepbound/core/core.dart';
@@ -115,6 +116,7 @@ final class TilePlaceComponent extends PlaceBackground {
       }
     }
     const none = <int>[];
+    final batch = _TileBatch(loaded.manifest);
     for (var y = 0; y < grid.height; y++) {
       for (var x = 0; x < grid.width; x++) {
         final fromGlyph = byGlyph[grid.glyphAt(x, y)] ?? none;
@@ -129,15 +131,15 @@ final class TilePlaceComponent extends PlaceBackground {
           } else {
             next = fromGround[b++];
           }
-          _drawRule(canvas, loaded, grid, rules[next], x, y);
+          _drawRule(batch, grid, rules[next], x, y);
         }
       }
     }
+    batch.flush(canvas, loaded.atlas, _paint);
   }
 
   void _drawRule(
-    ui.Canvas canvas,
-    LoadedTileAtlas loaded,
+    _TileBatch batch,
     GlyphGrid grid,
     TileRule rule,
     int x,
@@ -149,7 +151,7 @@ final class TilePlaceComponent extends PlaceBackground {
       return;
     }
     final variant = _variant(bucket.length, x, y);
-    _drawTile(canvas, loaded, bucket[variant], x, y);
+    batch.add(bucket[variant], x, y);
     // The rest of the picture, in the same variant: drawn now, so what a
     // tile leans out over the row above lies over what that row drew.
     for (final piece in rule.pieces) {
@@ -161,30 +163,9 @@ final class TilePlaceComponent extends PlaceBackground {
           py >= 0 &&
           px < grid.width &&
           py < grid.height) {
-        _drawTile(canvas, loaded, tiles[variant], px, py);
+        batch.add(tiles[variant], px, py);
       }
     }
-  }
-
-  void _drawTile(
-    ui.Canvas canvas,
-    LoadedTileAtlas loaded,
-    int tile,
-    int x,
-    int y,
-  ) {
-    final manifest = loaded.manifest;
-    canvas.drawImageRect(
-      loaded.atlas,
-      manifest.tileRect(tile),
-      ui.Rect.fromLTWH(
-        (x * manifest.tileWidth).toDouble(),
-        (y * manifest.tileHeight).toDouble(),
-        manifest.tileWidth.toDouble(),
-        manifest.tileHeight.toDouble(),
-      ),
-      _paint,
-    );
   }
 
   void _drawObjects(
@@ -243,5 +224,47 @@ final class TilePlaceComponent extends PlaceBackground {
     if (image != null && onScreen) {
       canvas.drawImage(image, offset, _paint);
     }
+  }
+}
+
+/// The tiles of one layer, in the order they are drawn, sent to the canvas
+/// in a single call: a city draws twenty thousand of them, and one
+/// drawImageRect apiece costs more than the rest of the work together.
+final class _TileBatch {
+  _TileBatch(this.manifest);
+
+  final TileAtlasManifest manifest;
+  final List<double> _transforms = <double>[];
+  final List<double> _rects = <double>[];
+
+  void add(int tile, int x, int y) {
+    final source = manifest.tileRect(tile);
+    _transforms.addAll(<double>[
+      1,
+      0,
+      (x * manifest.tileWidth).toDouble(),
+      (y * manifest.tileHeight).toDouble(),
+    ]);
+    _rects.addAll(<double>[
+      source.left,
+      source.top,
+      source.right,
+      source.bottom,
+    ]);
+  }
+
+  void flush(ui.Canvas canvas, ui.Image atlas, ui.Paint paint) {
+    if (_rects.isEmpty) {
+      return;
+    }
+    canvas.drawRawAtlas(
+      atlas,
+      Float32List.fromList(_transforms),
+      Float32List.fromList(_rects),
+      null,
+      null,
+      null,
+      paint,
+    );
   }
 }

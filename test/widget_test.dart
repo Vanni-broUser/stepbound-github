@@ -1108,7 +1108,7 @@ void main() {
     return tester.runAsync(() async {
       final game = await _pumpReadyGame(tester);
       game.update(1 / 30);
-      expect(game.drawnPlaces, <String>[place(PlaceId.street).background!]);
+      expect(game.drawnPlaces, <String>['tiles:street']);
 
       game.simulation.player.component<PositionComponent>()
         ..position = const GridPoint(16, 7)
