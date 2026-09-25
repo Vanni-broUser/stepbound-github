@@ -1812,7 +1812,7 @@ void main() {
       // A trolley closes one half of the break; the other is open.
       expect(
         airlinerTailBreak.where(
-          (door) => reached.containsKey(door.step(Direction.south)),
+          (door) => reached.containsKey(door.step(Direction.north)),
         ),
         hasLength(1),
         reason: 'the aisle runs the length of the cabin',
@@ -1901,7 +1901,7 @@ void main() {
           'seats, and only there', () {
         final world = createTutorialWorld();
         expect(mutilatedTiles(world), contains(guard));
-        final exit = airlinerTailBreak.first.step(Direction.south);
+        final exit = airlinerTailBreak.first.step(Direction.north);
         final reached = walk(world, bitesAllowed: false);
         expect(reached.contains(exit), isTrue, reason: 'no bite to get out');
         // With the broken seats as whole as the rest, he shuts the aisle.
@@ -1933,7 +1933,7 @@ void main() {
         for (final door in airlinerTailBreak) {
           expect(
             mutilatedTiles(world),
-            isNot(contains(door.step(Direction.south))),
+            isNot(contains(door.step(Direction.north))),
           );
         }
       });
@@ -2063,9 +2063,9 @@ void main() {
       expect(roofs.bounds.contains(roof), isTrue);
       expect(roof, airlinerRoofBreak.first.step(Direction.south));
 
-      final back = travel(world, airlinerRoofBreak.first, Direction.south);
+      final back = travel(world, airlinerRoofBreak.first, Direction.north);
       expect(cabin.bounds.contains(back), isTrue);
-      expect(back, airlinerTailBreak.first.step(Direction.south));
+      expect(back, airlinerTailBreak.first.step(Direction.north));
     });
 
     test('the roofs end at the gap, which can only be looked at', () {

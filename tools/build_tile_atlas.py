@@ -329,7 +329,7 @@ def airliner_cabin(atlas: Atlas, rng) -> dict:
         rule("structures", "E", [atlas.bucket(lambda: tile_of(
             lambda d: airliner.cabin_break(d, 0, 0, roof=False)), 1)]),
         rule("structures", "O", [atlas.bucket(lambda: tile_of(
-            lambda d: airliner.cabin_break(d, 0, 0, roof=True)), 1)]),
+            lambda d: airliner.cabin_break(d, 0, 0, roof=False)), 1)]),
         rule("structures", "T", seat(),
              [neighbour_key(0, -1, "T"), neighbour_key(0, 1, "T")]),
         rule("structures", "K", [atlas.bucket(lambda: tile_of(

@@ -9,8 +9,10 @@
 /// The map runs the way the aeroplane does, nose west, tail east. Mario
 /// comes in through the tear in the belly `E`, under the forward galley at
 /// the west end, where the forward body rests in the road, and the only
-/// other way out is the tail break `O` at the east end, which opens on the
-/// roofs it stopped in (see the rooftops below). Between the two the only
+/// other way out is the tail break `O` at the east end, torn in the belly
+/// too: the tail lies along the top of the roofs it stopped in (see the
+/// rooftops below), so Mario climbs down out of it onto them, south, the
+/// same way he walks out of it on the roofs' map. Between the two the only
 /// way is the aisle: the seats `T` stand in their blocks either side of it,
 /// and where the floor buckled, halfway down, the rows are torn open into a
 /// cross aisle of loose panelling `::`. Here and there a seat was torn off
@@ -35,22 +37,26 @@
 // airliner-cabin-rows-start
 const List<String> airlinerCabinRows = <String>[
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-  'xWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWOOWWWWWx',
-  'xI...TTT..TTT9.TTT.::.TTT..TTT..TTT..K.K..Ix',
-  'xI.:.TTT..TTT..TTT.::.TTT..TTT..TTT...+...Ix',
+  'xWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWx',
+  'xI...TTT..TTT9.TTT.::.TTT..TTT..TTT..b.Z:.Ix',
+  'xI.:.TTT..TTT..TTT.::.TTT..TTT..TTT.......Ix',
   'xI.K.TTT..TTT..TrT.::.TTT.MTTT..TTT......:Ix',
   'xI.....b....Z.........:.....M....b........Ix',
   'xI..*.......:..........:.......*..........Ix',
   'xI*K.TTTM.TrT..TTT.::.TTT..rrr..TTT.......Ix',
-  'xIM:.TTT..TTT..TTT.::.TTT..TTT..TTT.......Ix',
-  'xI...TTT..TTT..TTT.::.TTT..TTT..TTT..b.Z:.Ix',
-  'xwwEEwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwx',
+  'xIM:.TTT..TTT..TTT.::.TTT..TTT..TTT...+...Ix',
+  'xI...TTT..TTT..TTT.::.TTT..TTT..TTT..K.K..Ix',
+  'xwwEEwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwOOwwwwwx',
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
 ];
 // airliner-cabin-rows-end
 
 /// The roofs the tail came to rest in, out of the tail break `D` at the
-/// top of the map. Two terraces, one stepped down from the other over a
+/// top of the map, torn in the underside of the tail: it is the cabin's `O`,
+/// in the belly there as well, so that Mario leaves the aeroplane going
+/// south on both maps and comes back into it going north.
+///
+/// Two terraces, one stepped down from the other over a
 /// low parapet `^` broken in two places, with chimney stacks `T` and
 /// aerial masts `n` standing about them and slate and gravel `:` thrown
 /// over both by the crash. The tail `#` lies along the top of the map with
