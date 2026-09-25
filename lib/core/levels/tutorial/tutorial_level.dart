@@ -104,8 +104,7 @@ const String harbourCardImage = 'assets/story/scene_harbour.jpg';
 /// of its hypermarket and, past the car park, the block with the station
 /// and its three places, and the harbour south of all that with the Duomo,
 /// the Bar Arcobaleno and the church of San Nicola. Backgrounds are baked
-/// by tools/build_street_level.py, build_barracks.py, build_mall.py,
-/// build_bar.py, build_church.py and build_station.py, except for the
+/// by the bakers listed in tools/build_levels.py, except for the
 /// places with no `background`: those the game paints from these same
 /// rows, out of assets/tiles (tools/build_tile_atlas.py).
 final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
@@ -115,11 +114,11 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     legend: outdoorLegend,
     background: 'assets/levels/first_street.png',
   ),
+  // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.barracks,
     rows: barracksRows,
     legend: barracksLegend,
-    background: 'assets/levels/barracks.png',
     indoor: true,
     daylight: 'EO',
   ),

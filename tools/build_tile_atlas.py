@@ -37,10 +37,13 @@ from PIL import Image, ImageChops, ImageDraw
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from build_street_level import (  # noqa: E402
+    BLOOD,
+    BLOOD_DARK,
     OUTLINE,
     RAINBOW,
     TILE,
     paint_chair,
+    paint_emblem,
     paint_text,
     rect,
     shade,
@@ -92,6 +95,23 @@ class Atlas:
                 indices.append(index)
         return indices
 
+    def pairs(self, make, count: int = VARIANTS
+              ) -> tuple[list[int], list[int]]:
+        """Like `bucket`, for a tile that leans out over the cell above:
+        `make` returns (tile, overhang). The two lists have one entry per
+        variant, so the renderer's choice of variant lands on both halves
+        of the same painting; a variant that repeats an earlier pair is
+        dropped from both."""
+        tiles, ups, seen = [], [], set()
+        for _ in range(count):
+            tile, up = make()
+            pair = (self.add(tile), self.add(up))
+            if pair not in seen:
+                seen.add(pair)
+                tiles.append(pair[0])
+                ups.append(pair[1])
+        return tiles, ups
+
     def image(self, columns: int = 16) -> Image.Image:
         rows = (len(self.tiles) + columns - 1) // columns
         sheet = Image.new("RGBA", (columns * TILE, rows * TILE), TRANSPARENT)
@@ -117,11 +137,41 @@ def row_has_key(dy: int, glyph: str) -> dict:
 
 
 def rule(layer: str, glyphs: str, buckets: list[list[int]],
-         keys: list[dict] | None = None) -> dict:
+         keys: list[dict] | None = None,
+         up: list[list[int]] | None = None) -> dict:
+    """`up`, if given, is drawn on the cell above: what the tile leans out
+    over it. One bucket per bucket, as long as the bucket it goes with."""
     keys = keys or []
     assert len(buckets) == 2 ** len(keys), (layer, glyphs, len(buckets))
-    return {"layer": layer, "glyphs": glyphs, "keys": keys,
-            "buckets": buckets}
+    out = {"layer": layer, "glyphs": glyphs, "keys": keys,
+           "buckets": buckets}
+    if up is not None:
+        assert len(up) == len(buckets), (layer, glyphs)
+        assert all(not u or len(u) == len(b) for u, b in zip(up, buckets)),             (layer, glyphs)
+        out["up"] = up
+    return out
+
+
+def leaning(atlas: Atlas, paint_for, keys: list[dict] | None = None,
+            count: int = VARIANTS):
+    """The buckets and overhangs of a rule whose painters lean out over the
+    cell above. `paint_for(index)` returns the painter, `paint(d, px, py)`,
+    for the bucket `index` the keys choose. It is painted on a canvas two
+    cells high: what falls on the cell above is the overhang. Returns
+    `(buckets, up)`, to hand to `rule`."""
+    buckets, ups = [], []
+    for index in range(2 ** len(keys or [])):
+        def make(i=index):
+            canvas = Image.new("RGBA", (TILE, TILE * 2), TRANSPARENT)
+            paint_for(i)(ImageDraw.Draw(canvas), 0, TILE)
+            return (canvas.crop((0, TILE, TILE, TILE * 2)),
+                    canvas.crop((0, 0, TILE, TILE)))
+        tiles, up = atlas.pairs(make, count)
+        # A painter that never reaches the cell above has no overhang.
+        blank = all(atlas.tiles[u].getbbox() is None for u in up)
+        buckets.append(tiles)
+        ups.append([] if blank else up)
+    return buckets, ups
 
 
 def tile_of(paint) -> Image.Image:
@@ -1055,6 +1105,284 @@ def station_far_side(atlas: Atlas, rng) -> dict:
     }
 
 
+
+# ------------------------------------------------------ the barracks' art
+# Moved here from tools/build_barracks.py, which this atlas replaces: the
+# carabinieri's post, a Pokemon-Emerald room wrecked from end to end. The
+# desks, counters and cabinets stand taller than their cell, so their
+# tiles lean out over the row above (`leaning`).
+
+BK_VOID = (6, 6, 8)
+BK_WALL_TOP = (46, 48, 56)
+BK_WALL_TOP_LIGHT = (70, 72, 82)
+BK_WALL_FACE = (150, 162, 150)
+BK_WALL_FACE_DARK = (118, 130, 120)
+BK_WAINSCOT = (84, 70, 58)
+BK_FLOOR_A = (170, 168, 156)
+BK_FLOOR_B = (156, 154, 144)
+BK_FLOOR_JOINT = (134, 132, 124)
+BK_WOOD = (132, 92, 58)
+BK_WOOD_LIGHT = (164, 120, 78)
+BK_WOOD_DARK = (92, 62, 40)
+BK_METAL = (120, 124, 132)
+BK_METAL_LIGHT = (160, 164, 172)
+BK_METAL_DARK = (78, 82, 90)
+BK_NAVY = (34, 44, 84)
+BK_PAPER = (226, 222, 206)
+BK_WALLS = "xWQNSIw"
+
+
+def paint_barracks_floor(d, rng, px, py):
+    for i in (0, 8):
+        for j in (0, 8):
+            rect(d, px + i, py + j, 8, 8,
+                 BK_FLOOR_A if (i + j) // 8 % 2 == 0 else BK_FLOOR_B)
+    rect(d, px, py, TILE, 1, BK_FLOOR_JOINT)
+    rect(d, px, py, 1, TILE, BK_FLOOR_JOINT)
+    for _ in range(4):  # grime
+        rect(d, px + rng.randrange(16), py + rng.randrange(16), 1, 1,
+             (120, 118, 110))
+    if rng.random() < 0.15:  # cracked tile
+        cx, cy = px + rng.randrange(2, 12), py + rng.randrange(2, 12)
+        for i in range(5):
+            rect(d, cx + i, cy + (i % 3) - 1, 1, 1, (100, 98, 92))
+
+
+def paint_barracks_wall(d, rng, px, py, upper):
+    """Two-tile tall wall seen face on: dark top, pale face, wood
+    skirting. `upper` is the top row of it."""
+    if upper:  # ceiling edge and upper face
+        rect(d, px, py, TILE, 5, BK_WALL_TOP)
+        rect(d, px, py + 5, TILE, 11, BK_WALL_FACE)
+        rect(d, px, py + 5, TILE, 1, BK_WALL_TOP_LIGHT)
+    else:
+        rect(d, px, py, TILE, TILE, BK_WALL_FACE)
+        rect(d, px, py + 10, TILE, 6, BK_WAINSCOT)
+        rect(d, px, py + 10, TILE, 1, BK_WOOD_LIGHT)
+        rect(d, px, py + 15, TILE, 1, BK_WOOD_DARK)
+    if rng.random() < 0.3:  # bullet holes and cracks
+        hx, hy = px + rng.randrange(2, 14), py + rng.randrange(6, 10)
+        rect(d, hx, hy, 1, 1, (40, 40, 40))
+        rect(d, hx + 1, hy + 1, 1, 1, (100, 108, 100))
+
+
+def paint_barracks_partition(d, px, py, wall_below):
+    """Interior wall: dark top, and a short face where the floor is below."""
+    if wall_below:
+        rect(d, px, py, TILE, TILE, BK_WALL_TOP)
+        rect(d, px + 1, py, TILE - 2, TILE, BK_WALL_TOP_LIGHT)
+        rect(d, px + 3, py, TILE - 6, TILE, BK_WALL_TOP)
+        return
+    rect(d, px, py, TILE, 6, BK_WALL_TOP)
+    rect(d, px, py, TILE, 1, BK_WALL_TOP_LIGHT)
+    rect(d, px, py + 6, TILE, 10, BK_WALL_FACE_DARK)
+    rect(d, px, py + 12, TILE, 4, BK_WAINSCOT)
+
+
+def paint_barracks_front_wall(d, px, py):
+    rect(d, px, py, TILE, 7, BK_WALL_TOP)
+    rect(d, px, py, TILE, 1, BK_WALL_TOP_LIGHT)
+    rect(d, px, py + 7, TILE, 9, BK_VOID)
+
+
+def paint_barracks_edge(d, px, py, right):
+    """Thin wall edge where the floor meets the darkness at the side."""
+    rect(d, px + (12 if right else 0), py, 4, TILE, BK_WALL_TOP)
+    rect(d, px + (12 if right else 3), py, 1, TILE, BK_WALL_TOP_LIGHT)
+
+
+def paint_barracks_emblem(d, px, py):
+    rect(d, px + 1, py + 1, 14, 9, BK_NAVY)
+    paint_emblem(d, px + 3, py - 3)
+
+
+def paint_notice_board(d, rng, px, py):
+    rect(d, px + 1, py + 1, 14, 8, BK_WOOD_DARK)
+    rect(d, px + 2, py + 2, 12, 6, (170, 130, 80))
+    for _ in range(4):
+        rect(d, px + rng.randrange(3, 11), py + rng.randrange(2, 6), 3, 2,
+             BK_PAPER)
+    rect(d, px + 5, py + 8, 3, 2, BK_PAPER)  # a sheet hanging loose
+
+
+def paint_barracks_shelves(d, rng, px, py):
+    rect(d, px + 1, py - 6, 14, 16, BK_WOOD_DARK)
+    for sy in (py - 5, py + 1):
+        rect(d, px + 2, sy + 5, 12, 1, BK_WOOD_LIGHT)
+        for bx in range(px + 2, px + 14, 2):
+            if rng.random() < 0.7:
+                colour = rng.choice(((40, 70, 120), (150, 40, 40),
+                                     (60, 110, 60), (200, 180, 90)))
+                rect(d, bx, sy + 1, 2, 4, colour)
+
+
+def paint_barracks_exit_door(d, px, py):
+    """Door in the back wall, ajar, grey daylight behind, green EXIT sign.
+    It reaches 19 px above its cell: an object."""
+    rect(d, px, py - 14, TILE, 30, BK_WALL_TOP)
+    rect(d, px + 2, py - 12, 12, 28, (70, 90, 110))
+    rect(d, px + 4, py - 8, 8, 24, (150, 170, 186))
+    rect(d, px + 5, py - 4, 6, 20, (190, 204, 214))
+    rect(d, px + 2, py - 12, 3, 28, BK_WOOD)  # open leaf
+    rect(d, px + 3, py + 2, 1, 2, (220, 190, 90))
+    rect(d, px + 3, py - 19, 10, 5, (30, 120, 60))  # exit sign
+    rect(d, px + 5, py - 18, 6, 3, (200, 250, 210))
+    rect(d, px + 6, py - 17, 3, 1, (30, 120, 60))
+
+
+def paint_barracks_entrance(d, px, py):
+    """Front doorway: gap in the front wall with daylight and a mat."""
+    rect(d, px, py, TILE, TILE, (238, 196, 110))
+    rect(d, px + 2, py + 4, 12, 12, (252, 222, 150))
+    rect(d, px, py, 2, 8, BK_WOOD)
+    rect(d, px + 14, py, 2, 8, BK_WOOD)
+    rect(d, px + 2, py - 4, 12, 3, (130, 40, 36))  # mat inside
+
+
+def paint_barracks_desk(d, rng, px, py):
+    """An office desk over two tiles: top, front panel, a broken monitor
+    on the left half, papers and a spilt coffee on the right. Painted
+    whole and cut in two, so the monitor never straddles the cut."""
+    rect(d, px + 1, py + 15, 30, 1, (90, 88, 82))  # shadow
+    rect(d, px, py + 2, 32, 9, BK_WOOD_LIGHT)
+    rect(d, px, py + 2, 32, 1, (190, 150, 100))
+    rect(d, px, py + 11, 32, 4, BK_WOOD_DARK)
+    rect(d, px + 2, py + 11, 1, 4, OUTLINE)
+    rect(d, px + 29, py + 11, 1, 4, OUTLINE)
+    mx = px + 2 + rng.randrange(4)
+    rect(d, mx, py - 3, 10, 7, (40, 42, 48))  # monitor
+    rect(d, mx + 1, py - 2, 8, 5, (70, 90, 110))
+    rect(d, mx + 3, py - 1, 1, 3, (220, 230, 240))  # cracked screen
+    rect(d, mx + 4, py, 2, 1, (220, 230, 240))
+    for _ in range(3):
+        rect(d, px + 16 + rng.randrange(12), py + 3 + rng.randrange(5), 4, 3,
+             BK_PAPER)
+    if rng.random() < 0.5:  # coffee spill
+        rect(d, px + 20, py + 6, 5, 2, (90, 60, 40))
+
+
+def paint_barracks_counter(d, px, py, first, last):
+    """Reception counter segment."""
+    rect(d, px, py + 3, TILE, 8, BK_WOOD_LIGHT)
+    rect(d, px, py + 3, TILE, 1, (190, 150, 100))
+    rect(d, px, py + 11, TILE, 5, BK_NAVY)
+    rect(d, px, py + 12, TILE, 1, (200, 40, 40))
+    rect(d, px, py - 6, TILE, 9, (150, 190, 200))  # glass screen
+    rect(d, px + 5, py - 6, 3, 9, (60, 70, 80))  # shattered
+    rect(d, px + 4, py - 2, 5, 1, (200, 230, 240))
+    if first:
+        rect(d, px, py - 6, 1, 22, OUTLINE)
+    if last:
+        rect(d, px + 15, py - 6, 1, 22, OUTLINE)
+
+
+def paint_barracks_cabinet(d, px, py):
+    rect(d, px + 2, py - 6, 12, 22, BK_METAL_DARK)
+    rect(d, px + 3, py - 5, 10, 20, BK_METAL)
+    for dy in (-3, 3, 9):
+        rect(d, px + 4, py + dy, 8, 4, BK_METAL_LIGHT)
+        rect(d, px + 7, py + dy + 1, 2, 1, BK_METAL_DARK)
+    rect(d, px + 3, py + 9, 11, 5, BK_METAL_LIGHT)  # drawer pulled out
+    rect(d, px + 4, py + 9, 8, 2, BK_PAPER)
+
+
+def paint_barracks_chair(d, px, py):
+    """Office chair lying on its side."""
+    rect(d, px + 2, py + 10, 12, 3, (40, 40, 44))
+    rect(d, px + 3, py + 6, 5, 4, (60, 70, 110))
+    rect(d, px + 8, py + 8, 6, 3, (60, 70, 110))
+    rect(d, px + 12, py + 13, 2, 2, (30, 30, 30))
+    rect(d, px + 3, py + 13, 2, 2, (30, 30, 30))
+
+
+def paint_barracks_papers(d, rng, px, py):
+    for _ in range(6):
+        rect(d, px + rng.randrange(1, 12), py + rng.randrange(2, 13), 4, 3,
+             BK_PAPER)
+        rect(d, px + rng.randrange(1, 13), py + rng.randrange(2, 14), 3, 1,
+             (180, 176, 164))
+
+
+def paint_barracks_blood(d, rng, px, py):
+    rect(d, px + 3, py + 5, 10, 6, BLOOD)
+    rect(d, px + 5, py + 4, 5, 8, BLOOD)
+    rect(d, px + 6, py + 7, 4, 3, BLOOD_DARK)
+    rect(d, px + 12, py + 11, 2, 2, BLOOD)
+
+
+def barracks(atlas: Atlas, rng) -> dict:
+    """The rules that paint PlaceId.barracks."""
+    floored = ".:b*+c3TCAhOE"
+
+    def lean(paint, keys=None):
+        return leaning(atlas, paint, keys)
+
+    def one(paint):
+        return [atlas.bucket(lambda: tile_of(lambda d: paint(d, 0, 0)), 1)]
+
+    def randomly(paint):
+        return [atlas.bucket(lambda: tile_of(
+            lambda d: paint(d, rng, 0, 0)))]
+
+    rules = [rule("ground", floored, randomly(paint_barracks_floor))]
+    for right in (False, True):
+        rules.append(rule(
+            "ground", floored,
+            [[], atlas.bucket(lambda r=right: tile_of(
+                lambda d: paint_barracks_edge(d, 0, 0, r)), 1)],
+            [neighbour_key(1 if right else -1, 0, "x")]))
+
+    # The back wall is two courses: the top one has wall below it.
+    rules.append(rule(
+        "structures", "WQNS",
+        [atlas.bucket(lambda u=upper: tile_of(
+            lambda d: paint_barracks_wall(d, rng, 0, 0, u)))
+         for upper in (False, True)],
+        [neighbour_key(0, 1, "xWQNSw")]))
+    rules.append(rule(
+        "structures", "I",
+        [atlas.bucket(lambda b=below: tile_of(
+            lambda d: paint_barracks_partition(d, 0, 0, b)), 1)
+         for below in (False, True)],
+        [neighbour_key(0, 1, BK_WALLS)]))
+    rules.append(rule("structures", "w", one(paint_barracks_front_wall)))
+
+    buckets, up = lean(lambda i: paint_barracks_emblem)
+    rules.append(rule("structures", "Q", buckets, up=up))
+    rules.append(rule("structures", "N", randomly(paint_notice_board)))
+    buckets, up = lean(lambda i: lambda d, px, py:
+                       paint_barracks_shelves(d, rng, px, py))
+    rules.append(rule("structures", "S", buckets, up=up))
+    buckets, up = lean(lambda i: paint_barracks_entrance)
+    rules.append(rule("structures", "E", buckets, up=up))
+    rules.append(rule("structures", ":", randomly(paint_barracks_papers)))
+    rules.append(rule("structures", "b", randomly(paint_barracks_blood)))
+
+    # Furniture. A desk is two tiles, painted whole and cut: the key says
+    # whether there is a desk to the left, which makes this its right half.
+    desk_keys = [neighbour_key(-1, 0, "T")]
+    buckets, up = lean(lambda i: lambda d, px, py: paint_barracks_desk(
+        d, rng, px - TILE * i, py), desk_keys)
+    rules.append(rule("structures", "T", buckets, desk_keys, up))
+    counter_keys = [neighbour_key(-1, 0, "C"), neighbour_key(1, 0, "C")]
+    buckets, up = lean(lambda i: lambda d, px, py: paint_barracks_counter(
+        d, px, py, not i & 1, not i & 2), counter_keys)
+    rules.append(rule("structures", "C", buckets, counter_keys, up))
+    buckets, up = lean(lambda i: paint_barracks_cabinet)
+    rules.append(rule("structures", "A", buckets, up=up))
+    rules.append(rule("structures", "h", one(paint_barracks_chair)))
+
+    door = Image.new("RGBA", (TILE, TILE * 3), TRANSPARENT)
+    paint_barracks_exit_door(ImageDraw.Draw(door), 0, TILE * 2)
+    return {
+        "void": "#060608",
+        "voidGlyph": "x",
+        "rules": rules,
+        "objects": [{"glyph": "O", "image": "barracks_exit.png",
+                     "offsetY": -2, "sprite": door}],
+    }
+
+
 # ------------------------------------------------------ the reference draw
 # What the renderer in lib/game/render/tile_place_component.dart has to do,
 # written out once here so the manifest can be checked against the baked
@@ -1103,12 +1431,15 @@ def compose(rows: list[str], place: dict, tiles: list[Image.Image],
             for obj in place["objects"]:
                 sprite = obj["openSprite"] if opened and "openSprite" in obj \
                     else obj["sprite"]
-                cells = [(x, y) for y in range(height)
-                         for x in range(width) if at(x, y) == obj["glyph"]]
-                if not cells:
-                    continue
-                x0 = min(x for x, _ in cells)
-                y0 = min(y for _, y in cells)
+                if "at" in obj:
+                    x0, y0 = obj["at"]
+                else:
+                    cells = [(x, y) for y in range(height)
+                             for x in range(width) if at(x, y) == obj["glyph"]]
+                    if not cells:
+                        continue
+                    x0 = min(x for x, _ in cells)
+                    y0 = min(y for _, y in cells)
                 out.alpha_composite(
                     sprite, (x0 * TILE, (y0 + obj.get("offsetY", 0)) * TILE))
             continue
@@ -1127,12 +1458,18 @@ def compose(rows: list[str], place: dict, tiles: list[Image.Image],
                         continue
                     out.alpha_composite(
                         tiles[variant(bucket, x, y)], (x * TILE, y * TILE))
+                    up = spec.get("up")
+                    if up and up[index] and y > 0:
+                        out.alpha_composite(
+                            tiles[variant(up[index], x, y)],
+                            (x * TILE, (y - 1) * TILE))
     return out
 
 
 # ----------------------------------------------------------------- writing
 
 PLACES = {
+    "barracks": barracks,
     "airlinerCabin": airliner_cabin,
     "barArcobaleno": bar_arcobaleno,
     "barBackroom": bar_backroom,
@@ -1145,8 +1482,13 @@ PLACES = {
 
 def build() -> tuple[Atlas, dict]:
     atlas = Atlas()
-    rng = random.Random(SEED)
-    places = {name: make(atlas, rng) for name, make in sorted(PLACES.items())}
+    # Each place has a stream of its own: one shared by all would shift
+    # every place after the one being added, and the diff of a conversion
+    # would repaint the ones already done.
+    places = {
+        name: make(atlas, random.Random(f"{SEED}/{name}"))
+        for name, make in sorted(PLACES.items())
+    }
     manifest = {
         "format": "stepbound-tile-atlas-v1",
         "tileWidth": TILE,
@@ -1172,6 +1514,18 @@ def build() -> tuple[Atlas, dict]:
     return atlas, {"manifest": manifest, "places": places}
 
 
+def save_object(sprite: Image.Image, path: str) -> None:
+    """Write an object's picture unless the one there already holds the
+    same pixels: the encoding of a PNG is not stable from one Pillow or
+    zlib to the next, and a byte change is a diff nobody can review."""
+    if os.path.exists(path):
+        with Image.open(path) as old:
+            if old.convert("RGBA").tobytes() == sprite.convert(
+                    "RGBA").tobytes() and old.size == sprite.size:
+                return
+    sprite.save(path, optimize=True)
+
+
 def write(root: str) -> None:
     atlas, built = build()
     os.makedirs(os.path.join(root, OBJECTS), exist_ok=True)
@@ -1179,12 +1533,11 @@ def write(root: str) -> None:
         os.path.join(root, ATLAS), optimize=True)
     for place in built["places"].values():
         for obj in place["objects"]:
-            obj["sprite"].save(
-                os.path.join(root, OBJECTS, obj["image"]), optimize=True)
+            save_object(obj["sprite"], os.path.join(root, OBJECTS,
+                                                    obj["image"]))
             if "openSprite" in obj:
-                obj["openSprite"].save(
-                    os.path.join(root, OBJECTS, obj["whenOpen"]),
-                    optimize=True)
+                save_object(obj["openSprite"],
+                            os.path.join(root, OBJECTS, obj["whenOpen"]))
     with open(os.path.join(root, MANIFEST), "w", encoding="utf-8") as out:
         json.dump(built["manifest"], out, indent=2)
         out.write("\n")
@@ -1197,6 +1550,7 @@ def write(root: str) -> None:
 # The marker of each converted place's ASCII rows, for --preview only: the
 # atlas itself never reads a place.
 PREVIEW_ROWS = {
+    "barracks": "barracks-rows",
     "airlinerCabin": "airliner-cabin-rows",
     "barArcobaleno": "bar-rows",
     "barBackroom": "bar-backroom-rows",
@@ -1223,6 +1577,35 @@ def preview(root: str) -> None:
                 root, f"preview_{name}{'_open' if opened else ''}.png")
             image.convert("RGB").save(out)
             print(f"{out}: {image.size[0]}x{image.size[1]}")
+
+
+def compare(dump: str) -> None:
+    """Hold the renderer in lib/game/render to this file's reference draw.
+    `dump` holds what the game drew, one <place>.rgba per converted place,
+    written by test/levels/tile_place_render_test.dart."""
+    from build_street_level import read_rows  # noqa: PLC0415 - compare only
+
+    atlas, built = build()
+    failures = []
+    for name, marker in sorted(PREVIEW_ROWS.items()):
+        path = os.path.join(dump, f"{name}.rgba")
+        if not os.path.exists(path):
+            failures.append(f"{name}: the game drew nothing to {path}")
+            continue
+        rows = read_rows(marker)
+        place = built["places"][name]
+        expected = compose(rows, place, atlas.tiles).tobytes()
+        with open(path, "rb") as f:
+            drawn = f.read()
+        if drawn != expected:
+            wrong = sum(1 for a, b in zip(drawn[::4], expected[::4])
+                        if a != b)
+            failures.append(f"{name}: {wrong} pixels differ from the "
+                            f"reference draw")
+        else:
+            print(f"{name}: drawn as the reference draws it")
+    if failures:
+        raise SystemExit("\n".join(failures))
 
 
 def check() -> None:
@@ -1275,12 +1658,17 @@ def main() -> None:
     parser.add_argument("--check", action="store_true",
                         help="do not write anything: fail if the committed "
                              "atlas is not what the painters make today")
+    parser.add_argument("--compare", metavar="DIR",
+                        help="compare what the game drew into DIR "
+                             "(TILE_RENDER_DUMP) with the reference draw")
     parser.add_argument("--preview", metavar="DIR",
                         help="draw the converted places into DIR, the way "
                              "the game will draw them")
     args = parser.parse_args()
     if args.check:
         check()
+    elif args.compare:
+        compare(args.compare)
     elif args.preview:
         os.makedirs(args.preview, exist_ok=True)
         preview(args.preview)

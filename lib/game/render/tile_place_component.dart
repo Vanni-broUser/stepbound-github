@@ -98,7 +98,6 @@ final class TilePlaceComponent extends PlaceBackground {
     GlyphGrid grid,
     String layer,
   ) {
-    final manifest = loaded.manifest;
     final rules = art.rules.where((rule) => rule.layer == layer).toList();
     for (var y = 0; y < grid.height; y++) {
       for (var x = 0; x < grid.width; x++) {
@@ -107,24 +106,42 @@ final class TilePlaceComponent extends PlaceBackground {
           if (!rule.covers(glyph)) {
             continue;
           }
-          final bucket = rule.bucketFor(grid, x, y);
+          final index = rule.bucketIndex(grid, x, y);
+          final bucket = rule.buckets[index];
           if (bucket.isEmpty) {
             continue;
           }
-          canvas.drawImageRect(
-            loaded.atlas,
-            manifest.tileRect(_variant(bucket, x, y)),
-            ui.Rect.fromLTWH(
-              (x * manifest.tileWidth).toDouble(),
-              (y * manifest.tileHeight).toDouble(),
-              manifest.tileWidth.toDouble(),
-              manifest.tileHeight.toDouble(),
-            ),
-            _paint,
-          );
+          _drawTile(canvas, loaded, _variant(bucket, x, y), x, y);
+          // What the tile leans out over the cell above, in the same
+          // variant: painted now, so it lies over what the row above drew.
+          final up = rule.up?[index];
+          if (up != null && up.isNotEmpty && y > 0) {
+            _drawTile(canvas, loaded, _variant(up, x, y), x, y - 1);
+          }
         }
       }
     }
+  }
+
+  void _drawTile(
+    ui.Canvas canvas,
+    LoadedTileAtlas loaded,
+    int tile,
+    int x,
+    int y,
+  ) {
+    final manifest = loaded.manifest;
+    canvas.drawImageRect(
+      loaded.atlas,
+      manifest.tileRect(tile),
+      ui.Rect.fromLTWH(
+        (x * manifest.tileWidth).toDouble(),
+        (y * manifest.tileHeight).toDouble(),
+        manifest.tileWidth.toDouble(),
+        manifest.tileHeight.toDouble(),
+      ),
+      _paint,
+    );
   }
 
   void _drawObjects(
@@ -135,7 +152,7 @@ final class TilePlaceComponent extends PlaceBackground {
     required bool opened,
   }) {
     for (final object in art.objects) {
-      final corner = _blockCorner(grid, object.glyph);
+      final corner = object.at ?? _blockCorner(grid, object.glyph);
       if (corner == null) {
         continue;
       }

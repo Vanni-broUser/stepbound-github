@@ -73,11 +73,31 @@ void main() {
     }
   });
 
-  test('an object is painted for the run of glyphs it was drawn for', () {
+  test('an object is painted over the glyphs it was drawn for', () {
     for (final place in convertedPlaces) {
       for (final object in manifest.places[place.id.name]!.objects) {
         final tiles = object.tiles;
         if (tiles == null) {
+          continue;
+        }
+        final at = object.at;
+        if (at != null) {
+          // Placed by hand, as the shopfronts of a wall are: every cell
+          // under it must still be one of the glyphs it was drawn over.
+          final grid = GlyphGrid(place.rows);
+          for (var y = at.$2; y < at.$2 + tiles.$2; y++) {
+            for (var x = at.$1; x < at.$1 + tiles.$1; x++) {
+              expect(
+                object.glyph,
+                contains(grid.glyphAt(x, y)),
+                reason:
+                    '${place.id}: ${object.image} covers $x,$y, which the '
+                    'rows now show as "${grid.glyphAt(x, y)}", not one of '
+                    '"${object.glyph}". Re-run '
+                    'python tools/build_tile_atlas.py after changing them',
+              );
+            }
+          }
           continue;
         }
         final cells = place.tilesOf(object.glyph);

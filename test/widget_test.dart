@@ -943,7 +943,8 @@ void main() {
         ..pressDirection(Direction.north)
         ..releaseDirection(Direction.north)
         ..update(0.3);
-      expect(game.drawnPlaces, <String>[place(PlaceId.barracks).background!]);
+      // The barracks are painted from the tile atlas: no picture to name.
+      expect(game.drawnPlaces, <String>['tiles:barracks']);
     });
   });
 

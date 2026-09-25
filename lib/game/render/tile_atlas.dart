@@ -163,12 +163,19 @@ final class RowHasKey extends TileKey {
 
 /// For these [glyphs], on this [layer], take a tile out of the bucket the
 /// [keys] point at. An empty bucket draws nothing.
+///
+/// A rule may also say what its tile leans out over the cell above: a
+/// monitor on a desk, a shelf taller than the wall it stands on. [up] is
+/// the same buckets again, one tile per tile of the bucket, drawn on the
+/// cell above by the same choice of variant so the two halves of a picture
+/// stay one picture.
 final class TileRule {
   const TileRule({
     required this.layer,
     required this.glyphs,
     required this.keys,
     required this.buckets,
+    this.up,
   });
 
   factory TileRule.fromJson(Map<String, Object?> json) {
@@ -188,11 +195,37 @@ final class TileRule {
         'buckets, not ${buckets.length}',
       );
     }
+    final rawUp = json['up'] as List<Object?>?;
+    final up = rawUp == null
+        ? null
+        : <List<int>>[
+            for (final bucket in rawUp)
+              <int>[
+                for (final tile in bucket! as List<Object?>)
+                  (tile! as num).toInt(),
+              ],
+          ];
+    if (up != null) {
+      if (up.length != buckets.length) {
+        throw const FormatException(
+          'a rule with "up" needs one up bucket per bucket',
+        );
+      }
+      for (var i = 0; i < up.length; i++) {
+        if (up[i].isNotEmpty && up[i].length != buckets[i].length) {
+          throw const FormatException(
+            'an "up" bucket must hold as many tiles as its bucket, '
+            'or the two halves of a picture would part',
+          );
+        }
+      }
+    }
     return TileRule(
       layer: json['layer']! as String,
       glyphs: json['glyphs']! as String,
       keys: keys,
       buckets: buckets,
+      up: up,
     );
   }
 
@@ -200,24 +233,34 @@ final class TileRule {
   final String glyphs;
   final List<TileKey> keys;
   final List<List<int>> buckets;
+  final List<List<int>>? up;
 
   bool covers(String glyph) => glyphs.contains(glyph);
 
-  /// The tiles this cell may be drawn with.
-  List<int> bucketFor(GlyphGrid grid, int x, int y) {
+  /// Which bucket this cell draws from.
+  int bucketIndex(GlyphGrid grid, int x, int y) {
     var index = 0;
     for (var bit = 0; bit < keys.length; bit++) {
       if (keys[bit].holds(grid, x, y)) {
         index |= 1 << bit;
       }
     }
-    return buckets[index];
+    return index;
   }
+
+  /// The tiles this cell may be drawn with.
+  List<int> bucketFor(GlyphGrid grid, int x, int y) =>
+      buckets[bucketIndex(grid, x, y)];
 }
 
 /// Something too big for one cell -- a railcar, a door two tiles high --
 /// drawn over the run of its [glyph]. [tiles] is the size that run has to
 /// be, checked by test/levels/tile_atlas_test.dart against the rows.
+///
+/// A place with many of a kind -- the shopfronts along a wall, each with
+/// its own name -- cannot find them by glyph: each says where it goes,
+/// [at], and then [glyph] lists the glyphs the rows must show under it,
+/// checked by the same test.
 final class TileObject {
   const TileObject({
     required this.glyph,
@@ -225,10 +268,12 @@ final class TileObject {
     required this.offsetY,
     required this.tiles,
     required this.whenOpen,
+    this.at,
   });
 
   factory TileObject.fromJson(Map<String, Object?> json) {
     final tiles = json['tiles'] as List<Object?>?;
+    final at = json['at'] as List<Object?>?;
     return TileObject(
       glyph: json['glyph']! as String,
       image: json['image']! as String,
@@ -237,11 +282,17 @@ final class TileObject {
           ? null
           : ((tiles[0]! as num).toInt(), (tiles[1]! as num).toInt()),
       whenOpen: json['whenOpen'] as String?,
+      at: at == null
+          ? null
+          : ((at[0]! as num).toInt(), (at[1]! as num).toInt()),
     );
   }
 
   final String glyph;
   final String image;
+
+  /// The top-left cell it is drawn from, when it does not follow a glyph.
+  final (int, int)? at;
 
   /// How far above its glyph the image starts, in tiles.
   final int offsetY;
