@@ -37,3 +37,26 @@ deps_check:
     - if: '$CI_COMMIT_BRANCH != "main"'
   script:
     - flutter pub outdated --no-transitive || true
+
+# Il layout di un posto vive due volte: le righe ASCII in
+# lib/core/levels/tutorial, che legge la simulazione, e il PNG in
+# assets/levels, che vede il giocatore. Nessun altro job guarda i PNG, cosi
+# una panca spostata senza rilanciare il baker arriva fino al dispositivo.
+# Qui i baker ripartono da zero in una directory temporanea e il risultato
+# viene confrontato pixel per pixel con quanto committato, come fa
+# `generate_balance.dart --check` per il bilanciamento.
+#
+# Immagine Python, non Flutter: `before_script` sostituisce quello di
+# default, che chiama `flutter`.
+levels_check:
+  stage: verify
+  needs: []
+  image: python:3.11.15-slim
+  # Informativo per la prima settimana: prima si misura quanto e stabile,
+  # poi si toglie `allow_failure` e diventa bloccante.
+  allow_failure: true
+  cache: []
+  before_script:
+    - python -m pip install --no-cache-dir --quiet -r tools/requirements.txt
+  script:
+    - python tools/build_levels.py --check

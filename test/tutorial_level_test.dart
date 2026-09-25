@@ -5,31 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/core/core.dart';
 
 void main() {
-  test('every row of each place has the same width', () {
-    for (final rows in <List<String>>[
-      streetLevelRows,
-      northDistrictRows,
-      harbourRows,
-      barracksRows,
-      mallGroundRows,
-      mallFirstRows,
-      mallNorthStreetRows,
-      barArcobalenoRows,
-      churchRows,
-      duomoRows,
-      duomoUpperRows,
-      barBackroomRows,
-      stationRows,
-      stationUnderpassRows,
-      stationFarSideRows,
-      airlinerCabinRows,
-      airlinerRoofRows,
-    ]) {
-      final width = rows.first.length;
-      expect(rows.every((row) => row.length == width), isTrue);
-    }
-  });
-
   test('the street behind the mall keeps the outdoor perspective', () {
     final width = mallNorthStreetRows.first.length;
     final facadeRows = mallNorthStreetRows

@@ -23,16 +23,27 @@ management framework:
 
 ## P2 — Make asset generation reproducible
 
-The Python asset tools have no pinned Python/Pillow environment, the largest
+The Python asset tools had no pinned Python/Pillow environment, the largest
 generator is over two thousand lines, and one story-image tool contains a
-developer-specific downloads path. CI verifies some resulting contracts but
-does not prove that checked-in assets can be regenerated reproducibly.
+developer-specific downloads path. CI verified some resulting contracts but
+did not prove that checked-in assets can be regenerated reproducibly.
 
-- Pin Python, Pillow and the expected `ffmpeg` version.
-- Replace machine-specific paths with command-line arguments.
-- Provide one documented asset-build entry point and deterministic seeds.
+The level backgrounds are now covered: `tools/requirements.txt` pins the
+environment, `tools/build_levels.py` is their one documented entry point, and
+`--check` re-bakes them in CI (`levels_check`) and compares the pixels with
+what is committed. A dimension invariant runs in `flutter test` as well
+(`test/levels/level_background_dimensions_test.dart`), so a resized place is
+caught without Python. What is left:
+
+- Pin the expected `ffmpeg` version, and the environment of the sprite, audio
+  and quest-item generators.
+- Replace machine-specific paths with command-line arguments
+  (`tools/process_story_images.py`).
 - Split the street generator into surfaces, buildings and props modules.
-- Add a CI check for dimensions, manifests and deterministic output hashes.
+- Extend the regeneration check to the sprite atlases and the audio.
+
+The deeper cause, a place's layout living once in Dart and once in Python,
+is addressed by the tile-atlas rendering of `docs/level_pipeline.md`.
 
 ## P3 — What is left of the save hardening
 
