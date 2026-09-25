@@ -9,8 +9,9 @@ const List<int> _pngSignature = <int>[137, 80, 78, 71, 13, 10, 26, 10];
 
 /// The size a PNG declares in its IHDR chunk: two big-endian unsigned
 /// 32-bit numbers at bytes 16..24, right after the eight signature bytes
-/// and the chunk's length and type. The pixels are never decoded: the
-/// header is all this test needs.
+/// and the chunk's length and type. Big-endian is what getUint32 reads by
+/// default. The pixels are never decoded: the header is all this test
+/// needs.
 ({int width, int height}) _pngSize(String path) {
   final file = File(path);
   expect(file.existsSync(), isTrue, reason: 'missing background $path');
@@ -27,10 +28,7 @@ const List<int> _pngSignature = <int>[137, 80, 78, 71, 13, 10, 26, 10];
     reason: '$path does not open with its header chunk',
   );
   final header = ByteData.sublistView(bytes, 16, 24);
-  return (
-    width: header.getUint32(0, Endian.big),
-    height: header.getUint32(4, Endian.big),
-  );
+  return (width: header.getUint32(0), height: header.getUint32(4));
 }
 
 void main() {
