@@ -575,19 +575,28 @@ final class _StickPainter extends CustomPainter {
       oldDelegate.aiming != aiming;
 }
 
-/// The bullets Mario carries, in the row of the things he holds up in the
-/// corner: a tap tells how many there are, and, while the pistol is still
-/// to be found, that there is nothing to fire them with. Without the gun
-/// the badge sits dimmed, a button nothing can press yet.
+/// The pistol and the bullets Mario carries, in the row of the things he
+/// holds up in the corner: the pistol in colour like the rest, and the
+/// count written in blood over the bottom-right corner, spilling past it.
+/// Until the pistol is found the badge is a button nothing can press yet:
+/// greyed out and deaf to taps, though the count keeps up with every round
+/// picked up. With the pistol, a tap tells how many there are.
 final class _AmmoBadge extends StatelessWidget {
   const _AmmoBadge({required this.game});
 
   static const double size = 44;
   final StepboundGame game;
 
-  /// The parchment of the other badges, gone half towards the dark, so
-  /// the dimmed bullets read as out of use.
-  static const Color _dimmed = Color(0x80d8cfbf);
+  /// How far the count spills past the right and bottom edges.
+  static const double spill = 7;
+
+  /// A disabled badge: the colour drained out of it, and half gone.
+  static const ColorFilter _greyed = ColorFilter.matrix(<double>[
+    0.30, 0.59, 0.11, 0, 0, //
+    0.30, 0.59, 0.11, 0, 0, //
+    0.30, 0.59, 0.11, 0, 0, //
+    0, 0, 0, 0.5, 0,
+  ]);
 
   @override
   Widget build(BuildContext context) {
@@ -597,71 +606,78 @@ final class _AmmoBadge extends StatelessWidget {
         valueListenable: game.hasGun,
         builder: (context, hasGun, _) {
           final isEmpty = loaded == 0;
-          final contentColor = hasGun
-              ? isEmpty
-                    ? BloodColors.bright
-                    : const Color(0xffd8cfbf)
-              : _dimmed;
+          Widget frame = BloodOverlay(
+            painter: const BloodPainter(
+              band: 3,
+              cornerRadius: 8,
+              drips: <BloodDrip>[BloodDrip(0.22, 11, 4), BloodDrip(0.8, 7, 3)],
+            ),
+            child: Container(
+              key: const ValueKey<String>('touch-ammo'),
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                color: const Color(0xcc241a1a),
+                border: Border.all(
+                  color: !hasGun
+                      ? BloodColors.dried
+                      : isEmpty
+                      ? BloodColors.bright
+                      : BloodColors.fresh,
+                  width: 2,
+                ),
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: const <BoxShadow>[
+                  BoxShadow(color: Color(0x99000000), offset: Offset(2, 2)),
+                ],
+              ),
+              // A little up and left of the middle, so the count does not
+              // cover the grip.
+              child: const Align(
+                alignment: Alignment(-0.2, -0.3),
+                child: CustomPaint(
+                  size: Size(34, 23.4),
+                  painter: _ColourPistolIcon(),
+                ),
+              ),
+            ),
+          );
+          if (!hasGun) {
+            frame = ColorFiltered(colorFilter: _greyed, child: frame);
+          }
           return Semantics(
             button: true,
             enabled: hasGun,
             label: hasGun
-                ? 'Proiettili: $loaded'
-                : 'Proiettili: $loaded. ${BackpacksScript.noGun}',
+                ? 'Pistola, proiettili: $loaded'
+                : 'Pistola da trovare, proiettili: $loaded',
             child: GestureDetector(
-              onTap: () {
-                AudioScope.of(context).play(Sfx.uiClick);
-                game.inspectAmmo();
-              },
-              child: BloodOverlay(
-                painter: const BloodPainter(
-                  band: 3,
-                  cornerRadius: 8,
-                  drips: <BloodDrip>[
-                    BloodDrip(0.22, 11, 4),
-                    BloodDrip(0.8, 7, 3),
-                  ],
-                ),
-                child: Container(
-                  key: const ValueKey<String>('touch-ammo'),
-                  width: size,
-                  height: size,
-                  decoration: BoxDecoration(
-                    color: const Color(0xcc241a1a),
-                    border: Border.all(
-                      color: hasGun
-                          ? isEmpty
-                                ? BloodColors.bright
-                                : BloodColors.fresh
-                          : BloodColors.dried,
-                      width: 2,
-                    ),
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: const <BoxShadow>[
-                      BoxShadow(color: Color(0x99000000), offset: Offset(2, 2)),
-                    ],
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: <Widget>[
-                      CustomPaint(
-                        size: const Size(14, 10),
-                        painter: _BulletIcon(color: contentColor),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        '\u00d7$loaded',
-                        style: TextStyle(
-                          color: contentColor,
-                          fontFamily: 'monospace',
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          height: 1,
-                          decoration: TextDecoration.none,
+              onTap: hasGun
+                  ? () {
+                      AudioScope.of(context).play(Sfx.uiClick);
+                      game.inspectAmmo();
+                    }
+                  : null,
+              child: Padding(
+                // Room for the count spilling out, so the row does not lay
+                // the next badge over it.
+                padding: const EdgeInsets.only(right: spill, bottom: spill),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: <Widget>[
+                    frame,
+                    Positioned(
+                      right: -spill,
+                      bottom: -spill,
+                      child: Opacity(
+                        opacity: hasGun ? 1 : 0.6,
+                        child: _BloodCount(
+                          key: const ValueKey<String>('touch-ammo-count'),
+                          text: '×$loaded',
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -670,6 +686,94 @@ final class _AmmoBadge extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A count written with a finger dipped in blood: thick red strokes gone
+/// dark at the edges, and drops running down from the foot of the figures.
+final class _BloodCount extends StatelessWidget {
+  const _BloodCount({required this.text, super.key});
+
+  final String text;
+
+  static const double fontSize = 17;
+
+  static TextStyle _style({Paint? foreground, Color? color}) => TextStyle(
+    color: color,
+    foreground: foreground,
+    fontFamily: 'monospace',
+    fontSize: fontSize,
+    fontWeight: FontWeight.w900,
+    height: 1,
+    letterSpacing: -1,
+    decoration: TextDecoration.none,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      foregroundPainter: _BloodRunPainter(text.length),
+      child: Stack(
+        children: <Widget>[
+          // The dried rim, then the wet blood over it.
+          Text(
+            text,
+            style: _style(
+              foreground: Paint()
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = 3.5
+                ..strokeJoin = StrokeJoin.round
+                ..color = const Color(0xff2a0404),
+            ),
+          ),
+          Text(text, style: _style(color: BloodColors.fresh)),
+          Text(
+            text,
+            style: _style(
+              foreground: Paint()
+                ..style = PaintingStyle.stroke
+                ..strokeWidth = 1
+                ..color = BloodColors.bright,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The drops running down from the foot of a blood count: one under every
+/// other figure, of lengths that do not repeat from one to the next.
+final class _BloodRunPainter extends CustomPainter {
+  const _BloodRunPainter(this.figures);
+
+  final int figures;
+
+  static const List<double> _lengths = <double>[5, 3, 6, 4];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final blood = Paint()..color = BloodColors.fresh;
+    final drop = Paint()..color = BloodColors.bright;
+    final step = size.width / math.max(1, figures);
+    for (var i = 0; i < figures; i += 2) {
+      final x = step * (i + 0.6);
+      final length = _lengths[i % _lengths.length];
+      final top = size.height - 3;
+      canvas
+        ..drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(x - 1, top, 2, length),
+            const Radius.circular(1),
+          ),
+          blood,
+        )
+        ..drawCircle(Offset(x, top + length), 1.6, drop);
+    }
+  }
+
+  @override
+  bool shouldRepaint(_BloodRunPainter oldDelegate) =>
+      oldDelegate.figures != figures;
 }
 
 /// The censer found in San Nicola, hanging in the top corner for as long
@@ -1051,29 +1155,101 @@ final class _KeyIcon extends CustomPainter {
   bool shouldRepaint(_KeyIcon oldDelegate) => false;
 }
 
-final class _BulletIcon extends CustomPainter {
-  const _BulletIcon({required this.color});
+/// A semi-automatic pistol in profile, muzzle to the right, like the ones
+/// the carabinieri carry: the blued steel slide with its serrations and the
+/// barrel showing at the front, the hammer cocked at the back, the trigger
+/// in its guard, and the grip in dark walnut.
+final class _ColourPistolIcon extends CustomPainter {
+  const _ColourPistolIcon();
 
-  final Color color;
+  static const Color _outline = Color(0xff121417);
+  static const Color _steel = Color(0xff66707c);
+  static const Color _steelDark = Color(0xff3c434c);
+  static const Color _steelLight = Color(0xffb4bec9);
+  static const Color _wood = Color(0xff8e5a32);
+  static const Color _woodDark = Color(0xff5c361c);
+  static const Color _woodLight = Color(0xffb47c4a);
+  static const Color _sight = Color(0xffeee6d2);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = color;
+    Paint p(Color color) => Paint()..color = color;
+    // The grip, raked back under the rear of the slide.
+    final grip = Path()
+      ..moveTo(4, 8.5)
+      ..lineTo(13, 8.5)
+      ..lineTo(11.2, 21)
+      ..lineTo(2.2, 21)
+      ..quadraticBezierTo(1, 21, 1.3, 19.6)
+      ..close();
+    final gripFace = Path()
+      ..moveTo(5, 10.5)
+      ..lineTo(11.6, 10.5)
+      ..lineTo(10.2, 19.8)
+      ..lineTo(3.2, 19.8)
+      ..close();
+    // The trigger guard: a ring hanging under the frame.
+    final guard = Path()
+      ..moveTo(12.5, 10)
+      ..lineTo(20.5, 10)
+      ..lineTo(20.5, 13)
+      ..quadraticBezierTo(20.5, 16.5, 16.5, 16.5)
+      ..lineTo(12, 16.5)
+      ..lineTo(12.3, 14.8)
+      ..lineTo(16.5, 14.8)
+      ..quadraticBezierTo(18.8, 14.8, 18.8, 12.6)
+      ..lineTo(18.8, 11.7)
+      ..lineTo(12.5, 11.7)
+      ..close();
     canvas
       ..save()
-      ..scale(size.width / 14)
-      ..drawRect(const Rect.fromLTWH(1, 2.5, 8, 6), paint)
-      ..drawPath(
-        Path()
-          ..moveTo(9, 2.5)
-          ..lineTo(13.5, 5.5)
-          ..lineTo(9, 8.5)
-          ..close(),
-        paint,
-      )
+      // Drawn on a 32 by 22 grid, then scaled to whatever it is given.
+      ..scale(size.width / 32)
+      // Outlines first, one unit round everything.
+      ..drawRect(const Rect.fromLTWH(1, 0.5, 30, 8), p(_outline))
+      ..drawRect(const Rect.fromLTWH(5, 7.5, 20, 4), p(_outline))
+      ..drawPath(grip.shift(const Offset(-0.8, 0)), p(_outline))
+      ..drawPath(grip.shift(const Offset(0.8, 0.8)), p(_outline))
+      ..drawPath(guard, p(_steelDark))
+      // The barrel, its muzzle showing past the slide.
+      ..drawRect(const Rect.fromLTWH(27, 3.5, 3, 3.5), p(_steelDark))
+      ..drawRect(const Rect.fromLTWH(29, 4.3, 1, 1.8), p(_outline))
+      // The slide, lit along the top, with its sights.
+      ..drawRect(const Rect.fromLTWH(3, 1.5, 24.5, 6), p(_steel))
+      ..drawRect(const Rect.fromLTWH(3, 1.5, 24.5, 1.2), p(_steelLight))
+      ..drawRect(const Rect.fromLTWH(3, 6.3, 24.5, 1.2), p(_steelDark))
+      ..drawRect(const Rect.fromLTWH(25.5, 0, 1.5, 1.5), p(_sight))
+      ..drawRect(const Rect.fromLTWH(4, 0.3, 2.5, 1.2), p(_steelDark))
+      // The ejection port.
+      ..drawRect(const Rect.fromLTWH(16, 2.8, 5, 2.2), p(_outline))
+      // The hammer, cocked.
+      ..drawRect(const Rect.fromLTWH(1.2, 1.2, 2.2, 3.5), p(_steelDark))
+      // The frame under the slide, and the trigger.
+      ..drawRect(const Rect.fromLTWH(6, 7.5, 18.5, 2.8), p(_steelDark))
+      ..drawRect(const Rect.fromLTWH(6, 7.5, 18.5, 0.8), p(_steel))
+      ..drawRect(const Rect.fromLTWH(15, 10, 1.4, 3.2), p(_steelLight))
+      // The grip in walnut, its face lit on the front edge.
+      ..drawPath(grip, p(_woodDark))
+      ..drawPath(gripFace, p(_wood))
+      ..drawRect(const Rect.fromLTWH(10.2, 10.5, 1.2, 8.5), p(_woodLight));
+    // The slide's serrations at the back.
+    for (var x = 5.0; x < 11; x += 1.6) {
+      canvas.drawRect(Rect.fromLTWH(x, 3.5, 0.7, 2.6), p(_steelDark));
+    }
+    // The chequering on the grip.
+    for (var y = 12.0; y < 19; y += 2) {
+      final shift = (y - 10.5) * 0.15;
+      for (var x = 5.2 - shift; x < 9.5 - shift; x += 2) {
+        canvas.drawRect(Rect.fromLTWH(x, y, 1, 1), p(_woodDark));
+      }
+    }
+    canvas
+      // The grip screw, and the magazine's base plate under the grip.
+      ..drawCircle(const Offset(7.4, 15.2), 0.9, p(_steelLight))
+      ..drawRect(const Rect.fromLTWH(1.8, 20.3, 9.8, 1.7), p(_steelDark))
       ..restore();
   }
 
   @override
-  bool shouldRepaint(_BulletIcon oldDelegate) => oldDelegate.color != color;
+  bool shouldRepaint(_ColourPistolIcon oldDelegate) => false;
 }

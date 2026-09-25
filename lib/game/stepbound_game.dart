@@ -1035,20 +1035,13 @@ final class StepboundGame extends FlameGame
   }
 
   /// Opens a small system text box about the bullets, the one thing
-  /// carried that is counted: how many there are, and, while the pistol
-  /// is still to be found, that there is nothing to fire them with.
+  /// carried that is counted. The badge only answers once the pistol has
+  /// been found, so there is always something to fire them with.
   void inspectAmmo() {
-    if (!_canAct) {
-      return;
+    if (_canAct) {
+      final loaded = simulation.player.component<AmmoComponent>().loaded;
+      showPrompt(<TutorialLine>[TutorialLine('$loaded proiettili')]);
     }
-    final ammo = simulation.player.component<AmmoComponent>();
-    showPrompt(<TutorialLine>[
-      TutorialLine(
-        ammo.hasGun
-            ? '${ammo.loaded} proiettili'
-            : '${ammo.loaded} proiettili. ${BackpacksScript.noGun}',
-      ),
-    ]);
   }
 
   // --------------------------------------------------------------- input

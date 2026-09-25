@@ -202,14 +202,38 @@ void main() {
       Border borderOf(Container badge) =>
           (badge.decoration! as BoxDecoration).border! as Border;
 
-      // Still without the pistol, the badge waits dimmed, and the tap
-      // says that too.
+      // Still without the pistol, the badge is a disabled button: greyed
+      // out, a tap does nothing, but the count keeps up all the same.
       expect(borderOf(badge()).top.color, BloodColors.dried);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('touch-ammo-count')),
+          matching: find.text('×3'),
+        ),
+        findsWidgets,
+      );
       await tester.tap(find.byKey(const ValueKey<String>('touch-ammo')));
       await tester.pump();
-      expect(find.text('3 proiettili. Non hai una pistola'), findsOneWidget);
-      game.dismissPrompt();
+      expect(game.cover.value, isNull, reason: 'nothing to press yet');
+      game.simulation.player.component<AmmoComponent>().loaded = 4;
+      game.update(1 / 60);
       await tester.pump();
+      expect(find.text('×4'), findsWidgets);
+      game.simulation.player.component<AmmoComponent>().loaded = 3;
+      game.update(1 / 60);
+      await tester.pump();
+
+      // The count is written over the bottom-right corner, spilling past it.
+      final box = tester.getRect(
+        find.byKey(const ValueKey<String>('touch-ammo')),
+      );
+      final count = tester.getRect(
+        find.byKey(const ValueKey<String>('touch-ammo-count')),
+      );
+      expect(count.right, greaterThan(box.right));
+      expect(count.bottom, greaterThan(box.bottom));
+      expect(count.left, lessThan(box.right));
+      expect(count.top, lessThan(box.bottom));
 
       // The pistol found, the badge wakes up: the count is the news.
       game.simulation.player.component<AmmoComponent>().hasGun = true;
