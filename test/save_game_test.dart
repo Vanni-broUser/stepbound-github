@@ -70,6 +70,18 @@ void main() {
     ]);
   });
 
+  test('a save keeps the steps walked in each level and the fires lit', () {
+    final progress = Progress.newGame()
+      ..countStep()
+      ..countStep()
+      ..lightCampfire('Zona nord')
+      ..level = LevelId.rome
+      ..countStep();
+    final loaded = Progress.fromJson(progress.toJson());
+    expect(loaded.steps, <LevelId, int>{LevelId.hometown: 2, LevelId.rome: 1});
+    expect(loaded.litCampfires, <String>{'Zona nord'});
+  });
+
   test('a save keeps unlocked clothes and the outfit in use', () {
     final progress = Progress.newGame()
       ..unlockOutfit(PlayerOutfit.cultist)

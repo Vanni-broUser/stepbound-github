@@ -61,7 +61,11 @@ final class Progress {
     ],
     this.activeOutfit = PlayerOutfit.base,
     this.level = LevelId.hometown,
-  }) : knownZombies = Set<EntityKind>.of(knownZombies),
+    Map<LevelId, int> steps = const <LevelId, int>{},
+    Iterable<String> litCampfires = const <String>[],
+  }) : steps = Map<LevelId, int>.of(steps),
+       litCampfires = Set<String>.of(litCampfires),
+       knownZombies = Set<EntityKind>.of(knownZombies),
        memories = Set<StoryMemory>.of(memories),
        unlockedOutfits = Set<PlayerOutfit>.of(unlockedOutfits) {
     this.unlockedOutfits
@@ -100,6 +104,12 @@ final class Progress {
           ? PlayerOutfit.base
           : PlayerOutfit.values.byName(outfitName),
       level: LevelId.values.byName(json['level']! as String),
+      steps: <LevelId, int>{
+        for (final MapEntry(:key, :value)
+            in (json['steps']! as Map<String, Object?>).entries)
+          LevelId.values.byName(key): value! as int,
+      },
+      litCampfires: (json['litCampfires']! as List<Object?>).cast<String>(),
     );
   }
 
@@ -117,6 +127,17 @@ final class Progress {
   /// The level the train last took Mario and Luigi to: where the game is
   /// played, and where the train's door opens.
   LevelId level;
+
+  /// How many steps Mario has walked in each level.
+  final Map<LevelId, int> steps;
+
+  /// The campfires Mario has rested at, by name: each one lit is a place
+  /// to come back to.
+  final Set<String> litCampfires;
+
+  void countStep() => steps[level] = (steps[level] ?? 0) + 1;
+
+  void lightCampfire(String name) => litCampfires.add(name);
 
   /// Whether Molfetta is behind them: Mario has reached the train with
   /// Luigi, whatever backpacks and memories are still to be found there.
@@ -144,5 +165,9 @@ final class Progress {
     ],
     'activeOutfit': activeOutfit.name,
     'level': level.name,
+    'steps': <String, int>{
+      for (final MapEntry(:key, :value) in steps.entries) key.name: value,
+    },
+    'litCampfires': <String>[...litCampfires],
   };
 }

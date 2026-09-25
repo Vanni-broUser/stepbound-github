@@ -110,6 +110,7 @@ final class PlaceSpec {
     this.torches = const <GridPoint>[],
     this.darkness = defaultDarkness,
     this.art,
+    this.level = LevelId.hometown,
   });
 
   /// How dark an unlit room is, between its lamps: nearly black.
@@ -139,6 +140,10 @@ final class PlaceSpec {
   /// The place whose art in the tile atlas this one is painted with, when
   /// it has none of its own: its rows then keep to that place's glyphs.
   final PlaceId? art;
+
+  /// The level the place belongs to. The train, shared by all of them,
+  /// counts as Molfetta's, where it is found.
+  final LevelId level;
 }
 
 /// A place laid on the level's grid at [origin].
@@ -156,6 +161,8 @@ final class Place {
   bool get lit => spec.lit;
   String? get name => spec.name;
   String? get cardImage => spec.cardImage;
+
+  LevelId get level => spec.level;
 
   /// The place whose art in the tile atlas paints this one.
   PlaceId get artId => spec.art ?? id;

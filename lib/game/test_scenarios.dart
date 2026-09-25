@@ -74,6 +74,7 @@ final class ScenarioBuilder {
           ..position = tile
           ..facing = side.opposite;
         _savedAt = campfireNames[fire];
+        progress.lightCampfire(_savedAt!);
         return;
       }
     }

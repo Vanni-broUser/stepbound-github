@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:stepbound/core/entities/balance.dart';
+import 'package:stepbound/core/entities/components.dart';
 import 'package:stepbound/core/entities/entity.dart';
 import 'package:stepbound/core/entities/entity_factory.dart';
 import 'package:stepbound/core/grid/grid_point.dart';
@@ -264,6 +265,7 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     rows: terminiRows,
     legend: terminiLegend,
     art: PlaceId.stationFarSide,
+    level: LevelId.rome,
   ),
 ]);
 
@@ -1171,6 +1173,30 @@ WorldState restoreTutorialWorld(Map<String, Object?> json) {
   };
   return WorldState.fromJson(migrated, map: map);
 }
+
+/// Whether [tile] lies in one of [level]'s places.
+bool isInLevel(GridPoint tile, LevelId level) => placeAt(tile)?.level == level;
+
+/// Every zombie [level] can hold: the ones there from the start and the
+/// ones its story raises (the barracks' carabinieri, the horde at the
+/// hypermarket's gate, the mutated cultists of the Duomo), by kind.
+List<EntityKind> levelZombieKinds(LevelId level) => <EntityKind>[
+  for (final entity in createTutorialWorld().entities.values)
+    if (entity.kind != EntityKind.player &&
+        isInLevel(entity.component<PositionComponent>().position, level))
+      entity.kind,
+  if (level == LevelId.hometown) ...<EntityKind>[
+    for (final _ in carabiniereSpawns) EntityKind.carabiniere,
+    for (final _ in mallHordeSpawns) EntityKind.wanderer,
+    for (final _ in duomoCultistSpawns) EntityKind.cultist,
+  ],
+];
+
+/// The names of the campfires of [level].
+Set<String> levelCampfires(LevelId level) => <String>{
+  for (final MapEntry(key: tile, value: name) in campfireNames.entries)
+    if (isInLevel(tile, level)) name,
+};
 
 /// A wanderer coming in through the hypermarket's gate at [position],
 /// looking west down the corridor.
