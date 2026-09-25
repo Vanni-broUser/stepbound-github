@@ -226,11 +226,11 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
   ),
   // Appended so adding these places does not move any existing place in a
   // saved world's shared coordinate grid.
+  // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.duomo,
     rows: duomoRows,
     legend: duomoLegend,
-    background: 'assets/levels/duomo.png',
     indoor: true,
     daylight: 'E',
     torches: duomoTorches,

@@ -36,15 +36,6 @@ import tempfile
 from PIL import Image, ImageChops, ImageDraw
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from build_duomo import (  # noqa: E402
-    GOLD,
-    STONE,
-    STONE_LIGHT,
-    WOOD,
-    WOOD_LIGHT,
-    paint_floor as duomo_floor,
-    paint_wall as duomo_wall,
-)
 from build_street_level import TILE, rect, shade  # noqa: E402
 import build_station as station  # noqa: E402
 
@@ -256,6 +247,117 @@ def duomo_upper(atlas: Atlas, rng) -> dict:
         "objects": [{"glyph": "L", "image": "duomo_upper_door.png",
                      "offsetY": -1, "sprite": door}],
     }
+
+
+# ------------------------------------------------------- the Duomo's art
+# Moved here from tools/build_duomo.py, which this atlas replaces: the
+# three-nave interior of the harbour Duomo, and the masonry vocabulary the
+# floor above shares with it.
+
+DUOMO_FLOOR = (116, 106, 94)
+DUOMO_FLOOR_ALT = (130, 120, 106)
+DUOMO_JOINT = (76, 70, 66)
+STONE = (178, 168, 148)
+STONE_LIGHT = (210, 198, 170)
+STONE_DARK = (112, 104, 94)
+WOOD = (86, 56, 36)
+WOOD_LIGHT = (128, 86, 52)
+GOLD = (184, 146, 54)
+
+
+def duomo_floor(d, rng, x, y):
+    """Worn flagstones, two tones on the parity of x + y, gritty."""
+    px, py = x * TILE, y * TILE
+    rect(d, px, py, TILE, TILE, DUOMO_FLOOR if (x + y) % 2 else DUOMO_FLOOR_ALT)
+    rect(d, px, py, TILE, 1, DUOMO_JOINT)
+    rect(d, px, py, 1, TILE, DUOMO_JOINT)
+    for _ in range(3):
+        rect(d, px + rng.randrange(15), py + rng.randrange(15), 1, 1,
+             DUOMO_JOINT)
+
+
+def duomo_wall(d, px, py, front=False):
+    rect(d, px, py, TILE, TILE, STONE_DARK if front else STONE)
+    rect(d, px, py, TILE, 2, shade(STONE, 24))
+    rect(d, px, py + 8, TILE, 1, STONE_DARK)
+
+
+def paint_altar(d, px, py):
+    rect(d, px, py + 3, TILE, 12, STONE)
+    rect(d, px, py + 3, TILE, 3, STONE_LIGHT)
+    rect(d, px + 2, py + 6, TILE - 4, 6, (188, 176, 150))
+    rect(d, px + 7, py, 2, 5, GOLD)
+
+
+def paint_column(d, px, py):
+    d.ellipse([px + 2, py, px + 13, py + 15], fill=STONE_DARK)
+    d.ellipse([px + 3, py + 1, px + 12, py + 13], fill=STONE)
+    rect(d, px + 5, py + 2, 3, 11, STONE_LIGHT)
+    rect(d, px + 1, py + 13, 14, 3, STONE_DARK)
+
+
+def paint_pew(d, px, py):
+    rect(d, px, py + 4, TILE, 8, WOOD)
+    rect(d, px, py + 4, TILE, 2, WOOD_LIGHT)
+    rect(d, px + 1, py + 12, 3, 3, shade(WOOD, -20))
+    rect(d, px + 12, py + 12, 3, 3, shade(WOOD, -20))
+
+
+def paint_statue(d, px, py):
+    rect(d, px + 3, py + 12, 10, 4, STONE_DARK)
+    rect(d, px + 5, py + 5, 6, 8, STONE)
+    d.ellipse([px + 5, py + 1, px + 10, py + 6], fill=STONE_LIGHT)
+    rect(d, px + 3, py + 7, 3, 5, STONE)
+    rect(d, px + 10, py + 7, 3, 5, STONE)
+
+
+def paint_duomo_stairs(d, px, py):
+    rect(d, px, py, TILE, TILE, (42, 40, 42))
+    for step in range(4):
+        inset = step * 2
+        rect(d, px + inset, py + 3 + step * 3, TILE - inset, 2,
+             shade(STONE, -step * 14))
+
+
+def paint_portal(d, px, py):
+    rect(d, px, py, TILE, TILE, (26, 24, 26))
+    rect(d, px + 3, py + 1, 10, TILE - 1, (186, 178, 160))
+    rect(d, px + 5, py + 2, 6, TILE - 2, (220, 210, 188))
+    rect(d, px, py, 3, TILE, WOOD)
+    rect(d, px + 13, py, 3, TILE, WOOD)
+
+
+def duomo(atlas: Atlas, rng) -> dict:
+    """The rules that paint PlaceId.duomo. The altar stands on no floor:
+    the baker skips it, and so do we."""
+    floor = [
+        atlas.bucket(lambda p=parity: cell(
+            lambda dd, gx, gy: duomo_floor(dd, rng, gx, gy), p, 0))
+        for parity in (0, 1)
+    ]
+    props = {
+        "P": paint_column, "T": paint_pew, "S": paint_statue,
+        "U": paint_duomo_stairs, "E": paint_portal, "A": paint_altar,
+    }
+    floored = ".*:p123PTSUE"
+    rules = [
+        rule("ground", floored, floor, [parity_key()]),
+        rule("structures", "WI", [atlas.bucket(
+            lambda: tile_of(lambda d: duomo_wall(d, 0, 0)), 1)]),
+        rule("structures", "w", [atlas.bucket(
+            lambda: tile_of(lambda d: duomo_wall(d, 0, 0, front=True)), 1)]),
+    ]
+    for glyph, paint in props.items():
+        rules.append(rule("structures", glyph, [atlas.bucket(
+            lambda p=paint: tile_of(lambda d: p(d, 0, 0)), 1)]))
+    for right in (False, True):
+        edge = atlas.bucket(lambda r=right: tile_of(
+            lambda d: paint_side_edge(d, 0, 0, r)), 1)
+        rules.append(rule("foreground", floored + "A", [[], edge],
+                          [neighbour_key(1 if right else -1, 0, "x")]))
+    return {"void": "#060608", "voidGlyph": "x", "rules": rules,
+            "objects": []}
+
 
 
 # ------------------------------------------- the Bar Arcobaleno's storeroom
@@ -552,6 +654,7 @@ def compose(rows: list[str], place: dict, tiles: list[Image.Image],
 
 PLACES = {
     "barBackroom": bar_backroom,
+    "duomo": duomo,
     "duomoUpper": duomo_upper,
     "stationFarSide": station_far_side,
 }
@@ -612,6 +715,7 @@ def write(root: str) -> None:
 # atlas itself never reads a place.
 PREVIEW_ROWS = {
     "barBackroom": "bar-backroom-rows",
+    "duomo": "duomo-rows",
     "duomoUpper": "duomo-upper-rows",
     "stationFarSide": "far-platform-rows",
 }
