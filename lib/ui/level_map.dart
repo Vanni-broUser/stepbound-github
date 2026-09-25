@@ -187,7 +187,7 @@ final class _LevelMapState extends State<LevelMap> {
       LevelDestination.northCape => LevelMap.northCapeImage,
     };
     final name = switch (destination) {
-      LevelDestination.hometown => 'Città Natale',
+      LevelDestination.hometown => 'Città natale',
       LevelDestination.rome => 'Roma',
       LevelDestination.northCape => 'Capo Nord',
     };

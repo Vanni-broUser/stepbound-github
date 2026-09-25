@@ -1859,7 +1859,7 @@ void main() {
   });
 
   testWidgets('level completion saves aboard the train, opens the Europe '
-      'map, and Città Natale resumes at the map in the train, loading on '
+      'map, and Città natale resumes at the map in the train, loading on '
       'the harbour', (tester) {
     return tester.runAsync(() async {
       final saves = MemorySaveRepository();
@@ -1903,7 +1903,7 @@ void main() {
         find.byKey(const ValueKey<String>('level-city-hometown')),
       );
       await tester.pump();
-      expect(find.text('Città Natale'), findsOneWidget);
+      expect(find.text('Città natale'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey<String>('level-start')));
       await tester.pump();
       final returned = tester
@@ -1921,7 +1921,7 @@ void main() {
       expect(mario.facing, Direction.south);
       final cover = tester.widget<LoadingCover>(find.byType(LoadingCover));
       expect(cover.image, LevelMap.hometownImage);
-      expect(cover.caption, 'Città Natale');
+      expect(cover.caption, 'Città natale');
 
       returned.cover.value = const GameOverCover();
       await tester.pump();

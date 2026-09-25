@@ -677,7 +677,7 @@ final class _StepboundAppState extends State<StepboundApp> {
       LevelId.rome => (LevelMap.romeImage, 'Roma'),
       LevelId.hometown when progress.hometownCompleted => (
         LevelMap.hometownImage,
-        'Città Natale',
+        'Città natale',
       ),
       LevelId.hometown => (LoadingArt.image, 'Caricamento della partita'),
     };
