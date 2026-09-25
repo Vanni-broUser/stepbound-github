@@ -1,10 +1,12 @@
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/app.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/game_audio.dart';
 import 'package:stepbound/game/audio/sound.dart';
+import 'package:stepbound/game/input/touch_controls.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/game/render/interact_glint_component.dart';
@@ -12,6 +14,7 @@ import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
 import 'package:stepbound/save/save_game.dart';
 import 'package:stepbound/ui/black_fade.dart';
+import 'package:stepbound/ui/blood_splat.dart';
 import 'package:stepbound/ui/gameplay_dialogue.dart';
 import 'package:stepbound/ui/story_intro.dart';
 import 'package:stepbound/ui/title_splash.dart';
@@ -32,6 +35,16 @@ Future<SaveRepository> _startNewGame(
   await tester.pump();
   return repository;
 }
+
+/// The blood splats left on the screen.
+List<LiveSplat> _splats(WidgetTester tester) =>
+    (tester
+                .widget<CustomPaint>(
+                  find.byKey(const ValueKey<String>('blood-splats')),
+                )
+                .painter!
+            as BloodSplatPainter)
+        .splats;
 
 /// Two taps per scene (image, then text) across the three intro scenes.
 const int _introTapCount = 6;
@@ -122,22 +135,17 @@ void main() {
         findsOneWidget,
       );
       expect(find.byType(GameWidget<StepboundGame>), findsOneWidget);
-      for (final key in <String>[
-        'touch-up',
-        'touch-right',
-        'touch-down',
-        'touch-left',
-      ]) {
+      for (final key in <String>['touch-move', 'touch-act']) {
         expect(find.byKey(ValueKey<String>(key)), findsOneWidget);
       }
-      // The tutorial starts with the arrows only.
-      for (final key in <String>[
-        'touch-shoot',
-        'touch-interact',
-        'touch-ammo',
-      ]) {
-        expect(find.byKey(ValueKey<String>(key)), findsNothing);
-      }
+      // The tutorial starts with walking only: nothing on the HUD.
+      expect(find.byKey(const ValueKey<String>('touch-ammo')), findsNothing);
+      final game = tester
+          .state<GameWidgetState<StepboundGame>>(
+            find.byType(GameWidget<StepboundGame>),
+          )
+          .currentGame;
+      expect(game.hud.value, isEmpty);
     });
   });
 
@@ -369,7 +377,7 @@ void main() {
         findsOneWidget,
       );
       await _waitForGame(tester);
-      expect(find.byKey(const ValueKey<String>('touch-shoot')), findsNothing);
+      expect(find.byKey(const ValueKey<String>('touch-move')), findsNothing);
       expect(find.text('Mario Rossi'), findsOneWidget);
       expect(find.text(tutorialOpening.first.text), findsOneWidget);
       expect(
@@ -378,14 +386,39 @@ void main() {
       );
 
       final dialogue = find.byKey(const ValueKey<String>('gameplay-dialogue'));
+      final box = tester.getRect(dialogue);
+      // On the left, where during play a tap only walks: a line still
+      // bleeds there.
+      final left = Offset(box.left + box.width * 0.15, box.bottom - 30);
       for (var i = 0; i < tutorialOpening.length; i++) {
-        await tester.tap(dialogue);
+        final before = _splats(tester).lastOrNull;
+        await tester.tapAt(left);
         await tester.pump();
+        final splat = _splats(tester).last;
+        expect(splat, isNot(same(before)), reason: 'line $i left no blood');
+        expect(splat.at.dx, lessThan(box.center.dx));
       }
       expect(dialogue, findsNothing);
-      expect(find.byKey(const ValueKey<String>('touch-up')), findsOneWidget);
-      expect(find.byKey(const ValueKey<String>('touch-shoot')), findsNothing);
+      expect(find.byKey(const ValueKey<String>('touch-move')), findsOneWidget);
+      expect(find.byKey(const ValueKey<String>('touch-ammo')), findsNothing);
     });
+  });
+
+  testWidgets('every tap that turns the story leaves blood where it was, '
+      'on the left of the screen too', (tester) async {
+    await _startNewGame(tester);
+    final intro = find.byKey(const ValueKey<String>('story-intro'));
+    final box = tester.getRect(intro);
+    final left = Offset(box.left + box.width * 0.2, box.center.dy);
+    final right = Offset(box.left + box.width * 0.8, box.center.dy);
+    await tester.tapAt(left);
+    await tester.pump();
+    expect(_splats(tester), hasLength(1));
+    expect(_splats(tester).single.at.dx, lessThan(box.center.dx));
+    await tester.tapAt(right);
+    await tester.pump();
+    expect(_splats(tester), hasLength(2));
+    expect(_splats(tester).last.at.dx, greaterThan(box.center.dx));
   });
 
   testWidgets('tapping the title card skips to its fade out', (tester) async {
@@ -415,31 +448,330 @@ void main() {
     });
   });
 
-  testWidgets('shoot button dry fires when empty and aims once loaded', (
-    tester,
-  ) {
+  testWidgets('a drag on the left walks that way for as long as it is held, '
+      'turns without lifting and stops on release', (tester) {
     return tester.runAsync(() async {
       final game = await _pumpReadyGame(tester);
+      final mario = game.simulation.player.component<PositionComponent>();
+      void play(double seconds) {
+        for (var t = 0.0; t < seconds; t += 1 / 30) {
+          game.update(1 / 30);
+        }
+      }
 
-      void setLoadedRounds(int value) =>
-          game.simulation.player.component<AmmoComponent>().loaded = value;
+      final zone = tester.getCenter(
+        find.byKey(const ValueKey<String>('touch-move')),
+      );
+      final start = mario.position;
+      final thumb = await tester.startGesture(zone);
+      await thumb.moveBy(const Offset(0, -8));
+      play(1);
+      expect(mario.position, start, reason: 'inside the dead zone');
 
-      game.simulation.player.component<AmmoComponent>().hasGun = true;
+      await thumb.moveBy(const Offset(0, -30));
+      play(1.5);
+      expect(mario.facing, Direction.north);
+      expect(
+        start.y - mario.position.y,
+        greaterThan(1),
+        reason: 'still walking while the thumb stays down',
+      );
+
+      // Round to the east without lifting the thumb.
+      final turned = mario.position;
+      await thumb.moveBy(const Offset(40, 30));
+      play(0.4);
+      expect(mario.facing, Direction.east);
+      expect(mario.position.x - turned.x, greaterThan(1));
+
+      // Lifted well short of the wall at the end of the street.
+      await thumb.up();
+      play(0.3);
+      final stopped = mario.position;
+      play(1.5);
+      expect(mario.position, stopped, reason: 'lifting the thumb stops him');
+    });
+  });
+
+  testWidgets('holding the right aims, a swipe shoots that way and a tap '
+      'lowers the pistol', (tester) {
+    return tester.runAsync(() async {
+      final game = await _pumpReadyGame(tester);
+      final mario = game.simulation.player;
+      final zone = tester.getCenter(
+        find.byKey(const ValueKey<String>('touch-act')),
+      );
+      Future<void> holdLongEnough() => Future<void>.delayed(
+        ActionZone.holdToAim + const Duration(milliseconds: 150),
+      );
+      Iterable<ShotEvent> shots() =>
+          game.presentation.lastEvents.whereType<ShotEvent>();
+      // Lets the turn just taken play out, so the next one starts at once.
+      void settle() {
+        for (var i = 0; i < 30; i++) {
+          game.update(1 / 30);
+        }
+      }
+
+      mario.component<AmmoComponent>().hasGun = true;
+      var finger = await tester.startGesture(zone);
+      await holdLongEnough();
+      await finger.up();
+      expect(game.aiming.value, isFalse, reason: 'no shooting unlocked yet');
+
       game.unlock(HudElement.shoot);
       await tester.pump();
 
-      setLoadedRounds(0);
-      await tester.tap(find.byKey(const ValueKey<String>('touch-shoot')));
+      // Nothing loaded: holding only clicks the pistol.
+      mario.component<AmmoComponent>().loaded = 0;
+      finger = await tester.startGesture(zone);
+      await holdLongEnough();
+      await finger.up();
       expect(game.aiming.value, isFalse);
       expect(
         game.presentation.lastEvents.whereType<DryFiredEvent>(),
         hasLength(1),
       );
 
-      setLoadedRounds(1);
-      await tester.tap(find.byKey(const ValueKey<String>('touch-shoot')));
+      settle();
+
+      mario.component<AmmoComponent>().loaded = 3;
+      // A swipe before the pistol is up does nothing.
+      finger = await tester.startGesture(zone);
+      await finger.moveBy(const Offset(40, 0));
+      await holdLongEnough();
+      await finger.up();
+      expect(game.aiming.value, isFalse);
+
+      // Hold, then swipe with the same finger: aimed and fired at once.
+      await tester.pump();
+      final before = _splats(tester).length;
+      finger = await tester.startGesture(zone);
+      await holdLongEnough();
       expect(game.aiming.value, isTrue);
+      await tester.pump();
+      expect(_splats(tester), hasLength(before + 1), reason: 'the hold');
+      await finger.moveBy(const Offset(0, -40));
+      await tester.pump();
+      expect(_splats(tester), hasLength(before + 2), reason: 'the swipe');
+      expect(game.aiming.value, isFalse);
+      expect(shots().single.direction, Direction.north);
+      expect(mario.component<PositionComponent>().facing, Direction.north);
+      await finger.up();
+      settle();
+
+      // Hold and lift: the pistol stays up, and a new swipe fires.
+      finger = await tester.startGesture(zone);
+      await holdLongEnough();
+      await finger.up();
+      expect(game.aiming.value, isTrue, reason: 'lifting does not lower it');
+      finger = await tester.startGesture(zone);
+      await finger.moveBy(const Offset(-40, 5));
+      await finger.up();
+      expect(shots().single.direction, Direction.west);
+      expect(game.aiming.value, isFalse);
+      settle();
+
+      // Right thumb holding the pistol up, left thumb swiping: it fires
+      // that way instead of walking.
+      mario.component<AmmoComponent>().loaded = 3;
+      final standing = mario.component<PositionComponent>().position;
+      finger = await tester.startGesture(zone);
+      await holdLongEnough();
+      expect(game.aiming.value, isTrue);
+      final left = await tester.startGesture(
+        tester.getCenter(find.byKey(const ValueKey<String>('touch-move'))),
+      );
+      await left.moveBy(const Offset(0, 40));
+      expect(shots().single.direction, Direction.south);
+      expect(game.aiming.value, isFalse);
+      settle();
+      expect(
+        mario.component<PositionComponent>().position,
+        standing,
+        reason: 'the swipe that fired does not walk him on',
+      );
+      await left.up();
+      await finger.up();
+      settle();
+
+      // The keyboard arrows do the same.
+      game.pressShoot();
+      expect(game.aiming.value, isTrue);
+      game.pressDirection(Direction.east);
+      expect(shots().single.direction, Direction.east);
+      expect(game.aiming.value, isFalse);
+      settle();
+
+      // Aiming, a tap lowers the pistol without firing.
+      finger = await tester.startGesture(zone);
+      await holdLongEnough();
+      await finger.up();
+      expect(game.aiming.value, isTrue);
+      final loaded = mario.component<AmmoComponent>().loaded;
+      await tester.tap(find.byKey(const ValueKey<String>('touch-act')));
+      expect(game.aiming.value, isFalse);
+      expect(mario.component<AmmoComponent>().loaded, loaded);
+
+      // A few seconds on, the blood has dried off the glass.
+      await tester.pump();
+      expect(_splats(tester), isNotEmpty);
+      await Future<void>.delayed(
+        Duration(
+          milliseconds: (BloodSplatPainter.lifetime * 1000).round() + 100,
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 16));
+      expect(_splats(tester), isEmpty);
     });
+  });
+
+  testWidgets('on a keyboard, tapping space interacts, holding it aims and '
+      'the arrows then shoot', (tester) {
+    return tester.runAsync(() async {
+      final saves = MemorySaveRepository();
+      final game = await _pumpReadyGame(tester, saves: saves);
+      final mario = game.simulation.player;
+      void key(LogicalKeyboardKey key, {required bool down}) {
+        final physical = key == LogicalKeyboardKey.space
+            ? PhysicalKeyboardKey.space
+            : PhysicalKeyboardKey.arrowUp;
+        game.onKeyEvent(
+          down
+              ? KeyDownEvent(
+                  physicalKey: physical,
+                  logicalKey: key,
+                  timeStamp: Duration.zero,
+                )
+              : KeyUpEvent(
+                  physicalKey: physical,
+                  logicalKey: key,
+                  timeStamp: Duration.zero,
+                ),
+          const <LogicalKeyboardKey>{},
+        );
+      }
+
+      void play(double seconds) {
+        for (var t = 0.0; t < seconds; t += 1 / 30) {
+          game.update(1 / 30);
+        }
+      }
+
+      const space = LogicalKeyboardKey.space;
+      mario.component<AmmoComponent>()
+        ..hasGun = true
+        ..loaded = 2;
+      game.unlock(HudElement.shoot);
+
+      // Held: the pistol comes up once the hold is long enough.
+      key(space, down: true);
+      play(0.2);
+      expect(game.aiming.value, isFalse, reason: 'not held long enough yet');
+      play(0.2);
+      expect(game.aiming.value, isTrue);
+      key(space, down: false);
+      expect(game.aiming.value, isTrue, reason: 'letting go keeps it up');
+
+      // An arrow fires that way.
+      key(LogicalKeyboardKey.arrowUp, down: true);
+      expect(
+        game.presentation.lastEvents.whereType<ShotEvent>().single.direction,
+        Direction.north,
+      );
+      key(LogicalKeyboardKey.arrowUp, down: false);
+      expect(game.aiming.value, isFalse);
+      play(1);
+
+      // Aiming, a quick tap lowers the pistol.
+      key(space, down: true);
+      play(0.4);
+      key(space, down: false);
+      expect(game.aiming.value, isTrue);
+      key(space, down: true);
+      play(0.1);
+      key(space, down: false);
+      expect(game.aiming.value, isFalse);
+      expect(mario.component<AmmoComponent>().loaded, 1);
+
+      // Not aiming, a quick tap interacts: here, resting at the fire.
+      game.tutorial.restore(const <String, Object?>{
+        'north': <String, Object?>{'campLesson': true},
+        'backpacks': <String, Object?>{'lesson': true},
+        'street': <String, Object?>{'zombieLesson': true},
+      });
+      final camp = game.simulation.campfires.firstWhere(
+        place(PlaceId.northDistrict).bounds.contains,
+      );
+      mario.component<PositionComponent>()
+        ..position = camp.step(Direction.west)
+        ..facing = Direction.east;
+      game.unlock(HudElement.interact);
+      key(space, down: true);
+      play(0.1);
+      key(space, down: false);
+      expect(game.aiming.value, isFalse);
+      play(3);
+      await Future<void>.delayed(Duration.zero);
+      expect((await saves.load(1))?.atCampfire, isTrue);
+    });
+  });
+
+  testWidgets('a tap on the right interacts once interacting is unlocked', (
+    tester,
+  ) {
+    return tester.runAsync(() async {
+      final saves = MemorySaveRepository();
+      final game = await _pumpReadyGame(tester, saves: saves);
+      game.tutorial.restore(const <String, Object?>{
+        'north': <String, Object?>{'campLesson': true},
+        'backpacks': <String, Object?>{'lesson': true},
+        'street': <String, Object?>{'zombieLesson': true},
+      });
+      final camp = game.simulation.campfires.firstWhere(
+        place(PlaceId.northDistrict).bounds.contains,
+      );
+      game.simulation.player.component<PositionComponent>()
+        ..position = camp.step(Direction.west)
+        ..facing = Direction.east;
+      var splatted = false;
+      Future<void> tapAndWait() async {
+        final before = _splats(tester).lastOrNull;
+        await tester.tap(find.byKey(const ValueKey<String>('touch-act')));
+        await tester.pump();
+        splatted = !identical(_splats(tester).lastOrNull, before);
+        for (var i = 0; i < 60; i++) {
+          game.update(1 / 20);
+        }
+        await Future<void>.delayed(Duration.zero);
+        await tester.pump();
+      }
+
+      await tapAndWait();
+      expect(await saves.load(1), isNull, reason: 'not unlocked yet');
+      expect(splatted, isFalse, reason: 'a tap that does nothing');
+
+      game.unlock(HudElement.interact);
+      await tester.pump();
+      await tapAndWait();
+      expect((await saves.load(1))?.atCampfire, isTrue);
+      expect(splatted, isTrue, reason: 'the tap left blood');
+    });
+  });
+
+  test('a drag points along the axis it leans on, and keeps its direction '
+      'along a diagonal', () {
+    expect(directionOf(const Offset(30, 10)), Direction.east);
+    expect(directionOf(const Offset(-30, 10)), Direction.west);
+    expect(directionOf(const Offset(5, -30)), Direction.north);
+    expect(directionOf(const Offset(5, 30)), Direction.south);
+    const diagonal = Offset(20, 22);
+    expect(directionOf(diagonal, current: Direction.east), Direction.east);
+    expect(directionOf(diagonal, current: Direction.south), Direction.south);
+    expect(
+      directionOf(const Offset(10, 30), current: Direction.east),
+      Direction.south,
+    );
   });
 
   testWidgets('a fatal bite shows the game over overlay and restart works', (
@@ -769,13 +1101,13 @@ void main() {
       for (final gone in <String>['SALVA IL GIOCO', 'TIPI DI ZOMBI']) {
         expect(find.text(gone), findsNothing, reason: 'the fire has no menu');
       }
-      expect(find.byKey(const ValueKey<String>('touch-up')), findsNothing);
+      expect(find.byKey(const ValueKey<String>('touch-move')), findsNothing);
 
       await tester.tap(find.byKey(const ValueKey<String>('gameplay-dialogue')));
       await tester.pump();
       expect(game.cover.value, isNull);
       expect(game.inputLocked, isFalse);
-      expect(find.byKey(const ValueKey<String>('touch-up')), findsOneWidget);
+      expect(find.byKey(const ValueKey<String>('touch-move')), findsOneWidget);
       game
         ..pressDirection(Direction.west)
         ..update(1 / 20);
@@ -955,8 +1287,7 @@ void main() {
 
     expect(find.byType(GameWidget<StepboundGame>), findsOneWidget);
     expect(find.byKey(const ValueKey<String>('story-intro')), findsNothing);
-    expect(find.byKey(const ValueKey<String>('touch-interact')), findsOne);
-    expect(find.byKey(const ValueKey<String>('touch-shoot')), findsNothing);
+    expect(find.byKey(const ValueKey<String>('touch-act')), findsOne);
     final game = tester
         .state<GameWidgetState<StepboundGame>>(
           find.byType(GameWidget<StepboundGame>),
@@ -1041,7 +1372,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey<String>('touch-menu')));
       await tester.pump();
       expect(
-        find.byKey(const ValueKey<String>('touch-up')),
+        find.byKey(const ValueKey<String>('touch-move')),
         findsNothing,
         reason: 'the menu takes the place of the gameplay buttons',
       );
@@ -1155,12 +1486,7 @@ void main() {
           find.byType(GameWidget<StepboundGame>),
         )
         .currentGame;
-    const controls = <String>[
-      'touch-up',
-      'touch-shoot',
-      'touch-interact',
-      'touch-ammo',
-    ];
+    const controls = <String>['touch-move', 'touch-act', 'touch-ammo'];
     for (final key in controls) {
       expect(find.byKey(ValueKey<String>(key)), findsOneWidget);
     }
@@ -1401,7 +1727,7 @@ void main() {
     });
   });
 
-  testWidgets('the arrows stay on the left and the actions on the right', (
+  testWidgets('the left half of the screen walks, the right half acts', (
     tester,
   ) async {
     final saves = MemorySaveRepository();
@@ -1424,24 +1750,19 @@ void main() {
     await tester.tap(find.byKey(const ValueKey<String>('menu-slot-1')));
     await tester.pump();
 
-    double centreOf(String key) =>
-        tester.getCenter(find.byKey(ValueKey<String>(key))).dx;
+    Rect rectOf(String key) =>
+        tester.getRect(find.byKey(ValueKey<String>(key)));
 
     // Like every gamepad since the NES: the thumb that moves is the left one.
     final screen =
         tester.view.physicalSize.width / tester.view.devicePixelRatio;
-    for (final arrow in <String>['touch-up', 'touch-down', 'touch-left']) {
-      expect(centreOf(arrow), lessThan(screen / 2), reason: arrow);
-    }
-    for (final action in <String>[
-      'touch-shoot',
-      'touch-interact',
-      'touch-ammo',
-    ]) {
-      expect(centreOf(action), greaterThan(screen / 2), reason: action);
-    }
-    expect(centreOf('touch-shoot'), greaterThan(centreOf('touch-right')));
-    expect(centreOf('touch-interact'), greaterThan(centreOf('touch-right')));
+    final move = rectOf('touch-move');
+    final act = rectOf('touch-act');
+    expect(move.left, 0);
+    expect(move.right, moreOrLessEquals(screen / 2));
+    expect(act.left, moreOrLessEquals(screen / 2));
+    expect(act.right, moreOrLessEquals(screen));
+    expect(rectOf('touch-ammo').center.dx, greaterThan(screen / 2));
   });
 
   group('on a phone longer than 16:9, with the camera on the left', () {
@@ -1498,15 +1819,18 @@ void main() {
         reason: 'the picture keeps its 16:9',
       );
 
-      final left = rectOf(tester, 'touch-left').left;
+      // The camera cutout is on the left; the right edge keeps the same
+      // gap, so the HUD looks the same from either side.
       final right = screen.width - rectOf(tester, 'touch-ammo').right;
-      expect(left, moreOrLessEquals(cutout), reason: 'clear of the camera');
-      expect(right, moreOrLessEquals(left), reason: 'same gap both sides');
-      expect(left, lessThan(band), reason: 'out in the band, off the game');
+      expect(right, moreOrLessEquals(cutout), reason: 'same gap both sides');
+      expect(right, lessThan(band), reason: 'out in the band, off the game');
       expect(
         screen.width - rectOf(tester, 'touch-menu').right,
-        moreOrLessEquals(left),
+        moreOrLessEquals(right),
       );
+      // The gesture halves cover the whole screen, bands included.
+      expect(rectOf(tester, 'touch-move').left, 0);
+      expect(rectOf(tester, 'touch-act').right, moreOrLessEquals(screen.width));
     });
 
     testWidgets('a text box spans the screen, as far from either edge', (

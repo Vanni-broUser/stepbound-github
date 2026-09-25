@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/ui/audio_scope.dart';
+import 'package:stepbound/ui/blood_splat.dart';
 import 'package:stepbound/ui/story_intro.dart';
 
 /// One line spoken over the gameplay view, with the speaker's portrait
@@ -31,7 +32,9 @@ const List<DialogueLine> tutorialOpening = <DialogueLine>[
         'La città è nel caos più totale! Devo cercare di '
         'mettermi in salvo in qualche modo',
   ),
-  DialogueLine.tutorial('Usa le freccette per muoverti'),
+  DialogueLine.tutorial(
+    'Trascina il dito sulla parte sinistra dello schermo per muoverti',
+  ),
 ];
 
 /// Plays [lines] over the game, one per tap, with the speaker's portrait
@@ -69,6 +72,10 @@ final class _GameplayDialogueState extends State<GameplayDialogue> {
   /// one already resting on an arrow button when the box opened does not.
   bool _pressWasFresh = false;
 
+  /// Where the finger lifted: a tap that turns the line leaves blood there,
+  /// wherever on the screen it was.
+  Offset? _tappedAt;
+
   @override
   void initState() {
     super.initState();
@@ -95,6 +102,10 @@ final class _GameplayDialogueState extends State<GameplayDialogue> {
       return;
     }
     _pressWasFresh = false;
+    final at = _tappedAt;
+    if (at != null) {
+      BloodSplatLayer.maybeOf(context)?.splat(at, SplatKind.tap);
+    }
     AudioScope.of(context).play(Sfx.dialogue);
     if (_index + 1 < widget.lines.length) {
       _settle();
@@ -112,6 +123,7 @@ final class _GameplayDialogueState extends State<GameplayDialogue> {
       key: const ValueKey<String>('gameplay-dialogue'),
       behavior: HitTestBehavior.opaque,
       onTapDown: (_) => _press(),
+      onTapUp: (details) => _tappedAt = details.globalPosition,
       onTap: _advance,
       child: Semantics(
         label: 'Tocca per continuare',
