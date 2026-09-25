@@ -559,9 +559,9 @@ void main() {
         Direction.north,
       );
       expect(place(PlaceId.mallNorthStreet).bounds.contains(beyond), isTrue);
-      // It lands in front of a door set in the hypermarket's rear wall,
-      // walled in on every other side, not loose in the car park.
-      expect(beyond, mallNorthStreetEntry.step(Direction.north));
+      // It lands on the door itself, set in the hypermarket's rear wall and
+      // walled in on every other side, not out on the car park's tarmac.
+      expect(beyond, mallNorthStreetEntry);
       for (final side in <Direction>[
         Direction.east,
         Direction.west,
@@ -573,8 +573,15 @@ void main() {
           reason: 'the door stands in the wall, $side of it does not',
         );
       }
+      // From the doorway, pushing on into the wall goes back inside; so
+      // does stepping out and back onto the door.
       final back = walk(world, beyond, Direction.south);
       expect(back, mallExitTile.step(Direction.south));
+      expect(walk(world, back, Direction.north), mallNorthStreetEntry);
+      const TurnScheduler().advance(world, const MoveAction(Direction.north));
+      final tarmac = world.player.component<PositionComponent>().position;
+      expect(tarmac, mallNorthStreetEntry.step(Direction.north));
+      expect(walk(world, tarmac, Direction.south), back);
     });
 
     test('two wanderers wait by the north exit on the ground floor', () {
@@ -949,6 +956,46 @@ void main() {
   });
 
   group('Duomo', () {
+    test('torches burn on every column and behind the altar, and light the '
+        'nave', () {
+      final duomo = place(PlaceId.duomo);
+      final columns = duomo.tilesOf('P');
+      expect(columns, hasLength(10));
+      final torches = duomo.torches.toSet();
+      expect(torches, containsAll(columns), reason: 'one on each column');
+      final altar = duomo.tilesOf('A');
+      final altarTop = altar.map((tile) => tile.y).reduce(math.min);
+      final behind = torches.difference(columns.toSet());
+      expect(behind, hasLength(4));
+      final middle =
+          (altar.map((t) => t.x).reduce(math.min) +
+              altar.map((t) => t.x).reduce(math.max)) /
+          2;
+      for (final torch in behind) {
+        expect(torch.y, altarTop - 1, reason: 'on the wall right behind it');
+        expect(
+          behind.any((other) => other.x - middle == middle - torch.x),
+          isTrue,
+          reason: 'in pairs either side of the altar middle',
+        );
+      }
+      final world = createTutorialWorld();
+      for (final torch in torches) {
+        expect(
+          world.map.tileAt(torch).isWalkable,
+          isFalse,
+          reason: 'fixed to a wall or a column, never in the way',
+        );
+      }
+      final lit = duomo.lights.where((light) => light.torch).map((l) => l.tile);
+      expect(lit.toSet(), torches);
+      expect(
+        duomo.darkness,
+        lessThan(PlaceSpec.defaultDarkness),
+        reason: 'far brighter than the other rooms',
+      );
+    });
+
     final duomo = place(PlaceId.duomo);
 
     test('it is larger than San Nicola and has three furnished naves', () {
@@ -1039,7 +1086,9 @@ void main() {
       expect(upper.tilesOf('d'), hasLength(1));
       expect(upper.tilesOf('L'), hasLength(1));
       expect(upper.tilesOf('R'), hasLength(1));
-      expect(world.map.tileAt(duomoUpperRobeTile).isWalkable, isFalse);
+      expect(upper.lit, isTrue, reason: 'no darkness upstairs');
+      // The robe lies in a backpack, like everything Mario picks up.
+      expect(world.pickupAt(duomoUpperRobeTile)?.cultistRobe, isTrue);
 
       final divider = upper.tilesOf('I').map((tile) => tile.x).toSet();
       expect(
@@ -1450,8 +1499,10 @@ void main() {
       expect(train.lit, isTrue);
       expect(
         tutorialPlaces.where((place) => place.lit).map((place) => place.id),
-        <PlaceId>[PlaceId.trainInterior],
-        reason: 'every other room stays in the dark',
+        <PlaceId>[PlaceId.trainInterior, PlaceId.duomoUpper],
+        reason:
+            'every other room stays in the dark but the upper floor of '
+            'the Duomo, where the community lives',
       );
     });
 

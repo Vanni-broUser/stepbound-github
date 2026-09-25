@@ -12,6 +12,7 @@ final class Pickup {
     this.gun = false,
     this.incense = false,
     this.episcopalRing = false,
+    this.cultistRobe = false,
     this.active = true,
     this.collected = false,
   });
@@ -23,7 +24,8 @@ final class Pickup {
       ammo: json['ammo']! as int,
       gun: json['gun']! as bool,
       incense: json['incense']! as bool,
-      episcopalRing: json['episcopalRing'] as bool? ?? false,
+      episcopalRing: json['episcopalRing']! as bool,
+      cultistRobe: json['cultistRobe']! as bool,
       active: json['active']! as bool,
       collected: json['collected'] as bool? ?? false,
     );
@@ -41,6 +43,9 @@ final class Pickup {
   /// Don Angelo's episcopal ring, hidden in the Bar Arcobaleno storeroom.
   final bool episcopalRing;
 
+  /// The occultist robe, upstairs in the Duomo's dormitory.
+  final bool cultistRobe;
+
   /// False while hidden by a script and after it has been collected.
   bool active;
 
@@ -53,6 +58,7 @@ final class Pickup {
     'gun': gun,
     'incense': incense,
     'episcopalRing': episcopalRing,
+    'cultistRobe': cultistRobe,
     'active': active,
     'collected': collected,
   };

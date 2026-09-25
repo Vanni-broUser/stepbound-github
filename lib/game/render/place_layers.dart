@@ -34,6 +34,7 @@ final class PlaceLayers {
                  ? LightingComponent(
                      area: pixelRect(place.bounds),
                      lights: place.lights,
+                     darkness: place.darkness,
                      playerPosition: playerFeet,
                    )
                  : null,

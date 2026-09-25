@@ -176,15 +176,86 @@ void main() {
     });
   });
 
+  testWidgets('Mario waits while Luigi walks out of the hypermarket, and '
+      'the tile Luigi stood on is free once he has gone', (tester) {
+    return tester.runAsync(() async {
+      final game = await _pumpReadyGame(tester);
+      final map = game.simulation.map;
+      for (var x = luigiBars.left; x <= luigiBars.right; x++) {
+        map.setTile(GridPoint(x, luigiBars.top), const Tile(TileKind.floor));
+      }
+      final mario = game.simulation.player.component<PositionComponent>()
+        ..position = GridPoint(luigiBars.right + 2, luigiSceneTrigger.top)
+        ..facing = Direction.east;
+      final start = mario.position;
+      expect(map.tileAt(luigiTile).isWalkable, isFalse, reason: 'he is there');
+
+      var gone = false;
+      game
+        ..sendLuigiAway(onFinished: () => gone = true)
+        ..pressDirection(Direction.east)
+        ..releaseDirection(Direction.east)
+        ..update(0.3);
+      expect(mario.position, start, reason: 'not while Luigi is walking');
+
+      for (var i = 0; i < 400 && !gone; i++) {
+        game.update(0.05);
+      }
+      expect(gone, isTrue);
+      expect(map.tileAt(luigiTile).isWalkable, isTrue, reason: 'he has gone');
+      game
+        ..pressDirection(Direction.east)
+        ..releaseDirection(Direction.east)
+        ..update(0.3);
+      expect(mario.position, start.step(Direction.east));
+    });
+  });
+
+  testWidgets('nobody walks through the people at the Duomo', (tester) {
+    return tester.runAsync(() async {
+      final game = await _pumpReadyGame(tester);
+      final map = game.simulation.map;
+      bool free(GridPoint tile) => map.tileAt(tile).isWalkable;
+      expect(free(priestTile), isFalse, reason: 'Don Angelo at his gate');
+      expect(free(duomoWelcomingCultistTile), isFalse);
+      expect(free(duomoStairCultistTile), isFalse);
+      expect(free(duomoStairCultistMovedTile), isTrue, reason: 'nobody yet');
+
+      game.openDuomo();
+      expect(free(priestTile), isTrue, reason: 'he has gone inside');
+      expect(free(duomoPriestTile), isFalse);
+
+      game.openDuomoUpper();
+      expect(free(duomoStairCultistTile), isTrue, reason: 'he stepped aside');
+      expect(free(duomoStairCultistMovedTile), isFalse, reason: 'to here');
+    });
+  });
+
+  test('everything Mario picks up lies in a backpack, so the end of the '
+      'level counts all of it', () {
+    final world = createTutorialWorld();
+    final pickups = world.pickups.values;
+    expect(
+      pickups.where((pickup) => pickup.episcopalRing).single.id,
+      episcopalRingPickupId,
+    );
+    expect(
+      pickups.where((pickup) => pickup.cultistRobe).single.position,
+      duomoUpperRobeTile,
+    );
+    // The robe and the ring are backpacks among the others: the results
+    // screen counts world.pickups, so they are in the total.
+    expect(
+      pickups.map((pickup) => pickup.id),
+      containsAll(<String>[episcopalRingPickupId, cultistRobePickupId]),
+    );
+  });
+
   testWidgets('the Duomo robe fades Mario into the occultist outfit and '
       'changes his portrait', (tester) {
     return tester.runAsync(() async {
       final game = await _pumpReadyGame(tester);
       expect(game.progress.activeOutfit, PlayerOutfit.base);
-      expect(
-        game.simulation.map.tileAt(duomoUpperRobeTile).isWalkable,
-        isFalse,
-      );
 
       game.collectCultistRobe();
       await tester.pump();
@@ -192,7 +263,6 @@ void main() {
 
       expect(game.progress.unlockedOutfits, contains(PlayerOutfit.cultist));
       expect(game.progress.activeOutfit, PlayerOutfit.cultist);
-      expect(game.simulation.map.tileAt(duomoUpperRobeTile).isWalkable, isTrue);
 
       await tester.pump(const Duration(seconds: 2));
       game.showPrompt(const <TutorialLine>[
@@ -596,7 +666,6 @@ void main() {
         ...world.controls.keys,
         // What the scripts answer when interacted with.
         barLockedDoorTile,
-        duomoUpperRobeTile,
         duomoUpperLockedDoorTile,
       ]) {
         expect(glinted(tile), isTrue, reason: 'nothing glints near $tile');

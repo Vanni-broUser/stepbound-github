@@ -30,6 +30,7 @@ import 'package:stepbound/game/render/pixel_palette.dart';
 import 'package:stepbound/game/render/place_layers.dart';
 import 'package:stepbound/game/render/quest_props.dart';
 import 'package:stepbound/game/render/screen_fade_component.dart';
+import 'package:stepbound/game/render/torch_component.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
 
 export 'package:stepbound/game/game_cover.dart';
@@ -130,6 +131,10 @@ final class StepboundGame extends FlameGame
   bool _stairCultistMoved = false;
   bool _changingOutfit = false;
 
+  /// True while Luigi walks out of the hypermarket: Mario waits for him to
+  /// be gone, so the two never walk through each other.
+  bool _luigiLeaving = false;
+
   MallScript get _mallScript => tutorial.scripts.whereType<MallScript>().first;
   PriestScript get _priestScript =>
       tutorial.scripts.whereType<PriestScript>().first;
@@ -224,13 +229,20 @@ final class StepboundGame extends FlameGame
       // its own badge should still show what Mario is carrying.
       hud.value = <HudElement>{...hud.value, HudElement.episcopalRing};
     }
-    if (progress.unlockedOutfits.contains(PlayerOutfit.cultist)) {
-      simulation.map.setTile(duomoUpperRobeTile, const Tile(TileKind.floor));
-    }
     _priestInside = simulation.map.tileAt(priestGateTiles.first).isWalkable;
     _stairCultistMoved = simulation.map
         .tileAt(duomoStairCultistTile)
         .isWalkable;
+    // Nobody walks through a person: where each one stands is an obstacle.
+    if (!_priestInside) {
+      _occupy(priestTile);
+    }
+    if (_stairCultistMoved) {
+      _occupy(duomoStairCultistMovedTile);
+    }
+    if (_mallScript.luigiGone) {
+      _vacate(luigiTile);
+    }
     _syncTrainDoor();
     await world.addAll(_places.components);
     await world.addAll(<Component>[
@@ -245,6 +257,9 @@ final class StepboundGame extends FlameGame
           flagpoleTile.y * tileSize + tileSize - 2,
         ),
       ),
+      for (final (index, torch)
+          in tutorialPlaces.expand((place) => place.torches).indexed)
+        TorchComponent(tile: torch, seed: index),
       for (final pickup in simulation.pickups.values)
         PickupComponent(pickup: pickup),
       if (!_mallScript.luigiGone)
@@ -270,7 +285,6 @@ final class StepboundGame extends FlameGame
       ..._interactGlints(),
       ChurchyardGateComponent(gate: priestGate, map: simulation.map),
       BarServiceDoorComponent(door: barLockedDoorTile, map: simulation.map),
-      DuomoRobeComponent(robe: duomoUpperRobeTile, map: simulation.map),
     ]);
     // The ground burning from the start, and any a burning zombie set
     // alight before the game was saved.
@@ -373,12 +387,6 @@ final class StepboundGame extends FlameGame
         spot: const Offset(8, -4),
         active: () => !simulation.map.tileAt(barLockedDoorTile).isWalkable,
       ),
-      // On the folded robe, until it is taken.
-      InteractGlintComponent(
-        tile: duomoUpperRobeTile,
-        spot: const Offset(10, 4),
-        active: () => !simulation.map.tileAt(duomoUpperRobeTile).isWalkable,
-      ),
       InteractGlintComponent(
         tile: duomoUpperLockedDoorTile,
         active: canInteract,
@@ -451,6 +459,7 @@ final class StepboundGame extends FlameGame
       _acceptsInput &&
       !inputLocked &&
       !_changingOutfit &&
+      !_luigiLeaving &&
       cover.value == null &&
       _campfire == null &&
       _entranceHoldLeft <= 0;
@@ -578,8 +587,25 @@ final class StepboundGame extends FlameGame
       return;
     }
     _luigi = null;
-    luigi.walkAwayThrough(luigiExitPath, onArrived: onFinished);
+    _stopMario();
+    _luigiLeaving = true;
+    luigi.walkAwayThrough(
+      luigiExitPath,
+      onArrived: () {
+        _luigiLeaving = false;
+        _vacate(luigiTile);
+        onFinished?.call();
+      },
+    );
   }
+
+  /// Someone now stands on [tile]: nobody walks through them.
+  void _occupy(GridPoint tile) =>
+      simulation.map.setTile(tile, const Tile(TileKind.obstacle));
+
+  /// Whoever stood on [tile] has gone.
+  void _vacate(GridPoint tile) =>
+      simulation.map.setTile(tile, const Tile(TileKind.floor));
 
   /// A door or a road into another place: a short fade to black (a slower
   /// one into a building, where Mario then stands still a moment), or, into
@@ -787,6 +813,7 @@ final class StepboundGame extends FlameGame
       return;
     }
     _priestInside = true;
+    _vacate(priestTile);
     _priest?.removeFromParent();
     _priest = NpcComponent(
       asset: NpcComponent.priestAsset,
@@ -795,10 +822,13 @@ final class StepboundGame extends FlameGame
     _addWithoutWaiting(world, _priest!);
   }
 
+  /// The stair cultist steps aside: his old tile and the stair are free,
+  /// the one he moves to is not.
   void _openDuomoUpperAccess() {
     simulation.map
       ..setTile(duomoStairCultistTile, const Tile(TileKind.floor))
       ..setTile(duomoStairEntryTile, const Tile(TileKind.floor));
+    _occupy(duomoStairCultistMovedTile);
   }
 
   @override
@@ -834,10 +864,6 @@ final class StepboundGame extends FlameGame
         onBlack: () {
           progress.unlockOutfit(PlayerOutfit.cultist);
           wearOutfit(PlayerOutfit.cultist);
-          simulation.map.setTile(
-            duomoUpperRobeTile,
-            const Tile(TileKind.floor),
-          );
         },
         onFinished: () => _changingOutfit = false,
       ),

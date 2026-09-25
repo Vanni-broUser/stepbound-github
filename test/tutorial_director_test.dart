@@ -137,6 +137,7 @@ void main() {
     bool gun = false,
     bool incense = false,
     bool episcopalRing = false,
+    bool cultistRobe = false,
   }) => PickedUpEvent(
     pickupId: id,
     at: world.pickups[id]!.position,
@@ -144,6 +145,7 @@ void main() {
     gun: gun,
     incense: incense,
     episcopalRing: episcopalRing,
+    cultistRobe: cultistRobe,
   );
 
   setUp(() {
@@ -190,7 +192,7 @@ void main() {
     );
   });
 
-  test('the bar key opens the service door and is consumed', () {
+  test('the bar key opens the service door, is consumed and says so', () {
     host.unlock(HudElement.barKey);
     world.player.component<PositionComponent>()
       ..position = barLockedDoorTile.step(Direction.south)
@@ -202,7 +204,9 @@ void main() {
     expect(events.whereType<NoInteractionEvent>(), hasLength(1));
     expect(world.map.tileAt(barLockedDoorTile).isWalkable, isTrue);
     expect(host.unlocked, isNot(contains(HudElement.barKey)));
-    expect(host.shown, isEmpty);
+    settle();
+    expect(host.shown.single.single.text, BarScript.keyUsedLine);
+    expect(BarScript.keyUsedLine, 'Hai usato la chiave per aprire la porta');
   });
 
   test('everyone in the Duomo speaks with a portrait', () {
@@ -245,15 +249,16 @@ void main() {
     }
   });
 
-  test('the episcopal ring enters the HUD without a pickup message', () {
+  test('the episcopal ring is found in a backpack, and its badge comes with '
+      'the news', () {
     director.onEvents(<WorldEvent>[
       pickedUp(episcopalRingPickupId, episcopalRing: true),
     ]);
     settle();
 
     expect(host.pickupAnimations, 1);
+    expect(host.shown.single.single.text, BackpacksScript.ringFound);
     expect(host.unlocked, contains(HudElement.episcopalRing));
-    expect(host.shown, isEmpty);
   });
 
   test('entering the Duomo with the ring welcomes Mario into the family', () {
@@ -295,10 +300,14 @@ void main() {
     expect(host.shown[2].single.portrait, isNull);
   });
 
-  test('the robe upstairs is announced before Mario puts it on', () {
-    director.onEvents(<WorldEvent>[NoInteractionEvent(duomoUpperRobeTile)]);
+  test('the robe upstairs, in its backpack, is announced before Mario puts '
+      'it on', () {
+    director.onEvents(<WorldEvent>[
+      pickedUp(cultistRobePickupId, cultistRobe: true),
+    ]);
     settle();
 
+    expect(host.pickupAnimations, 1);
     expect(host.shown.single.single.text, DuomoScript.robeFoundLine);
     expect(host.cultistRobesCollected, 0);
     host.dismiss();

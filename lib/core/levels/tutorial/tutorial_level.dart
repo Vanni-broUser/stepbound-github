@@ -61,7 +61,7 @@ const Legend churchLegend = Legend(walls: 'xWwIA', obstacles: 'TK');
 /// vocabulary, with their own furnishings as waist-high obstacles.
 const Legend duomoLegend = Legend(walls: 'xWwIA', obstacles: 'PTSU12p');
 const Legend barBackroomLegend = Legend(walls: 'xWwI', obstacles: 'KB');
-const Legend duomoUpperLegend = Legend(walls: 'xWwIL', obstacles: 'TCBKR');
+const Legend duomoUpperLegend = Legend(walls: 'xWwIL', obstacles: 'TCBK');
 
 /// The three places of the station (station.dart): the railcar `M` and
 /// the rubble `#` shut the way like walls, the coach on its side `m`, the
@@ -230,6 +230,9 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     background: 'assets/levels/duomo.png',
     indoor: true,
     daylight: 'E',
+    torches: duomoTorches,
+    // Torchlight everywhere: the nave never sinks into the dark.
+    darkness: 0.55,
   ),
   PlaceSpec(
     id: PlaceId.barBackroom,
@@ -245,6 +248,8 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     legend: duomoUpperLegend,
     background: 'assets/levels/duomo_upper.png',
     indoor: true,
+    // The community lives up here: every lamp is lit, no darkness at all.
+    lit: true,
     daylight: 'D',
   ),
 ]);
@@ -310,6 +315,7 @@ const String boatBackpackId = 'backpack-boat';
 /// Angelo asked for.
 const String incenseBackpackId = 'backpack-incense';
 const String episcopalRingPickupId = 'episcopal-ring';
+const String cultistRobePickupId = 'cultist-robe';
 
 /// The service door in the top-right corner of the Bar Arcobaleno. It is
 /// scenery until Don Angelo gives Mario its key; it then becomes the portal
@@ -554,7 +560,8 @@ final List<GridPoint> luigiExitPath = <GridPoint>[
 /// or out of the car park behind the hypermarket.
 final GridPoint mallExitTile = _mallGround.tileOf('X');
 
-/// Where the fire exit lands, in the car park behind the hypermarket.
+/// Where the fire exit lands: its own doorway, in the back wall of the
+/// hypermarket behind the car park.
 final GridPoint mallNorthStreetEntry = _mallNorthStreet.tileOf('j');
 
 /// The portal of San Nicola, standing open on the church's little square.
@@ -706,11 +713,9 @@ Map<GridPoint, Portal> _portals() {
     ..._pairedDoors(entrance, mallDoor, Direction.south),
     ..._pairedDoors(up, down, Direction.south),
     ..._pairedDoors(down, up, Direction.south),
-    ..._pairedDoors(
-      <GridPoint>[mallExitTile],
-      <GridPoint>[mallNorthStreetEntry],
-      Direction.north,
-    ),
+    // Out of the fire exit Mario stands in its doorway, not out on the
+    // tarmac of the car park: pushing on south from there goes back in.
+    mallExitTile: Portal(to: mallNorthStreetEntry, facing: Direction.north),
     ..._pairedDoors(
       <GridPoint>[mallNorthStreetEntry],
       <GridPoint>[mallExitTile],
@@ -890,6 +895,11 @@ WorldState createTutorialWorld({int seed = 20260920}) {
       id: episcopalRingPickupId,
       position: _barBackroom.tileOf('8'),
       episcopalRing: true,
+    ),
+    Pickup(
+      id: cultistRobePickupId,
+      position: duomoUpperRobeTile,
+      cultistRobe: true,
     ),
     Pickup(
       id: stationBackpackId,

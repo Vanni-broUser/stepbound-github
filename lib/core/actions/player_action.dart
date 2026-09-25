@@ -26,6 +26,22 @@ final class MoveAction extends PlayerAction {
     final position = player.component<PositionComponent>()..facing = direction;
     final target = position.position.step(direction);
 
+    // Standing in a doorway, pushing on the way the door leads goes
+    // through it, even into its wall: a door can land Mario on itself.
+    final doorway = world.portals[position.position];
+    if (doorway != null &&
+        doorway.facing == direction &&
+        (!world.map.contains(target) || !world.map.tileAt(target).isWalkable)) {
+      final from = position.position;
+      position
+        ..position = doorway.to
+        ..facing = doorway.facing;
+      world.emit(
+        TeleportedEvent(entityId: player.id, from: from, to: doorway.to),
+      );
+      return;
+    }
+
     if (!world.map.contains(target) || !world.map.tileAt(target).isWalkable) {
       world.emit(
         BlockedEvent(entityId: player.id, at: target, reason: 'terrain'),
@@ -125,6 +141,7 @@ final class InteractAction extends PlayerAction {
           gun: pickup.gun,
           incense: pickup.incense,
           episcopalRing: pickup.episcopalRing,
+          cultistRobe: pickup.cultistRobe,
         ),
       );
       return;
