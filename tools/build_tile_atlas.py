@@ -36,7 +36,17 @@ import tempfile
 from PIL import Image, ImageChops, ImageDraw
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from build_street_level import TILE, rect, shade  # noqa: E402
+from build_street_level import (  # noqa: E402
+    OUTLINE,
+    RAINBOW,
+    TILE,
+    paint_chair,
+    paint_text,
+    rect,
+    shade,
+    text_width,
+)
+from build_mall import paint_blood  # noqa: E402
 import build_station as station  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -128,16 +138,18 @@ def cell(paint, gx: int = 0, gy: int = 0) -> Image.Image:
 
 class Neighbourhood:
     """What a painter that looks at its neighbours is shown while its tile
-    is being painted: one cell of its own and whatever we want around it."""
+    is being painted: the cell itself, at `cell` because a tile is not
+    always painted at the origin, and whatever we want around it."""
 
-    def __init__(self, glyph: str, around) -> None:
+    def __init__(self, glyph: str, around, cell=(0, 0)) -> None:
         self.glyph = glyph
         self.around = around
+        self.cell = cell
         self.width = 1
         self.height = 1
 
     def at(self, x: int, y: int) -> str:
-        return self.glyph if (x, y) == (0, 0) else self.around(x, y)
+        return self.glyph if (x, y) == self.cell else self.around(x, y)
 
     def is_wall(self, x: int, y: int) -> bool:
         return self.at(x, y) in station.WALLS
@@ -158,7 +170,7 @@ def paint_table(d, px, py):
     rect(d, px + 11, py + 12, 3, 3, shade(WOOD, -22))
 
 
-def paint_chair(d, px, py):
+def paint_refectory_chair(d, px, py):
     rect(d, px + 3, py + 4, 10, 7, WOOD)
     rect(d, px + 4, py + 5, 8, 2, WOOD_LIGHT)
     rect(d, px + 4, py + 11, 2, 4, shade(WOOD, -20))
@@ -220,7 +232,7 @@ def duomo_upper(atlas: Atlas, rng) -> dict:
     front = atlas.bucket(
         lambda: tile_of(lambda d: duomo_wall(d, 0, 0, front=True)), 1)
     props = {
-        "T": paint_table, "C": paint_chair, "B": paint_bed,
+        "T": paint_table, "C": paint_refectory_chair, "B": paint_bed,
         "K": paint_cupboard, "D": paint_stairs_down,
         "d": lambda d, px, py: rect(d, px + 1, py, TILE - 2, 2, STONE_LIGHT),
     }
@@ -247,6 +259,245 @@ def duomo_upper(atlas: Atlas, rng) -> dict:
         "objects": [{"glyph": "L", "image": "duomo_upper_door.png",
                      "offsetY": -1, "sprite": door}],
     }
+
+
+# ------------------------------------------------ the Bar Arcobaleno's art
+# Moved here from tools/build_bar.py, which this atlas replaces: a chequered
+# floor under broken glass and toppled chairs, the counter across the back,
+# and the rainbow painted over the whole wall behind it.
+
+CHECK_LIGHT = (176, 168, 150)
+CHECK_DARK = (70, 64, 60)
+BAR_WALL_FACE = (150, 120, 96)
+BAR_WALL_TOP = (46, 40, 40)
+SHELF = (86, 60, 40)
+COUNTER = (110, 70, 44)
+COUNTER_TOP = (150, 104, 66)
+BOTTLES = [(60, 110, 60), (140, 90, 40), (180, 180, 170), (110, 40, 40),
+           (60, 80, 120)]
+
+
+class Block:
+    """A room that is nothing but one rectangle of `glyph`: what a painter
+    that measures its own wall is shown while its image is painted."""
+
+    def __init__(self, glyph, width, height):
+        self.glyph = glyph
+        self.width = width
+        self.height = height
+
+    def at(self, x, y):
+        if 0 <= x < self.width and 0 <= y < self.height:
+            return self.glyph
+        return "x"
+
+    def is_wall(self, x, y):
+        return self.at(x, y) in station.WALLS
+
+
+def paint_bar_floor(d, rng, x, y):
+    """Black and white tiles, four to a cell, grimy and cracked."""
+    px, py = x * TILE, y * TILE
+    for i in range(2):
+        for j in range(2):
+            light = (x * 2 + i + y * 2 + j) % 2
+            rect(d, px + i * 8, py + j * 8, 8, 8,
+                 CHECK_LIGHT if light else CHECK_DARK)
+    for _ in range(4):
+        rect(d, px + rng.randrange(16), py + rng.randrange(16), 1, 1,
+             (100, 94, 86))
+    if rng.random() < 0.15:
+        cx, cy = px + rng.randrange(2, 12), py + rng.randrange(2, 12)
+        for i in range(5):
+            rect(d, cx + i, cy + (i % 3), 1, 1, (40, 36, 34))
+
+
+def paint_glass(d, rng, px, py):
+    """Broken bottles and glasses underfoot."""
+    for _ in range(6):
+        rect(d, px + rng.randrange(14), py + rng.randrange(14),
+             rng.randint(1, 2), 1,
+             rng.choice(((170, 200, 190), (90, 140, 90), (160, 110, 60))))
+
+
+def paint_bar_back_wall(d, room, rng):
+    """Shelves of bottles, most smashed, under the bar's rainbow painted
+    across the whole wall, flaking."""
+    ys = [y for y in range(room.height) if room.at(1, y) == "W"]
+    top, bottom = min(ys), max(ys)
+    x0 = min(x for x in range(room.width) if room.at(x, top) == "W")
+    x1 = max(x for x in range(room.width) if room.at(x, top) == "W")
+    px, py = x0 * TILE, top * TILE
+    w, h = (x1 - x0 + 1) * TILE, (bottom - top + 1) * TILE
+    rect(d, px, py, w, h, BAR_WALL_FACE)
+    rect(d, px, py, w, 4, BAR_WALL_TOP)
+    for i, colour in enumerate(RAINBOW):  # the mural, flaking off
+        for x in range(px, px + w, 2):
+            if rng.random() < 0.85:
+                rect(d, x, py + 5 + i * 2, 2, 2, colour)
+    sy = py + h - 4  # the shelf, bottles on it or smashed below
+    rect(d, px, sy, w, 2, SHELF)
+    for bx in range(px + 2, px + w - 2, 3):
+        if rng.random() < 0.45:
+            rect(d, bx, sy - 5, 2, 5, rng.choice(BOTTLES))
+            rect(d, bx, sy - 6, 1, 1, (40, 40, 40))
+    name = "BAR ARCOBALENO"  # the sign hung over the middle of the shelf
+    tx = px + (w - text_width(name) * 2) // 2
+    rect(d, tx - 3, py + 17, text_width(name) * 2 + 6, 14, OUTLINE)
+    for i, letter in enumerate(name):
+        paint_text(d, tx + i * 8, py + 19, letter,
+                   RAINBOW[i % len(RAINBOW)], scale=2)
+
+
+def paint_counter(d, room, x, y):
+    px, py = x * TILE, y * TILE
+    rect(d, px, py + 2, TILE, 13, COUNTER)
+    rect(d, px, py + 2, TILE, 3, COUNTER_TOP)
+    rect(d, px, py + 14, TILE, 2, (30, 26, 26))
+    rect(d, px + (x * 5) % 12, py + 6, 1, 8, (84, 52, 32))
+    if room.at(x + 1, y) != "K":
+        rect(d, px + 14, py + 2, 2, 13, (84, 52, 32))
+    if (x * 7) % 5 == 0:  # a glass still on the counter
+        rect(d, px + 6, py, 2, 3, (170, 200, 190))
+
+
+def paint_bar_table(d, px, py, first, last):
+    rect(d, px, py + 13, TILE, 2, (30, 26, 26))
+    rect(d, px, py + 4, TILE, 5, (130, 96, 60))
+    rect(d, px, py + 4, TILE, 1, (160, 120, 80))
+    if first:
+        rect(d, px + 2, py + 9, 2, 5, (84, 60, 40))
+    if last:
+        rect(d, px + 12, py + 9, 2, 5, (84, 60, 40))
+
+
+def paint_jukebox(d, px, py):
+    """A jukebox, its dome smashed, only half of it lit by nothing."""
+    rect(d, px + 2, py - 6, 28, 21, OUTLINE)
+    rect(d, px + 3, py - 5, 26, 19, (120, 50, 60))
+    rect(d, px + 5, py - 4, 22, 6, (200, 170, 90))
+    for i, colour in enumerate(RAINBOW):
+        rect(d, px + 5 + i * 4, py + 3, 3, 3, colour)
+    rect(d, px + 8, py + 8, 16, 4, (40, 36, 40))
+    rect(d, px + 12, py - 3, 6, 2, (30, 26, 26))  # the smashed dome
+
+
+def paint_bar_front_wall(d, x, y):
+    px, py = x * TILE, y * TILE
+    rect(d, px, py, TILE, TILE, BAR_WALL_TOP)
+    rect(d, px, py + 3, TILE, 10, (60, 72, 84))
+    rect(d, px + 3, py + 4, 2, 8, (110, 130, 150))
+    if (x * 5) % 7 == 0:  # the window's smashed in
+        rect(d, px + 6, py + 4, 6, 8, (20, 22, 26))
+
+
+def paint_bar_door(d, px, py):
+    rect(d, px, py, TILE, TILE, (150, 142, 124))
+    rect(d, px + 1, py, 3, TILE, (70, 50, 36))  # the door hanging off
+    rect(d, px + 5, py + 6, 3, 2, (120, 30, 30))
+
+
+def paint_bar_locked_door(d, px, py):
+    """The open service doorway under the dynamic locked-door component."""
+    top = py - TILE
+    rect(d, px + 1, top, TILE - 2, TILE * 2, OUTLINE)
+    rect(d, px + 3, top + 2, TILE - 6, TILE * 2 - 3, (18, 16, 18))
+    rect(d, px + 2, top + 1, 2, TILE * 2 - 2, (88, 58, 38))
+    rect(d, px + 12, top + 1, 2, TILE * 2 - 2, (88, 58, 38))
+    rect(d, px + 4, py + 12, TILE - 8, 4, (104, 96, 86))
+
+
+# The wall behind the counter is painted as one piece, mural, sign and
+# all: its size is the run of `W` in the bar's rows, and
+# test/levels/tile_atlas_test.dart fails if they stop agreeing.
+BAR_WALL_TILES = (20, 2)
+
+
+def bar_arcobaleno(atlas: Atlas, rng) -> dict:
+    """The rules that paint PlaceId.barArcobaleno."""
+    floor = [
+        atlas.bucket(lambda p=parity: cell(
+            lambda dd, gx, gy: paint_bar_floor(dd, rng, gx, gy), p, 0))
+        for parity in (0, 1)
+    ]
+    # The counter: the glass left on it falls on a pattern, so a key says
+    # where. Its 1 px of grain follows the column too, but nothing hangs
+    # on where that line sits, so those stay variants picked by the hash.
+    counter = [[] for _ in range(4)]
+    for column in range(60):  # 60 = every pair of the two patterns
+        for right in (False, True):
+            wide = Image.new("RGBA", ((column + 1) * TILE, TILE), TRANSPARENT)
+            # The cell being painted is at `column`, so its neighbour is
+            # the one after it, not the one after the origin.
+            paint_counter(
+                ImageDraw.Draw(wide),
+                Neighbourhood("K", lambda x, y, r=right, c=column: "K"
+                              if (x == c + 1 and r) else ".",
+                              cell=(column, 0)),
+                column, 0)
+            index = (1 if right else 0) | (2 if (column * 7) % 5 == 0 else 0)
+            tile = atlas.add(
+                wide.crop((column * TILE, 0, (column + 1) * TILE, TILE)))
+            if tile not in counter[index]:
+                counter[index].append(tile)
+    # The front wall's smashed windows fall on a pattern as well.
+    front = [[], []]
+    for column in range(7):
+        wide = Image.new("RGBA", ((column + 1) * TILE, TILE), TRANSPARENT)
+        paint_bar_front_wall(ImageDraw.Draw(wide), column, 0)
+        tile = atlas.add(
+            wide.crop((column * TILE, 0, (column + 1) * TILE, TILE)))
+        index = 1 if (column * 5) % 7 == 0 else 0
+        if tile not in front[index]:
+            front[index].append(tile)
+    floored = ".*:qbU+KTJDE"
+    rules = [
+        rule("ground", floored, floor, [parity_key()]),
+        rule("structures", "w", front, [pattern_key(5, 0, 7)]),
+        rule("structures", "E", [atlas.bucket(
+            lambda: tile_of(lambda d: paint_bar_door(d, 0, 0)), 1)]),
+        rule("structures", ":", [atlas.bucket(
+            lambda: tile_of(lambda d: paint_glass(d, rng, 0, 0)))]),
+        rule("structures", "b", [atlas.bucket(
+            lambda: tile_of(lambda d: paint_blood(d, rng, 0, 0)))]),
+        rule("structures", "q", [atlas.bucket(
+            lambda: tile_of(
+                lambda d: paint_chair(d, 0, 0, toppled=True)), 1)]),
+    ]
+    for right in (False, True):
+        edge = atlas.bucket(lambda r=right: tile_of(
+            lambda d: paint_side_edge(d, 0, 0, r)), 1)
+        rules.append(rule("foreground", floored, [[], edge],
+                          [neighbour_key(1 if right else -1, 0, "x")]))
+    rules.append(rule("foreground", "K", counter,
+                      [neighbour_key(1, 0, "K"), pattern_key(7, 0, 5)]))
+    # The legs go where the run of tables ends, so the key is "there is a
+    # table beside me" and the painter wants the opposite of it.
+    rules.append(rule("foreground", "T", [
+        atlas.bucket(lambda le=left, ri=right: tile_of(
+            lambda d: paint_bar_table(d, 0, 0, not le, not ri)), 1)
+        for right in (False, True) for left in (False, True)
+    ], [neighbour_key(-1, 0, "T"), neighbour_key(1, 0, "T")]))
+    wall = Image.new("RGBA", (BAR_WALL_TILES[0] * TILE,
+                              BAR_WALL_TILES[1] * TILE), TRANSPARENT)
+    paint_bar_back_wall(ImageDraw.Draw(wall),
+                        Block("W", *BAR_WALL_TILES), rng)
+    juke = Image.new("RGBA", (TILE * 2, TILE * 2), TRANSPARENT)
+    paint_jukebox(ImageDraw.Draw(juke), 0, TILE)
+    door = Image.new("RGBA", (TILE, TILE * 2), TRANSPARENT)
+    paint_bar_locked_door(ImageDraw.Draw(door), 0, TILE)
+    return {
+        "void": "#060608", "voidGlyph": "x", "rules": rules,
+        "objects": [
+            {"glyph": "W", "image": "bar_back_wall.png",
+             "tiles": list(BAR_WALL_TILES), "sprite": wall},
+            {"glyph": "J", "image": "bar_jukebox.png", "offsetY": -1,
+             "sprite": juke},
+            {"glyph": "D", "image": "bar_service_door.png", "offsetY": -1,
+             "sprite": door},
+        ],
+    }
+
 
 
 # ------------------------------------------------------- the Duomo's art
@@ -653,6 +904,7 @@ def compose(rows: list[str], place: dict, tiles: list[Image.Image],
 # ----------------------------------------------------------------- writing
 
 PLACES = {
+    "barArcobaleno": bar_arcobaleno,
     "barBackroom": bar_backroom,
     "duomo": duomo,
     "duomoUpper": duomo_upper,
@@ -714,6 +966,7 @@ def write(root: str) -> None:
 # The marker of each converted place's ASCII rows, for --preview only: the
 # atlas itself never reads a place.
 PREVIEW_ROWS = {
+    "barArcobaleno": "bar-rows",
     "barBackroom": "bar-backroom-rows",
     "duomo": "duomo-rows",
     "duomoUpper": "duomo-upper-rows",

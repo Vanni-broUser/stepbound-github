@@ -157,11 +157,11 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     legend: outdoorLegend,
     background: 'assets/levels/mall_north_street.png',
   ),
+  // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.barArcobaleno,
     rows: barArcobalenoRows,
     legend: barLegend,
-    background: 'assets/levels/bar_arcobaleno.png',
     indoor: true,
     daylight: 'E',
   ),
