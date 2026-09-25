@@ -71,6 +71,11 @@ final class _FakeHost implements TutorialHost {
   @override
   void collectCultistRobe() => cultistRobesCollected++;
 
+  int duomoMassacres = 0;
+
+  @override
+  void startDuomoMassacre() => duomoMassacres++;
+
   @override
   bool isUnlocked(HudElement element) => unlocked.contains(element);
 
@@ -138,6 +143,7 @@ void main() {
     bool incense = false,
     bool episcopalRing = false,
     bool cultistRobe = false,
+    bool duomoKey = false,
   }) => PickedUpEvent(
     pickupId: id,
     at: world.pickups[id]!.position,
@@ -146,6 +152,7 @@ void main() {
     incense: incense,
     episcopalRing: episcopalRing,
     cultistRobe: cultistRobe,
+    duomoKey: duomoKey,
   );
 
   setUp(() {
@@ -342,11 +349,12 @@ void main() {
     progress.wearOutfit(PlayerOutfit.cultist);
     settle();
     expect(host.cutscenes, hasLength(2));
-    expect(host.cutscenes.last, DuomoScript.massScene);
+    // The mass and the massacre it ends in play as one scene.
+    expect(host.cutscenes.last, DuomoScript.massSequence);
     expect(host.cutscenes.last.first.image, DuomoScript.massImage);
     expect(host.cutscenes.last.first.text, DuomoScript.massWelcomeLine);
-    expect(host.cutscenes.last.last.image, DuomoScript.crucifiedImage);
-    expect(host.cutscenes.last.last.speaker, PriestScript.priest);
+    expect(host.cutscenes.last[1].image, DuomoScript.crucifiedImage);
+    expect(host.cutscenes.last[1].speaker, PriestScript.priest);
     expect(progress.memories, contains(StoryMemory.priestMass));
 
     // Held once.
@@ -355,6 +363,101 @@ void main() {
     position.position = duomoStairEntryTile;
     settle();
     expect(host.cutscenes, hasLength(2));
+  });
+
+  test('the mass ends with the community turning on Don Angelo, and leaves '
+      'the nave to them', () {
+    world.pickups[episcopalRingPickupId]!
+      ..active = false
+      ..collected = true;
+    final position = world.player.component<PositionComponent>()
+      ..position = world.portals[duomoPortalTile]!.to;
+    settle();
+    host.onCutsceneFinished?.call();
+    progress
+      ..unlockOutfit(PlayerOutfit.cultist)
+      ..wearOutfit(PlayerOutfit.cultist);
+    position.position = duomoStairEntryTile;
+    settle();
+
+    final scene = host.cutscenes.last;
+    expect(scene, hasLength(6), reason: 'the mass, then the four of it');
+    expect(scene.sublist(2), DuomoScript.massacreScene);
+    expect(scene[2].image, DuomoScript.sermonImage);
+    expect(scene[2].speaker, PriestScript.priest);
+    expect(scene[2].text, DuomoScript.worshipLine);
+    expect(scene[3].text, DuomoScript.areYouMadLine);
+    expect(scene[3].speaker, 'Mario Rossi');
+    expect(scene[4].text, DuomoScript.superZombieLine);
+    expect(scene[4].speaker, 'Mario Rossi');
+    expect(scene[5].image, DuomoScript.seizedImage);
+    expect(scene[5].speaker, PriestScript.priest);
+    expect(scene[5].text, DuomoScript.letMeGoLine);
+    expect(progress.memories, contains(StoryMemory.priestMassacre));
+
+    // The nave is left to the cultists only once the scene is over.
+    expect(host.duomoMassacres, 0);
+    host.onCutsceneFinished?.call();
+    expect(host.duomoMassacres, 1);
+
+    // Nobody is left in it to answer.
+    director.onEvents(<WorldEvent>[
+      NoInteractionEvent(duomoPriestTile),
+      NoInteractionEvent(duomoWelcomingCultistTile),
+    ]);
+    settle();
+    expect(host.shown, isEmpty);
+  });
+
+  test('a save from before the massacre plays only what it has not seen', () {
+    // As such a save comes back: the ring handed over, the mass among the
+    // memories, the robe on, and nothing said about a massacre.
+    director.restore(<String, Object?>{
+      'duomo': <String, Object?>{'ringDelivered': true},
+    });
+    progress
+      ..remember(StoryMemory.priestMass)
+      ..unlockOutfit(PlayerOutfit.cultist)
+      ..wearOutfit(PlayerOutfit.cultist);
+    world.player.component<PositionComponent>().position = duomoStairEntryTile;
+
+    settle();
+
+    expect(host.cutscenes.single, DuomoScript.massacreScene);
+    expect(progress.memories, contains(StoryMemory.priestMassacre));
+  });
+
+  test('the key beside Don Angelo says whose it was, and opens the door '
+      'upstairs once', () {
+    director.onEvents(<WorldEvent>[pickedUp(duomoKeyPickupId, duomoKey: true)]);
+    settle();
+
+    expect(host.pickupAnimations, 1);
+    expect(host.shown.single.single.text, BackpacksScript.duomoKeyFound);
+    expect(
+      BackpacksScript.duomoKeyFound,
+      'Hai trovato la Chiave del Duomo vicino il cadavere di Don Angelo',
+    );
+    expect(host.unlocked, contains(HudElement.duomoKey));
+    host.dismiss();
+
+    director.onEvents(<WorldEvent>[
+      NoInteractionEvent(duomoUpperLockedDoorTile),
+    ]);
+    settle();
+    expect(host.shown.last.single.text, DuomoScript.keyUsedLine);
+    expect(world.map.tileAt(duomoUpperLockedDoorTile).isWalkable, isTrue);
+    expect(host.unlocked, isNot(contains(HudElement.duomoKey)));
+  });
+
+  test('the door upstairs stays shut without the key', () {
+    director.onEvents(<WorldEvent>[
+      NoInteractionEvent(duomoUpperLockedDoorTile),
+    ]);
+    settle();
+
+    expect(host.shown.single.single.text, DuomoScript.lockedDoorLine);
+    expect(world.map.tileAt(duomoUpperLockedDoorTile).kind, TileKind.wall);
   });
 
   test('looking over the gap between the roofs tells Mario what it would '

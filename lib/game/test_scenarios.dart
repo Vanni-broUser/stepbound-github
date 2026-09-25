@@ -239,11 +239,30 @@ final List<TestScenario> testScenarios = <TestScenario>[
       ..wearOutfit(PlayerOutfit.cultist);
     story.restNearest(duomoPortalTile);
   }),
+  TestScenario('Duomo, dopo la messa (i cultisti)', (story) {
+    _afterTheMass(story);
+    story.restNearest(duomoPortalTile);
+  }),
   TestScenario('Aereo schiantato', (story) {
     _luigiFree(story);
     story.restNearest(airlinerTear.first);
   }),
 ];
+
+/// The mass over: Mario in the robe, Don Angelo dead and the four mutated
+/// cultists in the nave. The game raises them and reveals the key when the
+/// save loads, so only what was lived is recorded here.
+void _afterTheMass(ScenarioBuilder story) {
+  _upstairs(story);
+  story.collect(cultistRobePickupId);
+  story.progress
+    ..unlockOutfit(PlayerOutfit.cultist)
+    ..wearOutfit(PlayerOutfit.cultist);
+  story
+    ..remember(StoryMemory.priestMass)
+    ..remember(StoryMemory.priestMassacre)
+    ..script('duomo', <String, Object?>{'massacre': true});
+}
 
 /// The campfire of [place].
 GridPoint _campfireIn(PlaceId id) =>

@@ -39,6 +39,7 @@ final List<WorldEvent> _oneOfEach = <WorldEvent>[
     ammo: 2,
     gun: true,
     incense: true,
+    duomoKey: true,
   ),
   const DamagedEvent(entityId: 'player', amount: 1, sourceEntityId: 'z'),
   const DiedEvent('zombie-6'),

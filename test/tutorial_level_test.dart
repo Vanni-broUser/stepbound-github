@@ -126,12 +126,13 @@ void main() {
     expect(map.tileAt(const GridPoint(16, 6)).isWalkable, isTrue);
   });
 
-  test('the cultist zombie is not placed in the world yet', () {
+  test('no cultist zombie stands in the level: the mass raises them', () {
     final cultists = createTutorialWorld().entities.values.where(
       (entity) => entity.kind == EntityKind.cultist,
     );
 
     expect(cultists, isEmpty);
+    expect(duomoCultistSpawns, hasLength(4), reason: 'four of them, later');
   });
 
   List<Entity> zombiesIn(WorldState world, Place region) => world
@@ -1160,6 +1161,153 @@ void main() {
         expect(ring.collected, isTrue);
       },
     );
+
+    test('what the mass leaves lies in the aisle between the first two '
+        'blocks of pews', () {
+      final pews = duomo.tilesOf('T').toSet();
+      expect(
+        duomoKeyTile,
+        duomoPriestCorpseTile.step(Direction.north),
+        reason: 'the backpack right beside the body',
+      );
+      expect(pews, isNot(contains(duomoPriestCorpseTile)));
+      expect(pews, isNot(contains(duomoKeyTile)));
+      // The aisle is only these two rows: pews close it north and south, so
+      // neither the body nor the backpack can be reached from the pews.
+      expect(pews, contains(duomoKeyTile.step(Direction.north)));
+      expect(pews, contains(duomoPriestCorpseTile.step(Direction.south)));
+    });
+
+    test('the four cultists stand across the aisle, between Mario and the '
+        'key', () {
+      final world = createTutorialWorld();
+      final wall = duomoCultistSpawns.toSet();
+      expect(wall, hasLength(4));
+      // Two abreast and two deep: the aisle is two tiles tall, so the wall
+      // of bodies closes it from wall of pews to wall of pews.
+      final rows = wall.map((tile) => tile.y).toSet();
+      final columns = wall.map((tile) => tile.x).toSet();
+      expect(rows, hasLength(2));
+      expect(columns, hasLength(2));
+      expect(rows.contains(duomoKeyTile.y), isTrue);
+      expect(rows.contains(duomoPriestCorpseTile.y), isTrue);
+      // East of the body and the backpack: between them and the stair Mario
+      // comes down, never on top of them.
+      expect(columns.every((x) => x > duomoKeyTile.x), isTrue);
+      expect(
+        columns.every((x) => x < duomoStairEntryTile.x),
+        isTrue,
+        reason: 'the stair is further east still',
+      );
+      for (final tile in wall) {
+        expect(world.map.tileAt(tile).isWalkable, isTrue, reason: 'floor');
+        expect(world.entityAt(tile), isNull, reason: 'nobody there yet');
+      }
+    });
+
+    test('the key of the upper floor waits, hidden, beside the body', () {
+      final world = createTutorialWorld();
+      final key = world.pickups[duomoKeyPickupId]!;
+
+      expect(key.duomoKey, isTrue);
+      expect(key.position, duomoKeyTile);
+      expect(duomo.bounds.contains(key.position), isTrue);
+      expect(key.active, isFalse, reason: 'nothing to find before the mass');
+      expect(key.collected, isFalse);
+      expect(world.pickupAt(duomoKeyTile), isNull);
+      expect(
+        world.map.tileAt(duomoUpperLockedDoorTile).isWalkable,
+        isFalse,
+        reason: 'the door it opens starts shut',
+      );
+      expect(
+        world.pickups.values.where((pickup) => pickup.duomoKey),
+        hasLength(1),
+      );
+    });
+
+    test('their wall shuts the aisle off from the stair, and only the long '
+        'way round reaches the key', () {
+      final world = createTutorialWorld();
+      // The Duomo as the mass leaves it: the stair open behind Mario, the
+      // body in the aisle, the backpack beside it and the four of them
+      // across it.
+      final map = world.map
+        ..setTile(duomoStairCultistTile, const Tile(TileKind.floor))
+        ..setTile(duomoStairEntryTile, const Tile(TileKind.floor))
+        ..setTile(duomoPriestCorpseTile, const Tile(TileKind.obstacle))
+        ..setTile(duomoPriestTile, const Tile(TileKind.floor))
+        ..setTile(duomoWelcomingCultistTile, const Tile(TileKind.floor));
+      world.pickups[duomoKeyPickupId]!.active = true;
+      for (final (index, tile) in duomoCultistSpawns.indexed) {
+        world.addEntity(createDuomoCultist('$duomoCultistPrefix$index', tile));
+      }
+
+      Set<GridPoint> walkFromTheStair({required bool cultistsThere}) {
+        final seen = <GridPoint>{duomoStairEntryTile};
+        final queue = <GridPoint>[duomoStairEntryTile];
+        while (queue.isNotEmpty) {
+          final from = queue.removeLast();
+          for (final direction in Direction.values) {
+            final next = from.step(direction);
+            if (seen.contains(next) ||
+                !place(PlaceId.duomo).bounds.contains(next) ||
+                !map.tileAt(next).isWalkable) {
+              continue;
+            }
+            final occupied = cultistsThere
+                ? world.isBlocked(next)
+                : world.pickupAt(next) != null;
+            if (occupied) {
+              continue;
+            }
+            seen.add(next);
+            queue.add(next);
+          }
+        }
+        return seen;
+      }
+
+      final blocked = walkFromTheStair(cultistsThere: true);
+      final east = duomoKeyTile.step(Direction.east);
+      expect(
+        blocked,
+        isNot(contains(east)),
+        reason: 'the four of them shut the aisle between Mario and the key',
+      );
+      expect(
+        blocked,
+        contains(duomoKeyTile.step(Direction.west)),
+        reason: 'but the nave can be walked round to the far side of them',
+      );
+      // Which is the only way past them while they stand: down the aisle it
+      // cannot be done.
+      expect(
+        walkFromTheStair(cultistsThere: false),
+        contains(east),
+        reason: 'once they move, the short way is open again',
+      );
+    });
+
+    test('the mutated cultists take three shots and walk like wanderers', () {
+      final cultist = createDuomoCultist(
+        '${duomoCultistPrefix}0',
+        duomoCultistSpawns.first,
+      );
+      final wanderer = createMallZombie('mall-0', duomoCultistSpawns.last);
+
+      expect(cultist.kind, EntityKind.cultist);
+      expect(cultist.component<HealthComponent>().current, 3);
+      expect(
+        cultist.component<ActorComponent>().tickCost,
+        wanderer.component<ActorComponent>().tickCost,
+      );
+      expect(
+        cultist.component<PositionComponent>().facing,
+        Direction.east,
+        reason: 'looking down the aisle Mario has to come along',
+      );
+    });
   });
 
   group('San Nicola', () {
