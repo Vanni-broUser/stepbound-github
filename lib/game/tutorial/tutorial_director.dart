@@ -8,6 +8,7 @@ import 'package:stepbound/game/tutorial/scripts/duomo_script.dart';
 import 'package:stepbound/game/tutorial/scripts/mall_script.dart';
 import 'package:stepbound/game/tutorial/scripts/north_district_script.dart';
 import 'package:stepbound/game/tutorial/scripts/priest_script.dart';
+import 'package:stepbound/game/tutorial/scripts/rome_script.dart';
 import 'package:stepbound/game/tutorial/scripts/rooftops_script.dart';
 import 'package:stepbound/game/tutorial/scripts/station_script.dart';
 import 'package:stepbound/game/tutorial/scripts/street_script.dart';
@@ -22,6 +23,7 @@ export 'package:stepbound/game/tutorial/scripts/duomo_script.dart';
 export 'package:stepbound/game/tutorial/scripts/mall_script.dart';
 export 'package:stepbound/game/tutorial/scripts/north_district_script.dart';
 export 'package:stepbound/game/tutorial/scripts/priest_script.dart';
+export 'package:stepbound/game/tutorial/scripts/rome_script.dart';
 export 'package:stepbound/game/tutorial/scripts/rooftops_script.dart';
 export 'package:stepbound/game/tutorial/scripts/station_script.dart';
 export 'package:stepbound/game/tutorial/scripts/street_script.dart';
@@ -155,6 +157,10 @@ abstract interface class TutorialHost {
   /// Leaves the train and opens the destination map immediately.
   void openTravelMap();
 
+  /// Says that the game goes no further yet; [onClosed] once it is tapped
+  /// away.
+  void showEndOfDemo({void Function()? onClosed});
+
   /// Opens the book of the zombie types met so far.
   void openZombieBook();
 
@@ -167,12 +173,21 @@ abstract interface class TutorialHost {
 }
 
 /// Lines waiting their turn: they show [delay] seconds after the previous
-/// ones are gone and the turn has finished animating.
+/// ones are gone and the turn has finished animating. With [holdsInput]
+/// Mario cannot act while they wait: they come before the player has the
+/// game.
 final class TutorialPrompt {
-  TutorialPrompt(this.lines, {this.delay = 0, this.onShown, this.onDismissed});
+  TutorialPrompt(
+    this.lines, {
+    this.delay = 0,
+    this.onShown,
+    this.onDismissed,
+    this.holdsInput = false,
+  });
 
   final List<TutorialLine> lines;
   double delay;
+  final bool holdsInput;
   final void Function()? onShown;
   final void Function()? onDismissed;
 }
@@ -208,9 +223,9 @@ abstract class TutorialScript {
 /// Runs the tutorial's scripts and shows their prompts one after the
 /// other: the backpacks, the first street, the barracks, the north
 /// district, the hypermarket, the Duomo, the station, the train Mario and
-/// Luigi live in, the roofs the crashed airliner came down in and the zombie
-/// types met on sight. It records what the player comes to know in
-/// [progress].
+/// Luigi live in, the roofs the crashed airliner came down in, the arrival
+/// in Rome and the zombie types met on sight. It records what the player
+/// comes to know in [progress].
 final class TutorialDirector {
   TutorialDirector({
     required this.world,
@@ -229,6 +244,7 @@ final class TutorialDirector {
       StationScript(this),
       TrainScript(this),
       RooftopsScript(this),
+      RomeScript(this),
       ZombieSightingsScript(this),
     ];
   }
@@ -291,6 +307,9 @@ final class TutorialDirector {
       }
     }
   }
+
+  /// Whether a prompt waiting its turn keeps Mario from acting.
+  bool get holdsInput => _queue.any((prompt) => prompt.holdsInput);
 
   /// Lets the scripts look at the world, then shows the next prompt once
   /// nothing covers the game and the turn has finished animating.

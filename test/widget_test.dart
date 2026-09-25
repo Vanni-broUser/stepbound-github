@@ -18,6 +18,8 @@ import 'package:stepbound/ui/black_fade.dart';
 import 'package:stepbound/ui/blood_decor.dart';
 import 'package:stepbound/ui/blood_splat.dart';
 import 'package:stepbound/ui/gameplay_dialogue.dart';
+import 'package:stepbound/ui/level_map.dart';
+import 'package:stepbound/ui/loading_art.dart';
 import 'package:stepbound/ui/story_intro.dart';
 import 'package:stepbound/ui/title_splash.dart';
 
@@ -1272,6 +1274,31 @@ void main() {
     });
   });
 
+  testWidgets('coming back out of the Bar Arcobaleno onto the harbour shows '
+      'no card', (tester) {
+    return tester.runAsync(() async {
+      final game = await _pumpReadyGame(tester);
+      final door = place(PlaceId.barArcobaleno).tileOf('E');
+      game.simulation.player.component<PositionComponent>()
+        ..position = door.step(Direction.north)
+        ..facing = Direction.south;
+      game
+        ..update(1)
+        ..pressDirection(Direction.south)
+        ..releaseDirection(Direction.south);
+      for (var i = 0; i < 30; i++) {
+        game.update(1 / 30);
+      }
+      expect(
+        placeAt(
+          game.simulation.player.component<PositionComponent>().position,
+        )?.id,
+        PlaceId.harbour,
+      );
+      expect(game.cover.value, isNot(isA<PlaceCardCover>()));
+    });
+  });
+
   testWidgets('the harbour stays unseen until its card has gone black', (
     tester,
   ) {
@@ -1832,8 +1859,8 @@ void main() {
   });
 
   testWidgets('level completion saves aboard the train, opens the Europe '
-      'map, Rome returns to it, and Città Natale resumes at the map in the '
-      'train', (tester) {
+      'map, and Città Natale resumes at the map in the train, loading on '
+      'the harbour', (tester) {
     return tester.runAsync(() async {
       final saves = MemorySaveRepository();
       final game = await _pumpReadyGame(tester, saves: saves);
@@ -1841,6 +1868,7 @@ void main() {
       game.simulation.player.component<PositionComponent>()
         ..position = trainMapStandTile
         ..facing = Direction.south;
+      game.progress.remember(StoryMemory.luigiAtStation);
 
       game.completeLevel();
       await tester.pump();
@@ -1871,25 +1899,6 @@ void main() {
         reason: 'Capo Nord is visible but has no playable level yet',
       );
 
-      await tester.tap(find.byKey(const ValueKey<String>('level-city-rome')));
-      await tester.pump();
-      expect(find.text('Roma'), findsOneWidget);
-      await tester.tap(find.byKey(const ValueKey<String>('level-start')));
-      await tester.pump();
-      expect(
-        find.byKey(const ValueKey<String>('rome-placeholder')),
-        findsOneWidget,
-      );
-      expect(
-        find.text(
-          'Vanni deve ancora programmarla questa parte\n'
-          'Fagli sapere se ti piace il gioco',
-        ),
-        findsOneWidget,
-      );
-
-      await tester.tap(find.byKey(const ValueKey<String>('rome-placeholder')));
-      await tester.pump();
       await tester.tap(
         find.byKey(const ValueKey<String>('level-city-hometown')),
       );
@@ -1910,6 +1919,9 @@ void main() {
         reason: 'back home in the train, in front of the map',
       );
       expect(mario.facing, Direction.south);
+      final cover = tester.widget<LoadingCover>(find.byType(LoadingCover));
+      expect(cover.image, LevelMap.hometownImage);
+      expect(cover.caption, 'Città Natale');
 
       returned.cover.value = const GameOverCover();
       await tester.pump();
@@ -1918,6 +1930,82 @@ void main() {
         findsOneWidget,
         reason: 'the last save was made on the train',
       );
+    });
+  });
+
+  testWidgets('Rome plays its story, then loads at the map in the train '
+      'parked at Termini, where Luigi speaks before Mario can move, and '
+      'starts over from there', (tester) {
+    return tester.runAsync(() async {
+      final saves = MemorySaveRepository();
+      final game = await _pumpReadyGame(tester, saves: saves);
+      // Where the station's scene leaves him.
+      game.simulation.player.component<PositionComponent>()
+        ..position = trainMapStandTile
+        ..facing = Direction.south;
+      game.completeLevel();
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const ValueKey<String>('level-complete-continue')),
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey<String>('level-city-rome')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey<String>('level-start')));
+      await tester.pump();
+
+      final story = find.byKey(const ValueKey<String>('rome-story'));
+      expect(story, findsOneWidget);
+      // A tap for each new picture, one for each line.
+      final pictures = romeScenes.map((scene) => scene.image).toSet().length;
+      for (var i = 0; i < pictures + romeScenes.length; i++) {
+        await tester.tap(story);
+        await tester.pump();
+      }
+      await _pumpBlackFade(tester);
+      await _waitForGame(tester);
+
+      final cover = tester.widget<LoadingCover>(find.byType(LoadingCover));
+      expect(cover.image, LevelMap.romeImage);
+      expect(cover.caption, 'Roma');
+      final rome = tester
+          .state<GameWidgetState<StepboundGame>>(
+            find.byType(GameWidget<StepboundGame>),
+          )
+          .currentGame;
+      expect(rome.progress.level, LevelId.rome);
+      expect(rome.progress.memories, contains(StoryMemory.presidentFled));
+      final mario = rome.simulation.player.component<PositionComponent>();
+      expect(mario.position, trainMapStandTile);
+      expect(
+        rome.simulation.portals[trainExitTile]!.to,
+        terminiTrainDoorTile.step(Direction.south),
+        reason: 'the train door opens onto Termini',
+      );
+      final saved = (await saves.load(1))!;
+      expect(saved.place, 'Treno');
+      expect(saved.levelStart, isNotNull);
+
+      // Luigi speaks as soon as the city has loaded, before Mario can go.
+      expect(rome.tutorial.holdsInput, isTrue);
+      for (var i = 0; i < 30 && !rome.isPromptVisible; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(find.text(RomeScript.arrivalLines.first.text), findsOneWidget);
+      final dialogue = find.byKey(const ValueKey<String>('gameplay-dialogue'));
+      for (var i = 0; i < RomeScript.arrivalLines.length; i++) {
+        await tester.tap(dialogue);
+        await tester.pump();
+      }
+      expect(rome.isPromptVisible, isFalse);
+
+      rome.openMenu();
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey<String>('pause-restart')));
+      await tester.pump();
+      expect(find.textContaining('arrivo in città'), findsOneWidget);
+      rome.closeMenu();
+      await tester.pump();
     });
   });
 

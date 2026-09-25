@@ -63,6 +63,7 @@ final List<ZombieCard> zombieCards = <ZombieCard>[
 final Map<StoryMemory, List<StoryScene>> memoryScenes =
     <StoryMemory, List<StoryScene>>{
       StoryMemory.newsBroadcast: introScenes,
+      StoryMemory.presidentFled: romeScenes,
       StoryMemory.outbreakNight: outbreakScenes,
       StoryMemory.luigiTrapped: <StoryScene>[
         for (final frame in MallScript.luigiScene)

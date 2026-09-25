@@ -58,6 +58,14 @@ final class PauseCover extends GameCover {
   const PauseCover();
 }
 
+/// The end of what is playable so far, reached at the way out of Termini.
+/// [onClosed] runs once it is tapped away.
+final class EndOfDemoCover extends GameCover {
+  const EndOfDemoCover({this.onClosed});
+
+  final void Function()? onClosed;
+}
+
 /// Mario is dead.
 final class GameOverCover extends GameCover {
   const GameOverCover();

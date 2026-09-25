@@ -41,7 +41,7 @@ enum _Phase {
   playing,
   levelComplete,
   levelMap,
-  romePlaceholder,
+  romeStory,
 }
 
 final class StepboundApp extends StatefulWidget {
@@ -71,7 +71,13 @@ final class _StepboundAppState extends State<StepboundApp> {
   int _totalBackpacks = 0;
   int _foundMemoryImages = 0;
   int _totalMemoryImages = 0;
-  String _gameLoadingCaption = 'Caricamento della partita';
+
+  /// Whether the loading picture fades in from the black a story ended on.
+  bool _loadingFadesIn = false;
+
+  /// Where the level being played starts over from, when it is not the
+  /// first story scene: see [SaveGame.levelStart].
+  LevelStart? _levelStart;
 
   /// The slot this game saves into at campfires and on the train.
   int _slot = 1;
@@ -126,7 +132,13 @@ final class _StepboundAppState extends State<StepboundApp> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Decoded up front, so the loading picture is there at once.
-    for (final image in <String>[LoadingArt.image, MainMenu.logo]) {
+    for (final image in <String>[
+      LoadingArt.image,
+      LevelMap.hometownImage,
+      LevelMap.romeImage,
+      RomePlaceholder.image,
+      MainMenu.logo,
+    ]) {
       unawaited(precacheImage(AssetImage(image), context));
     }
   }
@@ -153,6 +165,7 @@ final class _StepboundAppState extends State<StepboundApp> {
     setState(() {
       _slot = slot;
       _resumePoint = null;
+      _levelStart = null;
       _completedSnapshot = null;
       _phase = _Phase.story;
     });
@@ -160,21 +173,34 @@ final class _StepboundAppState extends State<StepboundApp> {
 
   void _loadGame(SaveGame save) {
     _startClock(save.played);
-    _gameLoadingCaption = 'Caricamento della partita';
+    _loadingFadesIn = false;
     setState(() {
       _slot = save.slot;
       _resumePoint = _resumePointOf(save);
+      _levelStart = save.levelStart;
       _game = _gameFrom(save);
       _phase = _Phase.playing;
     });
   }
 
-  StepboundGame _gameFrom(SaveGame save) => StepboundGame(
-    world: restoreTutorialWorld(save.world),
-    tutorialState: save.tutorial,
+  StepboundGame _gameFrom(SaveGame save) => _gameOf(
+    world: save.world,
+    tutorial: save.tutorial,
     progress: Progress.fromJson(save.progress),
+    hud: save.hud,
+  );
+
+  StepboundGame _gameOf({
+    required Map<String, Object?> world,
+    required Map<String, Object?> tutorial,
+    required Progress progress,
+    required List<String> hud,
+  }) => StepboundGame(
+    world: restoreTutorialWorld(world),
+    tutorialState: tutorial,
+    progress: progress,
     unlocked: <HudElement>{
-      for (final name in save.hud)
+      for (final name in hud)
         for (final element in HudElement.values)
           if (element.name == name) element,
     },
@@ -206,6 +232,7 @@ final class _StepboundAppState extends State<StepboundApp> {
           progress: snapshot.progress,
           hud: snapshot.hud,
           played: _played,
+          levelStart: _levelStart,
         ),
       );
     } on SaveWriteException catch (error) {
@@ -259,8 +286,9 @@ final class _StepboundAppState extends State<StepboundApp> {
       return;
     }
     _startClock(save.played);
-    _gameLoadingCaption = 'Caricamento della partita';
+    _loadingFadesIn = false;
     setState(() {
+      _levelStart = save.levelStart;
       _game = _gameFrom(save);
       _phase = _Phase.playing;
     });
@@ -272,6 +300,10 @@ final class _StepboundAppState extends State<StepboundApp> {
   /// loading it later starts the level over too — but not a campfire one,
   /// so there is nothing to resume from until the next fire.
   Future<void> _restartLevel() async {
+    if (_levelStart case final start?) {
+      await _restartFrom(start);
+      return;
+    }
     // The camp's fire and hushed music stop at once: the story plays.
     _game?.soundscapePaused = true;
     _playStoryAudio();
@@ -306,6 +338,48 @@ final class _StepboundAppState extends State<StepboundApp> {
       }
       _game = null;
       _phase = _Phase.story;
+    });
+  }
+
+  /// A level other than Molfetta starts over where Mario arrived in it,
+  /// with what he had then. Like the story's restart it counts as a save,
+  /// not a campfire one.
+  Future<void> _restartFrom(LevelStart start) async {
+    var saved = true;
+    try {
+      await _saves.save(
+        SaveGame(
+          slot: _slot,
+          savedAt: DateTime.now(),
+          place: levelStartPlace,
+          world: start.world,
+          tutorial: start.tutorial,
+          progress: start.progress,
+          hud: start.hud,
+          atCampfire: false,
+          played: _played,
+          levelStart: start,
+        ),
+      );
+    } on SaveWriteException catch (error) {
+      debugPrint('save: $error');
+      saved = false;
+    }
+    if (!mounted) {
+      return;
+    }
+    _loadingFadesIn = false;
+    setState(() {
+      if (saved) {
+        _resumePoint = null;
+      }
+      _game = _gameOf(
+        world: start.world,
+        tutorial: start.tutorial,
+        progress: Progress.fromJson(start.progress),
+        hud: start.hud,
+      );
+      _phase = _Phase.playing;
     });
   }
 
@@ -362,9 +436,14 @@ final class _StepboundAppState extends State<StepboundApp> {
       onFinished: game.closeMemories,
       onExit: game.closeMemories,
     ),
+    EndOfDemoCover() => RomePlaceholder(
+      key: ObjectKey(cover),
+      onBack: game.closeEndOfDemo,
+    ),
     PauseCover() => PauseMenu(
       progress: game.progress,
       resumePoint: _resumePoint,
+      restartsFromStory: _levelStart == null,
       onResumeFromCamp: () => unawaited(_resumeFromCamp()),
       onRestartLevel: () => unawaited(_restartLevel()),
       onMainMenu: _backToMenu,
@@ -373,6 +452,7 @@ final class _StepboundAppState extends State<StepboundApp> {
     ),
     GameOverCover() => _GameOverOverlay(
       resumePoint: _resumePoint,
+      restartsFromStory: _levelStart == null,
       onResumeFromCamp: () {
         _audio.stop(Sfx.gameOver);
         unawaited(_resumeFromCamp());
@@ -406,8 +486,10 @@ final class _StepboundAppState extends State<StepboundApp> {
           .where((pickup) => pickup.collected)
           .length;
       _totalBackpacks = world.pickups.length;
-      _foundMemoryImages = pictures(progress.memories).length;
-      _totalMemoryImages = pictures(StoryMemory.values).length;
+      // Molfetta's own: Rome's story is not left behind there.
+      bool hometown(StoryMemory memory) => memory.level == LevelId.hometown;
+      _foundMemoryImages = pictures(progress.memories.where(hometown)).length;
+      _totalMemoryImages = pictures(StoryMemory.values.where(hometown)).length;
       _game = null;
       _phase = _Phase.levelComplete;
     });
@@ -424,32 +506,71 @@ final class _StepboundAppState extends State<StepboundApp> {
     });
   }
 
-  void _startHometown() {
+  /// The train takes Mario and Luigi to [level]: the game picks up aboard,
+  /// with the train's door onto that level's station, and is saved there.
+  /// Rome starts over from here.
+  void _startLevel(LevelId level) {
     final snapshot = _completedSnapshot;
     if (snapshot == null) {
       return;
     }
-    _gameLoadingCaption = 'Caricamento di Città Natale';
+    final progress = Progress.fromJson(snapshot.progress)..level = level;
+    if (level == LevelId.rome) {
+      progress.remember(StoryMemory.presidentFled);
+    }
+    final arrival = (
+      world: snapshot.world,
+      tutorial: snapshot.tutorial,
+      progress: progress.toJson(),
+      hud: snapshot.hud,
+      place: trainPlaceName,
+    );
+    _levelStart = level == LevelId.hometown
+        ? null
+        : LevelStart(
+            world: arrival.world,
+            tutorial: arrival.tutorial,
+            progress: arrival.progress,
+            hud: arrival.hud,
+          );
+    unawaited(_store(arrival));
     setState(() {
-      _game = StepboundGame(
-        world: restoreTutorialWorld(snapshot.world),
-        tutorialState: snapshot.tutorial,
-        progress: Progress.fromJson(snapshot.progress),
-        unlocked: <HudElement>{
-          for (final name in snapshot.hud)
-            for (final element in HudElement.values)
-              if (element.name == name) element,
-        },
-        onRest: _store,
-        onLevelCompleted: _completeLevel,
-        onTravelMapRequested: _travelFromTrain,
-        audio: _audio,
+      _game = _gameOf(
+        world: arrival.world,
+        tutorial: arrival.tutorial,
+        progress: progress,
+        hud: arrival.hud,
       );
       _phase = _Phase.playing;
     });
   }
 
-  void _startRome() => setState(() => _phase = _Phase.romePlaceholder);
+  void _startHometown() {
+    _loadingFadesIn = false;
+    _startLevel(LevelId.hometown);
+  }
+
+  /// The first time, Rome's story plays before the city loads.
+  void _startRome() {
+    final snapshot = _completedSnapshot;
+    if (snapshot == null) {
+      return;
+    }
+    final seen = Progress.fromJson(
+      snapshot.progress,
+    ).memories.contains(StoryMemory.presidentFled);
+    if (seen) {
+      _loadingFadesIn = false;
+      _startLevel(LevelId.rome);
+      return;
+    }
+    setState(() => _phase = _Phase.romeStory);
+  }
+
+  void _finishRomeStory() {
+    _loadingFadesIn = true;
+    _startLevel(LevelId.rome);
+  }
 
   void _backToMenu() {
     _audio
@@ -532,8 +653,11 @@ final class _StepboundAppState extends State<StepboundApp> {
                   onStartHometown: _startHometown,
                   onStartRome: _startRome,
                 ),
-                _Phase.romePlaceholder => RomePlaceholder(
-                  onBack: _openLevelMap,
+                _Phase.romeStory => StoryIntro(
+                  key: const ValueKey<String>('rome-story'),
+                  scenes: romeScenes,
+                  fadeOutAtEnd: true,
+                  onFinished: _finishRomeStory,
                 ),
                 _ => const SizedBox.shrink(),
               },
@@ -541,6 +665,29 @@ final class _StepboundAppState extends State<StepboundApp> {
           );
         },
       ),
+    );
+  }
+
+  /// The loading picture of the level the game is in: Rome's, and once
+  /// Molfetta is behind them (Mario reached the train with Luigi) the
+  /// harbour's, each with the level's name; before that the zombie one.
+  Widget _levelLoadingCover(StepboundGame game, Size picture) {
+    final progress = game.progress;
+    final (image, caption) = switch (progress.level) {
+      LevelId.rome => (LevelMap.romeImage, 'Roma'),
+      LevelId.hometown when progress.hometownCompleted => (
+        LevelMap.hometownImage,
+        'Città Natale',
+      ),
+      LevelId.hometown => (LoadingArt.image, 'Caricamento della partita'),
+    };
+    return LoadingCover(
+      key: ObjectKey(game),
+      ready: game.readyToShow,
+      artSize: picture,
+      fadeIn: _loadingFadesIn,
+      image: image,
+      caption: caption,
     );
   }
 
@@ -593,16 +740,17 @@ final class _StepboundAppState extends State<StepboundApp> {
           ),
         // The loading picture instead of a black screen while the maps and
         // sprites load, over the bands too so no button shows beside it.
-        LoadingCover(
-          key: ObjectKey(game),
-          ready: game.readyToShow,
-          artSize: picture,
-          // A new game comes out of the story's fade to black.
-          fadeIn: _phase == _Phase.dialogue,
-          caption: _phase == _Phase.dialogue
-              ? 'Caricamento del tutorial'
-              : _gameLoadingCaption,
-        ),
+        if (_phase == _Phase.dialogue)
+          LoadingCover(
+            key: ObjectKey(game),
+            ready: game.readyToShow,
+            artSize: picture,
+            // A new game comes out of the story's fade to black.
+            fadeIn: true,
+            caption: 'Caricamento del tutorial',
+          )
+        else
+          _levelLoadingCover(game, picture),
       ],
     );
   }
@@ -611,6 +759,7 @@ final class _StepboundAppState extends State<StepboundApp> {
 final class _GameOverOverlay extends StatefulWidget {
   const _GameOverOverlay({
     required this.resumePoint,
+    required this.restartsFromStory,
     required this.onResumeFromCamp,
     required this.onRestartLevel,
     required this.onMenu,
@@ -621,6 +770,10 @@ final class _GameOverOverlay extends StatefulWidget {
   /// level over is offered under it; without one the level from the start
   /// is the only way on.
   final ResumePoint? resumePoint;
+
+  /// Whether the level starts over from the first story scene (Molfetta),
+  /// or from where Mario arrived in it.
+  final bool restartsFromStory;
   final VoidCallback onResumeFromCamp;
   final VoidCallback onRestartLevel;
   final VoidCallback onMenu;
@@ -735,9 +888,13 @@ final class _GameOverOverlayState extends State<_GameOverOverlay> {
       unit: unit,
       width: MenuButton.fullWidth,
       child: MenuParagraph(
-        'Ricominciare il livello? ${widget.resumePoint!.savedHere} '
-        'va perso: si riparte dalla prima scena della storia, e restano '
-        'solo le ore di gioco.',
+        widget.restartsFromStory
+            ? 'Ricominciare il livello? ${widget.resumePoint!.savedHere} '
+                  'va perso: si riparte dalla prima scena della storia, e '
+                  'restano solo le ore di gioco.'
+            : 'Ricominciare il livello? ${widget.resumePoint!.savedHere} '
+                  'va perso: si riparte dall’arrivo in città, con quello '
+                  'che avevi allora.',
         key: const ValueKey<String>('game-over-cost'),
         unit: unit,
         center: true,

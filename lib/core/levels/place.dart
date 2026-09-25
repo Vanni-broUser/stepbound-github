@@ -30,6 +30,18 @@ enum PlaceId {
   duomo,
   barBackroom,
   duomoUpper,
+  romeTermini,
+}
+
+/// The levels of the game, one city each. The train Mario and Luigi live
+/// in is the one place they share: it stands at the station of whichever
+/// level they last travelled to (see `parkTrain`).
+enum LevelId {
+  /// Molfetta, where Mario wakes up: the tutorial.
+  hometown,
+
+  /// Rome, reached by the train from Molfetta.
+  rome,
 }
 
 /// What the glyphs of a place's ASCII map mean for movement and sight: the
@@ -97,6 +109,7 @@ final class PlaceSpec {
     this.cardImage,
     this.torches = const <GridPoint>[],
     this.darkness = defaultDarkness,
+    this.art,
   });
 
   /// How dark an unlit room is, between its lamps: nearly black.
@@ -122,6 +135,10 @@ final class PlaceSpec {
   /// How dark the room is between its lights, 0 to 1; only for indoor
   /// places that are not [lit].
   final double darkness;
+
+  /// The place whose art in the tile atlas this one is painted with, when
+  /// it has none of its own: its rows then keep to that place's glyphs.
+  final PlaceId? art;
 }
 
 /// A place laid on the level's grid at [origin].
@@ -139,6 +156,9 @@ final class Place {
   bool get lit => spec.lit;
   String? get name => spec.name;
   String? get cardImage => spec.cardImage;
+
+  /// The place whose art in the tile atlas paints this one.
+  PlaceId get artId => spec.art ?? id;
   double get darkness => spec.darkness;
 
   /// The [PlaceSpec.torches], on the shared grid.

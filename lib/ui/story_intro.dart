@@ -74,6 +74,60 @@ const List<StoryScene> outbreakScenes = <StoryScene>[
   ),
 ];
 
+/// Played when the train sets off for Rome, before the city loads: the
+/// army cannot hold Rome and the President keeps his troops for himself.
+const List<StoryScene> romeScenes = <StoryScene>[
+  StoryScene(
+    image: 'assets/story/scene_rome_vittoriano.jpg',
+    speaker: 'Generale',
+    text: 'Signor presidente, abbiamo bisogno di rinforzi!',
+  ),
+  StoryScene(
+    image: 'assets/story/scene_rome_president_call.jpg',
+    speaker: 'Presidente',
+    text: 'Non è possibile, tutte le nostre forze sono già occupate',
+  ),
+  StoryScene(
+    image: 'assets/story/scene_rome_president_call.jpg',
+    speaker: 'Generale',
+    text:
+        'Signore qui siamo nella merda, ci sono centinaia e centinaia di '
+        'questi zombi bastardi',
+  ),
+  StoryScene(
+    image: 'assets/story/scene_rome_president_call.jpg',
+    speaker: 'Presidente',
+    text: 'Generale non posso fare altrimenti, dovete vedervela da soli',
+  ),
+  StoryScene(
+    image: 'assets/story/scene_rome_secretary.jpg',
+    speaker: 'Segretaria',
+    text: 'Signor presidente siete sicuro di quello che state facendo?',
+  ),
+  StoryScene(
+    image: 'assets/story/scene_rome_secretary.jpg',
+    speaker: 'Presidente',
+    text:
+        'Petunia non preoccuparti, quelle forze servono per proteggere il '
+        'mio bunker',
+  ),
+  StoryScene(
+    image: 'assets/story/scene_rome_departure.jpg',
+    speaker: 'Segretaria',
+    text: 'Ma... ma signor presidente...',
+  ),
+  StoryScene(
+    image: 'assets/story/scene_rome_departure.jpg',
+    speaker: 'Presidente',
+    text: 'Petunia non essere petulante oppure non ti ci porto nel bunker',
+  ),
+  StoryScene(
+    image: 'assets/story/scene_rome_president_attacked.jpg',
+    speaker: 'Presidente',
+    text: 'Oddio aiuto! Petunia, aiutooo!',
+  ),
+];
+
 /// Plays the intro story: each scene shows the bare image first, the next
 /// tap reveals the dialogue box, the tap after that moves to the next scene.
 /// With [fadeOutAtEnd] the last scene fades to black before [onFinished].

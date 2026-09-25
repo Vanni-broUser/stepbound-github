@@ -2441,6 +2441,59 @@ void main() {
     expect(restored.portals.length, world.portals.length);
     expect(restored.pickups[ammoBackpackId]!.collected, isTrue);
   });
+
+  test('the train door opens onto the station of the level it stands in, '
+      'and Termini leads nowhere but back aboard', () {
+    final world = createTutorialWorld();
+    expect(
+      world.portals[trainExitTile]!.to,
+      stationTrainDoorTile.step(Direction.south),
+      reason: 'a new game starts with the train in Molfetta',
+    );
+    parkTrain(world, LevelId.rome);
+    expect(
+      world.portals[trainExitTile]!.to,
+      terminiTrainDoorTile.step(Direction.south),
+    );
+    expect(world.portals[terminiTrainDoorTile]!.to, isNot(trainExitTile));
+    expect(
+      placeAt(world.portals[terminiTrainDoorTile]!.to)!.id,
+      PlaceId.trainInterior,
+    );
+    expect(world.map.tileAt(terminiTrainDoorTile).isWalkable, isTrue);
+    final termini = place(PlaceId.romeTermini);
+    for (final portal in world.portals.entries) {
+      if (termini.bounds.contains(portal.key)) {
+        expect(portal.key, terminiTrainDoorTile);
+      }
+      if (termini.bounds.contains(portal.value.to)) {
+        expect(portal.key, trainExitTile);
+      }
+    }
+    parkTrain(world, LevelId.hometown);
+    expect(
+      world.portals[trainExitTile]!.to,
+      stationTrainDoorTile.step(Direction.south),
+    );
+  });
+
+  test('the wanderers of Termini stand on its platforms, and its stairs are '
+      'walkable', () {
+    final world = createTutorialWorld();
+    final termini = place(PlaceId.romeTermini);
+    final zombies = world.entities.values
+        .where((entity) => entity.id.startsWith(terminiZombiePrefix))
+        .toList();
+    expect(zombies, hasLength(terminiZombieSpots.length));
+    for (final zombie in zombies) {
+      final at = zombie.component<PositionComponent>().position;
+      expect(termini.bounds.contains(at), isTrue);
+    }
+    expect(terminiExitTiles, isNotEmpty);
+    for (final tile in terminiExitTiles) {
+      expect(world.map.tileAt(tile).isWalkable, isTrue);
+    }
+  });
 }
 
 int _outdoorColumn(String glyph) =>

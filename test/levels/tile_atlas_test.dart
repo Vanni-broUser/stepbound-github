@@ -28,7 +28,7 @@ void main() {
     for (final place in convertedPlaces) {
       expect(
         manifest.places,
-        contains(place.id.name),
+        contains(place.artId.name),
         reason:
             '${place.id} has no entry in '
             '$tileAtlasManifestPath: it would be drawn as a bare rectangle. '
@@ -39,7 +39,7 @@ void main() {
 
   test('no glyph of a converted place goes unpainted', () {
     for (final place in convertedPlaces) {
-      final art = manifest.places[place.id.name]!;
+      final art = manifest.places[place.artId.name]!;
       expect(
         art.unpainted(art.gridFor(place.rows)),
         isEmpty,
@@ -72,7 +72,7 @@ void main() {
 
   test('a placed object still lies over the rows it was painted for', () {
     for (final place in convertedPlaces) {
-      for (final object in manifest.places[place.id.name]!.objects) {
+      for (final object in manifest.places[place.artId.name]!.objects) {
         final at = object.underCorner;
         if (at == null) {
           continue;
@@ -108,7 +108,7 @@ void main() {
 
   test('an object is painted for the run of glyphs it was drawn for', () {
     for (final place in convertedPlaces) {
-      for (final object in manifest.places[place.id.name]!.objects) {
+      for (final object in manifest.places[place.artId.name]!.objects) {
         final tiles = object.tiles;
         final glyph = object.glyph;
         if (tiles == null || glyph == null) {

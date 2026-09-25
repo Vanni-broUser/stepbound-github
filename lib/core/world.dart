@@ -51,7 +51,7 @@ final class WorldState {
     Iterable<GridPoint> travelMaps = const <GridPoint>[],
     Iterable<GridPoint> lookouts = const <GridPoint>[],
   }) : controls = Map<GridPoint, GridRect>.of(controls),
-       portals = Map<GridPoint, Portal>.unmodifiable(portals),
+       portals = Map<GridPoint, Portal>.of(portals),
        campfires = Set<GridPoint>.unmodifiable(campfires),
        travelMaps = Set<GridPoint>.unmodifiable(travelMaps),
        lookouts = Set<GridPoint>.unmodifiable(lookouts),
@@ -168,6 +168,8 @@ final class WorldState {
   final Map<String, GridRect> alertTriggers;
 
   /// Doors that move the player to another place (e.g. inside a building).
+  /// The train's door leads wherever the train stands, so a level can
+  /// change where a door goes.
   final Map<GridPoint, Portal> portals;
 
   /// Camps where the player can rest and save.
