@@ -5,9 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:stepbound/game/render/asset_image.dart';
 
 /// The tile atlas a converted place is painted from: the art that used to
-/// be baked into assets/levels, cut into cells of [tileWidth] by
-/// [tileHeight] pixels, with a rule for every glyph saying which cell to
-/// take. Made by tools/build_tile_atlas.py, whose docstring is the other
+/// be baked into assets/levels, cut into cells the size of a level tile,
+/// with a rule for every glyph saying which cell to take. Made by tools/build_tile_atlas.py, whose docstring is the other
 /// half of this contract.
 ///
 /// The place's ASCII rows stay the only place its layout is written down:

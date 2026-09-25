@@ -81,10 +81,10 @@ final class TilePlaceComponent extends PlaceBackground {
         ui.Paint()..color = art.voidColour,
       );
     for (final layer in <String>['ground', 'structures']) {
-      _drawLayer(canvas, manifest, art, grid, layer);
+      _drawLayer(canvas, loaded, art, grid, layer);
     }
     _drawObjects(canvas, loaded, art, grid, opened: opened);
-    _drawLayer(canvas, manifest, art, grid, 'foreground');
+    _drawLayer(canvas, loaded, art, grid, 'foreground');
     final picture = recorder.endRecording();
     final image = await picture.toImage(width, height);
     picture.dispose();
@@ -93,11 +93,12 @@ final class TilePlaceComponent extends PlaceBackground {
 
   void _drawLayer(
     ui.Canvas canvas,
-    TileAtlasManifest manifest,
+    LoadedTileAtlas loaded,
     TilePlaceArt art,
     GlyphGrid grid,
     String layer,
   ) {
+    final manifest = loaded.manifest;
     final rules = art.rules.where((rule) => rule.layer == layer).toList();
     for (var y = 0; y < grid.height; y++) {
       for (var x = 0; x < grid.width; x++) {
@@ -111,7 +112,7 @@ final class TilePlaceComponent extends PlaceBackground {
             continue;
           }
           canvas.drawImageRect(
-            manifest.atlas,
+            loaded.atlas,
             manifest.tileRect(_variant(bucket, x, y)),
             ui.Rect.fromLTWH(
               (x * manifest.tileWidth).toDouble(),
