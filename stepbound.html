@@ -1,0 +1,1118 @@
+<meta charset="utf-8">
+<title>Stepbound</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Archivo+Narrow:wght@600;700&family=JetBrains+Mono:wght@400;500;700&family=Silkscreen:wght@400;700&display=swap">
+<style>
+:root{
+  --bg:#E8E5DE;
+  --surface:#F6F4F0;
+  --surface-2:#DDD8CE;
+  --ink:#191512;
+  --ink-2:#4A433C;
+  --ink-3:#736A60;
+  --line:#CAC3B7;
+  --line-2:#B4AB9C;
+  --accent:#9B2F24;
+  --accent-soft:#F1DCD8;
+  --accent-ink:#FFFFFF;
+  --steel:#37596B;
+  --steel-soft:#DCE6EB;
+  --ocra:#8C6210;
+  --ocra-soft:#F2E7C9;
+  --ok:#3F6B3A;
+  --ok-soft:#DEEAD6;
+  --display:"Archivo Narrow",Arial Narrow,Helvetica,sans-serif;
+  --body:"Archivo",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+  --pixel:"Silkscreen","Courier New",monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#13110E;
+    --surface:#1C1915;
+    --surface-2:#26211B;
+    --ink:#EAE4D9;
+    --ink-2:#AEA496;
+    --ink-3:#877D70;
+    --line:#332C24;
+    --line-2:#453C31;
+    --accent:#E4705F;
+    --accent-soft:#3A1E19;
+    --accent-ink:#17100E;
+    --steel:#83B6CC;
+    --steel-soft:#16262D;
+    --ocra:#D9A83F;
+    --ocra-soft:#2D2312;
+    --ok:#86B87A;
+    --ok-soft:#1A2717;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#13110E;
+  --surface:#1C1915;
+  --surface-2:#26211B;
+  --ink:#EAE4D9;
+  --ink-2:#AEA496;
+  --ink-3:#877D70;
+  --line:#332C24;
+  --line-2:#453C31;
+  --accent:#E4705F;
+  --accent-soft:#3A1E19;
+  --accent-ink:#17100E;
+  --steel:#83B6CC;
+  --steel-soft:#16262D;
+  --ocra:#D9A83F;
+  --ocra-soft:#2D2312;
+  --ok:#86B87A;
+  --ok-soft:#1A2717;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--body);
+  font-size:16px;
+  line-height:1.62;
+  margin:0;
+  padding-inline:16px;
+  padding-block:0 72px;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px;margin:0 auto}
+p{margin:0}
+ul,ol{margin:0;padding-left:1.15em}
+li{margin-block:.28em}
+a{color:var(--accent);text-underline-offset:3px}
+a:focus-visible,button:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:3px}
+
+h1,h2,h3{font-family:var(--display);font-weight:700;line-height:1.1;margin:0;text-wrap:balance}
+h2{font-size:clamp(1.55rem,1.2rem + 1.3vw,2.1rem);letter-spacing:-.005em}
+h3{font-size:1.18rem;letter-spacing:.005em}
+h4{font-family:var(--body);font-size:.95rem;font-weight:700;margin:0}
+
+.eyebrow{
+  font-family:var(--pixel);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);
+}
+
+/* ---------- intestazione ---------- */
+.masthead{
+  border-bottom:3px solid var(--ink);
+  padding-block:34px 26px;
+  display:flex;flex-direction:column;gap:20px;
+}
+.tag-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.stamp{
+  font-family:var(--pixel);font-size:.58rem;letter-spacing:.12em;text-transform:uppercase;
+  border:1.5px solid var(--accent);color:var(--accent);
+  padding:5px 9px 4px;
+}
+.wordmark{
+  font-family:var(--pixel);font-weight:700;
+  font-size:clamp(1.55rem,.9rem + 4.2vw,3.3rem);
+  line-height:1.05;letter-spacing:.02em;margin:0;
+}
+.wordmark span{color:var(--accent)}
+.kicker{font-family:var(--display);font-size:clamp(1.05rem,.95rem + .7vw,1.35rem);color:var(--ink-2);max-width:40ch;font-weight:600;margin-top:12px}
+.lede{font-size:1.06rem;color:var(--ink-2);max-width:66ch}
+.specs{display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--line);background:var(--surface)}
+.spec{padding:11px 16px;border-right:1px solid var(--line);flex:1 1 150px;min-width:0}
+.spec:last-child{border-right:0}
+.spec dt{font-family:var(--pixel);font-size:.55rem;letter-spacing:.11em;text-transform:uppercase;color:var(--ink-3);margin-bottom:3px}
+.spec dd{margin:0;font-family:var(--mono);font-size:.85rem;font-weight:500}
+
+/* ---------- sezioni ---------- */
+section{padding-block:46px;border-bottom:1px solid var(--line)}
+.sec-head{display:flex;gap:14px;align-items:baseline;margin-bottom:6px}
+.sec-num{font-family:var(--pixel);font-size:.72rem;color:var(--accent);padding-top:4px}
+.sec-sub{color:var(--ink-3);font-size:.95rem;margin-block:10px 0;max-width:62ch}
+.stack-lg{display:flex;flex-direction:column;gap:30px;margin-top:26px}
+
+/* ---------- demo ---------- */
+.demo{
+  background:var(--surface);border:1px solid var(--line);
+  display:grid;grid-template-columns:minmax(0,1fr) 192px;
+}
+.demo-stage{padding:18px;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:12px;min-width:0}
+canvas{
+  display:block;width:100%;max-width:100%;height:auto;
+  image-rendering:pixelated;background:#1B2224;border:1px solid var(--line-2);
+}
+.demo-side{padding:18px;display:flex;flex-direction:column;gap:14px}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:150px}
+.pad button,.wide{
+  font-family:var(--pixel);font-size:.6rem;
+  background:var(--surface-2);color:var(--ink);border:1px solid var(--line-2);
+  padding:11px 0;cursor:pointer;
+}
+.pad button:active,.wide:active{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.pad .empty{visibility:hidden}
+.wide{width:150px;padding:9px 6px;letter-spacing:.04em}
+.readout{font-family:var(--mono);font-size:.78rem;color:var(--ink-2);line-height:1.8}
+.readout b{font-weight:700;color:var(--ink);font-variant-numeric:tabular-nums}
+.demo-hint{font-size:.86rem;color:var(--ink-3)}
+@media (max-width:720px){
+  .demo{grid-template-columns:1fr}
+  .demo-stage{border-right:0;border-bottom:1px solid var(--line)}
+}
+
+/* ---------- flusso del turno ---------- */
+.flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px}
+.flow-step{
+  flex:1 1 170px;background:var(--surface);border:1px solid var(--line);
+  border-top:3px solid var(--steel);padding:12px 14px;min-width:0;
+}
+.flow-step .n{font-family:var(--pixel);font-size:.55rem;color:var(--steel);letter-spacing:.1em}
+.flow-step h4{margin-block:5px 4px}
+.flow-step p{font-size:.85rem;color:var(--ink-2);line-height:1.5}
+.flow-loop{
+  margin-top:10px;border:1px dashed var(--line-2);background:var(--accent-soft);
+  padding:11px 14px;font-size:.9rem;color:var(--ink);
+}
+.flow-loop b{font-family:var(--display);letter-spacing:.01em}
+
+/* ---------- mockup ---------- */
+figure{margin:0}
+figure svg{display:block;width:100%;height:auto;max-width:100%}
+figcaption{font-size:.83rem;color:var(--ink-3);margin-top:10px;max-width:62ch}
+
+/* ---------- tabelle ---------- */
+.tablebox{overflow-x:auto;border:1px solid var(--line);background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:520px;font-size:.87rem}
+caption{
+  text-align:left;font-family:var(--pixel);font-size:.58rem;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--ink-3);padding:12px 14px 0;
+}
+th,td{text-align:left;padding:9px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+thead th{
+  font-family:var(--pixel);font-size:.55rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);border-bottom:1.5px solid var(--line-2);font-weight:400;
+}
+tbody tr:last-child td{border-bottom:0}
+td.num,th.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+td code,p code,li code{font-family:var(--mono);font-size:.84em}
+
+/* ---------- codice ---------- */
+pre{
+  margin:0;overflow-x:auto;background:var(--surface);border:1px solid var(--line);
+  border-left:3px solid var(--steel);padding:14px 16px;font-family:var(--mono);
+  font-size:.8rem;line-height:1.65;color:var(--ink-2);
+}
+pre b{color:var(--ink);font-weight:700}
+pre i{color:var(--ink-3);font-style:normal}
+.note{font-size:.83rem;color:var(--ink-3);margin-top:10px;max-width:62ch}
+
+/* ---------- citta ---------- */
+.cities{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line)}
+@media (max-width:780px){
+  .cities{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .cities .city:last-child{grid-column:1 / -1}
+}
+@media (max-width:520px){
+  .cities{grid-template-columns:1fr}
+  .cities .city:last-child{grid-column:auto}
+}
+.city{background:var(--surface);padding:16px 17px;display:flex;flex-direction:column;gap:7px}
+.city .lv{font-family:var(--pixel);font-size:.55rem;letter-spacing:.1em;color:var(--accent)}
+.city h4{font-family:var(--display);font-size:1.12rem;font-weight:700}
+.city .where{font-size:.78rem;color:var(--ink-3);font-family:var(--mono)}
+.city p{font-size:.86rem;color:var(--ink-2);line-height:1.52}
+.city .mech{
+  margin-top:auto;padding-top:9px;border-top:1px dotted var(--line-2);
+  font-size:.79rem;color:var(--steel);font-weight:600;
+}
+
+/* ---------- roadmap ---------- */
+.phases{display:flex;flex-direction:column;border-top:1px solid var(--line);margin-top:26px}
+.phase{
+  display:grid;grid-template-columns:96px minmax(0,1fr);gap:20px;
+  padding-block:22px;border-bottom:1px solid var(--line);
+}
+.phase-id{display:flex;flex-direction:column;gap:5px}
+.phase-id .code{font-family:var(--pixel);font-size:1rem;color:var(--accent)}
+.phase-id .dur{font-family:var(--mono);font-size:.74rem;color:var(--ink-3)}
+.phase-body{display:flex;flex-direction:column;gap:9px;min-width:0}
+.phase-body h3{font-size:1.1rem}
+.phase-goal{font-size:.92rem;color:var(--ink-2)}
+.phase ul{font-size:.88rem;color:var(--ink-2);columns:2;column-gap:28px}
+.phase ol{font-size:.88rem;color:var(--ink-2)}
+.phase ul li{break-inside:avoid}
+.dod{
+  background:var(--ok-soft);border-left:3px solid var(--ok);
+  padding:9px 13px;font-size:.85rem;
+}
+.dod b{font-family:var(--pixel);font-size:.55rem;letter-spacing:.1em;text-transform:uppercase;color:var(--ok);display:block;margin-bottom:2px}
+.gate{
+  background:var(--ocra-soft);border:1px solid var(--ocra);
+  padding:14px 16px;display:flex;flex-direction:column;gap:5px;
+  border-bottom:1px solid var(--line);
+}
+.gate .lbl{font-family:var(--pixel);font-size:.58rem;letter-spacing:.11em;text-transform:uppercase;color:var(--ocra)}
+.gate p{font-size:.9rem;color:var(--ink-2)}
+@media (max-width:640px){
+  .phase{grid-template-columns:1fr;gap:10px}
+  .phase ul{columns:1}
+}
+
+/* ---------- pannelli ---------- */
+.split{display:grid;grid-template-columns:repeat(auto-fit,minmax(285px,1fr));gap:22px}
+.panel{background:var(--surface);border:1px solid var(--line);padding:17px 18px;display:flex;flex-direction:column;gap:9px}
+.panel h4{font-family:var(--display);font-size:1.05rem;font-weight:700}
+.panel ul,.panel ol{font-size:.88rem;color:var(--ink-2)}
+.panel p{font-size:.88rem;color:var(--ink-2)}
+.panel.warn{border-left:3px solid var(--accent)}
+.panel.tech{border-left:3px solid var(--steel)}
+.panel.lead{border-left:3px solid var(--accent)}
+
+.premise{
+  background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--steel);
+  padding:18px 19px;display:flex;flex-direction:column;gap:10px;
+}
+.premise p{font-size:.9rem;color:var(--ink-2);max-width:68ch}
+.premise .premise-lead{
+  font-family:var(--display);font-size:clamp(1.15rem,1.05rem + .5vw,1.4rem);
+  font-weight:700;color:var(--ink);line-height:1.25;max-width:34ch;
+}
+.premise .note{margin-top:2px}
+
+.tree{
+  font-family:var(--mono);font-size:.78rem;line-height:1.75;color:var(--ink-2);
+  white-space:pre;overflow-x:auto;background:var(--surface);border:1px solid var(--line);
+  border-left:3px solid var(--steel);padding:15px 17px;margin:0;
+}
+.tree b{color:var(--ink);font-weight:700}
+.tree i{color:var(--ink-3);font-style:normal}
+
+footer{padding-top:34px;color:var(--ink-3);font-size:.83rem;display:flex;flex-wrap:wrap;gap:8px 18px;align-items:baseline}
+footer .mark{font-family:var(--pixel);font-size:.6rem;letter-spacing:.1em;color:var(--ink-2)}
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <div class="tag-row">
+    <span class="stamp">Documento di progetto</span>
+    <span class="eyebrow">v0.1 &nbsp;&middot;&nbsp; gioco mobile &nbsp;&middot;&nbsp; Flutter + Flame</span>
+  </div>
+  <div>
+    <h1 class="wordmark">STEP<span>BOUND</span></h1>
+    <p class="kicker">Un gioco a turni che non sembra a turni: il mondo si muove solo quando ti muovi tu.</p>
+  </div>
+  <p class="lede">Sopravvivenza in pixel art su mappe urbane molto ampie, da giocare con il telefono in orizzontale. Frecce a destra, due tasti a sinistra. Una pistola, pochi proiettili, e un'orda che avanza di un passo ogni volta che lo fai tu. Se resti fermo, il tempo si ferma con te: nessun menu di pausa, nessun timer nascosto. Le mappe sono le fermate di un treno che risale l'Europa verso Capo Nord: Roma, Venezia, Zurigo.</p>
+  <dl class="specs">
+    <div class="spec"><dt>Piattaforma</dt><dd>Android + iOS</dd></div>
+    <div class="spec"><dt>Stack</dt><dd>Flutter 3.x &middot; Flame 1.x</dd></div>
+    <div class="spec"><dt>Risoluzione</dt><dd>384 &times; 216 virtuale</dd></div>
+    <div class="spec"><dt>Orientamento</dt><dd>Landscape bloccato</dd></div>
+    <div class="spec"><dt>Contenuto v1</dt><dd>Lv0 + 3 citt&agrave;</dd></div>
+    <div class="spec"><dt>Stima</dt><dd>15 &ndash; 18 settimane</dd></div>
+  </dl>
+</header>
+
+<!-- ============ 1 ============ -->
+<section id="perno">
+  <div class="sec-head"><span class="sec-num">01</span><h2>Il perno: il tempo si muove con te</h2></div>
+  <p class="sec-sub">Tutto il gioco poggia su una sola regola. Va implementata per prima, va sentita entro il primo minuto di gioco, e nessuna funzionalit&agrave; successiva pu&ograve; contraddirla.</p>
+
+  <div class="stack-lg">
+    <div>
+      <div class="flow">
+        <div class="flow-step">
+          <span class="n">01</span>
+          <h4>Il giocatore agisce</h4>
+          <p>Passo, interazione, mira, sparo o attesa esplicita. Finch&eacute; non tocca nulla, la simulazione &egrave; congelata.</p>
+        </div>
+        <div class="flow-step">
+          <span class="n">02</span>
+          <h4>L'azione costa tick</h4>
+          <p>Ogni azione ha un prezzo in tick. Un passo costa 1, ricaricare costa 2: il costo &egrave; l'unica leva di bilanciamento del ritmo.</p>
+        </div>
+        <div class="flow-step">
+          <span class="n">03</span>
+          <h4>Lo scheduler avanza</h4>
+          <p>Il mondo consuma esattamente quei tick. Ogni entit&agrave; accumula energia e agisce quando ne ha abbastanza.</p>
+        </div>
+        <div class="flow-step">
+          <span class="n">04</span>
+          <h4>Tutto si anima insieme</h4>
+          <p>I movimenti risolti vengono interpolati in 130 ms. L'occhio legge un mondo continuo, non una scacchiera.</p>
+        </div>
+      </div>
+      <div class="flow-loop">
+        <b>La regola negativa vale quanto quella positiva.</b> Nessun input &rarr; nessun tick &rarr; nessuno zombi si muove, nessuna animazione di attesa, nessun suono ambientale che suggerisca tempo che passa. Il giocatore pu&ograve; posare il telefono in mezzo a un'orda e ragionare: &egrave; questa la promessa del gioco, e va difesa in ogni sistema &mdash; IA, audio, effetti, interfaccia.
+      </div>
+    </div>
+
+    <div>
+      <p class="eyebrow" style="margin-bottom:10px">Provalo qui &mdash; frecce della tastiera oppure i tasti a lato</p>
+      <div class="demo" id="demo" tabindex="0">
+        <div class="demo-stage">
+          <canvas id="cv" width="312" height="168" aria-label="Demo giocabile: una griglia con il giocatore e tre zombi che avanzano solo quando il giocatore si muove"></canvas>
+          <p class="demo-hint">Il quadrato chiaro sei tu, i tre scuri sono zombi lenti: agiscono ogni 2 tick. Smetti di premere e restano dove sono, a met&agrave; strada.</p>
+        </div>
+        <div class="demo-side">
+          <div class="pad">
+            <span class="empty"></span><button type="button" data-dir="up" aria-label="su">&#9650;</button><span class="empty"></span>
+            <button type="button" data-dir="left" aria-label="sinistra">&#9664;</button><button type="button" data-dir="wait" aria-label="attendi un tick">&middot;</button><button type="button" data-dir="right" aria-label="destra">&#9654;</button>
+            <span class="empty"></span><button type="button" data-dir="down" aria-label="gi&ugrave;">&#9660;</button><span class="empty"></span>
+          </div>
+          <button type="button" class="wide" id="reset">RIAVVIA</button>
+          <p class="readout">TICK <b id="rt">0</b><br>PASSI <b id="rp">0</b><br>DIST. MIN <b id="rd">&mdash;</b></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 2 ============ -->
+<section id="comandi">
+  <div class="sec-head"><span class="sec-num">02</span><h2>Comandi e HUD</h2></div>
+  <p class="sec-sub">Telefono in orizzontale, due pollici, sei controlli in tutto. Il layout &egrave; il contratto con il giocatore: non cambia mai da un livello all'altro.</p>
+
+  <div class="stack-lg">
+    <figure>
+      <svg viewBox="0 0 720 348" role="img" aria-label="Mockup del telefono in orizzontale: tasto interagisci e tasto attacca a sinistra, frecce direzionali a destra, munizioni e vita in alto">
+        <rect x="6" y="6" width="708" height="336" rx="26" fill="var(--surface-2)" stroke="var(--line-2)" stroke-width="2"/>
+        <rect x="26" y="26" width="668" height="296" rx="6" fill="#161B1C"/>
+        <rect x="26" y="206" width="668" height="116" fill="#20282A"/>
+        <rect x="250" y="96" width="74" height="96" fill="#2C3639"/>
+        <rect x="262" y="112" width="14" height="16" fill="#3E4A4D"/>
+        <rect x="292" y="112" width="14" height="16" fill="#3E4A4D"/>
+        <rect x="262" y="146" width="14" height="16" fill="#3E4A4D"/>
+        <rect x="344" y="128" width="58" height="64" fill="#283133"/>
+        <rect x="424" y="86" width="66" height="106" fill="#2C3639"/>
+        <rect x="438" y="104" width="14" height="18" fill="#3E4A4D"/>
+        <rect x="464" y="104" width="14" height="18" fill="#3E4A4D"/>
+        <rect x="230" y="192" width="270" height="6" fill="#39464A"/>
+        <rect x="264" y="222" width="18" height="24" fill="#D8CFBF"/>
+        <rect x="264" y="222" width="18" height="7" fill="#9B2F24"/>
+        <line x1="288" y1="234" x2="444" y2="234" stroke="#E4705F" stroke-width="2" stroke-dasharray="7 6"/>
+        <polygon points="444,228 458,234 444,240" fill="#E4705F"/>
+        <rect x="462" y="222" width="18" height="24" fill="#5E7A5A"/>
+        <rect x="508" y="250" width="18" height="24" fill="#5E7A5A"/>
+        <rect x="392" y="258" width="18" height="24" fill="#4C6549"/>
+        <text x="46" y="58" font-family="Silkscreen, monospace" font-size="12" fill="#8A8377">ROMA / SETTORE 3</text>
+        <text x="674" y="58" text-anchor="end" font-family="Silkscreen, monospace" font-size="13" fill="#D8CFBF">AMMO 04/12</text>
+        <rect x="625" y="68" width="13" height="13" fill="#9B2F24"/>
+        <rect x="643" y="68" width="13" height="13" fill="#9B2F24"/>
+        <rect x="661" y="68" width="13" height="13" fill="none" stroke="#6C5A56" stroke-width="2"/>
+        <rect x="579" y="152" width="40" height="40" rx="3" fill="#39332C" stroke="#574E43" stroke-width="2"/>
+        <rect x="541" y="192" width="40" height="40" rx="3" fill="#39332C" stroke="#574E43" stroke-width="2"/>
+        <rect x="617" y="192" width="40" height="40" rx="3" fill="#39332C" stroke="#574E43" stroke-width="2"/>
+        <rect x="579" y="232" width="40" height="40" rx="3" fill="#39332C" stroke="#574E43" stroke-width="2"/>
+        <polygon points="599,164 608,180 590,180" fill="#D8CFBF"/>
+        <polygon points="553,212 569,203 569,221" fill="#D8CFBF"/>
+        <polygon points="645,212 629,203 629,221" fill="#D8CFBF"/>
+        <polygon points="599,260 590,244 608,244" fill="#D8CFBF"/>
+        <text x="599" y="294" text-anchor="middle" font-family="Silkscreen, monospace" font-size="10" fill="#8A8377">MOVIMENTO / DIREZIONE</text>
+        <circle cx="146" cy="248" r="34" fill="#39332C" stroke="#574E43" stroke-width="2"/>
+        <text x="146" y="254" text-anchor="middle" font-family="Silkscreen, monospace" font-size="17" fill="#D8CFBF">A</text>
+        <text x="146" y="302" text-anchor="middle" font-family="Silkscreen, monospace" font-size="10" fill="#8A8377">INTERAGISCI</text>
+        <circle cx="70" cy="172" r="34" fill="#4A2823" stroke="#9B2F24" stroke-width="2"/>
+        <text x="70" y="178" text-anchor="middle" font-family="Silkscreen, monospace" font-size="17" fill="#E4705F">B</text>
+        <text x="40" y="126" font-family="Silkscreen, monospace" font-size="10" fill="#8A8377">MIRA / SPARA</text>
+      </svg>
+      <figcaption>Movimento a destra, azioni a sinistra: il pollice che decide la direzione &egrave; anche quello che regola la mira, quindi sta dalla parte pi&ugrave; precisa. Area di tocco minima 48 dp, controlli ancorati alle safe area di notch e barra gesti, opzione che specchia i due lati per chi preferisce il contrario. Nessun elemento di HUD copre i tre tile attorno al giocatore.</figcaption>
+    </figure>
+
+    <div class="tablebox">
+      <table>
+        <caption>Grammatica dei comandi</caption>
+        <thead><tr><th>Controllo</th><th>Pressione</th><th>Effetto</th><th class="num">Costo</th></tr></thead>
+        <tbody>
+          <tr><td>Freccia</td><td>Tap</td><td>Un passo nella direzione. Se c'&egrave; un muro, ruota soltanto lo sguardo</td><td class="num">1 tick</td></tr>
+          <tr><td>Freccia</td><td>Tenuta</td><td>Passi ripetuti ogni 180 ms: la catena di turni d&agrave; l'illusione della camminata continua</td><td class="num">1 tick / passo</td></tr>
+          <tr><td>A</td><td>Tap</td><td>Interagisce con l'elemento adiacente nella direzione dello sguardo: porta, armadietto, interruttore, cassa, nota</td><td class="num">1 tick</td></tr>
+          <tr><td>A</td><td>Tenuta</td><td>Azione lunga come forzare o barricare: la barra si riempie e ogni 25% consuma un tick, quindi il mondo avanza mentre lavori</td><td class="num">4 tick</td></tr>
+          <tr><td>B</td><td>Tap</td><td>Entra in modalit&agrave; mira e compare il raggio tratteggiato. <b>Non consuma tempo.</b></td><td class="num">0</td></tr>
+          <tr><td>Freccia in mira</td><td>Tap</td><td>Ruota la linea di tiro sulle quattro direzioni. Sempre gratis: mirare non &egrave; un rischio, sbagliare s&igrave;</td><td class="num">0</td></tr>
+          <tr><td>B in mira</td><td>Tap</td><td>Spara: il proiettile percorre la linea retta e si ferma sul primo bersaglio o muro</td><td class="num">1 tick</td></tr>
+          <tr><td>A in mira</td><td>Tap</td><td>Annulla la mira e torna al gioco</td><td class="num">0</td></tr>
+          <tr><td>A + B</td><td>Insieme</td><td>Ricarica dal caricatore di scorta</td><td class="num">2 tick</td></tr>
+          <tr><td>Centro pad</td><td>Tap</td><td>Attesa deliberata: lasci passare un tick per far scoprire un fianco</td><td class="num">1 tick</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3 ============ -->
+<section id="regole">
+  <div class="sec-head"><span class="sec-num">03</span><h2>Regole del mondo</h2></div>
+  <p class="sec-sub">Numeri di partenza da mettere subito in un file di bilanciamento esterno al codice, cos&igrave; si tarano senza ricompilare.</p>
+
+  <div class="stack-lg">
+    <div class="tablebox">
+      <table>
+        <caption>Attori e velocit&agrave;</caption>
+        <thead><tr><th>Entit&agrave;</th><th class="num">Tick / azione</th><th>Percezione</th><th>Comportamento</th></tr></thead>
+        <tbody>
+          <tr><td>Giocatore</td><td class="num">1</td><td>&mdash;</td><td>Tre cuori. Un colpo a contatto toglie mezzo cuore, la presa ne toglie uno intero se non ti liberi</td></tr>
+          <tr><td>Vagante</td><td class="num">2</td><td>Vista 6 tile in cono 90&deg;, udito 8</td><td>Base dell'orda. Lento, numeroso, punta all'ultimo rumore sentito</td></tr>
+          <tr><td>Scattante</td><td class="num">1</td><td>Vista 8, udito 12</td><td>Alla tua stessa velocit&agrave;: non puoi seminarlo, devi sparargli o chiudergli una porta in faccia</td></tr>
+          <tr><td>Grosso</td><td class="num">3</td><td>Vista 4, udito 14</td><td>Due proiettili per abbatterlo. Sfonda porte e barricate, e i varchi che apre restano aperti</td></tr>
+          <tr><td>Cieco</td><td class="num">2</td><td>Vista 0, udito 20</td><td>Ignora la luce e insegue solo il suono: con lui restare fermi &egrave; davvero l'arma migliore</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="split">
+      <div class="tablebox">
+        <table style="min-width:320px">
+          <caption>Rumore generato</caption>
+          <thead><tr><th>Azione</th><th class="num">Raggio</th></tr></thead>
+          <tbody>
+            <tr><td>Stare fermi</td><td class="num">0</td></tr>
+            <tr><td>Passo</td><td class="num">2 tile</td></tr>
+            <tr><td>Passo su vetro o detriti</td><td class="num">7 tile</td></tr>
+            <tr><td>Aprire una porta</td><td class="num">4 tile</td></tr>
+            <tr><td>Forzare o barricare</td><td class="num">9 tile</td></tr>
+            <tr><td>Sparo</td><td class="num">18 tile</td></tr>
+            <tr><td>Oggetto lanciato</td><td class="num">12 tile dall'impatto</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="panel tech">
+        <h4>Come si propaga</h4>
+        <p>Il rumore non &egrave; una sfera: si diffonde per riempimento sulla griglia camminabile, quindi un muro lo devia e un cortile chiuso lo contiene. Ogni zombi raggiunto riceve la coordinata di origine e la imposta come destinazione &mdash; non la tua posizione reale.</p>
+        <p>Conseguenza di progetto: un proiettile sparato &egrave; sempre un richiamo per mezzo settore. Il giocatore impara presto che ogni colpo ha due costi, la munizione e l'attenzione.</p>
+      </div>
+    </div>
+
+    <div class="tablebox">
+      <table>
+        <caption>Economia delle munizioni, versione 1</caption>
+        <thead><tr><th>Voce</th><th>Regola</th><th class="num">Valore</th></tr></thead>
+        <tbody>
+          <tr><td>Capienza caricatore</td><td>Oltre questa soglia i colpi restano di scorta</td><td class="num">6</td></tr>
+          <tr><td>Trasporto massimo</td><td>Tetto duro: impedisce di accumulare e banalizzare il livello</td><td class="num">18</td></tr>
+          <tr><td>Dotazione iniziale di livello</td><td>Sempre insufficiente per il numero di zombi presenti</td><td class="num">4 &ndash; 8</td></tr>
+          <tr><td>Rapporto proiettili / zombi</td><td>Obiettivo di bilanciamento sull'intero livello</td><td class="num">circa 0,45</td></tr>
+          <tr><td>Loot fisso</td><td>Posizionato a mano, garantito, segnato sulla mappa una volta visto</td><td class="num">60% del totale</td></tr>
+          <tr><td>Loot variabile</td><td>Estratto da tabella con il seed del livello: contenitori che possono essere vuoti</td><td class="num">40% del totale</td></tr>
+          <tr><td>Recupero dai caduti</td><td>Nessuno. I proiettili sparati sono persi per sempre</td><td class="num">0</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="split">
+      <div class="panel">
+        <h4>Interazioni ambientali, tasto A</h4>
+        <ul>
+          <li><b>Porte</b> &mdash; si aprono, si chiudono, si bloccano con una sedia: consuma l'oggetto e resiste a tre colpi</li>
+          <li><b>Contenitori</b> &mdash; armadietti, bagagliai, distributori, con loot da tabella</li>
+          <li><b>Interruttori e generatori</b> &mdash; accendono luci, aprono cancelli, avviano un rumore continuo che diventa esca</li>
+          <li><b>Scaffali e automobili</b> &mdash; spinti creano copertura o bloccano un corridoio</li>
+          <li><b>Note e cartelli</b> &mdash; ambientazione e indicazioni, nella lingua della citt&agrave;</li>
+          <li><b>Zaini dei caduti</b> &mdash; l'unica fonte di oggetti chiave</li>
+        </ul>
+      </div>
+      <div class="panel warn">
+        <h4>Morte, checkpoint, progressione</h4>
+        <ul>
+          <li>Il livello &egrave; diviso in settori, ed entrare in un settore nuovo salva</li>
+          <li>Alla morte si riparte dall'ingresso del settore con lo stato che avevi in quel momento, munizioni comprese</li>
+          <li>Gli zombi gi&agrave; uccisi nel settore restano morti: rifare un tratto &egrave; pi&ugrave; facile, non punitivo</li>
+          <li>Nessuna vita limitata, nessuna pubblicit&agrave; per continuare</li>
+          <li>Obiettivo di livello sempre uno solo e dichiarato all'ingresso: raggiungere un punto, recuperare un oggetto, aprire una via</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 4 ============ -->
+<section id="architettura">
+  <div class="sec-head"><span class="sec-num">04</span><h2>Architettura tecnica</h2></div>
+  <p class="sec-sub">Una scelta sopra tutte: la simulazione &egrave; Dart puro, senza una sola importazione di Flutter. Si prova a riga di comando, macina mille turni dentro un test, e il livello grafico resta sostituibile.</p>
+
+  <div class="stack-lg">
+    <pre class="tree"><b>lib/</b>
+&#9500;&#9472;&#9472; <b>core/</b>            <i>simulazione, Dart puro, zero import di Flutter</i>
+&#9474;   &#9500;&#9472;&#9472; grid/         <i>TileMap, Tile, coordinate, Bresenham, flood fill</i>
+&#9474;   &#9500;&#9472;&#9472; entities/     <i>Entity e componenti dati: Position, Health, Ammo, Vision, Hearing</i>
+&#9474;   &#9500;&#9472;&#9472; actions/      <i>MoveAction, InteractAction, AimAction, ShootAction, WaitAction</i>
+&#9474;   &#9500;&#9472;&#9472; systems/      <i>ai, pathfinding, combat, projectile, noise, spawn, objectives</i>
+&#9474;   &#9500;&#9472;&#9472; scheduler/    <i>TurnScheduler a energia e coda eventi</i>
+&#9474;   &#9492;&#9472;&#9472; world.dart    <i>WorldState: unica fonte di verita, serializzabile</i>
+&#9500;&#9472;&#9472; <b>game/</b>            <i>presentazione, Flame</i>
+&#9474;   &#9500;&#9472;&#9472; stepbound_game.dart
+&#9474;   &#9500;&#9472;&#9472; render/       <i>sprite, atlas, layer, camera pixel-perfect, illuminazione</i>
+&#9474;   &#9500;&#9472;&#9472; anim/         <i>interpolazione fra stato precedente e stato corrente</i>
+&#9474;   &#9492;&#9472;&#9472; audio/        <i>sfx posizionali, guidati dagli eventi dello scheduler</i>
+&#9500;&#9472;&#9472; <b>input/</b>           <i>d-pad, auto-repeat, modalita mira, aptica</i>
+&#9500;&#9472;&#9472; <b>data/</b>            <i>loader Tiled, tabelle di bilanciamento JSON, definizioni entita</i>
+&#9500;&#9472;&#9472; <b>save/</b>            <i>serializzazione WorldState e profilo giocatore</i>
+&#9500;&#9472;&#9472; <b>ui/</b>              <i>menu, opzioni, HUD Flutter sopra il canvas</i>
+&#9492;&#9472;&#9472; main.dart
+<b>assets/</b>  tiles/  sprites/  audio/  levels/  balance/
+<b>test/</b>
+&#9500;&#9472;&#9472; scheduler_test.dart   <i>il mondo non avanza senza azione del giocatore</i>
+&#9500;&#9472;&#9472; noise_test.dart   ai_test.dart   projectile_test.dart
+&#9492;&#9472;&#9472; golden/               <i>frame di riferimento per la resa pixel</i></pre>
+
+    <div class="split">
+      <div class="panel tech">
+        <h4>Dipendenze, e perch&eacute;</h4>
+        <ul>
+          <li><b>flame</b> &mdash; loop di gioco, componenti, camera, batch di sprite. Evita di riscrivere un renderer sopra CustomPainter</li>
+          <li><b>flame_tiled</b> &mdash; carica direttamente i .tmx prodotti da Tiled</li>
+          <li><b>flame_audio</b> &mdash; pool di effetti sonori a bassa latenza</li>
+          <li><b>flutter_riverpod</b> &mdash; solo per la meta-interfaccia: menu, opzioni, salvataggi. Mai per lo stato di gioco</li>
+          <li><b>path_provider</b> &mdash; cartella dei salvataggi</li>
+          <li><b>very_good_analysis</b> &mdash; regole di lint severe dal primo commit</li>
+        </ul>
+        <p class="note">Versioni fissate esatte nel pubspec. Nessuna libreria ECS: i componenti sono semplici classi dati in mappe tipizzate, e bastano per qualche centinaio di entit&agrave;.</p>
+      </div>
+      <div class="panel">
+        <h4>Resa pixel, regole non negoziabili</h4>
+        <ul>
+          <li>Risoluzione virtuale <b>384 &times; 216</b>, scalata solo per interi &mdash; &times;2, &times;3, &times;4 &mdash; con bande nere ai lati se serve</li>
+          <li><code>FilterQuality.none</code> ovunque, nessun anti-aliasing, nessuna rotazione non ortogonale</li>
+          <li>Camera agganciata al pixel intero: si arrotonda la posizione prima di disegnare, altrimenti i tile sfarfallano</li>
+          <li>Tile 16 &times; 16, personaggi 16 &times; 24 con ancoraggio ai piedi</li>
+          <li>Palette unica di 32 colori per tutto il gioco; ogni citt&agrave; usa una rampa diversa della stessa palette</li>
+        </ul>
+      </div>
+    </div>
+
+    <div>
+      <p class="eyebrow" style="margin-bottom:10px">Cuore dello scheduler, da scrivere nella fase F1</p>
+      <pre><i>// Nessun Timer, nessun dt: il tempo esiste solo qui dentro.</i>
+<b>class</b> TurnScheduler {
+  <b>int</b> tick = 0;
+
+  <i>/// Chiamato UNA volta per ogni azione del giocatore. Mai dal game loop.</i>
+  List&lt;WorldEvent&gt; advance(World w, PlayerAction action) {
+    <b>final</b> events = &lt;WorldEvent&gt;[];
+    events.addAll(action.resolve(w));          <i>// prima agisce il giocatore</i>
+
+    <b>for</b> (<b>var</b> i = 0; i &lt; action.tickCost; i++) {
+      tick++;
+      <b>for</b> (<b>final</b> e <b>in</b> w.actorsInSimRadius()) {     <i>// solo entro 40 tile</i>
+        e.energy += 1;
+        <b>if</b> (e.energy &lt; e.tickCost) <b>continue</b>;
+        e.energy = 0;
+        events.addAll(w.ai.decide(e).resolve(w));
+      }
+      events.addAll(w.noise.settle());         <i>// il rumore si propaga a fine tick</i>
+    }
+    <b>return</b> events;                            <i>// il renderer li anima, non li ricalcola</i>
+  }
+}</pre>
+      <p class="note">Il renderer non conosce le regole: riceve una lista di eventi &mdash; <code>Moved</code>, <code>Shot</code>, <code>Damaged</code>, <code>Died</code>, <code>DoorOpened</code> &mdash; e li mette in coda di animazione. Finch&eacute; la coda si svuota, l'input viene bufferizzato e non ignorato: &egrave; questo che rende fluido il tenere premuto.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 5 ============ -->
+<section id="livelli">
+  <div class="sec-head"><span class="sec-num">05</span><h2>Livelli e contenuti</h2></div>
+  <p class="sec-sub">Un tutorial in una citt&agrave; anonima, poi le fermate di un viaggio verso nord. Ogni citt&agrave; porta una meccanica nuova e la insegna con lo spazio, non con un pannello di testo.</p>
+
+  <div class="stack-lg">
+    <div class="premise">
+      <span class="eyebrow">La premessa</span>
+      <p class="premise-lead">Una stazione, un treno, e la convinzione che al nord gli zombi non arrivino.</p>
+      <p>Il livello 0 si chiude alla stazione della citt&agrave; senza nome, ed &egrave; l&igrave; che incontri gli altri. Sono un gruppo di sopravvissuti con un piano gi&agrave; fatto: rimettere in moto un treno e risalire l'Europa fino a Capo Nord, dove secondo loro il freddo estremo tiene lontani gli zombi, o li ferma del tutto. Nessuno sa se sia vero. &Egrave; una convinzione, non un'informazione, e il gioco non la conferma mai.</p>
+      <p>Da qui in avanti ogni livello &egrave; una fermata, e il motivo della fermata &egrave; sempre lo stesso: il treno non pu&ograve; ripartire. Linea interrotta, ponte crollato, carburante finito, scambio bloccato. L'obiettivo del livello coincide con quello del gruppo, quindi non serve spiegarlo &mdash; sei sceso perch&eacute; il viaggio si &egrave; fermato, e risali quando riparte.</p>
+      <p class="note">Vincolo di produzione, da rispettare: <b>i compagni non ti seguono mai dentro un livello.</b> Esistono negli intermezzi in carrozza, nelle note e nelle voci alla radio. Scortare un personaggio significherebbe costruire un sistema di accompagnamento guidato dall'IA, che sta nell'elenco delle cose fuori dalla versione 1: la trama non deve diventare la porta da cui rientra.</p>
+    </div>
+    <div class="panel lead">
+      <span class="eyebrow">Livello 0 &mdash; citt&agrave; senza nome</span>
+      <h4 style="font-size:1.2rem">Sei stanze per capire tutto, senza una riga di tutorial</h4>
+      <div class="tablebox" style="border:0;background:transparent">
+        <table style="min-width:460px">
+          <thead><tr><th class="num">#</th><th>Stanza</th><th>Cosa insegna</th><th>Come lo insegna</th></tr></thead>
+          <tbody>
+            <tr><td class="num">1</td><td>Corridoio</td><td>Muoversi</td><td>Un solo zombi in fondo: avanza di un passo ogni volta che avanzi tu, e si ferma quando ti fermi. Il giocatore lo scopre da s&eacute;</td></tr>
+            <tr><td class="num">2</td><td>Deposito</td><td>Tasto A</td><td>Porta chiusa, sedia accanto, nessun'altra via</td></tr>
+            <tr><td class="num">3</td><td>Cortile</td><td>Il rumore</td><td>Vetri rotti da un lato, moquette dall'altro: due percorsi, esito diverso</td></tr>
+            <tr><td class="num">4</td><td>Ufficio</td><td>Pistola e mira</td><td>Arma su una scrivania, un vagante dietro una vetrata: c'&egrave; tempo per sbagliare</td></tr>
+            <tr><td class="num">5</td><td>Magazzino</td><td>Le munizioni finiscono</td><td>Tre proiettili, quattro zombi. La soluzione &egrave; una porta, non il grilletto</td></tr>
+            <tr><td class="num">6</td><td>Strada e stazione</td><td>Tutto insieme</td><td>Spazio aperto, orda richiamata dal rumore, e il piazzale della stazione come uscita: &egrave; l&igrave; che trovi gli altri e parte il viaggio</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Tempo obiettivo: 6 &ndash; 8 minuti. Nessun testo esplicativo salvo le icone dei tasti mostrate la prima volta. Se un tester non coglie il perno entro la stanza 1, il tutorial va rifatto, non spiegato meglio.</p>
+    </div>
+
+    <div class="cities">
+      <div class="city">
+        <span class="lv">Livello 1 &middot; prima fermata</span>
+        <h4>Roma</h4>
+        <span class="where">Centro e scali &middot; 150 &times; 140 &middot; 8 settori</span>
+        <p>Vicoli chiusi che sfociano in piazze enormi: il contrasto insegna quando la geometria ti protegge e quando ti espone. Rovine, impalcature, autobus fermi di traverso.</p>
+        <p><b>Obiettivo:</b> la linea verso nord &egrave; interrotta, serve raggiungere un altro scalo e forzare uno scambio.</p>
+        <span class="mech">Nuovo: barricate e linee di fuga</span>
+      </div>
+      <div class="city">
+        <span class="lv">Livello 2 &middot; seconda fermata</span>
+        <h4>Venezia</h4>
+        <span class="where">Sestieri e canali &middot; 160 &times; 160 &middot; 10 settori</span>
+        <p>Ponti come strozzature obbligate, calli cieche, acqua che rallenta a 2 tick per passo. Qui la mappa stessa &egrave; la trappola.</p>
+        <p><b>Obiettivo:</b> una sola via d'uscita verso la terraferma, e qualcuno ha bloccato il ponte.</p>
+        <span class="mech">Nuovo: acqua, ponti, zombi ciechi</span>
+      </div>
+      <div class="city">
+        <span class="lv">Livello 3 &middot; terza fermata</span>
+        <h4>Zurigo</h4>
+        <span class="where">Deposito e tunnel &middot; 170 &times; 150 &middot; 10 settori</span>
+        <p>Neve e imbocchi alpini. La neve attutisce i passi &mdash; raggio di rumore dimezzato &mdash; ma registra le tue orme: gli zombi che le incrociano le seguono fino a dove sei arrivato. Restare fermi non lascia tracce nuove.</p>
+        <p><b>Obiettivo:</b> l'ultimo deposito prima del nord, e una locomotiva da rimettere in moto.</p>
+        <span class="mech">Nuovo: neve, tracce, buio dei tunnel</span>
+      </div>
+    </div>
+    <p class="note">Le fermate successive &mdash; il tratto tedesco, la Scandinavia, Capo Nord &mdash; sono il seguito naturale del viaggio e non sono ancora decise. Restano fuori dalla versione 1 per scelta: tre citt&agrave; costruite bene valgono pi&ugrave; di sei attraversate di corsa, e il finale del viaggio &egrave; esattamente il contenuto che conviene tenere per un aggiornamento.</p>
+
+    <div class="split">
+      <div class="panel tech">
+        <h4>Pipeline di un livello</h4>
+        <ol>
+          <li>Pianta su carta: settori, obiettivo, tre percorsi possibili, punti di loot fisso</li>
+          <li>Blockout in Tiled con soli tile grigi: si gioca gi&agrave;, senza arte</li>
+          <li>Playtest del blockout &mdash; se non funziona in grigio, non funzioner&agrave; colorato</li>
+          <li>Layer definitivi: <code>ground</code>, <code>walls</code>, <code>decor_back</code>, <code>decor_front</code>, <code>collision</code>, <code>objects</code>, <code>spawn</code>, <code>triggers</code></li>
+          <li>Propriet&agrave; personalizzate sugli oggetti: tipo, contenuto, chiave richiesta, identificativo del settore</li>
+          <li>Passata artistica e di illuminazione</li>
+          <li>Passata audio: ambienti per settore</li>
+          <li>Taratura: numero di zombi, proiettili, tempo di attraversamento</li>
+        </ol>
+      </div>
+      <div class="panel">
+        <h4>Mappe grandi senza far crollare il telefono</h4>
+        <ul>
+          <li>La mappa &egrave; divisa in <b>chunk di 32 &times; 32 tile</b>; in memoria restano quello attuale e i vicini</li>
+          <li>Si simulano solo le entit&agrave; entro <b>40 tile</b> dal giocatore; oltre, restano congelate con il loro ultimo ordine</li>
+          <li>L'orda lontana non bara: quando rientra nel raggio riprende dal punto in cui era</li>
+          <li>I settori sono separati da strozzature &mdash; ponte, portone, tunnel &mdash; che coprono il caricamento e danno il punto di salvataggio</li>
+          <li>Mappa consultabile in pausa, disegnata solo per i settori gi&agrave; visitati</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 6 ============ -->
+<section id="asset">
+  <div class="sec-head"><span class="sec-num">06</span><h2>Arte e audio</h2></div>
+  <p class="sec-sub">Due pipeline sottili, pensate perch&eacute; una persona sola possa reggerle mentre programma.</p>
+  <div class="split" style="margin-top:26px">
+    <div class="panel">
+      <h4>Pixel art</h4>
+      <ul>
+        <li>Aseprite come unico strumento, con esportazione ad atlas PNG pi&ugrave; JSON delle animazioni</li>
+        <li>Tile 16 px, personaggi 16 &times; 24, oggetti sulla stessa griglia</li>
+        <li>Animazioni per attore: idle 2 frame, camminata 4, attacco 2, morte 4, presa 3</li>
+        <li>Ogni animazione dura quanto il tick che l'ha generata &mdash; 130 ms per un passo. Mai animazioni che sforano il turno</li>
+        <li>Palette condivisa di 32 colori, file <code>assets/palette.gpl</code> versionato</li>
+        <li>Illuminazione con maschere in scala di grigi, non shader: costa poco e resta leggibile</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h4>Audio</h4>
+      <ul>
+        <li>Nessun suono sussiste durante l'attesa: se il giocatore &egrave; fermo, l'ambiente tace o resta su un drone immobile</li>
+        <li>Effetti sonori legati agli eventi dello scheduler, con volume e panning calcolati dalla distanza in tile</li>
+        <li>Lo sparo &egrave; il suono pi&ugrave; forte del gioco e va mixato per essere spiacevole</li>
+        <li>I gemiti sono un indizio direzionale: gli zombi si sentono prima di vederli</li>
+        <li>Musica a due strati per citt&agrave;: base ambientale, pi&ugrave; strato di tensione che entra alla prima allerta</li>
+        <li>Formato OGG, mono per tutti gli effetti posizionali</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 7 ============ -->
+<section id="roadmap">
+  <div class="sec-head"><span class="sec-num">07</span><h2>Piano di sviluppo</h2></div>
+  <p class="sec-sub">Dieci fasi in ordine di dipendenza, non di entusiasmo. Ognuna ha un criterio di chiusura verificabile: finch&eacute; non &egrave; soddisfatto, non si passa alla successiva.</p>
+
+  <div class="phases">
+
+    <div class="phase">
+      <div class="phase-id"><span class="code">F0</span><span class="dur">1 settimana</span></div>
+      <div class="phase-body">
+        <h3>Fondamenta del progetto</h3>
+        <p class="phase-goal">Niente gioco, solo il terreno su cui si costruisce. Farlo dopo costa il triplo.</p>
+        <ul>
+          <li>Progetto GitLab con repository Git, branch <code>main</code> protetto e convenzione dei commit</li>
+          <li><code>flutter create</code> su canale stable, versione fissata</li>
+          <li>Flavor <code>dev</code> e <code>prod</code> con identificativi applicazione distinti</li>
+          <li>Lint severo e formattazione automatica</li>
+          <li>Struttura di cartelle definitiva, come al punto 04</li>
+          <li>CI su GitLab: <code>.gitlab-ci.yml</code> con analyze e test a ogni push</li>
+          <li>Runner condiviso per analisi e test; runner locale per le build firmate, che i minuti gratuiti non reggono</li>
+          <li>Blocco orizzontale e modalit&agrave; immersiva in <code>main.dart</code></li>
+          <li>Elenco dei dispositivi bersaglio, incluso un Android economico del 2021</li>
+          <li>Pagina vuota che gira sul telefono reale</li>
+        </ul>
+        <div class="dod"><b>Fatto quando</b> la CI &egrave; verde, l'app si installa su dispositivo fisico in orizzontale a schermo pieno, e un'altra persona riesce a compilare da zero seguendo il README.</div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-id"><span class="code">F1</span><span class="dur">2 settimane</span></div>
+      <div class="phase-body">
+        <h3>Simulazione senza grafica</h3>
+        <p class="phase-goal">Il gioco esiste e funziona prima di essere visibile. Tutto il resto dipende da questa fase.</p>
+        <ul>
+          <li><code>TileMap</code> e sistema di coordinate su griglia</li>
+          <li><code>Entity</code> e componenti dati tipizzati</li>
+          <li><code>WorldState</code> serializzabile per intero</li>
+          <li><code>TurnScheduler</code> a energia con costi per azione</li>
+          <li>Azioni Move, Interact e Wait &mdash; Shoot arriva in F4</li>
+          <li>Coda di <code>WorldEvent</code> in uscita</li>
+          <li>Generatore casuale con seed esplicito, mai <code>Random()</code> globale</li>
+          <li>Runner da riga di comando che stampa la griglia in ASCII</li>
+          <li>Suite di test, incluso quello che vieta l'avanzamento senza input</li>
+        </ul>
+        <div class="dod"><b>Fatto quando</b> nel runner testuale il giocatore cammina, gli zombi lo inseguono a velocit&agrave; diverse, e il test del mondo fermo &egrave; verde dopo diecimila turni simulati.</div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-id"><span class="code">F2</span><span class="dur">1 settimana</span></div>
+      <div class="phase-body">
+        <h3>Resa grafica e camera</h3>
+        <p class="phase-goal">Dare un corpo visibile alla simulazione, con le regole del pixel rispettate dal primo frame.</p>
+        <ul>
+          <li>Integrazione di Flame sopra il core</li>
+          <li>Viewport virtuale 384 &times; 216 con scalatura intera</li>
+          <li>Caricamento atlas e disegno dei tile per layer</li>
+          <li>Camera con zona morta e aggancio al pixel</li>
+          <li>Consumo della coda eventi e interpolazione dei movimenti a 130 ms</li>
+          <li>Buffer di input durante l'animazione in corso</li>
+          <li>Contatore FPS e overlay di debug: griglia, collisioni, raggi</li>
+        </ul>
+        <div class="dod"><b>Fatto quando</b> tenendo premuta una direzione la camminata appare continua e priva di scatti, e nessun tile sfarfalla mentre la camera si muove.</div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-id"><span class="code">F3</span><span class="dur">1 settimana</span></div>
+      <div class="phase-body">
+        <h3>Comandi e interfaccia di gioco</h3>
+        <p class="phase-goal">Il layout definitivo dei controlli, quello che il giocatore user&agrave; per tutto il gioco.</p>
+        <ul>
+          <li>D-pad a quattro direzioni con zona morta e ripetizione a 180 ms</li>
+          <li>Tasti A e B con pressione lunga distinta dal tap</li>
+          <li>Modalit&agrave; mira come stato dell'input, a costo zero di tempo</li>
+          <li>Ancoraggio alle safe area e opzione che specchia i due lati</li>
+          <li>HUD: vita, colpi nel caricatore e di scorta, nome del settore</li>
+          <li>Feedback aptico su colpo subito, colpo a segno, caricatore vuoto</li>
+          <li>Menu di pausa, opzioni, uscita</li>
+        </ul>
+        <div class="dod"><b>Fatto quando</b> tre tester diversi completano un percorso di prova senza premere per sbaglio il tasto sbagliato, su telefoni di dimensioni diverse.</div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-id"><span class="code">F4</span><span class="dur">3 settimane</span></div>
+      <div class="phase-body">
+        <h3>Combattimento, percezione, intelligenza</h3>
+        <p class="phase-goal">La fase pi&ugrave; densa. Da qui in poi il gioco &egrave; giocabile e si pu&ograve; iniziare a bilanciarlo.</p>
+        <ul>
+          <li>Proiettile come raycast risolto nel tick, con tracciante visivo</li>
+          <li>Gestione munizioni, ricarica, colpi a vuoto</li>
+          <li>Linea di vista con Bresenham e tile opachi</li>
+          <li>Cono visivo per entit&agrave;, orientato allo sguardo</li>
+          <li>Propagazione del rumore per riempimento sulla griglia</li>
+          <li>Stati IA: dormiente, insospettito, in cerca, inseguimento, attacco, perdita del bersaglio</li>
+          <li>A* su griglia con budget massimo di espansioni per tick</li>
+          <li>Flow field condiviso quando pi&ugrave; di dodici entit&agrave; inseguono lo stesso bersaglio</li>
+          <li>Danno, morte, presa e liberazione</li>
+          <li>File di bilanciamento JSON esterno, ricaricabile a caldo in sviluppo</li>
+        </ul>
+        <div class="dod"><b>Fatto quando</b> uno sparo in una stanza chiusa attira gli zombi del corridoio ma non quelli del cortile, e con trenta unit&agrave; all'inseguimento la risposta a un tap resta sotto i 16 ms.</div>
+      </div>
+    </div>
+
+    <div class="gate">
+      <span class="lbl">Cancello &mdash; prototipo verticale</span>
+      <p><b>Tre minuti giocabili che dimostrano il perno.</b> Prima di costruire una sola stanza definitiva si consegna a cinque persone estranee al progetto una build con una mappa sola. Domanda unica: hanno capito che il mondo si muove solo quando si muovono loro, e la cosa li ha divertiti? Se la risposta &egrave; no, si torna su F1 &ndash; F4. Nessun contenuto si produce prima di questo s&igrave;.</p>
+    </div>
+
+    <div class="phase">
+      <div class="phase-id"><span class="code">F5</span><span class="dur">2 settimane</span></div>
+      <div class="phase-body">
+        <h3>Pipeline dei livelli e tutorial</h3>
+        <p class="phase-goal">Trasformare Tiled in una catena di produzione, e usarla subito per il livello 0.</p>
+        <ul>
+          <li>Convenzione dei layer e delle propriet&agrave;, documentata</li>
+          <li>Loader dal .tmx a <code>WorldState</code>, con validatore che segnala le mappe malformate</li>
+          <li>Trigger, settori, obiettivi, transizioni</li>
+          <li>Blockout e poi versione definitiva delle sei stanze del livello 0</li>
+          <li>Insegnamento progressivo tramite spazio e icone, senza testo</li>
+          <li>Scena di incontro alla stazione che chiude il livello 0 e apre il viaggio</li>
+          <li>Schermata iniziale e flusso di avvio</li>
+          <li>Prima build interna distribuita ai tester</li>
+        </ul>
+        <div class="dod"><b>Fatto quando</b> un giocatore nuovo finisce il livello 0 in 6 &ndash; 8 minuti senza aiuto e sa spiegare a parole sue la regola del tempo.</div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-id"><span class="code">F6</span><span class="dur">3 settimane</span></div>
+      <div class="phase-body">
+        <h3>Mappe grandi, streaming, salvataggi</h3>
+        <p class="phase-goal">Passare da una stanza a una citt&agrave;. &Egrave; qui che i problemi di prestazioni si presentano davvero.</p>
+        <ul>
+          <li>Suddivisione in chunk 32 &times; 32 e caricamento a finestra</li>
+          <li>Raggio di simulazione e congelamento delle entit&agrave; lontane</li>
+          <li>Settori, punti di salvataggio, ricarica dopo la morte</li>
+          <li>Serializzazione e ripristino completo dello stato</li>
+          <li>Chiavi, porte bloccate, oggetti chiave</li>
+          <li>Mappa del livello consultabile in pausa</li>
+          <li>Costruzione completa di Roma, il livello 1</li>
+          <li>Profilazione su dispositivo economico con la mappa intera</li>
+        </ul>
+        <div class="dod"><b>Fatto quando</b> Roma si attraversa dall'inizio alla fine, si chiude e si riapre l'app in un punto qualsiasi e lo stato torna identico, con memoria stabile sotto i 220 MB.</div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-id"><span class="code">F7</span><span class="dur">2 settimane</span></div>
+      <div class="phase-body">
+        <h3>Produzione dei contenuti</h3>
+        <p class="phase-goal">Le due citt&agrave; restanti, con la pipeline ormai rodata. Lavoro ripetitivo e prevedibile: &egrave; il segno che F5 e F6 sono riuscite.</p>
+        <ul>
+          <li>Venezia: acqua, ponti, zombi ciechi</li>
+          <li>Zurigo: neve, tracce, buio dei tunnel</li>
+          <li>Una meccanica nuova per citt&agrave;, introdotta nel primo settore</li>
+          <li>Set di tile e rampa di palette per ciascuna</li>
+          <li>Intermezzi in carrozza fra una fermata e l'altra: un solo set riutilizzato, testo e inquadratura cambiano</li>
+          <li>Note e cartelli nella lingua locale</li>
+          <li>Taratura del rapporto proiettili / zombi su ogni livello</li>
+        </ul>
+        <div class="dod"><b>Fatto quando</b> ogni citt&agrave; &egrave; completabile dall'inizio alla fine, gli intermezzi collegano le tre fermate, e il tempo medio di attraversamento rientra nella stima entro il 25%.</div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-id"><span class="code">F8</span><span class="dur">2 settimane</span></div>
+      <div class="phase-body">
+        <h3>Rifinitura, prestazioni, accessibilit&agrave;</h3>
+        <p class="phase-goal">Il gioco &egrave; completo: ora deve essere piacevole e deve girare ovunque.</p>
+        <ul>
+          <li>Budget di frame rispettato: nessuna allocazione nel ciclo di disegno</li>
+          <li>Riduzione delle pause del garbage collector con pool di oggetti</li>
+          <li>Passata audio finale e missaggio</li>
+          <li>Effetti di impatto, scuotimento camera contenuto, sangue in pixel</li>
+          <li>Opzioni: dimensione e posizione dei controlli, aptica, volumi separati</li>
+          <li>Modalit&agrave; per daltonici sugli indicatori di stato</li>
+          <li>Rispetto della riduzione del movimento impostata a livello di sistema</li>
+          <li>Testi di gioco esternalizzati in italiano e inglese</li>
+        </ul>
+        <div class="dod"><b>Fatto quando</b> sul dispositivo bersaglio pi&ugrave; debole il gioco resta sopra i 55 fps nel settore pi&ugrave; affollato e non scende mai sotto i 30 in nessun punto delle tre citt&agrave;.</div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-id"><span class="code">F9</span><span class="dur">2 settimane</span></div>
+      <div class="phase-body">
+        <h3>Beta e pubblicazione</h3>
+        <p class="phase-goal">Dalla build interna allo store, senza sorprese burocratiche dell'ultimo minuto.</p>
+        <ul>
+          <li>Beta chiusa su traccia interna Google Play e TestFlight</li>
+          <li>Telemetria minima e anonima: settore di morte, tempo per settore, proiettili residui</li>
+          <li>Correzioni sui punti dove i tester muoiono in modo anomalo</li>
+          <li>Icona, schermata di avvio, schede store, video di gioco</li>
+          <li>Informativa privacy e questionario sui contenuti</li>
+          <li>Firma delle build, versionamento, note di rilascio</li>
+          <li>Piano post-lancio per la correzione rapida dei difetti</li>
+        </ul>
+        <div class="dod"><b>Fatto quando</b> le build firmate superano la revisione di entrambi gli store e la beta si chiude senza difetti bloccanti aperti.</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============ 8 ============ -->
+<section id="rischi">
+  <div class="sec-head"><span class="sec-num">08</span><h2>Rischi e limiti di campo</h2></div>
+  <p class="sec-sub">Quello che pu&ograve; andare storto, e la riga del piano che lo tiene sotto controllo.</p>
+  <div class="split" style="margin-top:26px">
+    <div class="panel warn">
+      <h4>Cosa pu&ograve; far fallire il progetto</h4>
+      <ul>
+        <li><b>Il perno non si capisce.</b> Il rischio maggiore, e si vede solo con i tester. Rimedio: il cancello dopo F4, prima di produrre contenuti</li>
+        <li><b>Il gioco sembra a scatti.</b> Se l'interpolazione non &egrave; curata il turno diventa visibile e l'illusione cade. Rimedio: F2 ha un criterio di chiusura solo su questo</li>
+        <li><b>Mappe grandi e telefoni lenti.</b> Rimedio: chunk e raggio di simulazione progettati in F6, non rattoppati alla fine</li>
+        <li><b>I contenuti richiedono pi&ugrave; tempo del previsto.</b> Rimedio: si pubblica con due citt&agrave; se serve, rimandando Zurigo al primo aggiornamento. Il numero di fermate &egrave; la variabile di scarico, non la qualit&agrave;</li>
+        <li><b>Una persona sola che programma e disegna.</b> Rimedio: blockout grigio giocabile, arte in coda, palette unica per riusare tutto</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h4>Fuori dalla versione 1, e va scritto</h4>
+      <ul>
+        <li>Armi da mischia e corpo a corpo</li>
+        <li>Fabbricazione di oggetti, abilit&agrave;, punti esperienza</li>
+        <li>Generazione procedurale delle mappe</li>
+        <li>Multigiocatore in ogni forma</li>
+        <li>Ciclo giorno e notte</li>
+        <li>Personaggi da scortare</li>
+        <li>Acquisti in-app e pubblicit&agrave;</li>
+        <li>Compagni controllati dall'IA</li>
+      </ul>
+      <p class="note">Ognuna di queste voci &egrave; una buona idea, e ognuna aggiunta prima del lancio sposta la data di mesi. Restano qui, scritte, cos&igrave; non tornano sotto mentite spoglie a met&agrave; della fase F7.</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span class="mark">STEPBOUND &middot; v0.1</span>
+  <span>Documento di progetto: concept, regole, architettura e piano di sviluppo in dieci fasi.</span>
+</footer>
+
+</div>
+
+<script>
+(function(){
+  var MAP = [
+    "#############",
+    "#...#.......#",
+    "#...#..###..#",
+    "#......#.z..#",
+    "#.P.#..#..z.#",
+    "#...#.....z.#",
+    "#############"
+  ];
+  var TS = 24, COLS = 13, ROWS = 7;
+  var cv = document.getElementById("cv");
+  if (!cv) { return; }
+  var ctx = cv.getContext("2d");
+  var walls, player, zombies, tick, steps;
+
+  function reset(){
+    walls = []; zombies = []; tick = 0; steps = 0;
+    for (var y = 0; y < ROWS; y++){
+      walls[y] = [];
+      for (var x = 0; x < COLS; x++){
+        var c = MAP[y].charAt(x);
+        walls[y][x] = (c === "#");
+        if (c === "P") { player = {x:x, y:y}; }
+        if (c === "z") { zombies.push({x:x, y:y, energy:0, cost:2}); }
+      }
+    }
+    draw(); readout();
+  }
+
+  function free(x, y){
+    if (x < 0 || y < 0 || x >= COLS || y >= ROWS) { return false; }
+    if (walls[y][x]) { return false; }
+    if (player.x === x && player.y === y) { return false; }
+    for (var i = 0; i < zombies.length; i++){
+      if (zombies[i].x === x && zombies[i].y === y) { return false; }
+    }
+    return true;
+  }
+
+  function sign(n){ return n > 0 ? 1 : (n < 0 ? -1 : 0); }
+
+  function advance(n){
+    for (var t = 0; t < n; t++){
+      tick++;
+      for (var i = 0; i < zombies.length; i++){
+        var z = zombies[i];
+        z.energy++;
+        if (z.energy < z.cost) { continue; }
+        z.energy = 0;
+        var dx = player.x - z.x, dy = player.y - z.y;
+        var tries = Math.abs(dx) >= Math.abs(dy)
+          ? [[sign(dx), 0], [0, sign(dy)]]
+          : [[0, sign(dy)], [sign(dx), 0]];
+        for (var k = 0; k < tries.length; k++){
+          var sx = tries[k][0], sy = tries[k][1];
+          if ((sx !== 0 || sy !== 0) && free(z.x + sx, z.y + sy)){
+            z.x += sx; z.y += sy; break;
+          }
+        }
+      }
+    }
+  }
+
+  function act(dir){
+    if (dir === "wait"){
+      advance(1);
+    } else {
+      var deltas = {up:[0,-1], down:[0,1], left:[-1,0], right:[1,0]};
+      var d = deltas[dir];
+      if (!d) { return; }
+      var nx = player.x + d[0], ny = player.y + d[1];
+      if (free(nx, ny)){ player.x = nx; player.y = ny; steps++; }
+      advance(1);
+    }
+    draw(); readout();
+  }
+
+  function minDist(){
+    var m = 99;
+    for (var i = 0; i < zombies.length; i++){
+      var d = Math.abs(zombies[i].x - player.x) + Math.abs(zombies[i].y - player.y);
+      if (d < m) { m = d; }
+    }
+    return m;
+  }
+
+  function readout(){
+    document.getElementById("rt").textContent = String(tick);
+    document.getElementById("rp").textContent = String(steps);
+    document.getElementById("rd").textContent = minDist() + " tile";
+  }
+
+  function draw(){
+    ctx.imageSmoothingEnabled = false;
+    ctx.fillStyle = "#1B2224";
+    ctx.fillRect(0, 0, cv.width, cv.height);
+    for (var y = 0; y < ROWS; y++){
+      for (var x = 0; x < COLS; x++){
+        if (walls[y][x]){
+          ctx.fillStyle = "#333F42";
+          ctx.fillRect(x*TS, y*TS, TS, TS);
+          ctx.fillStyle = "#2A3436";
+          ctx.fillRect(x*TS, y*TS + TS - 4, TS, 4);
+        } else {
+          ctx.fillStyle = ((x + y) % 2) ? "#1E2628" : "#222B2D";
+          ctx.fillRect(x*TS, y*TS, TS, TS);
+        }
+      }
+    }
+    for (var i = 0; i < zombies.length; i++){
+      var z = zombies[i];
+      ctx.fillStyle = "#5E7A5A";
+      ctx.fillRect(z.x*TS + 5, z.y*TS + 3, 14, 18);
+      ctx.fillStyle = "#3F5A3C";
+      ctx.fillRect(z.x*TS + 5, z.y*TS + 15, 14, 6);
+    }
+    ctx.fillStyle = "#D8CFBF";
+    ctx.fillRect(player.x*TS + 5, player.y*TS + 3, 14, 18);
+    ctx.fillStyle = "#9B2F24";
+    ctx.fillRect(player.x*TS + 5, player.y*TS + 3, 14, 5);
+  }
+
+  var pad = document.querySelectorAll("[data-dir]");
+  for (var i = 0; i < pad.length; i++){
+    (function(btn){
+      btn.addEventListener("click", function(){ act(btn.getAttribute("data-dir")); });
+    })(pad[i]);
+  }
+  document.getElementById("reset").addEventListener("click", reset);
+
+  var keys = {ArrowUp:"up", ArrowDown:"down", ArrowLeft:"left", ArrowRight:"right", " ":"wait"};
+  var demo = document.getElementById("demo");
+  demo.addEventListener("keydown", function(e){
+    var d = keys[e.key];
+    if (!d) { return; }
+    e.preventDefault();
+    act(d);
+  });
+
+  reset();
+})();
+</script>

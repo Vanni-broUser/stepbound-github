@@ -18,6 +18,23 @@ guarda che `verify` sia verde.
   (piattaforma, salvataggi, core, UI, gioco) e totale da
   `tools/coverage_policy.json`, e nessuna libreria con codice lasciata fuori
   dal report perche nessun test la carica.
+- `levels_check`: rigenera l'atlas da cui il gioco dipinge ogni posto con
+  `python tools/build_levels.py --check` e lo confronta, pixel per pixel,
+  con quello committato in `assets/tiles`: `atlas.png`, il manifest e le
+  immagini degli oggetti, e fallisce anche su un'immagine di oggetto che
+  nessun painter produce piu. Gira su `python:3.11.15-slim` con
+  `tools/requirements.txt` (Pillow fissato), non sull'immagine Flutter, e
+  sostituisce il `before_script` di default. Fallisce se si cambia un
+  painter in `tools/` senza rilanciare `python tools/build_tile_atlas.py`.
+  Nasce con `allow_failure: true` per una settimana, il tempo di misurarne
+  la stabilita; poi si toglie e diventa bloccante. Il confronto e sui pixel
+  decodificati e non sui byte del file perche la codifica PNG non e
+  garantita stabile fra versioni di Pillow o di zlib.
+  Le righe ASCII di un posto non hanno piu una copia dipinta da tenere
+  d'accordo: il gioco le dipinge. Cio che dipende ancora dalle righe -- un
+  oggetto dipinto per una certa disposizione, come il vagone o un negozio
+  -- lo controlla `unit_tests` (`test/levels/tile_atlas_test.dart`), che
+  gira sempre e non ha bisogno di Python.
 - `deps_check`: dipendenze obsolete, informativo.
 - `build_android_debug`: APK debug installabile, manuale e non bloccante.
 - `build_android_signed` / `build_ios_signed`: pacchetti release manuali solo su ref
@@ -26,6 +43,28 @@ guarda che `verify` sia verde.
 Il web non ha un job: non distribuiamo il gioco sul browser, lo usiamo solo
 per provarlo in locale con `flutter build web` o `flutter run -d chrome`, e
 `analyze` piu i test coprono gia gli errori di compilazione.
+
+## GitHub Actions
+
+Il repository e specchiato su GitHub, dove vivono le pull request, e
+`.github/workflows/ci.yml` rifa li le stesse verifiche: `analyze` (con
+`generate_balance.dart --check`, formato e analisi), `unit_tests` (test,
+copertura e `check_coverage.dart`, con `lcov.info` come artefatto) e
+`levels_check`, non bloccante come il suo gemello.
+
+In piu c'e `android_debug`, che non ha un equivalente automatico su GitLab:
+costruisce l'APK di debug e lo carica come artefatto scaricabile. Si prende da
+Actions, aprendo la run, sotto Artifacts, come
+`stepbound-debug-apk-<sha corto>`; GitHub lo serve come zip, dentro c'e
+`app-debug.apk` da installare con `adb install app-debug.apk`. Resta
+disponibile 14 giorni.
+
+GitLab resta la pipeline canonica: i job firmati e i runner locali stanno solo
+li, e `main` si protegge di la. Le differenze volute rispetto a GitLab sono
+due: `android_debug` parte da solo a ogni push e pull request, mentre
+`build_android_debug` su GitLab e manuale per non occupare i runner condivisi,
+e su GitHub non ci sono i job di firma. Per il resto i job sono gemelli:
+cambiandone uno va cambiato anche l'altro.
 
 ## Firma Android
 

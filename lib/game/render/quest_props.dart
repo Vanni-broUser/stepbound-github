@@ -104,3 +104,57 @@ final class BarServiceDoorComponent extends PositionComponent {
     _rect(canvas, 11, 23, 2, 2, const ui.Color(0xffbc9e52));
   }
 }
+
+/// Don Angelo, as the mass left him: face down across his own tile, the
+/// cassock torn open, one hand still reaching down the nave and the blood
+/// spread out under him. He is drawn under everyone who walks the nave
+/// (the backpack beside him rides higher) and his tile is made an obstacle
+/// by the game, so Mario steps around the body rather than over it.
+final class PriestCorpseComponent extends PositionComponent {
+  PriestCorpseComponent({required GridPoint tile, double tileSize = 16})
+    : super(
+        position: Vector2(tile.x * tileSize, tile.y * tileSize),
+        size: Vector2.all(tileSize),
+        priority: 14,
+      );
+
+  static const ui.Color cassock = ui.Color(0xff1b1a1f);
+  static const ui.Color cassockFold = ui.Color(0xff2e2c34);
+  static const ui.Color sash = ui.Color(0xff5c2f5e);
+  static const ui.Color skin = ui.Color(0xff9a8a86);
+  static const ui.Color bloodDark = ui.Color(0xff4a1113);
+  static const ui.Color blood = ui.Color(0xff7c1a1c);
+
+  final ui.Paint _paint = ui.Paint()..isAntiAlias = false;
+
+  void _rect(
+    ui.Canvas canvas,
+    double x,
+    double y,
+    double w,
+    double h,
+    ui.Color color,
+  ) {
+    _paint.color = color;
+    canvas.drawRect(ui.Rect.fromLTWH(x, y, w, h), _paint);
+  }
+
+  @override
+  void render(ui.Canvas canvas) {
+    // The pool first: it spreads wider than the body lying in it.
+    _rect(canvas, 1, 9, 14, 6, bloodDark);
+    _rect(canvas, 3, 11, 11, 3, blood);
+    _rect(canvas, 0, 12, 2, 2, bloodDark);
+    // The body, laid out west to east along the aisle.
+    _rect(canvas, 3, 5, 10, 7, cassock);
+    _rect(canvas, 4, 6, 8, 2, cassockFold);
+    _rect(canvas, 5, 9, 7, 1, cassockFold);
+    // The torn violet sash across the shoulders, and the head beyond it.
+    _rect(canvas, 4, 8, 6, 1, sash);
+    _rect(canvas, 11, 8, 2, 1, sash);
+    _rect(canvas, 2, 4, 4, 3, skin);
+    _rect(canvas, 2, 4, 4, 1, cassockFold);
+    // The hand left reaching down the nave.
+    _rect(canvas, 13, 10, 2, 2, skin);
+  }
+}

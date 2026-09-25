@@ -37,3 +37,26 @@ deps_check:
     - if: '$CI_COMMIT_BRANCH != "main"'
   script:
     - flutter pub outdated --no-transitive || true
+
+# Il gioco dipinge ogni posto dalle sue righe ASCII, con i tile e gli
+# oggetti di assets/tiles, che i painter in tools/ generano. Nessun altro job
+# guarda quelle immagini, cosi un painter cambiato senza rilanciare il
+# generatore arriva fino al dispositivo. Qui l'atlas riparte da zero in una
+# directory temporanea e il risultato viene confrontato pixel per pixel con
+# quanto committato, come fa `generate_balance.dart --check` per il
+# bilanciamento.
+#
+# Immagine Python, non Flutter: `before_script` sostituisce quello di
+# default, che chiama `flutter`.
+levels_check:
+  stage: verify
+  needs: []
+  image: python:3.11.15-slim
+  # Informativo per la prima settimana: prima si misura quanto e stabile,
+  # poi si toglie `allow_failure` e diventa bloccante.
+  allow_failure: true
+  cache: []
+  before_script:
+    - python -m pip install --no-cache-dir --quiet -r tools/requirements.txt
+  script:
+    - python tools/build_levels.py --check

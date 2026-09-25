@@ -16,6 +16,8 @@ final class BackpacksScript extends TutorialScript {
   static const String gunFound = 'Hai trovato una pistola';
   static const String incenseFound = "Hai trovato dell'incenso";
   static const String ringFound = 'Hai trovato un anello episcopale';
+  static const String duomoKeyFound =
+      'Hai trovato la Chiave del Duomo vicino il cadavere di Don Angelo';
   static const String shootLesson =
       'Tieni premuto a destra per mirare, poi scorri verso una direzione '
       'per sparare. Tocca di nuovo a destra per abbassare la pistola';
@@ -38,10 +40,22 @@ final class BackpacksScript extends TutorialScript {
       :final incense,
       :final episcopalRing,
       :final cultistRobe,
+      :final duomoKey,
     )) {
       host.playPickupAnimation();
       // The Duomo's script tells of the robe: it dresses Mario in it.
       if (cultistRobe) {
+        return;
+      }
+      if (duomoKey) {
+        // Whose it was is the news, as much as the key itself.
+        say(
+          TutorialPrompt(
+            const <TutorialLine>[TutorialLine(duomoKeyFound)],
+            delay: TutorialDirector.pickupDelay,
+            onShown: () => host.unlock(HudElement.duomoKey),
+          ),
+        );
         return;
       }
       if (episcopalRing) {
