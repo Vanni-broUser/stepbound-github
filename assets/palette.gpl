@@ -1,0 +1,23 @@
+GIMP Palette
+Name: Stepbound GBA
+Columns: 8
+#
+17 23 24 Void Black
+32 42 44 Asphalt
+43 54 56 Asphalt Light
+67 80 83 Wall
+48 59 62 Wall Shadow
+89 102 106 Mortar
+128 107 85 Debris
+114 81 59 Door
+154 115 83 Door Light
+222 214 198 Bone
+201 159 120 Skin
+58 42 37 Hair
+53 88 106 Jacket
+163 59 49 Brick Red
+102 128 91 Zombie
+64 84 61 Zombie Dark
+139 116 70 Sprinter
+115 80 75 Brute
+119 128 139 Blind

@@ -1,0 +1,426 @@
+{
+  "format": "stepbound-character-atlas-v1",
+  "cellWidth": 16,
+  "cellHeight": 24,
+  "columns": [
+    "idle_0",
+    "idle_1",
+    "walk_0",
+    "walk_1",
+    "walk_2",
+    "walk_3"
+  ],
+  "rows": [
+    "south",
+    "west",
+    "east",
+    "north"
+  ],
+  "files": [
+    "protagonist.png",
+    "protagonist_cultist.png",
+    "zombie_wanderer.png",
+    "zombie_sprinter.png",
+    "zombie_brute.png",
+    "zombie_blind.png",
+    "zombie_carabiniere.png",
+    "zombie_mutilated.png",
+    "zombie_burning.png",
+    "zombie_drunk.png",
+    "zombie_cultist.png"
+  ],
+  "actionSheets": [
+    {
+      "file": "protagonist_gun.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "fire_0",
+        "fire_1",
+        "fire_2"
+      ],
+      "actions": [
+        "aim",
+        "fire"
+      ]
+    },
+    {
+      "file": "protagonist_pickup.png",
+      "columns": [
+        "pick_0",
+        "pick_1",
+        "pick_2",
+        "pick_3",
+        "pick_4",
+        "pick_5"
+      ],
+      "actions": [
+        "pickup"
+      ]
+    },
+    {
+      "file": "protagonist_cultist_gun.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "fire_0",
+        "fire_1",
+        "fire_2"
+      ],
+      "actions": [
+        "aim",
+        "fire"
+      ]
+    },
+    {
+      "file": "protagonist_cultist_pickup.png",
+      "columns": [
+        "pick_0",
+        "pick_1",
+        "pick_2",
+        "pick_3",
+        "pick_4",
+        "pick_5"
+      ],
+      "actions": [
+        "pickup"
+      ]
+    },
+    {
+      "file": "zombie_wanderer_hit.png",
+      "columns": [
+        "hit_0",
+        "hit_1",
+        "hit_2"
+      ],
+      "actions": [
+        "hit"
+      ]
+    },
+    {
+      "file": "zombie_wanderer_bite.png",
+      "columns": [
+        "bite_0",
+        "bite_1",
+        "bite_2",
+        "bite_3"
+      ],
+      "actions": [
+        "bite"
+      ]
+    },
+    {
+      "file": "zombie_wanderer_death.png",
+      "columns": [
+        "death_0",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5"
+      ],
+      "actions": [
+        "death"
+      ]
+    },
+    {
+      "file": "zombie_sprinter_hit.png",
+      "columns": [
+        "hit_0",
+        "hit_1",
+        "hit_2"
+      ],
+      "actions": [
+        "hit"
+      ]
+    },
+    {
+      "file": "zombie_sprinter_bite.png",
+      "columns": [
+        "bite_0",
+        "bite_1",
+        "bite_2",
+        "bite_3"
+      ],
+      "actions": [
+        "bite"
+      ]
+    },
+    {
+      "file": "zombie_sprinter_death.png",
+      "columns": [
+        "death_0",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5"
+      ],
+      "actions": [
+        "death"
+      ]
+    },
+    {
+      "file": "zombie_brute_hit.png",
+      "columns": [
+        "hit_0",
+        "hit_1",
+        "hit_2"
+      ],
+      "actions": [
+        "hit"
+      ]
+    },
+    {
+      "file": "zombie_brute_bite.png",
+      "columns": [
+        "bite_0",
+        "bite_1",
+        "bite_2",
+        "bite_3"
+      ],
+      "actions": [
+        "bite"
+      ]
+    },
+    {
+      "file": "zombie_brute_death.png",
+      "columns": [
+        "death_0",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5"
+      ],
+      "actions": [
+        "death"
+      ]
+    },
+    {
+      "file": "zombie_blind_hit.png",
+      "columns": [
+        "hit_0",
+        "hit_1",
+        "hit_2"
+      ],
+      "actions": [
+        "hit"
+      ]
+    },
+    {
+      "file": "zombie_blind_bite.png",
+      "columns": [
+        "bite_0",
+        "bite_1",
+        "bite_2",
+        "bite_3"
+      ],
+      "actions": [
+        "bite"
+      ]
+    },
+    {
+      "file": "zombie_blind_death.png",
+      "columns": [
+        "death_0",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5"
+      ],
+      "actions": [
+        "death"
+      ]
+    },
+    {
+      "file": "zombie_carabiniere_hit.png",
+      "columns": [
+        "hit_0",
+        "hit_1",
+        "hit_2"
+      ],
+      "actions": [
+        "hit"
+      ]
+    },
+    {
+      "file": "zombie_carabiniere_bite.png",
+      "columns": [
+        "swing_0",
+        "swing_1",
+        "swing_2",
+        "swing_3"
+      ],
+      "actions": [
+        "baton"
+      ]
+    },
+    {
+      "file": "zombie_carabiniere_death.png",
+      "columns": [
+        "death_0",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5"
+      ],
+      "actions": [
+        "death"
+      ]
+    },
+    {
+      "file": "zombie_mutilated_hit.png",
+      "columns": [
+        "hit_0",
+        "hit_1",
+        "hit_2"
+      ],
+      "actions": [
+        "hit"
+      ]
+    },
+    {
+      "file": "zombie_mutilated_bite.png",
+      "columns": [
+        "bite_0",
+        "bite_1",
+        "bite_2",
+        "bite_3"
+      ],
+      "actions": [
+        "bite"
+      ]
+    },
+    {
+      "file": "zombie_mutilated_death.png",
+      "columns": [
+        "death_0",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5"
+      ],
+      "actions": [
+        "death"
+      ]
+    },
+    {
+      "file": "zombie_burning_hit.png",
+      "columns": [
+        "hit_0",
+        "hit_1",
+        "hit_2"
+      ],
+      "actions": [
+        "hit"
+      ]
+    },
+    {
+      "file": "zombie_burning_bite.png",
+      "columns": [
+        "bite_0",
+        "bite_1",
+        "bite_2",
+        "bite_3"
+      ],
+      "actions": [
+        "bite"
+      ]
+    },
+    {
+      "file": "zombie_burning_death.png",
+      "columns": [
+        "death_0",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5"
+      ],
+      "actions": [
+        "death"
+      ]
+    },
+    {
+      "file": "zombie_drunk_hit.png",
+      "columns": [
+        "hit_0",
+        "hit_1",
+        "hit_2"
+      ],
+      "actions": [
+        "hit"
+      ]
+    },
+    {
+      "file": "zombie_drunk_bite.png",
+      "columns": [
+        "bite_0",
+        "bite_1",
+        "bite_2",
+        "bite_3"
+      ],
+      "actions": [
+        "bite"
+      ]
+    },
+    {
+      "file": "zombie_drunk_death.png",
+      "columns": [
+        "death_0",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5"
+      ],
+      "actions": [
+        "death"
+      ]
+    },
+    {
+      "file": "zombie_cultist_hit.png",
+      "columns": [
+        "hit_0",
+        "hit_1",
+        "hit_2"
+      ],
+      "actions": [
+        "hit"
+      ]
+    },
+    {
+      "file": "zombie_cultist_bite.png",
+      "columns": [
+        "bite_0",
+        "bite_1",
+        "bite_2",
+        "bite_3"
+      ],
+      "actions": [
+        "bite"
+      ]
+    },
+    {
+      "file": "zombie_cultist_death.png",
+      "columns": [
+        "death_0",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5"
+      ],
+      "actions": [
+        "death"
+      ]
+    }
+  ],
+  "style": "original GBA-era top-down monster-catching RPG pixel art"
+}

@@ -1,0 +1,39 @@
+analyze:
+  extends: .flutter_3_44_2
+  stage: verify
+  needs: []
+  script:
+    - dart run tools/generate_balance.dart --check
+    - dart format --output=none --set-exit-if-changed lib test tools
+    - flutter analyze --fatal-infos --fatal-warnings
+
+unit_tests:
+  extends: .flutter_3_44_2
+  stage: verify
+  needs: []
+  script:
+    - set -o pipefail
+    - dart pub global activate junitreport
+    - flutter test --coverage --machine | dart pub global run junitreport:tojunit --output report.xml
+    # Soglie per area e totale in tools/coverage_policy.json. Fallisce anche
+    # se una libreria con codice non e caricata da nessun test: nel file
+    # LCOV mancherebbe da entrambi i lati della percentuale.
+    - dart run tools/check_coverage.dart
+  coverage: '/Line coverage: (\d+\.\d+)%/'
+  artifacts:
+    when: always
+    reports:
+      junit: report.xml
+    paths:
+      - coverage/lcov.info
+    expire_in: 1 week
+
+deps_check:
+  extends: .flutter_3_44_2
+  stage: verify
+  needs: []
+  allow_failure: true
+  rules:
+    - if: '$CI_COMMIT_BRANCH != "main"'
+  script:
+    - flutter pub outdated --no-transitive || true

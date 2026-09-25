@@ -1,0 +1,75 @@
+build_android_signed:
+  stage: build
+  tags:
+    - stepbound-local-android
+  interruptible: false
+  resource_group: stepbound-android-release
+  rules:
+    - if: '$CI_COMMIT_REF_PROTECTED == "true"'
+      when: manual
+      allow_failure: true
+    - when: never
+  before_script:
+    - flutter --version
+    - flutter pub get
+    - |
+      if [ -n "${ANDROID_KEYSTORE_BASE64:-}" ]; then
+        for var in ANDROID_STORE_PASSWORD ANDROID_KEY_PASSWORD ANDROID_KEY_ALIAS; do
+          if [ -z "$(printenv "$var")" ]; then
+            echo "ERRORE: $var non impostata: impossibile firmare la release." >&2
+            exit 1
+          fi
+        done
+        echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/release-keystore.jks
+        printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=release-keystore.jks\n' \
+          "$ANDROID_STORE_PASSWORD" "$ANDROID_KEY_PASSWORD" "$ANDROID_KEY_ALIAS" \
+          > android/key.properties
+        touch .stepbound-ci-signing
+      elif [ ! -f android/key.properties ]; then
+        echo "ERRORE: configura le variabili ANDROID_* oppure android/key.properties sul runner protetto." >&2
+        exit 1
+      fi
+  script:
+    - flutter build appbundle --release --build-number="$CI_PIPELINE_IID"
+  after_script:
+    - if [ -f .stepbound-ci-signing ]; then rm -f android/release-keystore.jks android/key.properties .stepbound-ci-signing; fi
+  artifacts:
+    name: "stepbound-aab-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - build/app/outputs/bundle/release/app-release.aab
+    expire_in: 1 month
+
+check_macos_runner:
+  stage: build
+  tags:
+    - stepbound-local-macos
+  needs: []
+  rules:
+    - when: manual
+      allow_failure: true
+  before_script: []
+  script:
+    - sw_vers
+    - xcodebuild -version
+    - pod --version
+    - flutter --version
+    - flutter doctor -v
+
+build_ios_signed:
+  stage: build
+  tags:
+    - stepbound-local-macos
+  interruptible: false
+  resource_group: stepbound-ios-release
+  rules:
+    - if: '$CI_COMMIT_REF_PROTECTED == "true"'
+      when: manual
+      allow_failure: true
+    - when: never
+  script:
+    - flutter build ipa --release --build-number="$CI_PIPELINE_IID"
+  artifacts:
+    name: "stepbound-ipa-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - build/ios/ipa/*.ipa
+    expire_in: 1 month

@@ -1,0 +1,33 @@
+name: stepbound
+description: Deterministic turn-based survival game prototype.
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: 3.12.2
+
+dependencies:
+  audioplayers: 6.8.1
+  flame: 1.38.2
+  flutter:
+    sdk: flutter
+  meta: 1.18.0
+  shared_preferences: 2.5.5
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  shared_preferences_platform_interface: 2.4.2
+  very_good_analysis: 10.3.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/audio/ambience/
+    - assets/audio/music/
+    - assets/audio/sfx/
+    - assets/levels/
+    - assets/sprites/
+    - assets/story/
+    - assets/tiles/
+    - assets/palette.gpl

@@ -1,0 +1,13 @@
+build_android_debug:
+  extends: .flutter_3_44_2
+  stage: build
+  rules:
+    - when: manual
+      allow_failure: true
+  script:
+    - flutter build apk --debug --build-number="$CI_PIPELINE_IID"
+  artifacts:
+    name: "stepbound-debug-apk-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - build/app/outputs/flutter-apk/app-debug.apk
+    expire_in: 1 week

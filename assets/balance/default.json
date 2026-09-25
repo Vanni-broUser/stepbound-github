@@ -1,0 +1,14 @@
+{
+  "actors": {
+    "player": {"tickCost": 1, "health": 6, "vision": 0, "hearing": 0, "contactDamage": 0},
+    "wanderer": {"tickCost": 2, "health": 1, "vision": 6, "hearing": 8, "contactDamage": 1},
+    "sprinter": {"tickCost": 1, "health": 1, "vision": 8, "hearing": 12, "contactDamage": 1},
+    "brute": {"tickCost": 3, "health": 2, "vision": 4, "hearing": 14, "contactDamage": 1},
+    "blind": {"tickCost": 2, "health": 1, "vision": 0, "hearing": 20, "contactDamage": 1},
+    "carabiniere": {"tickCost": 2, "health": 1, "vision": 6, "hearing": 8, "contactDamage": 1, "attackReach": 2},
+    "mutilated": {"tickCost": 1, "health": 1, "vision": 4, "hearing": 6, "contactDamage": 1, "stationary": true},
+    "burning": {"tickCost": 2, "health": 1, "vision": 6, "hearing": 8, "contactDamage": 1, "trailsFire": true},
+    "drunk": {"tickCost": 2, "health": 1, "vision": 6, "hearing": 8, "contactDamage": 1, "staggers": true},
+    "cultist": {"tickCost": 2, "health": 3, "vision": 6, "hearing": 8, "contactDamage": 1}
+  }
+}

@@ -1,0 +1,60 @@
+# Una pipeline per commit: quando esiste una merge request, la pipeline MR
+# sostituisce quella di branch per evitare build duplicate.
+workflow:
+  rules:
+    - if: '$GITLAB_CI == "false"'
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_PIPELINE_SOURCE == "web" || $CI_PIPELINE_SOURCE == "trigger"'
+    - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
+      when: never
+    - if: '$CI_COMMIT_BRANCH'
+
+# La build viene prima delle verifiche: i job che producono qualcosa sono
+# tutti manuali e non bloccanti (allow_failure), quindi si possono lanciare
+# appena parte la pipeline senza aspettare analisi e test. Le verifiche hanno
+# `needs: []` e partono subito comunque, nello stage successivo.
+stages:
+  - build
+  - verify
+
+variables:
+  PUB_CACHE: "$CI_PROJECT_DIR/.pub-cache"
+
+# Tutti i job girano sui runner `test`, come nelle pipeline degli altri
+# progetti; quelli firmati dichiarano i propri runner locali
+# (gitlab/package.yml), che sostituiscono questi.
+default:
+  image: ghcr.io/cirruslabs/flutter:3.44.0
+  interruptible: true
+  tags:
+    - test
+  before_script:
+    - flutter config --no-analytics
+    - flutter pub get
+
+cache:
+  key:
+    files:
+      - pubspec.lock
+  paths:
+    - .pub-cache/
+
+# cirruslabs non pubblica ancora un'immagine 3.44.2. I job containerizzati
+# partono dalla 3.44.0 e passano al tag richiesto da .fvmrc/pubspec.yaml.
+# I job firmati su runner locali non estendono questo template.
+.flutter_3_44_2:
+  variables:
+    FLUTTER_VERSION: "3.44.2"
+  before_script:
+    - FLUTTER_DIR="$(dirname "$(dirname "$(readlink -f "$(command -v flutter)")")")"
+    - git config --global --add safe.directory '*'
+    - git -C "$FLUTTER_DIR" fetch --depth 1 origin "refs/tags/$FLUTTER_VERSION:refs/tags/$FLUTTER_VERSION"
+    - git -C "$FLUTTER_DIR" checkout --quiet "$FLUTTER_VERSION"
+    - flutter --version
+    - flutter config --no-analytics
+    - flutter pub get
+
+include:
+  - local: 'gitlab/verify.yml'
+  - local: 'gitlab/build.yml'
+  - local: 'gitlab/package.yml'

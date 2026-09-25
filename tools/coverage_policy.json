@@ -1,0 +1,49 @@
+{
+  "about": "Minimum line coverage, checked by tools/check_coverage.dart after `flutter test --coverage`. The minimums sit a little under what the tests reach, so coverage can only go up: raise them when it does. A library counts in the first area whose paths match it.",
+  "total": 88,
+  "areas": [
+    {
+      "name": "platform",
+      "paths": [
+        "lib/game/audio/",
+        "lib/game/haptics/",
+        "lib/bootstrap.dart",
+        "lib/main.dart"
+      ],
+      "minimum": 80
+    },
+    {
+      "name": "persistence",
+      "paths": [
+        "lib/save/"
+      ],
+      "minimum": 90
+    },
+    {
+      "name": "core",
+      "paths": [
+        "lib/core/"
+      ],
+      "minimum": 95
+    },
+    {
+      "name": "ui",
+      "paths": [
+        "lib/ui/",
+        "lib/app.dart"
+      ],
+      "minimum": 92
+    },
+    {
+      "name": "game",
+      "paths": [
+        "lib/game/"
+      ],
+      "minimum": 78
+    }
+  ],
+  "excluded": {
+    "lib/main.dart": "the entry point: one line handing over to bootstrap()",
+    "lib/bootstrap.dart": "device set-up (screen orientation, immersive mode, the phone's audio): runs only on a device"
+  }
+}
