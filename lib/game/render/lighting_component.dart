@@ -13,6 +13,7 @@ final class LightingComponent extends Component {
     required this.area,
     required this.lights,
     required this.playerPosition,
+    this.darkness = PlaceSpec.defaultDarkness,
     this.tileSize = 16,
   }) : super(priority: 28);
 
@@ -28,7 +29,8 @@ final class LightingComponent extends Component {
   final Vector2 Function() playerPosition;
   final double tileSize;
 
-  static const double darkness = 0.9;
+  /// How dark the room is between its lights.
+  final double darkness;
 
   /// (radius, how much of the darkness it removes) from outer to inner.
   static const List<(double, double)> _lampRings = <(double, double)>[
@@ -36,13 +38,20 @@ final class LightingComponent extends Component {
     (25, 0.45),
     (16, 0.66),
   ];
+
+  /// A torch reaches further and burns brighter than a ceiling lamp.
+  static const List<(double, double)> _torchRings = <(double, double)>[
+    (50, 0.34),
+    (38, 0.52),
+    (26, 0.74),
+  ];
   static const List<(double, double)> _playerRings = <(double, double)>[
     (22, 0.28),
     (13, 0.5),
   ];
 
-  final ui.Paint _dark = ui.Paint()
-    ..color = const ui.Color.fromRGBO(2, 2, 8, darkness)
+  late final ui.Paint _dark = ui.Paint()
+    ..color = ui.Color.fromRGBO(2, 2, 8, darkness)
     ..isAntiAlias = false;
   final ui.Paint _cut = ui.Paint()
     ..blendMode = ui.BlendMode.dstOut
@@ -56,8 +65,12 @@ final class LightingComponent extends Component {
     _time += dt;
   }
 
-  /// 1 when lit, briefly near 0 when a flickering lamp stutters.
+  /// 1 when lit, briefly near 0 when a flickering lamp stutters; a torch
+  /// breathes gently with its flame instead.
   double _intensity(LightSpot light, int index) {
+    if (light.torch) {
+      return 0.9 + 0.1 * math.sin(_time * 7.3 + index * 1.7);
+    }
     if (!light.flickers) {
       return 1;
     }
@@ -92,23 +105,30 @@ final class LightingComponent extends Component {
         light.tile.x * tileSize + tileSize / 2,
         light.tile.y * tileSize + tileSize / 2,
       );
-      _pool(canvas, center, _lampRings, _intensity(light, i));
+      _pool(
+        canvas,
+        center,
+        light.torch ? _torchRings : _lampRings,
+        _intensity(light, i),
+      );
     }
     final feet = playerPosition();
     _pool(canvas, ui.Offset(feet.x, feet.y - 10), _playerRings, 1);
     canvas.restore();
 
-    // A warm tint under each working lamp.
+    // A warm tint under each working lamp, an orange one round a torch.
     for (var i = 0; i < lights.length; i++) {
       final light = lights[i];
       final intensity = _intensity(light, i);
-      _warm.color = ui.Color.fromRGBO(255, 200, 120, 0.07 * intensity);
+      _warm.color = light.torch
+          ? ui.Color.fromRGBO(255, 150, 60, 0.1 * intensity)
+          : ui.Color.fromRGBO(255, 200, 120, 0.07 * intensity);
       canvas.drawCircle(
         ui.Offset(
           light.tile.x * tileSize + tileSize / 2,
           light.tile.y * tileSize + tileSize / 2,
         ),
-        20,
+        light.torch ? 30 : 20,
         _warm,
       );
     }

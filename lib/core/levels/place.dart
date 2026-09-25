@@ -61,12 +61,14 @@ final class Legend {
   }
 }
 
-/// A ceiling lamp, or daylight through a door, inside a building.
+/// A ceiling lamp, or daylight through a door, inside a building, or a
+/// burning [torch], which throws a wider, warmer light.
 final class LightSpot {
-  const LightSpot(this.tile, {this.flickers = false});
+  const LightSpot(this.tile, {this.flickers = false, this.torch = false});
 
   final GridPoint tile;
   final bool flickers;
+  final bool torch;
 }
 
 /// A place as a level describes it: its ASCII [rows], what they mean, its
@@ -87,7 +89,12 @@ final class PlaceSpec {
     this.name,
     this.cardImage,
     this.alternateBackground,
+    this.torches = const <GridPoint>[],
+    this.darkness = defaultDarkness,
   });
+
+  /// How dark an unlit room is, between its lamps: nearly black.
+  static const double defaultDarkness = 0.9;
 
   final PlaceId id;
   final List<String> rows;
@@ -105,6 +112,15 @@ final class PlaceSpec {
   /// A second baked view of the same place, selected by the game when
   /// story state changes something visual without changing the layout.
   final String? alternateBackground;
+
+  /// Burning torches, in the place's own tile coordinates: fixed to walls
+  /// and columns, so they are not glyphs of their own. The game draws
+  /// their flames and they light the room like its lamps.
+  final List<GridPoint> torches;
+
+  /// How dark the room is between its lights, 0 to 1; only for indoor
+  /// places that are not [lit].
+  final double darkness;
 }
 
 /// A place laid on the level's grid at [origin].
@@ -124,6 +140,13 @@ final class Place {
   bool get lit => spec.lit;
   String? get name => spec.name;
   String? get cardImage => spec.cardImage;
+  double get darkness => spec.darkness;
+
+  /// The [PlaceSpec.torches], on the shared grid.
+  late final List<GridPoint> torches = <GridPoint>[
+    for (final torch in spec.torches)
+      GridPoint(origin.x + torch.x, origin.y + torch.y),
+  ];
 
   int get width => rows.first.length;
   int get height => rows.length;
@@ -176,6 +199,8 @@ final class Place {
           LightSpot(tile)
         else if (glyph == '+')
           LightSpot(tile, flickers: true),
+    if (indoor)
+      for (final torch in torches) LightSpot(torch, torch: true),
   ];
 }
 

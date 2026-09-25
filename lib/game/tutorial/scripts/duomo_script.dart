@@ -74,16 +74,18 @@ final class DuomoScript extends TutorialScript {
 
   @override
   void onEvent(WorldEvent event) {
+    // The robe lies in a backpack, like everything Mario picks up.
+    if (event case PickedUpEvent(cultistRobe: true)) {
+      say(
+        TutorialPrompt(
+          const <TutorialLine>[TutorialLine(robeFoundLine)],
+          delay: TutorialDirector.pickupDelay,
+          onDismissed: host.collectCultistRobe,
+        ),
+      );
+      return;
+    }
     if (event case NoInteractionEvent(:final at)) {
-      if (at == duomoUpperRobeTile &&
-          !progress.unlockedOutfits.contains(PlayerOutfit.cultist)) {
-        say(
-          TutorialPrompt(const <TutorialLine>[
-            TutorialLine(robeFoundLine),
-          ], onDismissed: host.collectCultistRobe),
-        );
-        return;
-      }
       final line = switch (at) {
         _ when !_ringDelivered && at == duomoStairCultistTile =>
           const TutorialLine.cultist(stairBlockedLine),

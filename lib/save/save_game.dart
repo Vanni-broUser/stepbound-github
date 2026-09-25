@@ -98,7 +98,7 @@ final class SaveGame {
 
   /// A save of any other format reads as an empty slot. Bump it whenever
   /// what a save holds changes: old saves are dropped, never migrated.
-  static const int format = 17;
+  static const int format = 18;
 
   /// 1 to [SaveRepository.slotCount].
   final int slot;
