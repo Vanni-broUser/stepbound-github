@@ -95,9 +95,14 @@ jobs:
           cache: true
       - run: flutter pub get
       - run: flutter build apk --debug --build-number=${{ github.run_number }}
+      # Su un evento pull_request GITHUB_SHA e il merge commit sintetico,
+      # che non esiste su nessun branch: l'artefatto va marcato con il
+      # commit vero, quello che si vede nella PR.
       - name: Sha corto del commit
         id: commit
-        run: echo "short=${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
+        env:
+          SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: echo "short=${SHA::8}" >> "$GITHUB_OUTPUT"
       # Scaricabile da Actions -> la run -> Artifacts. GitHub lo serve come
       # zip: dentro c'e app-debug.apk, da installare con
       # `adb install app-debug.apk`.
