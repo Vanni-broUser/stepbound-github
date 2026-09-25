@@ -719,15 +719,19 @@ void main() {
 
       // Hold, then swipe with the same finger: aimed and fired at once.
       await tester.pump();
-      final before = _splats(tester).length;
+      // Splats age by the wall clock here, so older ones may dry off in
+      // between: count only the new ones on top.
+      final before = _splats(tester).lastOrNull;
       finger = await tester.startGesture(zone);
       await holdLongEnough();
       expect(game.aiming.value, isTrue);
       await tester.pump();
-      expect(_splats(tester), hasLength(before + 1), reason: 'the hold');
+      final hold = _splats(tester).last;
+      expect(hold, isNot(same(before)), reason: 'the hold');
       await finger.moveBy(const Offset(0, -40));
       await tester.pump();
-      expect(_splats(tester), hasLength(before + 2), reason: 'the swipe');
+      expect(_splats(tester).last, isNot(same(hold)), reason: 'the swipe');
+      expect(_splats(tester), contains(same(hold)));
       expect(game.aiming.value, isFalse);
       expect(shots().single.direction, Direction.north);
       expect(mario.component<PositionComponent>().facing, Direction.north);
