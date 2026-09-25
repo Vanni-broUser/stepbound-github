@@ -144,10 +144,11 @@ final class PlayerAudio implements GameAudio {
       if ((channel.target - target).abs() < 0.01) {
         return;
       }
-      if (target > 0) {
-        channel.ensurePlaying(paused: _paused);
-      }
-      channel.fadeTo(target, 1.5);
+      // The new target first: coming back from silence it is what says
+      // the loop has to start again.
+      channel
+        ..fadeTo(target, 1.5)
+        ..ensurePlaying(paused: _paused);
     }
     _startFader();
   }
@@ -234,13 +235,22 @@ final class PlayerAudio implements GameAudio {
   Future<void> dispose() async {
     _fader?.cancel();
     for (final channel in _channels) {
-      await channel.player.dispose();
+      await channel.dispose();
     }
     await _guard(_device.dispose());
   }
 }
 
 /// A looping player and the volume it is gliding to.
+///
+/// Every call that changes what the player plays -- its source, starting,
+/// pausing, stopping -- goes through one queue and waits for the one before.
+/// Overlapping them is what broke the sound: on the web a start that landed
+/// while a new source was still being set up made a second audio element,
+/// which nothing held any more, so it looped on for good, over the fades,
+/// over the pause, even with the app in the background. Whether it should
+/// be heard is a wish ([_wanted]) that the queue carries out when its turn
+/// comes, so a burst of changes settles on the last one.
 final class _Channel {
   _Channel(this.player);
 
@@ -251,25 +261,29 @@ final class _Channel {
   /// Volume change per second of the current fade.
   double _rate = 1;
   String? _file;
+  Future<void> _queue = Future<void>.value();
+
+  /// Whether it should be playing, and whether the player is.
+  bool _wanted = false;
   bool _playing = false;
 
   /// The browser refused to start it before the first tap.
   bool _blocked = false;
 
+  void _enqueue(Future<void> Function() operation) {
+    _queue = _queue.then((_) => _guard(operation()));
+  }
+
   void load(String file, {required double master, required bool paused}) {
     _file = file;
     volume = 0;
-    _playing = false;
-    unawaited(
-      _guard(() async {
-        await player.stop();
-        await player.setVolume(0);
-        await player.setSource(file);
-        if (!paused) {
-          await _start();
-        }
-      }()),
-    );
+    _enqueue(() async {
+      await player.stop();
+      _playing = false;
+      await player.setVolume(0);
+      await player.setSource(file);
+    });
+    _want(playing: !paused);
   }
 
   void fadeTo(double value, double seconds) {
@@ -278,32 +292,41 @@ final class _Channel {
   }
 
   void ensurePlaying({required bool paused}) {
-    if (_file == null || _playing || paused || target <= 0) {
+    if (_file == null || paused || target <= 0) {
       return;
     }
-    unawaited(_guard(_start()));
+    _want(playing: true);
   }
 
   void retryIfBlocked() {
     if (_blocked && target > 0) {
-      unawaited(_guard(_start()));
+      _want(playing: true);
     }
   }
 
-  Future<void> _start() async {
+  void pause() => _want(playing: false);
+
+  void _want({required bool playing}) {
+    _wanted = playing;
+    _enqueue(_settle);
+  }
+
+  /// Brings the player in line with [_wanted], as it is now.
+  Future<void> _settle() async {
+    if (_wanted == _playing) {
+      return;
+    }
+    if (!_wanted) {
+      _playing = false;
+      await player.pause();
+      return;
+    }
     try {
       await player.resume();
       _playing = true;
       _blocked = false;
     } on Object {
       _blocked = true;
-    }
-  }
-
-  void pause() {
-    if (_playing) {
-      _playing = false;
-      unawaited(_guard(player.pause()));
     }
   }
 
@@ -325,6 +348,12 @@ final class _Channel {
       pause();
     }
     return volume != target;
+  }
+
+  /// Lets go of the player once whatever it is doing is done.
+  Future<void> dispose() {
+    _enqueue(player.dispose);
+    return _queue;
   }
 }
 
