@@ -59,9 +59,11 @@ gira in `unit_tests` senza aggiungere dipendenze.
 
 ## Fase 2 - Rigenerazione verificata in CI (fatta)
 
-`tools/build_levels.py` e l'unico entry point documentato: esegue tutti gli 11
-baker dei livelli in ordine deterministico e dipinge i 19 sfondi. I baker
-restano invocabili singolarmente (`python tools/build_church.py`).
+`tools/build_levels.py` e l'unico entry point documentato: esegue i baker dei
+livelli in ordine deterministico. Erano 11 baker e 19 sfondi; con la Fase 3 ne
+resta uno, `build_street_level.py`, e quattro sfondi, quelli della citta. I
+baker restano invocabili singolarmente (`python tools/build_street_level.py`),
+e lo script esegue anche l'atlas della Fase 3.
 
 `python tools/build_levels.py --check` rigenera in una directory temporanea -
 un albero di symlink verso il repository, con `assets/levels` vuoto e
@@ -86,7 +88,7 @@ variando `PYTHONHASHSEED`), il giro completo dura pochi secondi (3,3 s in
 locale) quindi non serve spezzarlo per posto, e nessun PNG committato era
 divergente dal proprio baker: la Fase 2 nasce verde.
 
-## Fase 3 - Rendering da tile atlas (iniziata)
+## Fase 3 - Rendering da tile atlas (fatta per 14 posti su 18)
 
 E la fase che elimina il problema invece di sorvegliarlo. Il renderer
 dipinge il posto a runtime dalle stesse `rows` che legge la simulazione,
@@ -113,6 +115,10 @@ spariscono. Un posto nuovo diventa un file ASCII e basta.
 - La scelta fra i due renderer sta nel `PlaceSpec`: un posto convertito non
   ha piu `background`. I due percorsi convivono, dietro `PlaceBackground`,
   finche l'ultimo posto non e convertito.
+
+Quattordici dei diciotto posti hanno smesso di avere uno sfondo: tutti gli interni e i
+posti che sono un interno visto dall'alto. Restano cotti i quattro della
+citta, e la sezione "La citta" sotto dice perche.
 
 ### I primi due posti
 
@@ -154,9 +160,47 @@ convertiti per l'occhio, senza dispositivo.
   e piu corretto.
 - **Peso.** I tre PNG cancellati pesavano 43 KB, l'atlas piu i tre oggetti
   piu il manifest ne pesano 27, e serviranno a tutti i posti convertiti
-  dopo. Il baker `build_duomo_upper.py` (120 righe) non c'e piu;
-  `build_station.py` resta perche dipinge ancora la stazione e il
-  sottopasso, e si potra cancellare quando saranno convertiti anche quelli.
+  dopo. Il baker `build_duomo_upper.py` (120 righe) non c'e piu.
+  `build_station.py`, `build_mall.py` e `build_airliner.py`, che a quel
+  punto dipingevano ancora altri posti, sono oggi solo librerie di painter:
+  non hanno piu un `main` ne un PNG da produrre.
+
+- **Quasi tutto "sborda sulla cella sopra".** In vista 3/4 un monitor, uno
+  scaffale, una pianta o la gamba di un cancello stanno nella riga sopra
+  quella che li possiede. Una regola puo quindi portarsi dietro `up`: per
+  ogni suo bucket, i tile che cadono sulla cella sopra, con la stessa
+  variante, cosi le due meta restano un disegno solo (`leaning()` dipinge su
+  una tela alta due celle e taglia). Le righe si disegnano in ordine di
+  lettura, e cio che un pezzo piu in basso appoggia sulla riga sopra sta
+  sopra a cio che quella riga aveva disegnato, come nel ciclo dall'alto in
+  basso del baker.
+- **Un oggetto che non e una corsa di un glifo dice dove sta.** Le vetrine di
+  un centro commerciale hanno ognuna un nome e un aspetto che nessun glifo
+  dice, e il muso della locomotiva segue una curva calcolata dalle righe.
+  Un oggetto puo dire `at` e portarsi dietro `under`, le righe sopra cui e
+  stato dipinto: il test fallisce appena non sono piu quelle del posto, e
+  non c'e modo di lasciare un'immagine sopra a una disposizione per cui non
+  e stata dipinta. Sono anche gli unici punti in cui il generatore legge le
+  righe di un posto, e per questo motivo.
+- **Le chiavi nate dal lavoro.** `rowHas` (la riga contiene il glifo: il
+  corridoio di una cabina e ogni riga senza sedili), `beforeRun` (cosa c'e
+  prima della corsa di questo glifo: il cuscino di un lettino sta dal lato
+  del muro), `between` (qualcosa sopra e qualcosa sotto nella colonna: il
+  vuoto fra due tetti, distinto dal buio fuori mappa). Piu `pattern` per i
+  motivi che i baker scrivevano sulla posizione, che sono tantissimi:
+  `(x * 5) % 12`, `(x * 7 + y * 5) % 6`, `x % 4`.
+- **Un flusso casuale per posto.** Un solo generatore condiviso spostava
+  tutti i posti dopo quello aggiunto, e ogni conversione riscriveva quelle
+  gia fatte. Ora ogni posto e seminato dal proprio nome.
+- **Un renderer scritto due volte va tenuto d'accordo.** Il disegno di
+  riferimento del generatore (`--preview`) e il renderer Dart sono due
+  scritture della stessa cosa. `TILE_RENDER_DUMP=DIR flutter test
+  test/levels/tile_place_render_test.dart` scrive cio che il gioco disegna e
+  `python tools/build_tile_atlas.py --compare DIR` lo confronta al byte con
+  il riferimento: i 14 posti concordano.
+- **Peso, in tutto l'MR.** I 15 PNG cancellati pesavano 199 KB. L'atlas (52 KB), i 20
+  oggetti (22 KB) e il manifest (113 KB, testo che l'APK comprime) ne
+  pesano 187, e l'atlas si decodifica una volta sola per tutto il gioco.
 
 ### Come si converte un posto
 
@@ -173,17 +217,24 @@ La ricetta, dopo averla fatta due volte. Un MR per posto,
    diventano tile; dall'altra il ciclo sui glifi, che diventa il renderer.
    I painter con dipendenze dal contesto (`room.at(x - 1, y)`) diventano
    chiavi `neighbour`; quelli con un pattern sulla posizione diventano
-   `pattern`; quelli che guardano una riga notevole diventano `firstRow`.
+   `pattern`; quelli che guardano una riga notevole diventano `firstRow`,
+   `rowHas`, `beforeRun` o `between`. Quelli che scrivono sopra la propria
+   cella diventano `leaning()`; quelli che scrivono su un'area, oggetti.
 3. **Aggiungi il posto a `PLACES` in `tools/build_tile_atlas.py`.** I
    painter che servono solo a quel posto si spostano dentro il generatore;
-   quelli condivisi si importano dal baker che resta.
+   quelli condivisi restano nel loro modulo (`build_station.py`,
+   `build_mall.py`, `build_airliner.py`, che dopo l'ultima conversione sono
+   solo librerie di painter).
 4. **Verifica prima di scrivere una riga di Dart:**
    `python tools/build_tile_atlas.py --preview DIR` e confronta con il PNG
-   cotto. Se non ci somigli qui, il renderer non ci somigliera.
+   cotto, per glifo: la struttura (muri, porte, arredi) deve venire a 0% e
+   la differenza stare nel rumore casuale. Se non ci somigli qui, il
+   renderer non ci somigliera.
 5. **Togli `background` dal `PlaceSpec`**, cancella il PNG, la riga in
    `BAKERS` di `tools/build_levels.py`, e il baker se non dipinge altro.
 6. **`python tools/build_levels.py --check`**, `dart format`,
-   `flutter analyze --fatal-infos --fatal-warnings`, `flutter test`.
+   `flutter analyze --fatal-infos --fatal-warnings`, `flutter test`, e la
+   verifica del renderer (`--compare`, sopra).
 7. **Guarda il posto a schermo** e allega il confronto all'MR.
 
 ### Le trappole gia pagate
@@ -199,49 +250,87 @@ La ricetta, dopo averla fatta due volte. Un MR per posto,
 - **I painter che dipingono un'area.** Se un painter prende un rettangolo
   invece di una cella, non e un tile: e un oggetto. Non provare a
   spezzarlo.
+- **Il vicinato finto va costruito attorno alla cella giusta.** Un painter
+  che chiede `room.at(x - 1, y)` riceve un `Neighbourhood`, e `cell` e dove
+  e dipinto. Se il tile si dipinge in `(gx, 0)` perche la parita lo
+  richiede, i vicini si chiedono attorno a `(gx, 0)`, non a `(0, 0)`.
+- **Le varianti di un tile con overhang vanno in coppia.** `atlas.pairs`
+  scarta una variante solo se ripete una coppia gia vista, dall'una e
+  dall'altra parte: due liste deduplicate ciascuna per conto suo avrebbero
+  lunghezze diverse e le due meta di un disegno si staccherebbero.
+- **Gli oggetti e le regole hanno un ordine.** Gli oggetti si disegnano dopo
+  `structures` e prima di `foreground`: cio che il baker dipingeva dopo un
+  oggetto (i bordi scuri di lato, le panche) va in `foreground`.
 - **`comment_references` e attivo** e `--fatal-infos` lo rende bloccante:
   un `[nome]` in un commento deve essere visibile da dove sta il commento.
 - **L'immagine dell'atlas sta su `LoadedTileAtlas`**, non sul manifest, che
   ne tiene solo il percorso.
 
-### Quanto sono pronti i posti che restano
+### Come e andata
 
-Percentuale di celle distinte nel PNG cotto: piu e bassa, piu il posto e
-gia fatto di tile.
+Pixel diversi dal PNG cotto che ogni posto ha sostituito. Non sono errori: e
+dove cade il rumore casuale, che non ha una posizione giusta. Per ogni posto
+la struttura (muri, porte, scale, arredi) viene a 0%.
 
-| Posto | Tile | Celle uniche | Baker |
+| Posto | Tile | Pixel diversi | Cosa differisce |
 | --- | --- | --- | --- |
-| `barBackroom` | 18x12 | 6% | build_bar_backroom.py (65 righe, suo) |
-| `stationUnderpass` | 30x8 | 58% | build_station.py (2 posti) |
-| `airlinerCabin` | 44x13 | 53% | build_airliner.py (2 posti) |
-| `mallFirst` | 36x15 | 64% | build_mall.py (2 posti) |
-| `barracks` | 22x17 | 66% | build_barracks.py (suo) |
-| `duomo` | 34x25 | 67% | build_duomo.py (suo) |
-| `mallGround` | 48x28 | 67% | build_mall.py (2 posti) |
-| `trainInterior` | 77x12 | 68% | build_train.py (suo) |
-| `airlinerRoofs` | 30x20 | 68% | build_airliner.py (2 posti) |
-| `barArcobaleno` | 22x14 | 72% | build_bar.py (suo) |
-| `church` | 24x20 | 78% | build_church.py (suo) |
-| `station` | 36x20 | 82% | build_station.py (2 posti) |
-| `street` | 44x42 | **93%** | build_street_level.py (2897 righe, 4 posti) |
-| `mallNorthStreet` | 74x43 | **90%** | build_street_level.py |
-| `northDistrict` | 90x60 | **89%** | build_street_level.py |
-| `harbour` | 144x62 | **93%** | build_street_level.py |
+| `duomoUpper` | 38x22 | 1,2% | grana del pavimento |
+| `trainInterior` | 77x12 | 1,5% | grana del pavimento, rifiuti, carte |
+| `mallGround` | 48x28 | 1,8% | fuliggine sulle vetrine, sporco |
+| `airlinerCabin` | 44x13 | 1,9% | grana della moquette, pannelli |
+| `mallFirst` | 36x15 | 2,4% | fuliggine, sporco, merci sparse |
+| `airlinerRoofs` | 30x20 | 3,4% | grana del catrame, macerie |
+| `barracks` | 22x17 | 3,8% | grana, carte, monitor e fogli delle scrivanie |
+| `barArcobaleno` | 22x14 | 3,9% | affresco che si scrosta, vetri |
+| `stationUnderpass` | 30x8 | 5,8% | mattonelle saltate, sporco |
+| `church` | 24x20 | 6,2% | affresco dell'abside, macerie |
+| `stationFarSide` | 36x15 | 11,5% | massicciata, colature, bolle |
+| `station` | 36x20 | 15,4% | massicciata, macerie, colature |
 
-Ordine consigliato: `barBackroom` per primo, e un'ora di lavoro e serve a
-prendere confidenza; poi gli interni dall'alto della tabella, che sono
-tutti come quelli gia fatti. I due posti del centro commerciale, i due
-dell'aereo e i due della stazione conviene farli a coppie: il baker si
-cancella solo con l'ultimo.
+`duomo` e `barBackroom`, convertiti prima, hanno la loro misura nei commit.
+Le percentuali piu alte sono i posti sporchi all'aperto, dove nessuna cella
+si ripete mai.
 
-I quattro della vista 3/4 esterna vanno per ultimi e **sono un problema
-diverso**, non solo piu grande: sono disegnati in prospettiva, dove un
-palazzo attraversa molte celle come il vagone attraversa le sue. Sono il
-caso in cui la Fase 3 puo ancora dire di no, e la decisione va ripresa li,
-con la stessa misura: si converte `street` per primo del gruppo, si guarda,
-e se non regge ci si ferma lasciando i quattro cotti. Non e un fallimento:
-un renderer a tile per gli interni e un baker per la citta e una divisione
-onesta, e le Fasi 1 e 2 continuano a sorvegliare cio che resta cotto.
+### La citta: perche resta cotta
+
+Il punto di decisione previsto dal piano era: se la resa non regge, ci si
+ferma. La resa dei quattordici posti regge, ma i quattro che restano non sono lo
+stesso problema, e la misura lo dice.
+
+| Posto | Tile | Celle di edificio | Glifi distinti |
+| --- | --- | --- | --- |
+| `street` | 44x42 | 76% | 26 |
+| `mallNorthStreet` | 74x43 | 59% | 37 |
+| `northDistrict` | 90x60 | 79% | 36 |
+| `harbour` | 144x62 | 26% | 44 |
+
+Tre motivi, in ordine di peso:
+
+- **Gli edifici non stanno nelle righe.** Il baker divide ogni fascia di
+  edificio in palazzi larghi 3-6 tile scegliendo a caso (`segments`), e a caso
+  colore, tetto e finestre di ognuno. Dove finisce un palazzo e dove comincia
+  il successivo non e scritto nelle righe ASCII: e uno stato del baker. Un
+  renderer a tile dovrebbe rifarlo, e allora l'atlas sarebbe il baker con un
+  altro nome, e i due posti da tenere d'accordo sarebbero ancora due.
+- **Cio che resta e un oggetto, e sono centinaia.** Ospedale, stazione, Duomo
+  e chiesa visti dall'alto, cantiere, fusoliera dell'aereo con ali e motori
+  ricavati da poligoni e levigati, auto, fontane, barche: ognuno e un disegno
+  unico steso su un rettangolo. Convertirli e spostare il PNG in pezzi piu
+  piccoli, ancorati a mano con `at`, senza che le righe li descrivano.
+- **Il pavimento ha un contesto lungo.** `Level.surface` decide di che cosa
+  e pavimentato un oggetto scorrendo lungo la riga e la colonna finche trova
+  un marciapiede, una strada o un selciato, e in caso di parita fa votare i
+  vicini. Nessuna chiave a bit lo esprime senza riscrivere quella funzione.
+
+Non e un fallimento: un renderer a tile per gli interni e un baker per la
+citta e la divisione onesta che il piano annunciava. Le Fasi 1 e 2 continuano
+a sorvegliare i quattro sfondi che restano (dimensione ed esattezza dei
+pixel in CI), e `build_levels.py` non ha altro da eseguire che
+`build_street_level.py`.
+
+Se un giorno si riprende, il posto da cui partire e `harbour`: e quello con
+meno edifici (26%), piu acqua e piu regolarita, ed e il piu pesante da tenere
+cotto (345 KB, piu dei 187 di tutto l'atlas).
 
 ### Criteri di accettazione, per ogni posto convertito
 
