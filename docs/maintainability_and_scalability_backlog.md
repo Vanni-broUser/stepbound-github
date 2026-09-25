@@ -23,16 +23,19 @@ management framework:
 
 ## P2 — Make asset generation reproducible
 
-The Python asset tools have no pinned Python/Pillow environment, the largest
+The Python asset tools had no pinned Python/Pillow environment, the largest
 generator is over two thousand lines, and one story-image tool contains a
-developer-specific downloads path. CI verifies some resulting contracts but
-does not prove that checked-in assets can be regenerated reproducibly.
+developer-specific downloads path. CI verified some resulting contracts but
+did not prove that checked-in assets can be regenerated reproducibly.
 
-- Pin Python, Pillow and the expected `ffmpeg` version.
-- Replace machine-specific paths with command-line arguments.
-- Provide one documented asset-build entry point and deterministic seeds.
-- Split the street generator into surfaces, buildings and props modules.
-- Add a CI check for dimensions, manifests and deterministic output hashes.
+The levels are no longer part of this: see `docs/level_pipeline.md` for
+what is left of them. What is left here:
+
+- Pin the expected `ffmpeg` version, and the environment of the sprite, audio
+  and quest-item generators.
+- Replace machine-specific paths with command-line arguments
+  (`tools/process_story_images.py`).
+- Extend the regeneration check to the sprite atlases and the audio.
 
 ## P3 — What is left of the save hardening
 

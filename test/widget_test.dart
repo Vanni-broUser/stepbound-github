@@ -8,6 +8,7 @@ import 'package:stepbound/game/audio/game_audio.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/input/touch_controls.dart';
 import 'package:stepbound/game/progress.dart';
+import 'package:stepbound/game/render/crucified_zombie_component.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/game/render/interact_glint_component.dart';
 import 'package:stepbound/game/stepbound_game.dart';
@@ -257,6 +258,179 @@ void main() {
       pickups.map((pickup) => pickup.id),
       containsAll(<String>[episcopalRingPickupId, cultistRobePickupId]),
     );
+  });
+
+  testWidgets('the mass leaves four cultists across the nave, Don Angelo '
+      'dead and the key beside him', (tester) {
+    return tester.runAsync(() async {
+      final game = await _pumpReadyGame(tester);
+      final map = game.simulation.map;
+      final key = game.simulation.pickups[duomoKeyPickupId]!;
+      expect(key.active, isFalse);
+      expect(map.tileAt(duomoPriestCorpseTile).isWalkable, isTrue);
+
+      game.startDuomoMassacre();
+      await tester.pump();
+
+      final cultists = game.simulation.entities.values
+          .where((entity) => entity.kind == EntityKind.cultist)
+          .toList();
+      expect(cultists, hasLength(4));
+      expect(
+        cultists.map(
+          (cultist) => cultist.component<PositionComponent>().position,
+        ),
+        unorderedEquals(duomoCultistSpawns),
+      );
+      expect(
+        cultists.every(
+          (cultist) => cultist.component<HealthComponent>().current == 3,
+        ),
+        isTrue,
+        reason: 'three shots each',
+      );
+      expect(key.active, isTrue, reason: 'the backpack is there to be taken');
+      expect(
+        map.tileAt(duomoPriestCorpseTile).isWalkable,
+        isFalse,
+        reason: 'Mario walks around the body, not over it',
+      );
+      // Nobody of the community is left standing in the nave.
+      for (final tile in <GridPoint>[
+        duomoPriestTile,
+        duomoWelcomingCultistTile,
+        duomoStairCultistMovedTile,
+      ]) {
+        expect(map.tileAt(tile).isWalkable, isTrue, reason: '$tile');
+      }
+
+      // Playing it again changes nothing: a load calls it a second time.
+      game.startDuomoMassacre();
+      await tester.pump();
+      expect(
+        game.simulation.entities.values.where(
+          (entity) => entity.kind == EntityKind.cultist,
+        ),
+        hasLength(4),
+      );
+    });
+  });
+
+  testWidgets('the crucified zombie hangs over the altar only after the '
+      'mass, moves on its own and groans across the nave', (tester) {
+    return tester.runAsync(() async {
+      final audio = SilentAudio();
+      final game = await _pumpReadyGame(tester, audio: audio);
+      Iterable<CrucifiedZombieComponent> onTheCross() =>
+          game.world.children.whereType<CrucifiedZombieComponent>();
+      expect(onTheCross(), isEmpty, reason: 'nothing there before the mass');
+
+      game.progress.meet(EntityKind.cultist);
+      game.startDuomoMassacre();
+      // Its sheet is loaded before it is mounted, like every sprite.
+      await game.ready();
+      await tester.pump();
+
+      final cross = onTheCross().single;
+      expect(
+        cross.position,
+        Vector2(
+          duomoCrucifixTile.x * StepboundGame.tileSize,
+          duomoCrucifixTile.y * StepboundGame.tileSize,
+        ),
+      );
+      // Scenery, not an actor: it is in nobody's way and nothing in the
+      // simulation stands there, so it can neither be walked into nor bite.
+      expect(game.simulation.entityAt(duomoCrucifixTile), isNull);
+      expect(
+        game.simulation.map.tileAt(duomoCrucifixTile).isWalkable,
+        isFalse,
+        reason: 'it hangs on the back wall',
+      );
+      expect(
+        game.simulation.entities.values.where(
+          (entity) => entity.kind == EntityKind.cultist,
+        ),
+        hasLength(4),
+        reason: 'the four in the nave, and no fifth one on the cross',
+      );
+
+      // Mario in the Duomo hears it thrash; the fit itself is the sound.
+      game.simulation.player.component<PositionComponent>().position =
+          game.simulation.portals[duomoPortalTile]!.to;
+      audio.played.clear();
+      var seconds = 0.0;
+      while (!cross.isTwitching && seconds < CrucifiedZombieComponent.maxRest) {
+        game.update(1 / 60);
+        seconds += 1 / 60;
+      }
+      expect(cross.isTwitching, isTrue, reason: 'it moves on its own');
+      expect(audio.played, contains(Sfx.zombieAlert));
+
+      // From another place it is out of earshot.
+      game.simulation.player.component<PositionComponent>().position =
+          trainMapStandTile;
+      audio.played.clear();
+      for (var i = 0; i < 60 * 30; i++) {
+        game.update(1 / 60);
+      }
+      expect(audio.played, isNot(contains(Sfx.zombieAlert)));
+    });
+  });
+
+  testWidgets('the key found beside Don Angelo shows on the HUD and opens '
+      'the door upstairs', (tester) {
+    return tester.runAsync(() async {
+      final game = await _pumpReadyGame(tester);
+      // Their own lesson is not what is being tested here: met already, it
+      // does not queue itself in front of the lines that are.
+      game.progress.meet(EntityKind.cultist);
+      game
+        ..startDuomoMassacre()
+        ..unlock(HudElement.interact);
+      final key = game.simulation.pickups[duomoKeyPickupId]!;
+      final mario = game.simulation.player.component<PositionComponent>()
+        ..position = key.position.step(Direction.east)
+        ..facing = Direction.west;
+      Future<void> use() async {
+        game.pressInteract();
+        for (var i = 0; i < 60; i++) {
+          game.update(1 / 20);
+        }
+        await tester.pump();
+      }
+
+      await use();
+      expect(key.collected, isTrue);
+      expect(game.hud.value, contains(HudElement.duomoKey));
+      expect(
+        (game.cover.value! as PromptCover).lines.single.text,
+        BackpacksScript.duomoKeyFound,
+      );
+      // The badge is drawn with the rest of the controls, once the line
+      // telling of it is gone.
+      await tester.tap(find.byKey(const ValueKey<String>('gameplay-dialogue')));
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey<String>('hud-duomo-key')),
+        findsOneWidget,
+      );
+
+      // The same key, used on the door of the upper floor.
+      mario
+        ..position = duomoUpperLockedDoorTile.step(Direction.south)
+        ..facing = Direction.north;
+      await use();
+      expect(
+        game.simulation.map.tileAt(duomoUpperLockedDoorTile).isWalkable,
+        isTrue,
+      );
+      expect(game.hud.value, isNot(contains(HudElement.duomoKey)));
+      expect(
+        (game.cover.value! as PromptCover).lines.single.text,
+        DuomoScript.keyUsedLine,
+      );
+    });
   });
 
   testWidgets('the Duomo robe fades Mario into the occultist outfit and '
@@ -934,7 +1108,7 @@ void main() {
     return tester.runAsync(() async {
       final game = await _pumpReadyGame(tester);
       game.update(1 / 30);
-      expect(game.drawnPlaces, <String>[place(PlaceId.street).background]);
+      expect(game.drawnPlaces, <String>['tiles:street']);
 
       game.simulation.player.component<PositionComponent>()
         ..position = const GridPoint(16, 7)
@@ -943,7 +1117,8 @@ void main() {
         ..pressDirection(Direction.north)
         ..releaseDirection(Direction.north)
         ..update(0.3);
-      expect(game.drawnPlaces, <String>[place(PlaceId.barracks).background]);
+      // The barracks are painted from the tile atlas: no picture to name.
+      expect(game.drawnPlaces, <String>['tiles:barracks']);
     });
   });
 
@@ -967,14 +1142,15 @@ void main() {
       game.update(1 / 30);
 
       expect(world.map.tileAt(stationTrainDoorTile).isWalkable, isFalse);
-      expect(game.drawnPlaces, <String>['assets/levels/station_far_side.png']);
+      // The far platform is painted from the tile atlas: what the story
+      // opens is the railcar's door, an object in it, not a second
+      // picture of the whole place.
+      expect(game.drawnPlaces, <String>['tiles:stationFarSide']);
 
       progress.remember(StoryMemory.luigiRescued);
       game.update(1 / 30);
       expect(world.map.tileAt(stationTrainDoorTile).isWalkable, isTrue);
-      expect(game.drawnPlaces, <String>[
-        'assets/levels/station_far_side_open.png',
-      ]);
+      expect(game.drawnPlaces, <String>['tiles:stationFarSide:open']);
     });
   });
 
