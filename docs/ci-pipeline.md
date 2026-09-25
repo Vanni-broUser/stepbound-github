@@ -42,6 +42,28 @@ Il web non ha un job: non distribuiamo il gioco sul browser, lo usiamo solo
 per provarlo in locale con `flutter build web` o `flutter run -d chrome`, e
 `analyze` piu i test coprono gia gli errori di compilazione.
 
+## GitHub Actions
+
+Il repository e specchiato su GitHub, dove vivono le pull request, e
+`.github/workflows/ci.yml` rifa li le stesse verifiche: `analyze` (con
+`generate_balance.dart --check`, formato e analisi), `unit_tests` (test,
+copertura e `check_coverage.dart`, con `lcov.info` come artefatto) e
+`levels_check`, non bloccante come il suo gemello.
+
+In piu c'e `android_debug`, che non ha un equivalente automatico su GitLab:
+costruisce l'APK di debug e lo carica come artefatto scaricabile. Si prende da
+Actions, aprendo la run, sotto Artifacts, come
+`stepbound-debug-apk-<sha corto>`; GitHub lo serve come zip, dentro c'e
+`app-debug.apk` da installare con `adb install app-debug.apk`. Resta
+disponibile 14 giorni.
+
+GitLab resta la pipeline canonica: i job firmati e i runner locali stanno solo
+li, e `main` si protegge di la. Le differenze volute rispetto a GitLab sono
+due: `android_debug` parte da solo a ogni push e pull request, mentre
+`build_android_debug` su GitLab e manuale per non occupare i runner condivisi,
+e su GitHub non ci sono i job di firma. Per il resto i job sono gemelli:
+cambiandone uno va cambiato anche l'altro.
+
 ## Firma Android
 
 Il runner puo continuare a fornire `android/key.properties`. In alternativa,

@@ -1,0 +1,109 @@
+# La pipeline canonica resta quella di GitLab (gitlab/verify.yml e
+# gitlab/build.yml): questo workflow non la sostituisce, la rifa su GitHub,
+# dove vivono le pull request di questo mirror, e in piu pubblica l'APK di
+# debug come artefatto scaricabile dalla pagina della run.
+#
+# I job rispecchiano quelli di GitLab: `analyze` e `unit_tests` bloccano,
+# `levels_check` per ora no, `android_debug` produce il pacchetto. Quando si
+# cambia un job qui va cambiato anche il suo gemello in gitlab/, e viceversa.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Una pipeline per ref: un push che ne segue un altro annulla il precedente,
+# come `interruptible: true` su GitLab.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  # Come .fvmrc e come il template .flutter_3_44_2 di .gitlab-ci.yml.
+  FLUTTER_VERSION: "3.44.2"
+
+jobs:
+  analyze:
+    name: Formato e analisi statica
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: dart run tools/generate_balance.dart --check
+      - run: dart format --output=none --set-exit-if-changed lib test tools
+      - run: flutter analyze --fatal-infos --fatal-warnings
+
+  unit_tests:
+    name: Test e copertura
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter test --coverage
+      # Soglie per area e totale in tools/coverage_policy.json. Fallisce anche
+      # se una libreria con codice non e caricata da nessun test.
+      - run: dart run tools/check_coverage.dart
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-lcov
+          path: coverage/lcov.info
+          retention-days: 7
+
+  levels_check:
+    name: Sfondi dei livelli rigenerati
+    runs-on: ubuntu-latest
+    # Informativo per la prima settimana, come su GitLab: prima si misura
+    # quanto e stabile, poi si toglie e diventa bloccante.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11.15"
+      - run: python -m pip install --no-cache-dir -r tools/requirements.txt
+      - run: python tools/build_levels.py --check
+
+  android_debug:
+    name: APK di debug
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter build apk --debug --build-number=${{ github.run_number }}
+      - name: Sha corto del commit
+        id: commit
+        run: echo "short=${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
+      # Scaricabile da Actions -> la run -> Artifacts. GitHub lo serve come
+      # zip: dentro c'e app-debug.apk, da installare con
+      # `adb install app-debug.apk`.
+      - uses: actions/upload-artifact@v4
+        with:
+          name: stepbound-debug-apk-${{ steps.commit.outputs.short }}
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
