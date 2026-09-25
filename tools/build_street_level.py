@@ -1036,20 +1036,34 @@ def paint_small_church(d, rng, level):
              1, 1, DUOMO_SHADE)
 
     # The portal, standing open on the dark of the nave: both leaves are
-    # folded back against the jambs, and the daylight falling through lies
-    # in a wedge across the worn steps -- the church of San Nicola can be
-    # walked into, unlike the Duomo behind its gate.
-    door_w = 16
+    # folded back against the jambs, and the dark runs right down to the
+    # square, with nothing across the threshold -- the church of San Nicola
+    # can be walked into, unlike the Duomo behind its gate. A frame of pale
+    # stone sets it off from the front.
+    door_w = 20
+    door_h = 30
     dx = cx - door_w // 2
-    _arch_window(d, dx, bottom - 26, door_w, 26)
-    rect(d, dx, bottom - 21, door_w, 21, (16, 14, 18))
+    rect(d, dx - 3, bottom - door_h - 3, door_w + 6, door_h + 3, DUOMO_LIGHT)
+    rect(d, dx - 3, bottom - door_h - 3, 1, door_h + 3, DUOMO_SHADE)
+    rect(d, dx + door_w + 2, bottom - door_h - 3, 1, door_h + 3, DUOMO_SHADE)
+    # the round head of the opening, dark right up to the keystone
+    r = door_w // 2
+    spring = bottom - door_h + r  # where the arch starts
+    for dy in range(r):
+        half = round(math.sqrt(max(0, r * r - (r - dy) ** 2)))
+        rect(d, cx - half, bottom - door_h + dy, 2 * half, 1, (12, 10, 14))
+    rect(d, cx - 1, bottom - door_h - 3, 2, 3, DUOMO_SHADE)
+    rect(d, dx, spring, door_w, bottom - spring, (12, 10, 14))
     for leaf in (dx, dx + door_w - 4):
-        rect(d, leaf, bottom - 19, 4, 19, DOOR_GREEN)
-        rect(d, leaf + 1, bottom - 18, 2, 17, shade(DOOR_GREEN, 18))
-        rect(d, leaf, bottom - 19, 4, 1, shade(DOOR_GREEN, -20))
+        rect(d, leaf, spring + 1, 4, bottom - spring - 1, DOOR_GREEN)
+        rect(d, leaf + 1, spring + 2, 2, bottom - spring - 3,
+             shade(DOOR_GREEN, 24))
+        rect(d, leaf, spring + 1, 4, 1, shade(DOOR_GREEN, -20))
+    # the worn steps either side of the portal, not across it
     for i, sy in enumerate((bottom - 4, bottom - 2)):
-        rect(d, cx - door_w, sy, door_w * 2, 2, shade(DUOMO_STONE, -8 * i))
-    rect(d, dx + 4, bottom - 4, door_w - 8, 4, shade(DUOMO_STONE, 22))
+        for sx, sw in ((cx - door_w - 6, door_w // 2 + 3),
+                       (dx + door_w + 3, door_w // 2 + 3)):
+            rect(d, sx, sy, sw, 2, shade(DUOMO_STONE, -8 * i))
 
     # the bell gable on the west corner, a bell hanging in its arch
     bx, by = x0, y0 + 8
