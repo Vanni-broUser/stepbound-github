@@ -87,6 +87,9 @@ final class StepboundGame extends FlameGame
     ammoLoaded = ValueNotifier<int>(
       simulation.player.component<AmmoComponent>().loaded,
     );
+    hasGun = ValueNotifier<bool>(
+      simulation.player.component<AmmoComponent>().hasGun,
+    );
   }
 
   /// The side of a tile on screen: the level grid's own unit, shared
@@ -163,6 +166,10 @@ final class StepboundGame extends FlameGame
 
   final ValueNotifier<bool> aiming = ValueNotifier<bool>(false);
   late final ValueNotifier<int> ammoLoaded;
+
+  /// Whether Mario carries the pistol itself, and not just its bullets:
+  /// the ammo badge waits dimmed until the story hands the gun over.
+  late final ValueNotifier<bool> hasGun;
 
   /// Touch controls unlocked so far by the tutorial (walking is always
   /// available).
@@ -385,9 +392,12 @@ final class StepboundGame extends FlameGame
     if (!soundscapePaused) {
       Soundscape.apply(audio, mix);
     }
-    final loaded = simulation.player.component<AmmoComponent>().loaded;
-    if (ammoLoaded.value != loaded) {
-      ammoLoaded.value = loaded;
+    final ammo = simulation.player.component<AmmoComponent>();
+    if (ammoLoaded.value != ammo.loaded) {
+      ammoLoaded.value = ammo.loaded;
+    }
+    if (hasGun.value != ammo.hasGun) {
+      hasGun.value = ammo.hasGun;
     }
   }
 
@@ -1027,6 +1037,16 @@ final class StepboundGame extends FlameGame
   void inspectInventory(String name) {
     if (_canAct) {
       showPrompt(<TutorialLine>[TutorialLine(name)]);
+    }
+  }
+
+  /// Opens a small system text box about the bullets, the one thing
+  /// carried that is counted. The badge only answers once the pistol has
+  /// been found, so there is always something to fire them with.
+  void inspectAmmo() {
+    if (_canAct) {
+      final loaded = simulation.player.component<AmmoComponent>().loaded;
+      showPrompt(<TutorialLine>[TutorialLine('$loaded proiettili')]);
     }
   }
 
