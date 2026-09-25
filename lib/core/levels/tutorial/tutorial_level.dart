@@ -50,6 +50,7 @@ const Legend outdoorLegend = Legend(
   walls: 'BHfKMGW#%0_',
   obstacles: 'CXUvkDFTSOyJQaAnI~RNbpx*i&!^;/+',
   debris: ':q',
+  fire: '?',
 );
 const Legend barracksLegend = Legend(walls: 'xWQNSIw', obstacles: 'TCAh');
 const Legend mallLegend = Legend(walls: 'xWwISQ', obstacles: 'PTKBGHL');
@@ -713,6 +714,14 @@ final List<GridPoint> airlinerRoofBreak = _airlinerRoofs.doorRow('D');
 /// Mario can do about it for now.
 final GridPoint rooftopGapTile = _airlinerRoofs.tileOf('>');
 
+/// The east end of the fuel burning across the middle lane of the
+/// shopping street, west of the campfire behind the hypermarket: the gap in
+/// the pile-up that looks like a way through. Looking at it says what it
+/// would take.
+final GridPoint shoppingStreetFireTile = _mallNorthStreet
+    .tilesOf('?')
+    .reduce((a, b) => a.x > b.x ? a : b);
+
 /// Doors [from] one place [to] another, tile by tile in order: stepping on
 /// a tile of [from] lands on the tile of [to] one step towards [facing].
 Map<GridPoint, Portal> _pairedDoors(
@@ -1089,6 +1098,7 @@ WorldState createTutorialWorld({int seed = 20260920}) {
     travelMaps: trainMapTiles,
     lookouts: <GridPoint>[
       rooftopGapTile,
+      shoppingStreetFireTile,
       trainLuigiTile,
       ...trainBookTiles,
       ...trainCotTiles,

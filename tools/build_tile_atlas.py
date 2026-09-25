@@ -2512,7 +2512,12 @@ def airliner_roofs(atlas: Atlas, rng) -> dict:
         [neighbour_key(-1, 0, ">"), neighbour_key(1, 0, ">")]))
     rules.append(rule("structures", ":", randomly(airliner.roof_rubble)))
     rules.append(rule("structures", "b", randomly(airliner.roof_blood)))
-    rules.append(rule("structures", "&", one(airliner.roof_scorch)))
+    rules.append(rule(
+        "structures", "&",
+        [atlas.bucket(lambda a=a: tile_of(
+            lambda d: airliner.roof_scorch(d, 0, 0, a)), 1)
+         for a in (False, True)],
+        [pattern_key(0, 1, 2, 1)]))
     rules.append(rule("structures", "T", randomly(airliner.roof_stack)))
     rules.append(rule("structures", "n", one(airliner.roof_mast)))
 

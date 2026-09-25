@@ -137,6 +137,39 @@ void main() {
     }
   });
 
+  test('every car of a pile-up is drawn, even stacked lane on lane', () {
+    var cars = 0;
+    // Only outdoors are these glyphs cars (in the bar `U` is a zombie).
+    for (final place in convertedPlaces.where(
+      (place) => place.spec.legend == outdoorLegend,
+    )) {
+      final art = manifest.places[place.artId.name]!;
+      final grid = art.gridFor(place.rows);
+      for (var y = 0; y < place.rows.length; y++) {
+        final row = place.rows[y];
+        for (var x = 0; x < row.length; x++) {
+          final glyph = row[x];
+          // `CC`, `XX` and `UU` lie across two cells, drawn from the first.
+          if (!'CXU'.contains(glyph) || (x > 0 && row[x - 1] == glyph)) {
+            continue;
+          }
+          final rules = art.rules.where(
+            (rule) => rule.layer == 'foreground' && rule.covers(glyph),
+          );
+          cars++;
+          expect(
+            rules.any((rule) => rule.bucketFor(grid, x, y).isNotEmpty),
+            isTrue,
+            reason:
+                '${place.id}: the car at $x,$y blocks the way and is not '
+                'drawn',
+          );
+        }
+      }
+    }
+    expect(cars, greaterThan(10), reason: 'the cars were found');
+  });
+
   test('every place of the atlas is a place of the game', () {
     final ids = <String>{for (final place in tutorialPlaces) place.id.name};
     for (final name in manifest.places.keys) {

@@ -661,29 +661,35 @@ def paint_old_town_street(d, px, py, stone, door, rng):
 # ------------------------------------------------------------------ props
 
 
-def rest_of(glyph: str) -> list[dict]:
+def rest_of(glyph: str, across: bool = False) -> list[dict]:
     """The keys that say a cell is the first of its picture: nothing of the
-    same glyph west of it or north of it."""
+    same glyph west of it or north of it. A picture one row tall, `across`,
+    only looks west: the same glyph north of it is another picture, like a
+    car in the next lane, not the top of this one."""
+    if across:
+        return [neighbour_key(-1, 0, glyph)]
     return [neighbour_key(-1, 0, glyph), neighbour_key(0, -1, glyph)]
 
 
 def anchored(atlas: Atlas, layer: str, glyph: str, paint, reach,
-             keys=None, count=None, count_one=False) -> dict:
+             keys=None, count=None, count_one=False, across=False) -> dict:
     """A picture over a run of `glyph`, drawn from its first cell: `paint`
-    is handed the index of the extra `keys` and returns the painter."""
+    is handed the index of the extra `keys` and returns the painter.
+    `across` is for a picture one row tall (see rest_of)."""
     keys = keys or []
-    all_keys = rest_of(glyph) + keys
+    anchor = rest_of(glyph, across)
+    all_keys = anchor + keys
+    mask = (1 << len(anchor)) - 1
 
     def paint_for(index):
-        west, north = bits(index, 2)
-        if west or north:
+        if index & mask:
             return lambda d, px, py: None
-        return paint(index >> 2)
+        return paint(index >> len(anchor))
 
     buckets, pieces = spread(atlas, paint_for, all_keys, reach,
                              1 if count_one else (count or 12))
     for index in range(len(buckets)):
-        if index & 3:
+        if index & mask:
             buckets[index] = []
             for extra in pieces:
                 extra["buckets"][index] = []
@@ -779,12 +785,14 @@ def prop_rules(atlas: Atlas, rng) -> list[dict]:
     def car(burnt, flipped):
         return lambda i: lambda d, px, py: sl.paint_car(
             d, px, py, rng.choice(colours), burnt=burnt, flipped=flipped)
+    # Pile-ups stack cars of a kind lane on lane, so a car only looks
+    # west for its other half.
     rules.append(anchored(atlas, "foreground", "C", car(False, False),
-                          (1, 0, 2, 0), count=8))
+                          (1, 0, 2, 0), count=8, across=True))
     rules.append(anchored(atlas, "foreground", "X", car(True, False),
-                          (1, 0, 2, 0), count=8))
+                          (1, 0, 2, 0), count=8, across=True))
     rules.append(anchored(atlas, "foreground", "U", car(False, True),
-                          (1, 0, 2, 0), count=8))
+                          (1, 0, 2, 0), count=8, across=True))
     for glyph, burnt in (("v", False), ("k", True)):
         rules.append(anchored(
             atlas, "foreground", glyph,

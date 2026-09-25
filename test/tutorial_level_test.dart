@@ -33,12 +33,16 @@ void main() {
     // East there is nothing to close: both streets run into the buildings.
     final roadRows = mallNorthStreetRows.where((row) => row.contains('-'));
     expect(
-      roadRows.every((row) => outdoorLegend.obstacles.contains(row[1])),
+      roadRows.every(
+        (row) =>
+            outdoorLegend.obstacles.contains(row[1]) ||
+            outdoorLegend.fire.contains(row[1]),
+      ),
       isTrue,
       reason:
-          'wrecks on the four-lane road, concrete blocks on the shopping '
-          'street, never a wall: the wrecks are nosed forward and back of '
-          'one another, but each covers the second column from the edge',
+          'wrecks, or the fuel of one burning, never a wall: the wrecks are '
+          'nosed forward and back of one another, but each covers the '
+          'second column from the edge',
     );
     // The second pile-up stands midway between the park's two south gates
     // and cuts the four-lane road, so the park joins its two halves.
@@ -59,6 +63,48 @@ void main() {
       isTrue,
       reason: 'the pile-up closes the road on the column between the gates',
     );
+  });
+
+  test('past the campfire behind the mall a lane has no car, only fire, '
+      'and looking at it says what it would take', () {
+    final world = createTutorialWorld();
+    final street = place(PlaceId.mallNorthStreet);
+    final fire = street.tilesOf('?');
+    expect(fire, isNotEmpty);
+    for (final tile in fire) {
+      expect(world.map.tileAt(tile).kind, TileKind.fire);
+      expect(world.map.tileAt(tile).blocksSight, isFalse);
+    }
+    // Across a lane of the shopping street, west of its campfire, and the
+    // cars either side of that lane caught fire from it.
+    final camp = world.campfires.firstWhere(street.bounds.contains);
+    expect(fire.every((tile) => tile.x < camp.x), isTrue);
+    final lane = shoppingStreetFireTile.y - street.origin.y;
+    for (final row in <int>[lane - 1, lane + 1]) {
+      expect(
+        street.rows[row].substring(1, 3),
+        'XX',
+        reason: 'a burning car beside the fire, in row $row',
+      );
+    }
+    expect(world.lookouts, contains(shoppingStreetFireTile));
+
+    // Walked up to from the campfire, and looked at.
+    final reached = world.map.floodFillDistances(
+      camp.step(Direction.east),
+      maxDistance: street.width * street.height,
+    );
+    final stand = shoppingStreetFireTile.step(Direction.east);
+    expect(reached.containsKey(stand), isTrue);
+    world.player.component<PositionComponent>()
+      ..position = stand
+      ..facing = Direction.west;
+    final events = const TurnScheduler().advance(world, const InteractAction());
+    expect(
+      events.whereType<LookedOutEvent>().single.at,
+      shoppingStreetFireTile,
+    );
+    expect(world.map.tileAt(shoppingStreetFireTile).kind, TileKind.fire);
   });
 
   test('the block behind the mall walks as a circuit, never to the edge', () {
@@ -2184,10 +2230,12 @@ void main() {
       all.where(
         (spot) => spot.kind == FireKind.car && behindMall.contains(spot.tile),
       ),
-      hasLength(4),
-      reason: 'the burning wrecks blocking the road west',
+      hasLength(7),
+      reason:
+          'the burning wrecks blocking both streets west, and one in the '
+          'pile-up under the park',
     );
-    expect(count(all, FireKind.car), 11);
+    expect(count(all, FireKind.car), 14);
     expect(count(all, FireKind.bin), 10);
     expect(count(all, FireKind.window), 14);
     expect(count(all, FireKind.campfire), 3);
