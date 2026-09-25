@@ -70,6 +70,7 @@ sealed class TileKey {
         atMost: json['compare'] == 'le',
       ),
       'beforeRun' => BeforeRunKey(glyphs: json['glyphs']! as String),
+      'between' => BetweenKey(glyph: json['glyph']! as String),
       'rowHas' => RowHasKey(
         dy: (json['dy']! as num).toInt(),
         glyph: json['glyph']! as String,
@@ -144,6 +145,29 @@ final class FirstRowKey extends TileKey {
   bool holds(GlyphGrid grid, int x, int y) {
     final row = grid.firstRowOf(glyph) + offset;
     return atMost ? y <= row : y == row;
+  }
+}
+
+/// Whether something other than [glyph] lies above the cell in its column
+/// and something other than [glyph] lies below it: what tells the gap
+/// between two roofs, which is dark all the way down, from the darkness
+/// off the edge of the map.
+final class BetweenKey extends TileKey {
+  const BetweenKey({required this.glyph});
+
+  final String glyph;
+
+  @override
+  bool holds(GlyphGrid grid, int x, int y) {
+    var above = false;
+    for (var row = 0; row < y && !above; row++) {
+      above = grid.glyphAt(x, row) != glyph;
+    }
+    var below = false;
+    for (var row = y + 1; row < grid.height && !below; row++) {
+      below = grid.glyphAt(x, row) != glyph;
+    }
+    return above && below;
   }
 }
 

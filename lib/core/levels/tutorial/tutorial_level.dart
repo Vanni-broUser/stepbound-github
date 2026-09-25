@@ -216,12 +216,12 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     // Daylight at the tear in the belly and at the tail break.
     daylight: 'EO',
   ),
-  // The roofs are open to the sky, so they are lit throughout.
+  // The roofs are open to the sky, so they are lit throughout. Painted
+  // from their rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.airlinerRoofs,
     rows: airlinerRoofRows,
     legend: rooftopLegend,
-    background: 'assets/levels/airliner_roofs.png',
   ),
   // Appended so adding these places does not move any existing place in a
   // saved world's shared coordinate grid.

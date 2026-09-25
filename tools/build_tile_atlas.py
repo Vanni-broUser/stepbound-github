@@ -135,6 +135,11 @@ def neighbour_key(dx: int, dy: int, glyphs: str) -> dict:
     return {"kind": "neighbour", "dx": dx, "dy": dy, "glyphs": glyphs}
 
 
+def between_key(glyph: str) -> dict:
+    """Something other than `glyph` above and below in the column."""
+    return {"kind": "between", "glyph": glyph}
+
+
 def before_run_key(glyphs: str) -> dict:
     """What lies before the run of the cell's own glyph: a wall, say."""
     return {"kind": "beforeRun", "glyphs": glyphs}
@@ -2546,6 +2551,122 @@ def station_hall(atlas: Atlas, rng) -> dict:
     }
 
 
+
+# ---------------------------------------------------------- the roofs' art
+# The terraces the airliner's tail came down on, in the 3/4 view of the
+# streets. The painters stay in tools/build_airliner.py; this is the
+# composition that baked them. Nothing in it stands taller than its cell,
+# so it is all tiles: the tar laid in strips on the parity of the row and
+# stepped down at the first parapet, the coping and the party walls keyed
+# on their neighbours, and the gap between the blocks, which is dark only
+# where there is roof both above and below it in the column.
+
+class Rows:
+    """Just the rows of a place: what `build_airliner.lower` reads to find
+    where the terrace steps down."""
+
+    def __init__(self, rows: list[str]) -> None:
+        self.rows = rows
+
+
+def airliner_roofs(atlas: Atlas, rng) -> dict:
+    """The rules that paint PlaceId.airlinerRoofs."""
+    def deck(row: int, step: int):
+        """The tar of row `row` on a terrace whose step is at row `step`:
+        it is the lower terrace if the row is below the step, and laid in
+        strips on the parity of the row."""
+        rows = Rows(["." * 6] * step + ["^" * 6] + ["." * 6] * 3)
+        return atlas.bucket(lambda: cell(
+            lambda d, gx, gy: airliner.roof_deck(d, rng, rows, gx, gy),
+            0, row))
+
+    def one(paint):
+        return [atlas.bucket(lambda: tile_of(lambda d: paint(d, 0, 0)), 1)]
+
+    def randomly(paint):
+        return [atlas.bucket(lambda: tile_of(
+            lambda d: paint(d, rng, 0, 0)))]
+
+    def near(glyph, at=(0, 0), **shown):
+        """The neighbourhood of the cell `at` of `glyph`, in which the
+        named neighbours (`l`, `r`, `u` for left, right, up) show what is
+        given and the rest is bare."""
+        offsets = {"l": (-1, 0), "r": (1, 0), "u": (0, -1)}
+        cells = {(at[0] + offsets[k][0], at[1] + offsets[k][1]): v
+                 for k, v in shown.items()}
+        return Neighbourhood(glyph, lambda x, y: cells.get((x, y), "."), at)
+
+    decked = ".:b&TnY"
+    # Bits, in key order: the row is no lower than the step, and the row
+    # is odd. Without the first (index 0 and 2) the terrace is the lower.
+    rules = [rule(
+        "ground", decked,
+        [deck(2, 0), deck(0, 0), deck(1, 0), deck(1, 1)],
+        [first_row_key("^", 0, "le"), pattern_key(0, 1, 2, 1)])]
+
+    # A party wall between two blocks: bits are a wall to the left, a wall
+    # to the right, and darkness or wall to the right (which side the roof
+    # is on, for the walls that run north to south).
+    walls = []
+    for index in range(8):
+        left, right, beyond = (bool(index & 1), bool(index & 2),
+                               bool(index & 4))
+        room = near("W", l="W" if left else ".",
+                    r="W" if right else ("x" if beyond else "."))
+        walls.append(atlas.bucket(lambda rm=room: tile_of(
+            lambda d: airliner.roof_wall(d, rm, 0, 0)), 1))
+    rules.append(rule("structures", "W", walls,
+                      [neighbour_key(-1, 0, "W"), neighbour_key(1, 0, "W"),
+                       neighbour_key(1, 0, "xW")]))
+    rules.append(rule("structures", "^", [atlas.bucket(lambda: tile_of(
+        lambda d: airliner.roof_parapet(d, near("^"), 0, 0, False)), 1)]))
+    rules.append(rule(
+        "structures", ">",
+        [atlas.bucket(lambda i=i: tile_of(
+            lambda d: airliner.roof_parapet(
+                d, near(">", l=">" if i & 1 else ".",
+                        r=">" if i & 2 else "."), 0, 0, True)), 1)
+         for i in range(4)],
+        [neighbour_key(-1, 0, ">"), neighbour_key(1, 0, ">")]))
+    rules.append(rule("structures", ":", randomly(airliner.roof_rubble)))
+    rules.append(rule("structures", "b", randomly(airliner.roof_blood)))
+    rules.append(rule("structures", "&", one(airliner.roof_scorch)))
+    rules.append(rule("structures", "T", randomly(airliner.roof_stack)))
+    rules.append(rule("structures", "n", one(airliner.roof_mast)))
+
+    # The roof of the next block across the gap, its coping along the near
+    # edge, and the gap itself.
+    rules.append(rule(
+        "structures", "%",
+        [atlas.bucket(lambda p=parity, u=up: cell(
+            lambda d, gx, gy: airliner.roof_far(
+                d, rng, near("%", (p, 0), u="%" if u else "."), gx, gy),
+            p, 0)) for parity in (0, 1) for up in (False, True)],
+        [neighbour_key(0, -1, "%"), parity_key()]))
+    rules.append(rule("structures", "x", [[], atlas.bucket(lambda: tile_of(
+        lambda d: airliner.roof_drop(d, rng, 0, 0)))], [between_key("x")]))
+
+    # The tail of the airliner, in the roofline: two rows deep, so the
+    # tube is shaded over both at once, seamed every fourth column and
+    # closed at the ends. `D` is the break torn in it.
+    def tail(glyph, index):
+        above, seam, left, right = (bool(index & 1), bool(index & 2),
+                                    bool(index & 4), bool(index & 8))
+        gx = 0 if seam else 1
+        room = near(glyph, (gx, 0), u="#" if above else ".",
+                    l="#" if left else ".", r="#" if right else ".")
+        paint = airliner.roof_tail if glyph == "#" else airliner.roof_break
+        return atlas.bucket(lambda: cell(
+            lambda d, x, y: paint(d, room, x, y), gx, 0), 1)
+    tail_keys = [neighbour_key(0, -1, "#D"), pattern_key(1, 0, 4, 0),
+                 neighbour_key(-1, 0, "#D"), neighbour_key(1, 0, "#D")]
+    for glyph in "#D":
+        rules.append(rule("structures", glyph,
+                          [tail(glyph, i) for i in range(16)], tail_keys))
+    return {"void": "#060608", "voidGlyph": "x", "rules": rules,
+            "objects": []}
+
+
 # ------------------------------------------------------ the reference draw
 # What the renderer in lib/game/render/tile_place_component.dart has to do,
 # written out once here so the manifest can be checked against the baked
@@ -2579,6 +2700,8 @@ def compose(rows: list[str], place: dict, tiles: list[Image.Image],
             return at(x + key["dx"], y + key["dy"]) in key["glyphs"]
         if kind == "pattern":
             return (x * key["a"] + y * key["b"]) % key["mod"] == key["equals"]
+        if kind == "between":
+            return any(at(x, r) != key["glyph"] for r in range(y)) and                 any(at(x, r) != key["glyph"] for r in range(y + 1, height))
         if kind == "beforeRun":
             here = at(x, y)
             start = x
@@ -2641,6 +2764,7 @@ PLACES = {
     "barracks": barracks,
     "church": church,
     "airlinerCabin": airliner_cabin,
+    "airlinerRoofs": airliner_roofs,
     "barArcobaleno": bar_arcobaleno,
     "barBackroom": bar_backroom,
     "duomo": duomo,
@@ -2727,6 +2851,7 @@ PREVIEW_ROWS = {
     "barracks": "barracks-rows",
     "church": "church-rows",
     "airlinerCabin": "airliner-cabin-rows",
+    "airlinerRoofs": "airliner-roof-rows",
     "barArcobaleno": "bar-rows",
     "barBackroom": "bar-backroom-rows",
     "duomo": "duomo-rows",

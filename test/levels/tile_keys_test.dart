@@ -103,4 +103,25 @@ void main() {
       expect(parsed.holds(grid, 2, 0), isTrue);
     });
   });
+
+  group('between', () {
+    // Two roofs with a dark gap between them, and darkness off the edge.
+    final grid = GlyphGrid(<String>['x#x', 'x#x', 'xxx', 'x#x', 'xxx']);
+    const key = BetweenKey(glyph: 'x');
+
+    test('is the gap, not the edge of the map', () {
+      expect(key.holds(grid, 1, 2), isTrue);
+      expect(key.holds(grid, 1, 4), isFalse, reason: 'nothing below it');
+      expect(key.holds(grid, 0, 2), isFalse, reason: 'a column of nothing');
+    });
+
+    test('is read from the manifest', () {
+      final parsed = TileKey.fromJson(<String, Object?>{
+        'kind': 'between',
+        'glyph': 'x',
+      });
+      expect(parsed, isA<BetweenKey>());
+      expect(parsed.holds(grid, 1, 2), isTrue);
+    });
+  });
 }

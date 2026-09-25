@@ -1,25 +1,17 @@
 #!/usr/bin/env python3
-"""Bake the roofs the crashed airliner's tail came down in.
+"""The painters of the crashed airliner: the cabin, and the roofs its tail
+came down on.
 
-Reads the `airliner-roof-rows` block in airliner.dart: the roofs are open
-to the sky, painted in the same 3/4 view as the streets, with the drop
-between the two blocks left dark. The cabin is no longer baked: the game
-paints it from the tile atlas, out of the painters that stay in this file.
-Run from the repository root with: python tools/build_airliner.py
+Neither is baked any more: the game paints both from their rows out of the
+tile atlas (tools/build_tile_atlas.py), which uses the painters below.
 """
 from __future__ import annotations
 
 import os
-import random
 import sys
 
-from PIL import Image, ImageDraw
-
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from build_mall import Room  # noqa: E402
-from build_street_level import TILE, read_rows, rect, shade  # noqa: E402
-
-ROOF_OUTPUT = os.path.join("assets", "levels", "airliner_roofs.png")
+from build_street_level import TILE, rect, shade  # noqa: E402
 
 VOID = (6, 6, 8)
 
@@ -158,12 +150,6 @@ def cabin_lamp(d, px, py, steady):
     rect(d, px + 3, py + 4, 10, 7, shade(glow, -70))
     rect(d, px + 4, py + 5, 8, 5, glow)
     rect(d, px + 5, py + 6, 6, 3, shade(glow, 20))
-
-
-# The cabin is not baked any more: the game paints it from its rows out of
-# the tile atlas (tools/build_tile_atlas.py), which uses the painters above.
-# What is left below bakes the roofs, the one place of this file not yet
-# converted.
 
 
 # ------------------------------------------------------------------ roofs
@@ -383,68 +369,3 @@ def roof_break(d, room, x, y):
         rect(d, px, py + 9, TILE, 7, (18, 18, 22))
         for dx, w in ((2, 3), (8, 3)):
             rect(d, px + dx, py + 9, w, 3, HULL_LIGHT)
-
-
-def bake_roofs():
-    room = Room(read_rows("airliner-roof-rows"))
-    if any(len(row) != room.width for row in room.rows):
-        raise ValueError("airliner roof rows have different widths")
-    rng = random.Random(1969)
-    image = Image.new("RGB", (room.width * TILE, room.height * TILE), VOID)
-    d = ImageDraw.Draw(image)
-
-    for y in range(room.height):
-        for x in range(room.width):
-            glyph = room.at(x, y)
-            px, py = x * TILE, y * TILE
-            if glyph == "x":
-                # Only the `x` with roof above it and roof below it is the
-                # gap between the blocks; the rest is off the map.
-                above = any(room.at(x, sy) != "x" for sy in range(y))
-                below = any(room.at(x, sy) != "x"
-                            for sy in range(y + 1, room.height))
-                if above and below:
-                    roof_drop(d, rng, x, y)
-                continue
-            if glyph == "%":
-                roof_far(d, rng, room, x, y)
-                continue
-            if glyph in "#D":
-                continue  # painted over the roofline below
-            if glyph == "W":
-                roof_wall(d, room, x, y)
-                continue
-            if glyph in "^>":
-                roof_parapet(d, room, x, y, low=glyph == ">")
-                continue
-            roof_deck(d, rng, room, x, y)
-            if glyph == ":":
-                roof_rubble(d, rng, px, py)
-            elif glyph == "b":
-                roof_blood(d, rng, px, py)
-            elif glyph == "&":
-                roof_scorch(d, px, py)
-            elif glyph == "T":
-                roof_stack(d, rng, px, py)
-            elif glyph == "n":
-                roof_mast(d, px, py)
-
-    for y in range(room.height):
-        for x in range(room.width):
-            glyph = room.at(x, y)
-            if glyph == "#":
-                roof_tail(d, room, x, y)
-            elif glyph == "D":
-                roof_break(d, room, x, y)
-
-    os.makedirs(os.path.dirname(ROOF_OUTPUT), exist_ok=True)
-    image.save(ROOF_OUTPUT, optimize=True)
-    print(f"{ROOF_OUTPUT}: {image.size[0]}x{image.size[1]}")
-
-
-def main() -> None:
-    bake_roofs()
-
-
-if __name__ == "__main__":
-    main()
