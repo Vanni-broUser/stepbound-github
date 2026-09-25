@@ -1,26 +1,17 @@
 #!/usr/bin/env python3
-"""Bake the two floors of the hypermarket.
+"""The hypermarket's painters: the two floors of the mall, and the tables
+of shopfronts along their walls.
 
-Reads the `mall-ground-rows` and `mall-first-rows` blocks of
-lib/core/levels/tutorial/mall.dart and paints them in the barracks' style:
-the rooms float on a black background, shopfronts with their signs run
-along the back wall, the floor is glossy tiles littered with trolleys,
-planters, kiosks and benches. The ground floor is two such areas one above
-the other, joined by a narrow passage down their west side, with the fire
-exit in the upper one's back wall. Upstairs, Luigi's grocery sits behind its
-shutter (the shutter itself, Luigi, the lamps' light and the panel's glint
-are drawn by the game), and past an open gate a dark service area holds
-the anti-theft control panel.
-
-Run from the repository root:  python tools/build_mall.py
+The mall used to be baked here, one picture per floor. It is not any more:
+the game paints both floors from their rows out of the tile atlas
+(tools/build_tile_atlas.py), which uses the painters below. What the atlas
+cannot say by glyph -- which shop stands where -- is the two tables of
+shopfronts, and the pieces of wall that stand taller than one cell.
 """
 from __future__ import annotations
 
 import os
-import random
 import sys
-
-from PIL import Image, ImageDraw
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from build_street_level import (  # noqa: E402
@@ -31,14 +22,9 @@ from build_street_level import (  # noqa: E402
     paint_boards,
     paint_smashed_display,
     paint_text,
-    paint_trolley,
-    read_rows,
     rect,
     text_width,
 )
-
-GROUND_OUTPUT = os.path.join("assets", "levels", "mall_ground.png")
-FIRST_OUTPUT = os.path.join("assets", "levels", "mall_first.png")
 
 VOID = (6, 6, 8)
 FLOOR_A = (178, 174, 164)
@@ -123,14 +109,21 @@ def paint_floor(d, rng, x, y):
 
 
 def paint_shop_floor(d, rng, x, y):
+    """The floor of a shop: boards, spilled goods. The one vertical joint
+    it has is not here, it falls at (x * 5) % 12 -- see paint_shop_joint --
+    which is a pattern on the column, not a throw of the dice."""
     px, py = x * TILE, y * TILE
     rect(d, px, py, TILE, TILE, SHOP_FLOOR)
     for j in range(0, 16, 4):
         rect(d, px, py + j, TILE, 1, SHOP_FLOOR_JOINT)
-    rect(d, px + (x * 5) % 12, py, 1, TILE, SHOP_FLOOR_JOINT)
     if rng.random() < 0.4:  # spilled goods
         rect(d, px + rng.randrange(12), py + rng.randrange(12), 3, 2,
              rng.choice(((200, 60, 40), (230, 200, 70), (90, 150, 70))))
+
+
+def paint_shop_joint(d, offset):
+    """The vertical joint of a shop's boards, `offset` pixels in."""
+    rect(d, offset, 0, 1, TILE, SHOP_FLOOR_JOINT)
 
 
 def paint_service_floor(d, rng, x, y):
@@ -162,61 +155,47 @@ def paint_blood(d, rng, px, py):
 # ------------------------------------------------------------------- walls
 
 
-def wall_rows(room, x, top=None):
-    """The top and bottom rows of a run of `W` in column x: the one
-    starting at [top], or the topmost one. A floor can hold more than one
-    back wall, one per area."""
-    ys = [y for y in range(room.height) if room.at(x, y) in "WQ"]
-    if not ys:
-        return (None, None)
-    start = ys[0] if top is None else top
-    bottom = start
-    while room.at(x, bottom + 1) in "WQ":
-        bottom += 1
-    return (start, bottom)
+def paint_wall_face(d, top, skirting):
+    """A cell of the back wall: the pale face, the dark ceiling edge if
+    this is the top course, the skirting if it is the bottom one."""
+    rect(d, 0, 0, TILE, TILE, WALL_FACE)
+    if top:
+        rect(d, 0, 0, TILE, 4, WALL_TOP)
+        rect(d, 0, 4, TILE, 1, (90, 90, 96))
+    if skirting:
+        rect(d, 0, 13, TILE, 3, WALL_FACE_DARK)
 
 
-def paint_back_wall(d, room, shops, rng):
-    """The wall face, then each shopfront: sign board with its name over a
-    glass front, a pulled-down shutter, smashed displays or boards."""
-    for y in range(room.height):
-        for x in range(room.width):
-            if room.at(x, y) in "WQ":
-                px, py = x * TILE, y * TILE
-                top = room.at(x, y - 1) not in "WQ"
-                rect(d, px, py, TILE, TILE, WALL_FACE)
-                if top:
-                    rect(d, px, py, TILE, 4, WALL_TOP)
-                    rect(d, px, py + 4, TILE, 1, (90, 90, 96))
-                if room.at(x, y + 1) not in "WQ":
-                    rect(d, px, py + 13, TILE, 3, WALL_FACE_DARK)  # skirting
-    for (x0, y0), (w, name, board, letters, front) in shops.items():
-        top, bottom = wall_rows(room, x0, y0)
-        px, py0 = x0 * TILE, top * TILE + 5
-        width, height = w * TILE, (bottom - top + 1) * TILE - 5
-        rect(d, px + 1, py0, width - 2, height - 3, OUTLINE)
-        rect(d, px + 2, py0 + 1, width - 4, 9, board)
-        paint_text(d, px + (width - text_width(name)) // 2, py0 + 3, name, letters,
-                   missing=(len(name) // 3,) if front == "smashed" else ())
-        fy, fh = py0 + 11, height - 15
-        if front == "glass":
-            rect(d, px + 2, fy, width - 4, fh, GLASS)
-            for gx in range(px + 4, px + width - 6, 12):
-                rect(d, gx, fy + 2, 2, fh - 6, GLASS_SHINE)
-            rect(d, px + width // 2 - 1, fy, 2, fh, METAL_DARK)
-        elif front == "shutter":
-            rect(d, px + 2, fy, width - 4, fh, METAL)
-            for sy in range(fy, fy + fh, 2):
-                rect(d, px + 2, sy, width - 4, 1, METAL_DARK)
-            rect(d, px + width // 3, fy + fh - 5, 6, 5, (30, 30, 34))  # forced up
-        elif front == "smashed":
-            paint_smashed_display(d, px + 2, fy, width - 4, fh)
-        else:
-            rect(d, px + 2, fy, width - 4, fh, (24, 22, 24))
-            paint_boards(d, px + 3, fy + 1, width - 6, fh - 2)
-        for _ in range(3):  # soot and scratches
-            rect(d, px + rng.randrange(2, width - 6), py0 + rng.randrange(0, 8),
-                 rng.randint(3, 6), 1, (60, 56, 56))
+def paint_shopfront(d, shop, courses, rng):
+    """One shopfront over a wall of `courses` rows, at the origin of `d`:
+    sign board with its name over a glass front, a pulled-down shutter,
+    smashed displays or boards."""
+    w, name, board, letters, front = shop
+    px, py0 = 0, 5
+    width, height = w * TILE, courses * TILE - 5
+    rect(d, px + 1, py0, width - 2, height - 3, OUTLINE)
+    rect(d, px + 2, py0 + 1, width - 4, 9, board)
+    paint_text(d, px + (width - text_width(name)) // 2, py0 + 3, name, letters,
+               missing=(len(name) // 3,) if front == "smashed" else ())
+    fy, fh = py0 + 11, height - 15
+    if front == "glass":
+        rect(d, px + 2, fy, width - 4, fh, GLASS)
+        for gx in range(px + 4, px + width - 6, 12):
+            rect(d, gx, fy + 2, 2, fh - 6, GLASS_SHINE)
+        rect(d, px + width // 2 - 1, fy, 2, fh, METAL_DARK)
+    elif front == "shutter":
+        rect(d, px + 2, fy, width - 4, fh, METAL)
+        for sy in range(fy, fy + fh, 2):
+            rect(d, px + 2, sy, width - 4, 1, METAL_DARK)
+        rect(d, px + width // 3, fy + fh - 5, 6, 5, (30, 30, 34))  # forced up
+    elif front == "smashed":
+        paint_smashed_display(d, px + 2, fy, width - 4, fh)
+    else:
+        rect(d, px + 2, fy, width - 4, fh, (24, 22, 24))
+        paint_boards(d, px + 3, fy + 1, width - 6, fh - 2)
+    for _ in range(3):  # soot and scratches
+        rect(d, px + rng.randrange(2, width - 6), py0 + rng.randrange(0, 8),
+             rng.randint(3, 6), 1, (60, 56, 56))
 
 
 def paint_exit(d, x, y):
@@ -258,15 +237,13 @@ def paint_shelves(d, rng, x, y):
                     ((200, 60, 40), (230, 200, 70), (90, 150, 70), (220, 220, 210), (70, 110, 170))))
 
 
-def paint_grocery_sign(d, room):
-    """ALIMENTARI across the top of Luigi's shop."""
-    xs = [x for x in range(room.width) if room.at(x, 1) == "S"]
-    if not xs:
-        return
-    px, w = xs[0] * TILE, len(xs) * TILE
-    rect(d, px + 2, 1, w - 4, 10, OUTLINE)
-    rect(d, px + 3, 2, w - 6, 8, (40, 96, 52))
-    paint_text(d, px + (w - text_width("ALIMENTARI")) // 2, 3, "ALIMENTARI",
+def paint_grocery_sign(d, tiles):
+    """ALIMENTARI across the top of Luigi's shop, a sprite `tiles` wide and
+    one tile high hung one row above the shelves."""
+    w = tiles * TILE
+    rect(d, 2, 1, w - 4, 10, OUTLINE)
+    rect(d, 3, 2, w - 6, 8, (40, 96, 52))
+    paint_text(d, (w - text_width("ALIMENTARI")) // 2, 3, "ALIMENTARI",
                (232, 232, 220), missing=(6,))
 
 
@@ -323,14 +300,11 @@ def paint_stairs(d, room, x, y):
         rect(d, px + 14, py, 2, TILE, METAL_LIGHT)
 
 
-def paint_service_wall(d, room, rng):
-    """Beyond the gate: bare grey wall with pipes and a stencilled notice."""
-    xs = [x for x in range(room.width) if room.at(x, 5) == "d"]
-    if not xs:
-        return
-    top, bottom = wall_rows(room, xs[0])
-    px, py = xs[0] * TILE, top * TILE
-    w, h = len(xs) * TILE, (bottom - top + 1) * TILE
+def paint_service_wall(d, tiles, rng):
+    """Beyond the gate: bare grey wall with pipes and a stencilled notice,
+    a sprite `tiles` = (columns, rows) big."""
+    w, h = tiles[0] * TILE, tiles[1] * TILE
+    px, py = 0, 0
     rect(d, px, py, w, h, (104, 104, 108))
     rect(d, px, py, w, 4, WALL_TOP)
     rect(d, px, py + 9, w, 2, (84, 80, 70))  # pipe
@@ -356,11 +330,11 @@ def paint_panel(d, x, y):
 
 def paint_gate(d, room, x, y):
     """The service gate, forced open: posts at the ends, the folded grille
-    against them, rails across the floor in between."""
+    against them, rails across the floor in between. The floor under a
+    post is the service area's, painted by whoever paints that."""
     px, py = x * TILE, y * TILE
     glyph = room.at(x, y)
     if glyph == "G":
-        paint_service_floor(d, random.Random(x * 31 + y), x, y)
         rect(d, px + 5, py - 8, 6, 24, METAL_DARK)
         rect(d, px + 6, py - 8, 2, 24, METAL_LIGHT)
         for i in range(0, 12, 3):  # the grille folded up against it
@@ -417,71 +391,3 @@ def paint_side_edges(d, room):
             if room.at(x + 1, y) == "x":
                 rect(d, px + 14, py, 2, TILE, (40, 40, 46))
 
-
-def bake(room: Room, shops, rng, output, railing):
-    image = Image.new("RGB", (room.width * TILE, room.height * TILE), VOID)
-    d = ImageDraw.Draw(image)
-    for y in range(room.height):
-        for x in range(room.width):
-            glyph = room.at(x, y)
-            if glyph in "oLH":
-                paint_shop_floor(d, rng, x, y)
-            elif glyph in "dcG" or (glyph == "+" and room.at(x - 1, y) in "dc"):
-                paint_service_floor(d, rng, x, y)
-            elif not room.is_wall(x, y):
-                paint_floor(d, rng, x, y)
-    paint_back_wall(d, room, shops, rng)
-    paint_service_wall(d, room, rng)
-    paint_grocery_sign(d, room)
-    for y in range(room.height):
-        for x in range(room.width):
-            glyph = room.at(x, y)
-            px, py = x * TILE, y * TILE
-            if glyph == "I":
-                paint_partition(d, room, x, y)
-            elif glyph == "S":
-                paint_shelves(d, rng, x, y)
-            elif glyph == "w":
-                paint_front_wall(d, room, x, y, railing)
-            elif glyph == "E":
-                paint_entrance(d, x, y, room.at(x - 1, y) != "E", room.at(x + 1, y) != "E")
-            elif glyph in "UD":
-                paint_stairs(d, room, x, y)
-            elif glyph == "X":
-                paint_exit(d, x, y)
-            elif glyph == "Q":
-                paint_panel(d, x, y)
-            elif glyph == ":":
-                paint_litter(d, rng, px, py)
-            elif glyph == "b":
-                paint_blood(d, rng, px, py)
-    paint_side_edges(d, room)
-    # props, top to bottom so the lower ones overlap those behind
-    for y in range(room.height):
-        for x in range(room.width):
-            glyph = room.at(x, y)
-            px, py = x * TILE, y * TILE
-            if glyph == "P":
-                paint_planter(d, rng, px, py)
-            elif glyph == "T":
-                paint_trolley(d, px, py, tipped=(x + y) % 2 == 0)
-            elif glyph == "K":
-                paint_kiosk(d, px, py, room.at(x - 1, y) != "K", room.at(x + 1, y) != "K")
-            elif glyph == "B":
-                paint_long_bench(d, px, py, room.at(x - 1, y) != "B", room.at(x + 1, y) != "B")
-            elif glyph in "Gg":
-                paint_gate(d, room, x, y)
-    os.makedirs(os.path.dirname(output), exist_ok=True)
-    image.save(output, optimize=True)
-    print(f"{output}: {image.size[0]}x{image.size[1]}")
-
-
-def main() -> None:
-    bake(Room(read_rows("mall-ground-rows")), GROUND_SHOPS, random.Random(1998),
-         GROUND_OUTPUT, railing=False)
-    bake(Room(read_rows("mall-first-rows")), FIRST_SHOPS, random.Random(2004),
-         FIRST_OUTPUT, railing=True)
-
-
-if __name__ == "__main__":
-    main()

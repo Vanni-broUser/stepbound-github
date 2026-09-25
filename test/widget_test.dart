@@ -1108,7 +1108,7 @@ void main() {
     return tester.runAsync(() async {
       final game = await _pumpReadyGame(tester);
       game.update(1 / 30);
-      expect(game.drawnPlaces, <String>[place(PlaceId.street).background]);
+      expect(game.drawnPlaces, <String>['tiles:street']);
 
       game.simulation.player.component<PositionComponent>()
         ..position = const GridPoint(16, 7)
@@ -1117,7 +1117,8 @@ void main() {
         ..pressDirection(Direction.north)
         ..releaseDirection(Direction.north)
         ..update(0.3);
-      expect(game.drawnPlaces, <String>[place(PlaceId.barracks).background]);
+      // The barracks are painted from the tile atlas: no picture to name.
+      expect(game.drawnPlaces, <String>['tiles:barracks']);
     });
   });
 
@@ -1141,14 +1142,15 @@ void main() {
       game.update(1 / 30);
 
       expect(world.map.tileAt(stationTrainDoorTile).isWalkable, isFalse);
-      expect(game.drawnPlaces, <String>['assets/levels/station_far_side.png']);
+      // The far platform is painted from the tile atlas: what the story
+      // opens is the railcar's door, an object in it, not a second
+      // picture of the whole place.
+      expect(game.drawnPlaces, <String>['tiles:stationFarSide']);
 
       progress.remember(StoryMemory.luigiRescued);
       game.update(1 / 30);
       expect(world.map.tileAt(stationTrainDoorTile).isWalkable, isTrue);
-      expect(game.drawnPlaces, <String>[
-        'assets/levels/station_far_side_open.png',
-      ]);
+      expect(game.drawnPlaces, <String>['tiles:stationFarSide:open']);
     });
   });
 

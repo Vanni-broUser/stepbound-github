@@ -38,13 +38,13 @@ deps_check:
   script:
     - flutter pub outdated --no-transitive || true
 
-# Il layout di un posto vive due volte: le righe ASCII in
-# lib/core/levels/tutorial, che legge la simulazione, e il PNG in
-# assets/levels, che vede il giocatore. Nessun altro job guarda i PNG, cosi
-# una panca spostata senza rilanciare il baker arriva fino al dispositivo.
-# Qui i baker ripartono da zero in una directory temporanea e il risultato
-# viene confrontato pixel per pixel con quanto committato, come fa
-# `generate_balance.dart --check` per il bilanciamento.
+# Il gioco dipinge ogni posto dalle sue righe ASCII, con i tile e gli
+# oggetti di assets/tiles, che i painter in tools/ generano. Nessun altro job
+# guarda quelle immagini, cosi un painter cambiato senza rilanciare il
+# generatore arriva fino al dispositivo. Qui l'atlas riparte da zero in una
+# directory temporanea e il risultato viene confrontato pixel per pixel con
+# quanto committato, come fa `generate_balance.dart --check` per il
+# bilanciamento.
 #
 # Immagine Python, non Flutter: `before_script` sostituisce quello di
 # default, che chiama `flutter`.

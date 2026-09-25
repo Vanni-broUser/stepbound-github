@@ -131,7 +131,7 @@ final class StepboundGame extends FlameGame
   late final PlaceLayers _places = PlaceLayers(
     places: tutorialPlaces,
     playerFeet: () => _characters[playerId]!.position,
-    useAlternateBackground: (place) =>
+    showOpened: (place) =>
         place.id == PlaceId.stationFarSide &&
         progress.memories.contains(StoryMemory.luigiRescued),
   );
