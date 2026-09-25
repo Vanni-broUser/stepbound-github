@@ -57,13 +57,23 @@ spostata dentro la stessa griglia: e una rete a maglie larghe, ma copre la
 classe di errore piu comune, la modifica strutturale, a costo quasi nullo, e
 gira in `unit_tests` senza aggiungere dipendenze.
 
+**Oggi.** Nessun posto ha piu un PNG, quindi il controllo delle dimensioni
+dei PNG non ha piu niente da misurare ed e stato tolto. Resta quello sulle
+righe tutte della stessa lunghezza, in `test/levels/place_rows_test.dart`;
+il tile dell'atlas lo tiene uguale a `levelTileSize`
+`test/levels/tile_atlas_test.dart`.
+
 ## Fase 2 - Rigenerazione verificata in CI (fatta)
 
-`tools/build_levels.py` e l'unico entry point documentato: esegue i baker dei
-livelli in ordine deterministico. Erano 11 baker e 19 sfondi; con la Fase 3 ne
-resta uno, `build_street_level.py`, e quattro sfondi, quelli della citta. I
-baker restano invocabili singolarmente (`python tools/build_street_level.py`),
-e lo script esegue anche l'atlas della Fase 3.
+`tools/build_levels.py` era l'unico entry point documentato: eseguiva gli
+11 baker dei livelli, che dipingevano 19 sfondi, in ordine deterministico.
+
+**Oggi** non c'e piu nessun baker (vedi la Fase 3) e `build_levels.py` resta
+solo come entry point che i job di CI chiamano: `--check` rigenera l'atlas in
+una directory temporanea e confronta `atlas.png`, il manifest e ogni
+immagine di `assets/tiles/objects`, sui pixel come prima, e fallisce anche
+se in `objects` resta un'immagine che nessun painter produce piu. Quanto
+segue descrive il gate come e nato.
 
 `python tools/build_levels.py --check` rigenera in una directory temporanea -
 un albero di symlink verso il repository, con `assets/levels` vuoto e
@@ -88,7 +98,7 @@ variando `PYTHONHASHSEED`), il giro completo dura pochi secondi (3,3 s in
 locale) quindi non serve spezzarlo per posto, e nessun PNG committato era
 divergente dal proprio baker: la Fase 2 nasce verde.
 
-## Fase 3 - Rendering da tile atlas (fatta per 14 posti su 18)
+## Fase 3 - Rendering da tile atlas (fatta)
 
 E la fase che elimina il problema invece di sorvegliarlo. Il renderer
 dipinge il posto a runtime dalle stesse `rows` che legge la simulazione,
@@ -112,13 +122,15 @@ spariscono. Un posto nuovo diventa un file ASCII e basta.
   costerebbe mille draw sul dispositivo minimo senza comprare niente. Un
   posto che la storia puo aprire viene composto due volte, chiuso e aperto,
   e il cambio e solo una scelta di immagine.
-- La scelta fra i due renderer sta nel `PlaceSpec`: un posto convertito non
-  ha piu `background`. I due percorsi convivono, dietro `PlaceBackground`,
-  finche l'ultimo posto non e convertito.
+- Durante la conversione i due renderer convivevano, scelti dal
+  `PlaceSpec` (un posto convertito non aveva piu `background`). Con
+  l'ultimo posto convertito il percorso cotto e stato tolto:
+  `LevelBackgroundComponent`, `background` e `alternateBackground` non ci
+  sono piu, e `assets/levels` nemmeno.
 
-Quattordici dei diciotto posti hanno smesso di avere uno sfondo: tutti gli interni e i
-posti che sono un interno visto dall'alto. Restano cotti i quattro della
-citta, e la sezione "La citta" sotto dice perche.
+Tutti i diciotto posti sono dipinti dall'atlas. I quattro della citta sono
+stati gli ultimi, e un problema diverso: la sezione "La citta" sotto dice
+come.
 
 ### I primi due posti
 
@@ -291,11 +303,16 @@ la struttura (muri, porte, scale, arredi) viene a 0%.
 Le percentuali piu alte sono i posti sporchi all'aperto, dove nessuna cella
 si ripete mai.
 
-### La citta: perche resta cotta
+Per la citta la percentuale non dice niente, e non e riportata: i palazzi
+sono divisi altrove (sotto), quindi quasi ogni tetto e ogni facciata
+cambia, e la differenza sta fra il 38% del porto e il 64% della strada.
+Quello che si confronta a occhio e il carattere, e regge; quello che resta
+identico al pixel sono gli edifici unici, dipinti dal painter originale.
 
-Il punto di decisione previsto dal piano era: se la resa non regge, ci si
-ferma. La resa dei quattordici posti regge, ma i quattro che restano non sono lo
-stesso problema, e la misura lo dice.
+### La citta
+
+Il piano indicava i quattro posti della citta come il punto in cui la Fase 3
+poteva ancora dire di no. La misura spiegava perche:
 
 | Posto | Tile | Celle di edificio | Glifi distinti |
 | --- | --- | --- | --- |
@@ -304,38 +321,56 @@ stesso problema, e la misura lo dice.
 | `northDistrict` | 90x60 | 79% | 36 |
 | `harbour` | 144x62 | 26% | 44 |
 
-Tre motivi, in ordine di peso:
+e tre problemi, che sono stati risolti cosi.
 
-- **Gli edifici non stanno nelle righe.** Il baker divide ogni fascia di
-  edificio in palazzi larghi 3-6 tile scegliendo a caso (`segments`), e a caso
-  colore, tetto e finestre di ognuno. Dove finisce un palazzo e dove comincia
-  il successivo non e scritto nelle righe ASCII: e uno stato del baker. Un
-  renderer a tile dovrebbe rifarlo, e allora l'atlas sarebbe il baker con un
-  altro nome, e i due posti da tenere d'accordo sarebbero ancora due.
-- **Cio che resta e un oggetto, e sono centinaia.** Ospedale, stazione, Duomo
-  e chiesa visti dall'alto, cantiere, fusoliera dell'aereo con ali e motori
-  ricavati da poligoni e levigati, auto, fontane, barche: ognuno e un disegno
-  unico steso su un rettangolo. Convertirli e spostare il PNG in pezzi piu
-  piccoli, ancorati a mano con `at`, senza che le righe li descrivano.
-- **Il pavimento ha un contesto lungo.** `Level.surface` decide di che cosa
-  e pavimentato un oggetto scorrendo lungo la riga e la colonna finche trova
-  un marciapiede, una strada o un selciato, e in caso di parita fa votare i
-  vicini. Nessuna chiave a bit lo esprime senza riscrivere quella funzione.
+- **Gli edifici non stavano nelle righe.** Il baker divideva ogni fascia di
+  edificio in palazzi larghi 3-6 tile scelti a caso, e a caso colore, tetto
+  e finestre di ognuno: dove finiva un palazzo era uno stato del baker.
+  Ora e un pattern sulla posizione: un edificio comincia ogni 15 colonne
+  alle colonne 0, 4 e 10 (quindi larghi 4, 6 e 5) e ogni 4 righe, e
+  tetti e facciate si dividono negli stessi punti. Il colore di un
+  edificio lo scelgono le stesse chiavi, costanti dentro l'edificio e
+  diverse fra due vicini. Sono chiavi `pattern` lette a blocchi (`divX`,
+  `divY`) o con piu resti accettati (`values`). Spostare una strada sposta
+  i suoi edifici; i palazzi non sono piu gli stessi del baker, e non
+  potevano esserlo. L'unico edificio senza divisioni, il retro
+  dell'ipermercato, e una regione dichiarata con due chiavi.
+- **Il pavimento aveva un contesto lungo.** `Level.surface` decide su cosa
+  sta un oggetto scorrendo riga e colonna fino a un marciapiede, una strada
+  o un selciato, e in caso di parita fa votare i vicini. Non e diventato una
+  chiave: e stato portato in Dart tale e quale (`GroundConfig`), e le
+  regole del layer `ground` guardano il pavimento risolto invece del
+  glifo. Il disegno di riferimento chiama l'originale Python, quindi
+  `--compare` tiene il port uguale all'originale su tutte le celle.
+- **Cio che restava erano oggetti, e tanti.** Si sono divisi in due. Le
+  cose piccole che si ripetono (auto, panchine, barche, alberi, palme,
+  fontanelle) sono regole ancorate alla prima cella della loro corsa, con
+  `pieces` per il resto del disegno: si spostano con le righe. Le cose
+  uniche (caserma, ipermercato, ospedale, stazione, Duomo, San Nicola, la
+  barca sullo scalo, la gru, l'aereo, i negozi con il nome) sono oggetti
+  dipinti dal loro painter originale, al pixel, e piazzati con `at` e
+  `under`: se le righe sotto cambiano il test fallisce e si rilancia il
+  generatore. E il compromesso onesto: un edificio unico e un disegno, non
+  un pattern.
 
-Non e un fallimento: un renderer a tile per gli interni e un baker per la
-citta e la divisione onesta che il piano annunciava. Le Fasi 1 e 2 continuano
-a sorvegliare i quattro sfondi che restano (dimensione ed esattezza dei
-pixel in CI), e `build_levels.py` non ha altro da eseguire che
-`build_street_level.py`.
+Cosa e costato:
 
-Se un giorno si riprende, il posto da cui partire e `harbour`: e quello con
-meno edifici (26%), piu acqua e piu regolarita, ed e il piu pesante da tenere
-cotto (345 KB, piu dei 187 di tutto l'atlas).
+- **Peso.** I quattro PNG pesavano 582 KB. L'atlas intero, di tutti i
+  diciotto posti, e 4532 tile e 142 KB; gli oggetti 41 immagini; il
+  manifest 285 KB di testo, che l'APK comprime.
+- **Tempo di caricamento.** Un posto della citta si compone in 170-300 ms
+  nella VM dei test, contro la decodifica di un PNG. Si fa una volta,
+  all'avvio della partita, non a ogni frame: a ogni frame resta
+  un'immagine per posto, come prima, e la memoria e la stessa (le immagini
+  composte hanno la misura dei PNG che sostituiscono). Il renderer manda i
+  tile di un layer al canvas con una sola `drawRawAtlas`; con una
+  `drawImageRect` per tile la suite di test passava da 1 a 2,4 minuti.
+- **Da verificare sul dispositivo minimo**: il tempo di caricamento, che
+  nei test non si misura.
 
 ### Criteri di accettazione, per ogni posto convertito
 
-Il posto non ha piu `background` nel suo `PlaceSpec`; il suo PNG in
-`assets/levels/` e sparito; confronto visivo a schermo con la versione
+Il posto non ha piu un PNG (oggi non ne ha nessuno); confronto visivo a schermo con la versione
 precedente allegato all'MR; i test esistenti del posto passano invariati,
 perche la simulazione non cambia; nessuna regressione di frame rate sul
 dispositivo minimo di `docs/target_devices.md`.

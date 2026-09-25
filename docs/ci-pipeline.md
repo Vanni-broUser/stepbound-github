@@ -18,24 +18,23 @@ guarda che `verify` sia verde.
   (piattaforma, salvataggi, core, UI, gioco) e totale da
   `tools/coverage_policy.json`, e nessuna libreria con codice lasciata fuori
   dal report perche nessun test la carica.
-- `levels_check`: rigenera gli sfondi dei livelli con
-  `python tools/build_levels.py --check` e li confronta, pixel per pixel,
-  con quelli committati in `assets/levels`. Gira su `python:3.11.15-slim`
-  con `tools/requirements.txt` (Pillow fissato), non sull'immagine Flutter,
-  e sostituisce il `before_script` di default. Fallisce se si cambia un
-  `rows` in `lib/core/levels/tutorial` senza rilanciare il baker: il
-  messaggio nomina il PNG, i tile che differiscono e il baker da rilanciare.
+- `levels_check`: rigenera l'atlas da cui il gioco dipinge ogni posto con
+  `python tools/build_levels.py --check` e lo confronta, pixel per pixel,
+  con quello committato in `assets/tiles`: `atlas.png`, il manifest e le
+  immagini degli oggetti, e fallisce anche su un'immagine di oggetto che
+  nessun painter produce piu. Gira su `python:3.11.15-slim` con
+  `tools/requirements.txt` (Pillow fissato), non sull'immagine Flutter, e
+  sostituisce il `before_script` di default. Fallisce se si cambia un
+  painter in `tools/` senza rilanciare `python tools/build_tile_atlas.py`.
   Nasce con `allow_failure: true` per una settimana, il tempo di misurarne
   la stabilita; poi si toglie e diventa bloccante. Il confronto e sui pixel
   decodificati e non sui byte del file perche la codifica PNG non e
   garantita stabile fra versioni di Pillow o di zlib.
-  Copre anche l'atlas dei posti convertiti al rendering a tile
-  (`tools/build_tile_atlas.py --check`), che non hanno piu un PNG da
-  confrontare.
-  L'invariante piu grossolana, ogni sfondo grande esattamente quanto la sua
-  griglia, e coperta anche da `unit_tests`
-  (`test/levels/level_background_dimensions_test.dart`), che gira sempre e
-  non ha bisogno di Python.
+  Le righe ASCII di un posto non hanno piu una copia dipinta da tenere
+  d'accordo: il gioco le dipinge. Cio che dipende ancora dalle righe -- un
+  oggetto dipinto per una certa disposizione, come il vagone o un negozio
+  -- lo controlla `unit_tests` (`test/levels/tile_atlas_test.dart`), che
+  gira sempre e non ha bisogno di Python.
 - `deps_check`: dipendenze obsolete, informativo.
 - `build_android_debug`: APK debug installabile, manuale e non bloccante.
 - `build_android_signed` / `build_ios_signed`: pacchetti release manuali solo su ref
