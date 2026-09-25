@@ -15,7 +15,7 @@ pixels, not the bytes of the file: the PNG encoder is not guaranteed
 stable across versions of Pillow or zlib, the pixels are. It exits
 non-zero at the first background that differs, naming the baker to re-run.
 
-The bakers stay runnable on their own -- `python tools/build_church.py`,
+The bakers stay runnable on their own -- `python tools/build_station.py`,
 from the repository root -- this only gives them one documented order and
 one place that knows what each of them paints. This script finds the
 repository from its own path, so it runs from anywhere.
@@ -55,7 +55,6 @@ BAKERS: list[tuple[str, tuple[str, ...]]] = [
             "mall_north_street.png",
         ),
     ),
-    ("build_church.py", ("church.png",)),
     ("build_station.py", ("station.png",)),
     ("build_airliner.py", ("airliner_roofs.png",)),
 ]

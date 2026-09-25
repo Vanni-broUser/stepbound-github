@@ -168,11 +168,11 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     indoor: true,
     daylight: 'E',
   ),
+  // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.church,
     rows: churchRows,
     legend: churchLegend,
-    background: 'assets/levels/church.png',
     indoor: true,
     // The open portal, and the sky through the holes in the roof.
     daylight: 'E^9',
