@@ -108,6 +108,7 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     rows: streetLevelRows,
     legend: outdoorLegend,
     background: 'assets/levels/first_street.png',
+    foreground: 'assets/levels/first_street_front.png',
   ),
   PlaceSpec(
     id: PlaceId.barracks,
@@ -122,12 +123,14 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     rows: northDistrictRows,
     legend: outdoorLegend,
     background: 'assets/levels/north_district.png',
+    foreground: 'assets/levels/north_district_front.png',
   ),
   PlaceSpec(
     id: PlaceId.harbour,
     rows: harbourRows,
     legend: outdoorLegend,
     background: 'assets/levels/harbour.png',
+    foreground: 'assets/levels/harbour_front.png',
     name: harbourName,
     cardImage: harbourCardImage,
   ),
@@ -154,6 +157,7 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     rows: mallNorthStreetRows,
     legend: outdoorLegend,
     background: 'assets/levels/mall_north_street.png',
+    foreground: 'assets/levels/mall_north_street_front.png',
   ),
   PlaceSpec(
     id: PlaceId.barArcobaleno,

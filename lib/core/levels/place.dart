@@ -89,6 +89,7 @@ final class PlaceSpec {
     this.name,
     this.cardImage,
     this.alternateBackground,
+    this.foreground,
     this.torches = const <GridPoint>[],
     this.darkness = defaultDarkness,
   });
@@ -113,6 +114,12 @@ final class PlaceSpec {
   /// story state changes something visual without changing the layout.
   final String? alternateBackground;
 
+  /// What of the place stands taller than the tile it is on (the airliner,
+  /// the road signs, the traffic lights, the trees), baked apart where it
+  /// hangs over a tile someone can walk on: drawn over the characters, so
+  /// one standing behind it is hidden by it.
+  final String? foreground;
+
   /// Burning torches, in the place's own tile coordinates: fixed to walls
   /// and columns, so they are not glyphs of their own. The game draws
   /// their flames and they light the room like its lamps.
@@ -136,6 +143,7 @@ final class Place {
   List<String> get rows => spec.rows;
   String get background => spec.background;
   String? get alternateBackground => spec.alternateBackground;
+  String? get foreground => spec.foreground;
   bool get indoor => spec.indoor;
   bool get lit => spec.lit;
   String? get name => spec.name;

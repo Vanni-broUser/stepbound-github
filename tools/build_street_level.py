@@ -23,6 +23,7 @@ import os
 import random
 import re
 
+import numpy as np
 from PIL import Image, ImageDraw
 
 TILE = 16
@@ -206,6 +207,32 @@ def read_rows(marker: str = "level-rows") -> list[str]:
             block = text.split(f"// {marker}-start", 1)[1].split(f"// {marker}-end", 1)[0]
             return re.findall(r"'([^']+)'", block)
     raise ValueError(f"no rows marked {marker} in {LEVELS_DIR}")
+
+
+def outdoor_blocking() -> str:
+    """The glyphs that cannot be walked on, walls and obstacles alike, as
+    `outdoorLegend` in tutorial_level.dart lists them."""
+    with open(os.path.join(LEVELS_DIR, "tutorial_level.dart"), encoding="utf-8") as source:
+        text = source.read()
+    legend = text.split("const Legend outdoorLegend = Legend(", 1)[1].split(");", 1)[0]
+    walls = re.search(r"walls: '([^']*)'", legend).group(1)
+    obstacles = re.search(r"obstacles: '([^']*)'", legend).group(1)
+    return walls + obstacles
+
+
+def walkable_mask(level) -> np.ndarray:
+    """True on every pixel of a tile that can be walked on, bar the tear
+    `[` in the airliner: that is a way in, drawn as a hole, and a hole in
+    front of whoever goes through it would swallow him."""
+    blocking = outdoor_blocking() + "["
+    tiles = np.array([[level.at(x, y) not in blocking and not level.is_building(x, y)
+                       for x in range(level.width)] for y in range(level.height)])
+    return np.kron(tiles, np.ones((TILE, TILE))).astype(bool)
+
+
+def changed(before: Image.Image, after: Image.Image) -> np.ndarray:
+    """True where [after] differs from [before]."""
+    return np.any(np.asarray(before) != np.asarray(after), axis=2)
 
 
 def rect(d: ImageDraw.ImageDraw, x, y, w, h, c) -> None:
@@ -2775,7 +2802,16 @@ def bake(level: Level, rng: random.Random, output: str) -> None:
             if any(level.at(x + dx, y + dy) in "_+["
                    for dx in (-1, 0, 1) for dy in (-1, 0, 1)):
                 paint_airliner_scorch(d, rng, level, x, y)
+    before = image.copy()
     paint_airliner(d, rng, level)
+    # What stands up off the ground over the tiles around it is drawn in
+    # front of the characters too: the fuselage above its belly (not the
+    # shadow it throws south of it) and the wings.
+    in_front = changed(before, image)
+    body = airliner_body(level)
+    if body:
+        for px, (_, bottom) in airliner_edges(body).items():
+            in_front[bottom:, px] = False
 
     # Enough of them that two pile-ups in the same place do not come out
     # the same colours; they are handed out in the order the cars are met.
@@ -2860,6 +2896,7 @@ def bake(level: Level, rng: random.Random, output: str) -> None:
                 color_index += 1
                 paint_car_vertical(d, px, py, color, burnt=glyph == "k")
     # traffic lights last: their heads overlap the tile above
+    before = image.copy()
     for y in range(level.height):
         for x in range(level.width):
             if level.at(x, y) == "T":
@@ -2880,6 +2917,8 @@ def bake(level: Level, rng: random.Random, output: str) -> None:
                 paint_tree(d, rng, x * TILE, y * TILE)
             elif level.at(x, y) == "N":
                 paint_palm(d, rng, x * TILE, y * TILE)
+    in_front |= changed(before, image)
+    save_front(image, in_front & walkable_mask(level), output)
 
     # scattered small debris over the walkable area
     for _ in range(level.width * level.height // 3):
@@ -2891,6 +2930,19 @@ def bake(level: Level, rng: random.Random, output: str) -> None:
     os.makedirs(os.path.dirname(output), exist_ok=True)
     image.save(output, optimize=True)
     print(f"{output}: {image.size[0]}x{image.size[1]}")
+
+
+def save_front(image: Image.Image, mask: np.ndarray, output: str) -> None:
+    """Beside [output], the `_front` layer the game draws over the
+    characters: the pixels of [mask] from [image], clear everywhere else.
+    Only where a tall thing stands over a tile someone can walk on, so a
+    character behind it is hidden by it."""
+    rgba = np.zeros((image.size[1], image.size[0], 4), dtype=np.uint8)
+    rgba[..., :3] = np.asarray(image)
+    rgba[..., 3] = np.where(mask, 255, 0)
+    front = output.replace(".png", "_front.png")
+    Image.fromarray(rgba, "RGBA").save(front, optimize=True)
+    print(f"{front}: {int(mask.sum())} pixels in front")
 
 
 if __name__ == "__main__":

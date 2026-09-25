@@ -11,7 +11,8 @@ final class LevelBackgroundComponent extends Component {
     this.offset = ui.Offset.zero,
     this.alternateAssetPath,
     this.useAlternate,
-  }) : super(priority: 0);
+    super.priority = 0,
+  });
 
   final String assetPath;
   final ui.Offset offset;
