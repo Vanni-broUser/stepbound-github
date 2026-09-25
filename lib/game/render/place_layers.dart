@@ -7,7 +7,8 @@ import 'package:stepbound/game/render/lighting_component.dart';
 import 'package:stepbound/game/render/tile_place_component.dart';
 
 /// What is drawn of every place: its background, painted from its own
-/// ASCII rows out of the tile atlas, and, indoors unless the place is lit
+/// ASCII rows out of the tile atlas, what of it stands in front of the
+/// characters, and, indoors unless the place is lit
 /// throughout, the darkness its lamps cut into. Only the places in view
 /// are drawn: the others lie far away on the shared grid and would cost a
 /// big image, or a full-room layer, every frame for nothing.
@@ -46,6 +47,7 @@ final class PlaceLayers {
   List<Component> get components => <Component>[
     for (final layer in _layers) ...<Component>[
       layer.background,
+      layer.background.front,
       ?layer.lighting,
     ],
   ];
