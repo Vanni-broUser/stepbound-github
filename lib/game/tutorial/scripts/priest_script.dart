@@ -32,7 +32,8 @@ final class PriestScript extends TutorialScript {
   static const String everyTwoStreetsLine =
       'Suvvia giovanotto, siamo in Italia! Nei centri storici trovi una '
       'chiesa ogni due strade';
-  static const String welcomeLine = 'Benvenuto nella nostra chiesa giovanotto';
+  static const String welcomeLine =
+      'Ottimo giovanotto, ben fatto! Benvenuto nella nostra chiesa';
   static const String notCommunityYetLine =
       'Ora puoi entrare qui ma non sei ancora davvero parte della nostra '
       'comunità';
