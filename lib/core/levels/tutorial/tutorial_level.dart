@@ -186,11 +186,11 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     legend: stationLegend,
     background: 'assets/levels/station.png',
   ),
+  // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.stationUnderpass,
     rows: stationUnderpassRows,
     legend: stationLegend,
-    background: 'assets/levels/station_underpass.png',
     indoor: true,
     // Daylight falling down both flights of stairs.
     daylight: 'DU',

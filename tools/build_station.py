@@ -33,7 +33,6 @@ from build_street_level import (  # noqa: E402
 )
 
 STATION_OUTPUT = os.path.join("assets", "levels", "station.png")
-UNDERPASS_OUTPUT = os.path.join("assets", "levels", "station_underpass.png")
 
 VOID = (6, 6, 8)
 HALL_A = (172, 162, 146)
@@ -572,31 +571,9 @@ def bake_platform(room: Room, rng, output, wrecked, open_door=False):
     save(image, output)
 
 
-def bake_underpass(room: Room, rng, output):
-    image = Image.new("RGB", (room.width * TILE, room.height * TILE), VOID)
-    d = ImageDraw.Draw(image)
-    for y in range(room.height):
-        for x in range(room.width):
-            if not room.is_wall(x, y) and room.at(x, y) != "x":
-                paint_underpass_floor(d, rng, x, y)
-    for y in range(room.height):
-        for x in range(room.width):
-            glyph = room.at(x, y)
-            px, py = x * TILE, y * TILE
-            if glyph == "W":
-                paint_underpass_wall(d, rng, room, x, y)
-            elif glyph == "w":
-                paint_underpass_front(d, x, y)
-            elif glyph in "UD":
-                paint_stairs(d, room, x, y)
-            elif glyph == ":":
-                paint_litter(d, rng, px, py)
-            elif glyph == "b":
-                paint_blood(d, rng, px, py)
-            elif glyph in "*+":
-                paint_lamp(d, px, py, dead=glyph == "+")
-    paint_side_edges(d, room)
-    save(image, output)
+# The underpass is not baked any more: the game paints it from its rows
+# out of the tile atlas, which still uses the painters above. What is left
+# here bakes the station itself, the one platform not yet converted.
 
 
 def save(image, output):
@@ -608,8 +585,6 @@ def save(image, output):
 def main() -> None:
     bake_platform(Room(read_rows("station-rows")), random.Random(1906),
                   STATION_OUTPUT, wrecked=True)
-    bake_underpass(Room(read_rows("underpass-rows")), random.Random(1931),
-                   UNDERPASS_OUTPUT)
     # The far platform is not baked any more: the game paints it from its
     # rows out of the tile atlas (tools/build_tile_atlas.py), which still
     # uses the painters above. The rest of this file stays for the station

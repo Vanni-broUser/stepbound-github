@@ -1299,6 +1299,248 @@
           "whenOpen": "station_railcar_open.png"
         }
       ]
+    },
+    "stationUnderpass": {
+      "void": "#060608",
+      "voidGlyph": "x",
+      "rules": [
+        {
+          "layer": "ground",
+          "glyphs": ".:b*+ZUD",
+          "keys": [],
+          "buckets": [
+            [
+              423,
+              424,
+              425,
+              426,
+              427,
+              428,
+              429,
+              430,
+              431,
+              432,
+              433,
+              434
+            ]
+          ]
+        },
+        {
+          "layer": "structures",
+          "glyphs": "W",
+          "keys": [
+            {
+              "kind": "neighbour",
+              "dx": 0,
+              "dy": -1,
+              "glyphs": "W"
+            }
+          ],
+          "buckets": [
+            [
+              435,
+              436,
+              437,
+              438,
+              439,
+              440,
+              441,
+              442,
+              443,
+              444,
+              445,
+              446
+            ],
+            [
+              447,
+              448,
+              449,
+              450,
+              451,
+              452,
+              453,
+              454,
+              455,
+              456,
+              457,
+              458
+            ]
+          ]
+        },
+        {
+          "layer": "structures",
+          "glyphs": "w",
+          "keys": [],
+          "buckets": [
+            [
+              459
+            ]
+          ]
+        },
+        {
+          "layer": "structures",
+          "glyphs": ":",
+          "keys": [],
+          "buckets": [
+            [
+              460,
+              461,
+              462,
+              463,
+              464,
+              465,
+              466,
+              467,
+              468,
+              469,
+              470,
+              471
+            ]
+          ]
+        },
+        {
+          "layer": "structures",
+          "glyphs": "b",
+          "keys": [],
+          "buckets": [
+            [
+              472,
+              473,
+              474,
+              475,
+              476,
+              477,
+              478,
+              479,
+              480,
+              481,
+              482,
+              483
+            ]
+          ]
+        },
+        {
+          "layer": "structures",
+          "glyphs": "*",
+          "keys": [],
+          "buckets": [
+            [
+              484
+            ]
+          ]
+        },
+        {
+          "layer": "structures",
+          "glyphs": "+",
+          "keys": [],
+          "buckets": [
+            [
+              485
+            ]
+          ]
+        },
+        {
+          "layer": "structures",
+          "glyphs": "U",
+          "keys": [
+            {
+              "kind": "neighbour",
+              "dx": -1,
+              "dy": 0,
+              "glyphs": "U"
+            },
+            {
+              "kind": "neighbour",
+              "dx": 1,
+              "dy": 0,
+              "glyphs": "U"
+            }
+          ],
+          "buckets": [
+            [
+              413
+            ],
+            [
+              414
+            ],
+            [
+              415
+            ],
+            [
+              416
+            ]
+          ]
+        },
+        {
+          "layer": "structures",
+          "glyphs": "D",
+          "keys": [
+            {
+              "kind": "neighbour",
+              "dx": -1,
+              "dy": 0,
+              "glyphs": "D"
+            },
+            {
+              "kind": "neighbour",
+              "dx": 1,
+              "dy": 0,
+              "glyphs": "D"
+            }
+          ],
+          "buckets": [
+            [
+              413
+            ],
+            [
+              414
+            ],
+            [
+              415
+            ],
+            [
+              416
+            ]
+          ]
+        },
+        {
+          "layer": "foreground",
+          "glyphs": ".:b*+ZUD",
+          "keys": [
+            {
+              "kind": "neighbour",
+              "dx": -1,
+              "dy": 0,
+              "glyphs": "x"
+            }
+          ],
+          "buckets": [
+            [],
+            [
+              110
+            ]
+          ]
+        },
+        {
+          "layer": "foreground",
+          "glyphs": ".:b*+ZUD",
+          "keys": [
+            {
+              "kind": "neighbour",
+              "dx": 1,
+              "dy": 0,
+              "glyphs": "x"
+            }
+          ],
+          "buckets": [
+            [],
+            [
+              111
+            ]
+          ]
+        }
+      ],
+      "objects": []
     }
   }
 }

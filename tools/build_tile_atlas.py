@@ -261,6 +261,68 @@ def duomo_upper(atlas: Atlas, rng) -> dict:
     }
 
 
+def station_underpass(atlas: Atlas, rng) -> dict:
+    """The rules that paint PlaceId.stationUnderpass: the corridor under
+    the tracks, glazed tile over a dark plinth, lit by strip lights."""
+    floor = atlas.bucket(lambda: cell(
+        lambda d, gx, gy: station.paint_underpass_floor(d, rng, gx, gy)))
+    wall = [
+        atlas.bucket(lambda a=above: tile_of(
+            lambda d: station.paint_underpass_wall(
+                d, rng,
+                Neighbourhood("W", lambda x, y, a=a: "W" if a else "."),
+                0, 0)))
+        for above in (False, True)
+    ]
+    front = atlas.bucket(
+        lambda: tile_of(lambda d: station.paint_underpass_front(d, 0, 0)), 1)
+    litter = atlas.bucket(
+        lambda: tile_of(lambda d: station.paint_litter(d, rng, 0, 0)))
+    blood = atlas.bucket(
+        lambda: tile_of(lambda d: paint_blood(d, rng, 0, 0)))
+    lamps = {
+        glyph: atlas.bucket(lambda dead=dead: tile_of(
+            lambda d: station.paint_lamp(d, 0, 0, dead)), 1)
+        for glyph, dead in (("*", False), ("+", True))
+    }
+
+    def stairs(glyph):
+        """The head of a flight: its two ends carry the handrail and half
+        the arrow, so the key is whether the flight goes on beside it."""
+        out = []
+        for right in (False, True):
+            for left in (False, True):
+                out.append(atlas.bucket(lambda l=left, r=right, g=glyph:
+                    tile_of(lambda d: station.paint_stairs(d, Neighbourhood(
+                        g, lambda x, y, l=l, r=r, g=g: g
+                        if (x == -1 and l) or (x == 1 and r) else "."),
+                        0, 0)), 1))
+        return out
+
+    floored = ".:b*+Z"
+    rules = [
+        rule("ground", floored + "UD", [floor]),
+        rule("structures", "W", wall, [neighbour_key(0, -1, "W")]),
+        rule("structures", "w", [front]),
+        rule("structures", ":", [litter]),
+        rule("structures", "b", [blood]),
+        rule("structures", "*", [lamps["*"]]),
+        rule("structures", "+", [lamps["+"]]),
+    ]
+    for glyph in "UD":
+        rules.append(rule("structures", glyph, stairs(glyph),
+                          [neighbour_key(-1, 0, glyph),
+                           neighbour_key(1, 0, glyph)]))
+    for right in (False, True):
+        edge = atlas.bucket(lambda r=right: tile_of(
+            lambda d: paint_side_edge(d, 0, 0, r)), 1)
+        rules.append(rule("foreground", floored + "UD", [[], edge],
+                          [neighbour_key(1 if right else -1, 0, "x")]))
+    return {"void": "#060608", "voidGlyph": "x", "rules": rules,
+            "objects": []}
+
+
+
 # ------------------------------------------------ the Bar Arcobaleno's art
 # Moved here from tools/build_bar.py, which this atlas replaces: a chequered
 # floor under broken glass and toppled chairs, the counter across the back,
@@ -977,6 +1039,7 @@ PLACES = {
     "duomo": duomo,
     "duomoUpper": duomo_upper,
     "stationFarSide": station_far_side,
+    "stationUnderpass": station_underpass,
 }
 
 
@@ -1039,6 +1102,7 @@ PREVIEW_ROWS = {
     "duomo": "duomo-rows",
     "duomoUpper": "duomo-upper-rows",
     "stationFarSide": "far-platform-rows",
+    "stationUnderpass": "underpass-rows",
 }
 
 
