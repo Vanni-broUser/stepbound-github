@@ -256,9 +256,9 @@ void main() {
       'barracks', () {
     final pickups = createTutorialWorld().pickups;
     expect(pickups[ammoBackpackId]!.active, isTrue);
-    expect(pickups[ammoBackpackId]!.ammo, 2);
+    expect(pickups[ammoBackpackId]!.ammo, 4);
     expect(pickups[accidentBackpackId]!.active, isTrue);
-    expect(pickups[accidentBackpackId]!.ammo, 4);
+    expect(pickups[accidentBackpackId]!.ammo, 2);
     final gun = pickups[gunBackpackId]!;
     expect(gun.gun, isTrue);
     expect(place(PlaceId.barracks).indoor, isTrue);
@@ -281,11 +281,11 @@ void main() {
 
     final events = const TurnScheduler().advance(world, const InteractAction());
     final pickedUp = events.whereType<PickedUpEvent>().single;
-    expect(pickedUp.ammo, 2);
+    expect(pickedUp.ammo, 4);
     expect(backpack.active, isFalse);
     expect(backpack.collected, isTrue);
     final ammo = world.player.component<AmmoComponent>();
-    expect(ammo.loaded, 2);
+    expect(ammo.loaded, 4);
     expect(ammo.hasGun, isFalse);
   });
 
@@ -1802,8 +1802,7 @@ void main() {
         airlinerCabinTear.first.step(Direction.north),
         cabin,
       );
-      // A trolley closes one half of the break; the other is open, for
-      // whoever gets past the mutilated zombie lying in it.
+      // A trolley closes one half of the break; the other is open.
       expect(
         airlinerTailBreak.where(
           (door) => reached.containsKey(door.step(Direction.south)),
@@ -1867,7 +1866,10 @@ void main() {
         return seen;
       }
 
-      final guard = airlinerTailBreak.first.step(Direction.south);
+      /// The one lying across the aisle.
+      final guard = cabin
+          .tilesOf('M')
+          .singleWhere((tile) => tile.y == cabin.origin.y + 5);
 
       test('lie in the cabin, many of them, facing the aisle', () {
         final world = createTutorialWorld();
@@ -1888,37 +1890,58 @@ void main() {
         }
       });
 
-      test('the one under the tail break has to be killed to get out', () {
+      test('the one lying across the aisle is passed over the broken '
+          'seats, and only there', () {
         final world = createTutorialWorld();
         expect(mutilatedTiles(world), contains(guard));
-        final reached = walk(world);
-        for (final door in airlinerTailBreak) {
-          expect(reached.contains(door), isFalse, reason: 'he is in the way');
+        final exit = airlinerTailBreak.first.step(Direction.south);
+        final reached = walk(world, bitesAllowed: false);
+        expect(reached.contains(exit), isTrue, reason: 'no bite to get out');
+        // With the broken seats as whole as the rest, he shuts the aisle.
+        for (final seat in cabin.tilesOf('r')) {
+          world.map.setTile(seat, const Tile(TileKind.obstacle));
         }
-        // Shot, he is out of the way: the break opens on the roofs.
-        world.entities.values
-                .firstWhere(
-                  (entity) =>
-                      entity.component<PositionComponent>().position == guard,
-                )
-                .component<HealthComponent>()
-                .current =
-            0;
-        final afterwards = walk(world);
-        expect(afterwards.contains(airlinerTailBreak.first), isTrue);
+        expect(walk(world, bitesAllowed: false).contains(exit), isFalse);
+      });
+
+      test('the first one lies under a light, in sight of the tear', () {
+        final world = createTutorialWorld();
+        final start = airlinerCabinTear.first.step(Direction.north);
+        final first = mutilatedTiles(world).reduce(
+          (a, b) => a.manhattanDistanceTo(start) <= b.manhattanDistanceTo(start)
+              ? a
+              : b,
+        );
+        expect(first.manhattanDistanceTo(start), lessThanOrEqualTo(3));
+        expect(
+          cabin.lights.any(
+            (light) => light.tile.manhattanDistanceTo(first) <= 1,
+          ),
+          isTrue,
+        );
+      });
+
+      test('none lies in front of the tail break', () {
+        final world = createTutorialWorld();
+        for (final door in airlinerTailBreak) {
+          expect(
+            mutilatedTiles(world),
+            isNot(contains(door.step(Direction.south))),
+          );
+        }
       });
 
       test('he can be shot from a distance, without a bite', () {
         final world = createTutorialWorld();
         final reached = walk(world, bitesAllowed: false, except: guard);
         final inLine = <GridPoint>[
-          for (var y = guard.y + 2; y < cabin.bounds.bottom; y++)
-            GridPoint(guard.x, y),
+          for (var x = guard.x - 2; x > cabin.bounds.left; x--)
+            GridPoint(x, guard.y),
         ];
         final spot = inLine.firstWhere(reached.contains);
         world.player.component<PositionComponent>()
           ..position = spot
-          ..facing = Direction.north;
+          ..facing = Direction.east;
         world.player.component<AmmoComponent>()
           ..hasGun = true
           ..loaded = 1;
@@ -1941,36 +1964,41 @@ void main() {
           reason: 'the bag is picked up from a tile next to it',
         );
         // Right up to the tile in front of the one in the way.
-        expect(reached.contains(guard.step(Direction.south)), isTrue);
+        expect(reached.contains(guard.step(Direction.west)), isTrue);
       });
     });
 
-    group('the burning zombie', () {
+    group('the burning zombies', () {
       Entity burning(WorldState world) =>
           world.entities[rooftopBurningZombieId]!;
 
-      test('stands on the lower terrace, in front of the corner on fire', () {
+      test('two stand on the upper terrace, out of the corner on fire', () {
         final world = createTutorialWorld();
-        final zombie = burning(world);
-        expect(zombie.kind, EntityKind.burning);
-        expect(zombie.component<ActorComponent>().trailsFire, isTrue);
-        final at = zombie.component<PositionComponent>().position;
-        expect(at, roofs.tileOf('Y'));
-
+        final zombies = world.entities.values
+            .where((entity) => entity.id.startsWith(rooftopBurningZombiePrefix))
+            .toList();
+        expect(zombies, hasLength(2));
         final corner = roofs.tilesOf('&');
         expect(corner.length, greaterThanOrEqualTo(5));
         for (final tile in corner) {
           expect(world.map.tileAt(tile).kind, TileKind.fire);
           expect(world.map.tileAt(tile).isWalkable, isFalse);
-          // The south-east corner of the lower terrace.
-          expect(tile.y, greaterThan(rooftopGapTile.y - 5));
-          expect(tile.x, greaterThan(rooftopGapTile.x));
+          // The north-west corner of the upper terrace, where the airliner
+          // struck.
+          expect(tile.y, lessThan(roofs.origin.y + 8));
+          expect(tile.x, lessThan(airlinerRoofBreak.first.x));
         }
-        expect(
-          corner.any((tile) => tile.manhattanDistanceTo(at) == 1),
-          isTrue,
-          reason: 'it walked out of the fire',
-        );
+        for (final zombie in zombies) {
+          expect(zombie.kind, EntityKind.burning);
+          expect(zombie.component<ActorComponent>().trailsFire, isTrue);
+          final at = zombie.component<PositionComponent>().position;
+          expect(roofs.tilesOf('Y'), contains(at));
+          expect(
+            corner.any((tile) => tile.manhattanDistanceTo(at) == 1),
+            isTrue,
+            reason: 'it walked out of the fire',
+          );
+        }
       });
 
       test('going after Mario it leaves a trail of fire nobody crosses, and '
@@ -1979,8 +2007,8 @@ void main() {
         final zombie = burning(world);
         final start = zombie.component<PositionComponent>().position;
         world.player.component<PositionComponent>()
-          ..position = GridPoint(start.x - 5, start.y)
-          ..facing = Direction.east;
+          ..position = GridPoint(start.x + 5, start.y)
+          ..facing = Direction.west;
         final fires = <GridPoint>[];
         const scheduler = TurnScheduler();
         for (var i = 0; i < 6; i++) {
@@ -2009,7 +2037,7 @@ void main() {
 
       test('the tiles it set alight are still burning after a save', () {
         final world = createTutorialWorld();
-        final tile = roofs.tileOf('Y').step(Direction.west);
+        final tile = roofs.tilesOf('Y').first.step(Direction.east);
         world.map.setTile(tile, const Tile(TileKind.fire));
         final restored = restoreTutorialWorld(
           jsonDecode(jsonEncode(saveTutorialWorld(world)))

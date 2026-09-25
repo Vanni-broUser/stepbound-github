@@ -46,7 +46,7 @@
 /// - Zombies: `w` wanderer, `z` sprinter, `u` brute, `r` carabiniere; `t`
 ///   the two wanderers outside the churchyard gate.
 /// - `@` player, `w` wanderer.
-/// - Backpacks: `1` two rounds, there from the start; `2` four rounds by the
+/// - Backpacks: `1` four rounds, there from the start; `2` two rounds by the
 ///   accident, waiting there from the start (the zombie guards it); `4` two
 ///   rounds at the far corner of the hypermarket's car park; `5` four
 ///   rounds on the rowboat moored at the harbour's second pier.

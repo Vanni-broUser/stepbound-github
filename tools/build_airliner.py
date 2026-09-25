@@ -29,6 +29,7 @@ SEAT = (46, 62, 84)
 SEAT_LIGHT = (72, 94, 122)
 SEAT_DARK = (28, 38, 54)
 HEADREST = (196, 192, 180)
+FOAM = (214, 196, 128)
 TROLLEY = (150, 154, 158)
 TROLLEY_DARK = (76, 80, 86)
 PANEL = (178, 178, 172)
@@ -115,6 +116,33 @@ def cabin_seat(d, room, x, y):
         rect(d, px + 6, py + 1, 8, 2, shade(SEAT, 28))
     if room.at(x, y + 1) != "T":
         rect(d, px + 6, py + 13, 8, 2, SEAT_DARK)
+
+
+def cabin_broken_seat(d, px, py):
+    """A seat torn off its rails and thrown down askew: the back snapped
+    from the cushion, the foam burst out of both, the frame bent under
+    them, bits of panelling all about. Low enough to climb over."""
+    rect(d, px + 1, py + 1, 14, 14, shade(CARPET, -16))
+    # The cushion, knocked a step down and to the right of the back.
+    rect(d, px + 6, py + 7, 9, 7, SEAT_DARK)
+    rect(d, px + 7, py + 8, 7, 5, SEAT)
+    rect(d, px + 7, py + 8, 7, 1, SEAT_LIGHT)
+    rect(d, px + 9, py + 9, 3, 2, FOAM)
+    rect(d, px + 12, py + 11, 1, 1, FOAM)
+    # The back, lying the other way, its headrest split.
+    rect(d, px + 1, py + 2, 6, 9, SEAT_DARK)
+    rect(d, px + 2, py + 3, 4, 7, SEAT)
+    rect(d, px + 2, py + 3, 4, 2, HEADREST)
+    rect(d, px + 3, py + 6, 2, 2, FOAM)
+    # The bent frame showing between them, and a leg sticking up.
+    rect(d, px + 5, py + 11, 3, 1, TROLLEY)
+    rect(d, px + 7, py + 12, 1, 3, TROLLEY)
+    rect(d, px + 12, py + 2, 1, 5, TROLLEY)
+    rect(d, px + 12, py + 2, 2, 1, TROLLEY_DARK)
+    # What else came down with it.
+    rect(d, px + 8, py + 2, 3, 2, PANEL)
+    rect(d, px + 2, py + 12, 3, 2, PANEL_DARK)
+    rect(d, px + 14, py + 5, 1, 1, PANEL)
 
 
 def cabin_trolley(d, px, py):
