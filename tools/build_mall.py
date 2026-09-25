@@ -22,7 +22,6 @@ from build_street_level import (  # noqa: E402
     paint_boards,
     paint_smashed_display,
     paint_text,
-    paint_trolley,
     rect,
     text_width,
 )

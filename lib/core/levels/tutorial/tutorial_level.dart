@@ -179,12 +179,8 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
   ),
   // Over the platforms the roof is gone, so the station and the far side
   // are lit throughout; only the underpass is dark.
-  PlaceSpec(
-    id: PlaceId.station,
-    rows: stationRows,
-    legend: stationLegend,
-    background: 'assets/levels/station.png',
-  ),
+  // Painted from its rows out of the tile atlas.
+  PlaceSpec(id: PlaceId.station, rows: stationRows, legend: stationLegend),
   // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.stationUnderpass,

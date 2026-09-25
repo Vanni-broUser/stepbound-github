@@ -46,6 +46,7 @@ from build_street_level import (  # noqa: E402
     paint_chair,
     paint_emblem,
     paint_text,
+    paint_trolley,
     rect,
     shade,
     text_width,
@@ -2027,7 +2028,7 @@ def mall_floor(atlas: Atlas, name: str, rng) -> dict:
     rules.append(rule(
         "structures", "T",
         [atlas.bucket(lambda t=tipped: tile_of(
-            lambda d: mall.paint_trolley(d, 0, 0, tipped=t)), 1)
+            lambda d: paint_trolley(d, 0, 0, tipped=t)), 1)
          for tipped in (True, False)], [parity_key()]))
     for glyph, paint in (("K", mall.paint_kiosk), ("B", mall.paint_long_bench)):
         rules.append(rule(
@@ -2390,6 +2391,161 @@ def church(atlas: Atlas, rng) -> dict:
     }
 
 
+
+# --------------------------------------------------------- the station's art
+# The booking hall and its platform, the one place of the station that was
+# still baked. It is the far platform's sister -- same slabs, same rails,
+# same painters, which stay in tools/build_station.py -- with what the far
+# platform has not: the hall, the rubble where the roof came down, the
+# doorways onto the forecourt, the ticket windows, and two wrecked trains
+# that are objects, the railcar standing derailed across the near track and
+# the coach on its side across the far one.
+
+STATION_RAILCAR_TILES = (11, 3)
+STATION_COACH_TILES = (9, 3)
+
+
+def station_hall(atlas: Atlas, rng) -> dict:
+    """The rules that paint PlaceId.station."""
+    def platform(parity: int, edge: bool):
+        return atlas.bucket(lambda p=parity, e=edge: cell(
+            lambda d, gx, gy: station.paint_platform(
+                d, rng, gx, gy, 0 if e else -1), p, 0))
+
+    def hall(parity: int):
+        return atlas.bucket(lambda p=parity: cell(
+            lambda d, gx, gy: station.paint_hall(d, rng, gx, gy), p, 0))
+
+    def randomly(paint):
+        return [atlas.bucket(lambda: tile_of(
+            lambda d: paint(d, rng, 0, 0)))]
+
+    def ends(paint, glyph):
+        """Four tiles: the two ends of a run, its middle, and a run of one.
+        `paint` is given a neighbourhood that says which sides continue."""
+        out = []
+        for right in (False, True):
+            for left in (False, True):
+                out.append(atlas.bucket(lambda l=left, r=right: tile_of(
+                    lambda d: paint(d, Neighbourhood(
+                        glyph,
+                        lambda x, y, l=l, r=r: glyph
+                        if (x == -1 and l) or (x == 1 and r) else ".",
+                    ), 0, 0)), 1))
+        return out
+
+    ballast = atlas.bucket(
+        lambda: tile_of(lambda d: station.paint_ballast(d, rng, 0, 0)))
+    rails = [
+        atlas.bucket(lambda c=continuing: tile_of(
+            lambda d: station.paint_rails(
+                d, rng, Neighbourhood("-", lambda x, y: "-" if c else "."),
+                0, 0)))
+        for continuing in (False, True)
+    ]
+    wall = []
+    for tagged in (False, True):
+        for above in (False, True):
+            wall.append(atlas.bucket(lambda a=above, g=tagged: cell(
+                lambda d, gx, gy: station.paint_back_wall(
+                    d, rng,
+                    Neighbourhood("W", lambda x, y, a=a: "W" if a else "."),
+                    gx, gy),
+                0 if g else 1, 0)))
+
+    rules = [
+        # The ground, in the order the baker laid it: track, ballast, the
+        # platform and its edge, and the booking hall's terrazzo elsewhere.
+        rule("ground", "-", rails, [neighbour_key(-1, 0, "-")]),
+        rule("ground", ",Mm9", [ballast]),
+        rule("ground", "=TKn",
+             [platform(0, False), platform(1, False),
+              platform(0, True), platform(1, True)],
+             [parity_key(), first_row_key("=", 0, "eq")]),
+        rule("ground", ":",
+             [hall(0), hall(1), platform(0, False), platform(1, False)],
+             [parity_key(), first_row_key("=", 2, "le")]),
+        rule("ground", ".EObZ*+U", [hall(0), hall(1)], [parity_key()]),
+        rule("structures", "W", wall,
+             [neighbour_key(0, -1, "W"), pattern_key(7, 5, 9)]),
+        # The facade: an arched window on every sixth column, boarded or
+        # not, its glass gone.
+        rule("structures", "w",
+             [atlas.bucket(lambda g=window: cell(
+                 lambda d, gx, gy: station.paint_front_wall(d, rng, gx, gy),
+                 0 if g else 1, 0)) for window in (False, True)],
+             [pattern_key(5, 0, 6, 0)]),
+        # The rubble: the heap, with a girder on a pattern of the position,
+        # and a dark lip on each side that meets what can be walked on.
+        rule("structures", "#",
+             [atlas.bucket(lambda g=girder: cell(
+                 lambda d, gx, gy: station.paint_rubble_heap(d, rng, gx, gy),
+                 *((0, 0) if g else (1, 0))))
+              for girder in (False, True)],
+             [pattern_key(5, 3, 7, 0)]),
+    ]
+    for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+        lip = atlas.bucket(lambda o=(dx, dy): tile_of(
+            lambda d: station.paint_rubble_lip(d, Neighbourhood(
+                "#", lambda x, y, o=o: "." if (x, y) == o else "#"), 0, 0)),
+            1)
+        rules.append(rule("structures", "#", [lip, []],
+                          [neighbour_key(dx, dy, "#x")]))
+    for glyph in "EO":
+        rules.append(rule(
+            "structures", glyph,
+            [atlas.bucket(lambda f=first: tile_of(
+                lambda d: station.paint_doorway(d, 0, 0, f)), 1)
+             for first in (True, False)],
+            [neighbour_key(-1, 0, glyph)]))
+    rules += [
+        rule("structures", ":", randomly(station.paint_litter)),
+        rule("structures", "b", randomly(paint_blood)),
+        rule("structures", "U", ends(station.paint_stairs, "U"),
+             [neighbour_key(-1, 0, "U"), neighbour_key(1, 0, "U")]),
+    ]
+    # The trains are objects, so the dark line along the sides of the place
+    # has to lie over them: the foreground.
+    for right in (False, True):
+        edge = atlas.bucket(lambda r=right: tile_of(
+            lambda d: paint_side_edge(d, 0, 0, r)), 1)
+        rules.append(rule("foreground", "-,Mm9=TKn:b#EOU.Z*+",
+                          [[], edge], [neighbour_key(1 if right else -1,
+                                                     0, "x")]))
+    rules.append(rule("foreground", "T", ends(station.paint_bench, "T"),
+                      [neighbour_key(-1, 0, "T"), neighbour_key(1, 0, "T")]))
+    rules.append(rule("foreground", "K", [atlas.bucket(lambda: tile_of(
+        lambda d: station.paint_ticket_window(d, 0, 0)), 1)]))
+    rules.append(rule("foreground", "n",
+                      [atlas.bucket(lambda b=beam: tile_of(
+                          lambda d: station.paint_post(d, Neighbourhood(
+                              "n", lambda x, y, b=b: "n"
+                              if (x == 1 and b) else "."), 0, 0)), 1)
+                       for beam in (False, True)],
+                      [neighbour_key(1, 0, "n")]))
+
+    railcar = Image.new("RGBA", tuple(n * TILE for n in STATION_RAILCAR_TILES),
+                        TRANSPARENT)
+    station.paint_railcar(ImageDraw.Draw(railcar), rng,
+                          (0, 0, railcar.width, railcar.height),
+                          wrecked=True)
+    coach = Image.new("RGBA", tuple(n * TILE for n in STATION_COACH_TILES),
+                      TRANSPARENT)
+    station.paint_toppled_coach(ImageDraw.Draw(coach), rng,
+                                (0, 0, coach.width, coach.height))
+    return {
+        "void": "#060608",
+        "voidGlyph": "x",
+        "rules": rules,
+        "objects": [
+            {"glyph": "M", "image": "station_hall_railcar.png",
+             "tiles": list(STATION_RAILCAR_TILES), "sprite": railcar},
+            {"glyph": "m", "image": "station_hall_coach.png",
+             "tiles": list(STATION_COACH_TILES), "sprite": coach},
+        ],
+    }
+
+
 # ------------------------------------------------------ the reference draw
 # What the renderer in lib/game/render/tile_place_component.dart has to do,
 # written out once here so the manifest can be checked against the baked
@@ -2491,6 +2647,7 @@ PLACES = {
     "duomoUpper": duomo_upper,
     "mallFirst": mall_first,
     "mallGround": mall_ground,
+    "station": station_hall,
     "stationFarSide": station_far_side,
     "stationUnderpass": station_underpass,
     "trainInterior": train_interior,
@@ -2576,6 +2733,7 @@ PREVIEW_ROWS = {
     "duomoUpper": "duomo-upper-rows",
     "mallFirst": "mall-first-rows",
     "mallGround": "mall-ground-rows",
+    "station": "station-rows",
     "stationFarSide": "far-platform-rows",
     "stationUnderpass": "underpass-rows",
     "trainInterior": "train-interior-rows",

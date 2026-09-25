@@ -1,38 +1,21 @@
 #!/usr/bin/env python3
-"""Bake the three places of the station.
+"""The station's painters: the booking hall and its platform, the tiled
+underpass under the tracks, the far platform with the one train still in
+one piece, the two wrecked railcars.
 
-Reads the `station-rows`, `underpass-rows` and `far-platform-rows` blocks
-of lib/core/levels/tutorial/station.dart and paints them in the barracks'
-style, rooms floating on black: the booking hall and its platform, the
-tiled underpass under the tracks, and the far platform with the one train
-still in one piece. Over the platforms the roof is gone, so the game lights
-those two throughout and only darkens the underpass.
-
-The two railcars are painted as one piece over the whole run of their
-glyph rather than tile by tile: `M` the one standing on the rails, `m` the
-coach that went over on its side.
-
-Run from the repository root:  python tools/build_station.py
+The station used to be baked here, three pictures. It is not any more: the
+game paints all three places from their rows out of the tile atlas
+(tools/build_tile_atlas.py), which uses the painters below. Over the
+platforms the roof is gone, so the game lights those two throughout and
+only darkens the underpass.
 """
 from __future__ import annotations
 
 import os
-import random
 import sys
 
-from PIL import Image, ImageDraw
-
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from build_mall import Room, paint_blood, paint_side_edges  # noqa: E402
-from build_street_level import (  # noqa: E402
-    OUTLINE,
-    TILE,
-    read_rows,
-    rect,
-    shade,
-)
-
-STATION_OUTPUT = os.path.join("assets", "levels", "station.png")
+from build_street_level import TILE, rect, shade  # noqa: E402
 
 VOID = (6, 6, 8)
 HALL_A = (172, 162, 146)
@@ -68,19 +51,6 @@ LIVERY_RED = (150, 52, 46)
 TILE_WALL = (198, 198, 190)
 TILE_WALL_DARK = (156, 156, 150)
 TILE_GROUT = (120, 122, 120)
-
-
-def block(room, glyph):
-    """The rectangle the run of `glyph` fills, in pixels, or None."""
-    cells = [(x, y) for y in range(room.height) for x in range(room.width)
-             if room.at(x, y) == glyph]
-    if not cells:
-        return None
-    x0 = min(x for x, _ in cells)
-    x1 = max(x for x, _ in cells)
-    y0 = min(y for _, y in cells)
-    y1 = max(y for _, y in cells)
-    return x0 * TILE, y0 * TILE, (x1 - x0 + 1) * TILE, (y1 - y0 + 1) * TILE
 
 
 # ------------------------------------------------------------------ ground
@@ -164,6 +134,13 @@ def paint_litter(d, rng, px, py):
 def paint_rubble(d, rng, room, x, y):
     """Where the hall's roof and the canopy over it came down, `#`: a heap
     of slab, girder and tile too deep to climb, lit by nothing."""
+    paint_rubble_heap(d, rng, x, y)
+    paint_rubble_lip(d, room, x, y)
+
+
+def paint_rubble_heap(d, rng, x, y):
+    """The heap itself. The girder comes and goes on a pattern of the
+    position, (x * 5 + y * 3) % 7."""
     px, py = x * TILE, y * TILE
     rect(d, px, py, TILE, TILE, (58, 56, 54))
     for _ in range(14):
@@ -175,7 +152,11 @@ def paint_rubble(d, rng, room, x, y):
     if (x * 5 + y * 3) % 7 == 0:  # a girder out of the heap
         rect(d, px + 1, py + 4, 14, 3, METAL_DARK)
         rect(d, px + 1, py + 4, 14, 1, METAL)
-    # a dark lip where the heap meets what can still be walked on
+
+
+def paint_rubble_lip(d, room, x, y):
+    """A dark lip where the heap meets what can still be walked on."""
+    px, py = x * TILE, y * TILE
     for dx, dy, ex, ey, w, h in ((-1, 0, 0, 0, 2, TILE), (1, 0, 14, 0, 2, TILE),
                                  (0, -1, 0, 0, TILE, 2), (0, 1, 0, 14, TILE, 2)):
         if room.at(x + dx, y + dy) not in "#x":
@@ -498,98 +479,3 @@ def paint_lamp(d, px, py, dead):
     rect(d, px + 2, py + 4, 12, 5, METAL_DARK)
     rect(d, px + 3, py + 5, 10, 3, (60, 60, 64) if dead else (236, 232, 200))
     rect(d, px + 2, py + 9, 12, 1, (40, 40, 44))
-
-
-# --------------------------------------------------------------------- bake
-
-
-def bake_platform(room: Room, rng, output, wrecked, open_door=False):
-    """The station itself or its far side: hall, platform, track, trains.
-    With `wrecked` the railcar is the derailed one."""
-    image = Image.new("RGB", (room.width * TILE, room.height * TILE), VOID)
-    d = ImageDraw.Draw(image)
-    # The platform edge is its top row, whatever is scattered along it.
-    edge = next(y for y in range(room.height)
-                if any(room.at(x, y) == "=" for x in range(room.width)))
-    for y in range(room.height):
-        for x in range(room.width):
-            glyph = room.at(x, y)
-            px, py = x * TILE, y * TILE
-            if glyph == "x":
-                continue
-            if glyph == "-":
-                paint_rails(d, rng, room, x, y)
-            elif glyph in ",Mm9":
-                paint_ballast(d, rng, px, py)
-            elif glyph in "=TKn" or (glyph == ":" and y <= edge + 2):
-                paint_platform(d, rng, x, y, edge)
-            elif glyph != "#" and not room.is_wall(x, y):
-                paint_hall(d, rng, x, y)
-    for y in range(room.height):
-        for x in range(room.width):
-            glyph = room.at(x, y)
-            px, py = x * TILE, y * TILE
-            if glyph == "W":
-                paint_back_wall(d, rng, room, x, y)
-            elif glyph == "w":
-                paint_front_wall(d, rng, x, y)
-            elif glyph == "#":
-                paint_rubble(d, rng, room, x, y)
-            elif glyph in "EO":
-                paint_doorway(d, px, py, room.at(x - 1, y) != glyph)
-            elif glyph in "UD":
-                paint_stairs(d, room, x, y)
-            elif glyph == ":":
-                paint_litter(d, rng, px, py)
-            elif glyph == "b":
-                paint_blood(d, rng, px, py)
-    coach = block(room, "m")
-    if coach is not None:
-        paint_toppled_coach(d, rng, coach)
-    railcar = block(room, "M")
-    if railcar is not None:
-        door = block(room, "P")
-        paint_railcar(
-            d,
-            rng,
-            railcar,
-            wrecked=wrecked,
-            door_x=None if door is None else door[0],
-            open_door=open_door,
-        )
-    paint_side_edges(d, room)
-    for y in range(room.height):
-        for x in range(room.width):
-            glyph = room.at(x, y)
-            px, py = x * TILE, y * TILE
-            if glyph == "T":
-                paint_bench(d, room, x, y)
-            elif glyph == "K":
-                paint_ticket_window(d, px, py)
-            elif glyph == "n":
-                paint_post(d, room, x, y)
-    save(image, output)
-
-
-# The underpass is not baked any more: the game paints it from its rows
-# out of the tile atlas, which still uses the painters above. What is left
-# here bakes the station itself, the one platform not yet converted.
-
-
-def save(image, output):
-    os.makedirs(os.path.dirname(output), exist_ok=True)
-    image.save(output, optimize=True)
-    print(f"{output}: {image.size[0]}x{image.size[1]}")
-
-
-def main() -> None:
-    bake_platform(Room(read_rows("station-rows")), random.Random(1906),
-                  STATION_OUTPUT, wrecked=True)
-    # The far platform is not baked any more: the game paints it from its
-    # rows out of the tile atlas (tools/build_tile_atlas.py), which still
-    # uses the painters above. The rest of this file stays for the station
-    # and its underpass, which are not converted yet.
-
-
-if __name__ == "__main__":
-    main()
