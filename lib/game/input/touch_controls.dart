@@ -21,6 +21,20 @@ final class TouchControls extends StatelessWidget {
   /// action buttons, so it is never the one hit by mistake.
   static const double menuButtonSize = 38;
 
+  /// The badge of the thing Mario carries for [element], or null for the
+  /// elements that are buttons and not things: interacting and shooting.
+  static Widget? _carriedBadge(
+    HudElement element, {
+    required StepboundGame game,
+  }) => switch (element) {
+    HudElement.ammo => _AmmoBadge(game: game),
+    HudElement.incense => _IncenseBadge(game: game),
+    HudElement.barKey => _BarKeyBadge(game: game),
+    HudElement.episcopalRing => _EpiscopalRingBadge(game: game),
+    HudElement.duomoKey => _DuomoKeyBadge(game: game),
+    HudElement.interact || HudElement.shoot => null,
+  };
+
   @override
   Widget build(BuildContext context) {
     // No buttons to play: the left half of the screen walks, the right
@@ -43,34 +57,27 @@ final class TouchControls extends StatelessWidget {
               minimum: const EdgeInsets.all(10),
               child: Stack(
                 children: <Widget>[
-                  if (unlocked.contains(HudElement.ammo))
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: IgnorePointer(child: _AmmoCounter(game: game)),
-                    ),
                   // Always there, unlocked or not: it is the way out, not
                   // something the tutorial hands over.
                   Positioned(right: 0, top: 0, child: _PauseButton(game: game)),
-                  // No button at all: what Mario is carrying for Don Angelo.
-                  // The far top corner from the menu, out of both thumbs' way.
-                  if (unlocked.contains(HudElement.incense) ||
+                  // What Mario carries, in the order he picked it up: the
+                  // bullets counted, then whatever the story has him hold
+                  // for someone. One row in the far top corner from the
+                  // menu, out of both thumbs' way.
+                  if (unlocked.contains(HudElement.ammo) ||
+                      unlocked.contains(HudElement.incense) ||
                       unlocked.contains(HudElement.barKey) ||
                       unlocked.contains(HudElement.episcopalRing) ||
                       unlocked.contains(HudElement.duomoKey))
                     Positioned(
                       left: 0,
                       top: 0,
-                      child: Column(
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
                         children: <Widget>[
-                          if (unlocked.contains(HudElement.incense))
-                            _IncenseBadge(game: game),
-                          if (unlocked.contains(HudElement.barKey))
-                            _BarKeyBadge(game: game),
-                          if (unlocked.contains(HudElement.episcopalRing))
-                            _EpiscopalRingBadge(game: game),
-                          if (unlocked.contains(HudElement.duomoKey))
-                            _DuomoKeyBadge(game: game),
+                          for (final element in unlocked)
+                            ?_carriedBadge(element, game: game),
                         ],
                       ),
                     ),
@@ -568,68 +575,99 @@ final class _StickPainter extends CustomPainter {
       oldDelegate.aiming != aiming;
 }
 
-final class _AmmoCounter extends StatelessWidget {
-  const _AmmoCounter({required this.game});
+/// The bullets Mario carries, in the row of the things he holds up in the
+/// corner: a tap tells how many there are, and, while the pistol is still
+/// to be found, that there is nothing to fire them with. Without the gun
+/// the badge sits dimmed, a button nothing can press yet.
+final class _AmmoBadge extends StatelessWidget {
+  const _AmmoBadge({required this.game});
 
+  static const double size = 44;
   final StepboundGame game;
+
+  /// The parchment of the other badges, gone half towards the dark, so
+  /// the dimmed bullets read as out of use.
+  static const Color _dimmed = Color(0x80d8cfbf);
 
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<int>(
       valueListenable: game.ammoLoaded,
-      builder: (context, loaded, _) {
-        final isEmpty = loaded == 0;
-        final contentColor = isEmpty
-            ? BloodColors.bright
-            : const Color(0xffd8cfbf);
-        return Semantics(
-          label: 'Proiettili: $loaded',
-          child: BloodOverlay(
-            painter: const BloodPainter(
-              band: 3,
-              cornerRadius: 8,
-              drips: <BloodDrip>[BloodDrip(0.22, 11, 4), BloodDrip(0.8, 7, 3)],
-            ),
-            child: Container(
-              key: const ValueKey<String>('touch-ammo'),
-              width: TouchControls.actionButtonSize,
-              height: TouchControls.actionButtonSize,
-              decoration: BoxDecoration(
-                color: const Color(0xcc241a1a),
-                border: Border.all(
-                  color: isEmpty ? BloodColors.bright : BloodColors.fresh,
-                  width: 2,
+      builder: (context, loaded, _) => ValueListenableBuilder<bool>(
+        valueListenable: game.hasGun,
+        builder: (context, hasGun, _) {
+          final isEmpty = loaded == 0;
+          final contentColor = hasGun
+              ? isEmpty
+                    ? BloodColors.bright
+                    : const Color(0xffd8cfbf)
+              : _dimmed;
+          return Semantics(
+            button: true,
+            enabled: hasGun,
+            label: hasGun
+                ? 'Proiettili: $loaded'
+                : 'Proiettili: $loaded. ${BackpacksScript.noGun}',
+            child: GestureDetector(
+              onTap: () {
+                AudioScope.of(context).play(Sfx.uiClick);
+                game.inspectAmmo();
+              },
+              child: BloodOverlay(
+                painter: const BloodPainter(
+                  band: 3,
+                  cornerRadius: 8,
+                  drips: <BloodDrip>[
+                    BloodDrip(0.22, 11, 4),
+                    BloodDrip(0.8, 7, 3),
+                  ],
                 ),
-                borderRadius: BorderRadius.circular(8),
-                boxShadow: const <BoxShadow>[
-                  BoxShadow(color: Color(0x99000000), offset: Offset(2, 2)),
-                ],
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  CustomPaint(
-                    size: const Size(16, 11),
-                    painter: _BulletIcon(color: contentColor),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '\u00d7$loaded',
-                    style: TextStyle(
-                      color: contentColor,
-                      fontFamily: 'monospace',
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      height: 1,
-                      decoration: TextDecoration.none,
+                child: Container(
+                  key: const ValueKey<String>('touch-ammo'),
+                  width: size,
+                  height: size,
+                  decoration: BoxDecoration(
+                    color: const Color(0xcc241a1a),
+                    border: Border.all(
+                      color: hasGun
+                          ? isEmpty
+                                ? BloodColors.bright
+                                : BloodColors.fresh
+                          : BloodColors.dried,
+                      width: 2,
                     ),
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: const <BoxShadow>[
+                      BoxShadow(color: Color(0x99000000), offset: Offset(2, 2)),
+                    ],
                   ),
-                ],
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: <Widget>[
+                      CustomPaint(
+                        size: const Size(14, 10),
+                        painter: _BulletIcon(color: contentColor),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '\u00d7$loaded',
+                        style: TextStyle(
+                          color: contentColor,
+                          fontFamily: 'monospace',
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          height: 1,
+                          decoration: TextDecoration.none,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

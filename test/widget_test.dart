@@ -15,6 +15,7 @@ import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
 import 'package:stepbound/save/save_game.dart';
 import 'package:stepbound/ui/black_fade.dart';
+import 'package:stepbound/ui/blood_decor.dart';
 import 'package:stepbound/ui/blood_splat.dart';
 import 'package:stepbound/ui/gameplay_dialogue.dart';
 import 'package:stepbound/ui/story_intro.dart';
@@ -182,6 +183,54 @@ void main() {
       await tester.tap(ring);
       await tester.pump();
       expect(find.text('Anello episcopale'), findsOneWidget);
+    });
+  });
+
+  testWidgets('the bullets sit in the row of carried things, and a tap '
+      'tells of them', (tester) {
+    return tester.runAsync(() async {
+      final game = await _pumpReadyGame(tester)
+        ..unlock(HudElement.ammo)
+        ..unlock(HudElement.incense);
+      game.simulation.player.component<AmmoComponent>().loaded = 3;
+      game.update(1 / 60);
+      await tester.pump();
+
+      Container badge() => tester.widget<Container>(
+        find.byKey(const ValueKey<String>('touch-ammo')),
+      );
+      Border borderOf(Container badge) =>
+          (badge.decoration! as BoxDecoration).border! as Border;
+
+      // Still without the pistol, the badge waits dimmed, and the tap
+      // says that too.
+      expect(borderOf(badge()).top.color, BloodColors.dried);
+      await tester.tap(find.byKey(const ValueKey<String>('touch-ammo')));
+      await tester.pump();
+      expect(find.text('3 proiettili. Non hai una pistola'), findsOneWidget);
+      game.dismissPrompt();
+      await tester.pump();
+
+      // The pistol found, the badge wakes up: the count is the news.
+      game.simulation.player.component<AmmoComponent>().hasGun = true;
+      game.update(1 / 60);
+      await tester.pump();
+      expect(borderOf(badge()).top.color, BloodColors.fresh);
+      await tester.tap(find.byKey(const ValueKey<String>('touch-ammo')));
+      await tester.pump();
+      expect(find.text('3 proiettili'), findsOneWidget);
+      game.dismissPrompt();
+      await tester.pump();
+
+      // One row, left to right in the order things were picked up.
+      final bullets = tester.getRect(
+        find.byKey(const ValueKey<String>('touch-ammo')),
+      );
+      final incense = tester.getRect(
+        find.byKey(const ValueKey<String>('hud-incense')),
+      );
+      expect(bullets.right, lessThanOrEqualTo(incense.left));
+      expect(bullets.top, incense.top);
     });
   });
 
@@ -1938,7 +1987,8 @@ void main() {
     expect(move.right, moreOrLessEquals(screen / 2));
     expect(act.left, moreOrLessEquals(screen / 2));
     expect(act.right, moreOrLessEquals(screen));
-    expect(rectOf('touch-ammo').center.dx, greaterThan(screen / 2));
+    // The bullets are carried up with the rest, in the left corner.
+    expect(rectOf('touch-ammo').center.dx, lessThan(screen / 2));
   });
 
   group('on a phone longer than 16:9, with the camera on the left', () {
@@ -1996,13 +2046,15 @@ void main() {
       );
 
       // The camera cutout is on the left; the right edge keeps the same
-      // gap, so the HUD looks the same from either side.
-      final right = screen.width - rectOf(tester, 'touch-ammo').right;
-      expect(right, moreOrLessEquals(cutout), reason: 'same gap both sides');
-      expect(right, lessThan(band), reason: 'out in the band, off the game');
+      // gap, so the HUD looks the same from either side. The carried
+      // things start the row on the left, the menu ends the top on the
+      // right, and both keep that mirrored gap.
+      final left = rectOf(tester, 'touch-ammo').left;
+      expect(left, moreOrLessEquals(cutout), reason: 'same gap both sides');
+      expect(left, lessThan(band), reason: 'out in the band, off the game');
       expect(
         screen.width - rectOf(tester, 'touch-menu').right,
-        moreOrLessEquals(right),
+        moreOrLessEquals(cutout),
       );
       // The gesture halves cover the whole screen, bands included.
       expect(rectOf(tester, 'touch-move').left, 0);
