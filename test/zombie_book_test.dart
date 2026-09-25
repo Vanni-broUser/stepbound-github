@@ -97,6 +97,25 @@ void main() {
     );
   });
 
+  testWidgets('the cultist zombie has its own book page', (tester) async {
+    final index = zombieCards.indexWhere(
+      (card) => card.kind == EntityKind.cultist,
+    );
+    await pumpBook(
+      tester,
+      known: const <EntityKind>{EntityKind.wanderer, EntityKind.cultist},
+    );
+
+    await tap(tester, 'zombie-book-$index');
+
+    expect(find.text('CULTISTA'), findsNWidgets(2), reason: 'list and card');
+    expect(find.textContaining('tre per abbatterlo'), findsOneWidget);
+    expect(
+      find.byKey(ValueKey<String>('zombie-book-portrait-$index')),
+      findsOneWidget,
+    );
+  });
+
   test('every zombie type of the game has its card, once, with its lore', () {
     for (final MapEntry(key: kind, value: lore) in zombieLore.entries) {
       final cards = zombieCards.where((card) => card.kind == kind);

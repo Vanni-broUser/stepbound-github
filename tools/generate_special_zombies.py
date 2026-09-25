@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""Build the mutilated, burning and drunk zombie atlases.
+"""Build the special-zombie atlases.
 
-The three archetypes deliberately share the wanderer's anatomy and animation
-timing.  Their gameplay identity is carried by a strong, readable silhouette:
+The mutilated, burning and drunk archetypes share the wanderer's anatomy and
+animation timing. The cultist uses the brute's larger build. Their gameplay
+identity is carried by a strong, readable silhouette:
 
 * mutilated: only the upper body remains, lying on the ground;
 * burning: scorched clothes and a compact, animated crown of flame;
 * drunk: burgundy bar clothes and an alternating off-balance posture.
+* cultist: the brute's build under a torn cult robe, with a lowered hood and
+  sulfur-yellow veins across its exposed arms.
 
 All outputs keep Stepbound's 96x96, four-row-by-six-column atlas contract.
 Run from the repository root:  python tools/generate_special_zombies.py
@@ -29,6 +32,11 @@ BLOOD = (126, 40, 34, 255)
 BURGUNDY = (116, 42, 50, 255)
 BURGUNDY_LIGHT = (150, 58, 64, 255)
 BURGUNDY_DARK = (72, 27, 34, 255)
+CULTIST = (91, 78, 70, 255)
+CULTIST_LIGHT = (126, 108, 93, 255)
+CULTIST_DARK = (48, 42, 40, 255)
+VEIN = (222, 211, 72, 255)
+VEIN_SHADOW = (151, 145, 43, 255)
 CHARCOAL = (43, 42, 40, 255)
 ASH = (72, 68, 63, 255)
 EMBER = (174, 54, 25, 255)
@@ -198,12 +206,101 @@ def drunk(frame: Image.Image, row: int, column: int) -> Image.Image:
     return ensure_frame_contract(shift_upper(output, lean))
 
 
-def build(kind: str, transform) -> None:
+def lowered_hood(frame: Image.Image, *, prone: bool) -> None:
+    """Bunch the hood behind the neck without covering the zombie's face."""
+    if prone:
+        return
+    for x, y, colour in (
+        (4, 8, CULTIST_DARK),
+        (5, 9, CULTIST),
+        (4, 10, CULTIST_LIGHT),
+        (11, 8, CULTIST_DARK),
+        (10, 9, CULTIST),
+        (11, 10, CULTIST_LIGHT),
+    ):
+        neighbours = (
+            frame.getpixel((nx, ny))
+            for nx, ny in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1))
+            if 0 <= nx < CELL_W and 0 <= ny < CELL_H
+        )
+        if visible(frame.getpixel((x, y))) or any(
+            visible(pixel) for pixel in neighbours
+        ):
+            put(frame, x, y, colour)
+
+
+def tear_robe(frame: Image.Image, row: int, column: int) -> None:
+    """Open two small shoulder tears next to already exposed green muscle."""
+    skin = [
+        frame.getpixel((x, y))
+        for y in range(8, 16)
+        for x in range(1, 15)
+        if zombie_skin(frame.getpixel((x, y)))
+    ]
+    if not skin:
+        return
+    exposed = max(skin, key=lambda pixel: pixel[1])
+    candidates = []
+    for y in range(9, 15):
+        for x in range(2, 14):
+            pixel = frame.getpixel((x, y))
+            if not visible(pixel) or zombie_skin(pixel):
+                continue
+            beside_skin = any(
+                zombie_skin(frame.getpixel((nx, ny)))
+                for nx, ny in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1))
+                if 0 <= nx < CELL_W and 0 <= ny < CELL_H
+            )
+            if beside_skin:
+                candidates.append((x, y))
+    for x, y in candidates[(row + column) % 2 :: 3][:2]:
+        frame.putpixel((x, y), exposed)
+
+
+def yellow_veins(frame: Image.Image, row: int, column: int) -> None:
+    """Mark each visible muscular arm with a two-pixel unnatural vein."""
+    target_y = 13 + (row + column) % 4
+    for side in (range(1, 7), range(9, 15)):
+        skin = [
+            (x, y)
+            for y in range(10, 23)
+            for x in side
+            if zombie_skin(frame.getpixel((x, y)))
+        ]
+        if not skin:
+            continue
+        x, y = min(skin, key=lambda point: abs(point[1] - target_y))
+        frame.putpixel((x, y), VEIN)
+        for nx, ny in ((x, y + 1), (x + (1 if x < 8 else -1), y - 1)):
+            if (
+                0 <= nx < CELL_W
+                and 0 <= ny < CELL_H
+                and zombie_skin(frame.getpixel((nx, ny)))
+            ):
+                frame.putpixel((nx, ny), VEIN_SHADOW)
+                break
+
+
+def cultist(frame: Image.Image, row: int, column: int, suffix: str) -> Image.Image:
+    output = recolour_clothes(
+        frame,
+        CULTIST_DARK,
+        CULTIST,
+        CULTIST_LIGHT,
+    )
+    prone = suffix == "_death" and column >= 3
+    lowered_hood(output, prone=prone)
+    tear_robe(output, row, column)
+    yellow_veins(output, row, column)
+    return ensure_frame_contract(output)
+
+
+def build(kind: str, transform, *, source_stem: str = "zombie_wanderer") -> None:
     source_names = {
-        "": "zombie_wanderer.png",
-        "_hit": "zombie_wanderer_hit.png",
-        "_bite": "zombie_wanderer_bite.png",
-        "_death": "zombie_wanderer_death.png",
+        "": f"{source_stem}.png",
+        "_hit": f"{source_stem}_hit.png",
+        "_bite": f"{source_stem}_bite.png",
+        "_death": f"{source_stem}_death.png",
     }
     for suffix, source_name in source_names.items():
         source = frames(source_name)
@@ -231,6 +328,7 @@ def main() -> None:
         lambda frame, row, column, suffix: burning(frame, row, column, suffix),
     )
     build("drunk", lambda frame, row, column, _suffix: drunk(frame, row, column))
+    build("cultist", cultist, source_stem="zombie_brute")
 
 
 if __name__ == "__main__":

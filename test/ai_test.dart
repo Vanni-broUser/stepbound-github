@@ -15,6 +15,10 @@ void main() {
       expect(_xAfterWaits(EntityKind.wanderer, 2), 4);
       expect(_xAfterWaits(EntityKind.wanderer, 3), 3);
 
+      expect(_xAfterWaits(EntityKind.cultist, 1), 4);
+      expect(_xAfterWaits(EntityKind.cultist, 2), 4);
+      expect(_xAfterWaits(EntityKind.cultist, 3), 3);
+
       expect(_xAfterWaits(EntityKind.brute, 1), 4);
       expect(_xAfterWaits(EntityKind.brute, 3), 4);
       expect(_xAfterWaits(EntityKind.brute, 4), 3);

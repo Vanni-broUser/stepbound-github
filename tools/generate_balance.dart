@@ -30,6 +30,7 @@ const List<String> _actorKinds = <String>[
   'mutilated',
   'burning',
   'drunk',
+  'cultist',
 ];
 
 /// The stats every actor must carry, in generated order, with the smallest

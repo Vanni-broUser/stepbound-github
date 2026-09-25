@@ -21,6 +21,8 @@ abstract final class PixelPalette {
   static const Color sprinter = Color(0xff8b7446);
   static const Color brute = Color(0xff73504b);
   static const Color blind = Color(0xff77808b);
+  static const Color cultistRobe = Color(0xff62564f);
+  static const Color cultistVein = Color(0xffd8c94f);
   static const Color debugGrid = Color(0x5548a9c5);
   static const Color debugCollision = Color(0x779b2f24);
   static const Color debugVision = Color(0x99e6c45d);

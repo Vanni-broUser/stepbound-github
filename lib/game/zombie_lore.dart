@@ -111,4 +111,17 @@ const Map<EntityKind, ZombieLore> zombieLore = <EntityKind, ZombieLore>{
         'arriva dritto.',
     introducedOnSight: true,
   ),
+  EntityKind.cultist: ZombieLore(
+    name: 'Cultista',
+    portrait: 'assets/story/portrait_zombie_cultist.png',
+    lesson:
+        'Gli zombi cultisti si muovono come i vaganti, ma la loro massa '
+        'muscolare richiede tre colpi di pistola per abbatterli',
+    description:
+        'La mutazione ha gonfiato il corpo oltre la tunica: il cappuccio è '
+        'caduto sulle spalle, le vesti si sono strappate e vene gialle '
+        'innaturali attraversano le braccia. Avanza al passo di un vagante, '
+        'ma i primi due colpi non bastano: ne servono tre per abbatterlo.',
+    introducedOnSight: true,
+  ),
 };

@@ -6,6 +6,8 @@ import 'package:stepbound/core/entities/components.dart';
 /// [burning]: a wanderer on fire, which sets alight every tile it leaves.
 /// [drunk]: a wanderer that staggers about at random, aware of the player or
 /// not, and only bites straight when he is next to it.
+/// [cultist]: a towering cultist zombie which walks like a wanderer but
+/// survives the first pistol shot.
 enum EntityKind {
   player,
   wanderer,
@@ -16,6 +18,7 @@ enum EntityKind {
   mutilated,
   burning,
   drunk,
+  cultist,
 }
 
 final class Entity {

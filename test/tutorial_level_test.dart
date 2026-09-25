@@ -151,6 +151,14 @@ void main() {
     expect(map.tileAt(const GridPoint(16, 6)).isWalkable, isTrue);
   });
 
+  test('the cultist zombie is not placed in the world yet', () {
+    final cultists = createTutorialWorld().entities.values.where(
+      (entity) => entity.kind == EntityKind.cultist,
+    );
+
+    expect(cultists, isEmpty);
+  });
+
   List<Entity> zombiesIn(WorldState world, Place region) => world
       .entities
       .values

@@ -34,6 +34,7 @@ void main() {
       'zombie_mutilated',
       'zombie_burning',
       'zombie_drunk',
+      'zombie_cultist',
     ];
     for (final name in names) {
       final image = await loadSheet(name);
@@ -84,8 +85,14 @@ void main() {
     }
   });
 
-  test('special-zombie portraits match the story portrait contract', () async {
-    for (final name in <String>['mutilated', 'burning', 'drunk']) {
+  test('zombie portraits match the story portrait contract', () async {
+    for (final name in <String>[
+      'sprinter',
+      'mutilated',
+      'burning',
+      'drunk',
+      'zombie_cultist',
+    ]) {
       final image = await loadAsset('assets/story/portrait_$name.png');
       expect(image.width, 1048, reason: name);
       expect(image.height, 1501, reason: name);

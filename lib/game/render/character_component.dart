@@ -466,6 +466,12 @@ final class CharacterComponent extends PositionComponent {
           PixelPalette.sprinter,
           PixelPalette.zombieDark,
         ),
+        EntityKind.cultist => (
+          PixelPalette.zombie,
+          PixelPalette.hair,
+          PixelPalette.cultistRobe,
+          PixelPalette.cultistVein,
+        ),
       };
 
   String _atlasName(EntityKind kind) => switch (kind) {
@@ -478,5 +484,6 @@ final class CharacterComponent extends PositionComponent {
     EntityKind.mutilated => 'zombie_mutilated',
     EntityKind.burning => 'zombie_burning',
     EntityKind.drunk => 'zombie_drunk',
+    EntityKind.cultist => 'zombie_cultist',
   };
 }
