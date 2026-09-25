@@ -73,7 +73,15 @@ final class CutsceneFrame {
 /// of the screen does nothing until they are unlocked), the ammo counter
 /// and the temporary quest-item badges in the top-left corner. Walking is
 /// always there.
-enum HudElement { interact, ammo, shoot, incense, barKey, episcopalRing }
+enum HudElement {
+  interact,
+  ammo,
+  shoot,
+  incense,
+  barKey,
+  episcopalRing,
+  duomoKey,
+}
 
 /// What the director needs from the game.
 abstract interface class TutorialHost {
@@ -122,6 +130,12 @@ abstract interface class TutorialHost {
 
   /// Collects the robe upstairs, fades to black and dresses Mario in it.
   void collectCultistRobe();
+
+  /// What the mass leaves behind, once its scene is over: Don Angelo's
+  /// community are four mutated cultists standing across the nave, his body
+  /// lies behind them and the backpack beside it, with the key of the upper
+  /// floor, can be picked up.
+  void startDuomoMassacre();
 
   /// Fades to black and plays [frames] like the intro story, then calls
   /// [onFinished]. Unless [stayBlack] is true, it fades back to the game

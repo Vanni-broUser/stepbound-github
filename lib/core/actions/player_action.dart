@@ -142,6 +142,7 @@ final class InteractAction extends PlayerAction {
           incense: pickup.incense,
           episcopalRing: pickup.episcopalRing,
           cultistRobe: pickup.cultistRobe,
+          duomoKey: pickup.duomoKey,
         ),
       );
       return;

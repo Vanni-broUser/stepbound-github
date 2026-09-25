@@ -139,6 +139,27 @@ void main() {
         _named('Duomo, la messa (con la tunica)'),
       );
       expect(mass.progress.activeOutfit, PlayerOutfit.cultist);
+      await tester.pumpWidget(const SizedBox());
+
+      // The one after it starts where the mass leaves the nave: the four
+      // cultists raised, the body in the aisle and the backpack beside it,
+      // none of which a save built from the level carries by itself.
+      final after = await _play(
+        tester,
+        _named('Duomo, dopo la messa (i cultisti)'),
+      );
+      expect(
+        after.simulation.entities.values.where(
+          (entity) => entity.kind == EntityKind.cultist,
+        ),
+        hasLength(4),
+      );
+      expect(
+        after.simulation.map.tileAt(duomoPriestCorpseTile).isWalkable,
+        isFalse,
+      );
+      expect(after.simulation.pickups[duomoKeyPickupId]!.active, isTrue);
+      expect(after.progress.memories, contains(StoryMemory.priestMassacre));
     });
   });
 }

@@ -50,7 +50,11 @@ const Legend outdoorLegend = Legend(
 );
 const Legend barracksLegend = Legend(walls: 'xWQNSIw', obstacles: 'TCAh');
 const Legend mallLegend = Legend(walls: 'xWwISQ', obstacles: 'PTKBGHL');
-const Legend barLegend = Legend(walls: 'xWwD', obstacles: 'KTJ', debris: ':q');
+
+/// The Bar Arcobaleno: the counter `K`, the tables `T`, the jukebox `J`
+/// and the two pool tables `P` are all waist high, so they stop a step
+/// but not a shot.
+const Legend barLegend = Legend(walls: 'xWwD', obstacles: 'KTJP', debris: ':q');
 
 /// San Nicola (church.dart): the altar `A` and the side walls `I` are as
 /// solid as the outer ones, the pews `T` and the column drums `K` are
@@ -100,20 +104,16 @@ const String harbourCardImage = 'assets/story/scene_harbour.jpg';
 /// of its hypermarket and, past the car park, the block with the station
 /// and its three places, and the harbour south of all that with the Duomo,
 /// the Bar Arcobaleno and the church of San Nicola. Backgrounds are baked
-/// by tools/build_street_level.py, build_barracks.py, build_mall.py,
-/// build_bar.py, build_church.py and build_station.py.
+/// by the bakers listed in tools/build_levels.py, except for the
+/// places with no `background`: those the game paints from these same
+/// rows, out of assets/tiles (tools/build_tile_atlas.py).
 final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
-  PlaceSpec(
-    id: PlaceId.street,
-    rows: streetLevelRows,
-    legend: outdoorLegend,
-    background: 'assets/levels/first_street.png',
-  ),
+  PlaceSpec(id: PlaceId.street, rows: streetLevelRows, legend: outdoorLegend),
+  // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.barracks,
     rows: barracksRows,
     legend: barracksLegend,
-    background: 'assets/levels/barracks.png',
     indoor: true,
     daylight: 'EO',
   ),
@@ -121,30 +121,28 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     id: PlaceId.northDistrict,
     rows: northDistrictRows,
     legend: outdoorLegend,
-    background: 'assets/levels/north_district.png',
   ),
   PlaceSpec(
     id: PlaceId.harbour,
     rows: harbourRows,
     legend: outdoorLegend,
-    background: 'assets/levels/harbour.png',
     name: harbourName,
     cardImage: harbourCardImage,
   ),
+  // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.mallGround,
     rows: mallGroundRows,
     legend: mallLegend,
-    background: 'assets/levels/mall_ground.png',
     indoor: true,
     // The entrance, the stairs, and daylight through the fire exit.
     daylight: 'EUX',
   ),
+  // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.mallFirst,
     rows: mallFirstRows,
     legend: mallLegend,
-    background: 'assets/levels/mall_first.png',
     indoor: true,
     // The stairs, and the panel's screen.
     daylight: 'DQL',
@@ -153,100 +151,96 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     id: PlaceId.mallNorthStreet,
     rows: mallNorthStreetRows,
     legend: outdoorLegend,
-    background: 'assets/levels/mall_north_street.png',
   ),
+  // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.barArcobaleno,
     rows: barArcobalenoRows,
     legend: barLegend,
-    background: 'assets/levels/bar_arcobaleno.png',
     indoor: true,
     daylight: 'E',
   ),
+  // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.church,
     rows: churchRows,
     legend: churchLegend,
-    background: 'assets/levels/church.png',
     indoor: true,
     // The open portal, and the sky through the holes in the roof.
     daylight: 'E^9',
   ),
   // Over the platforms the roof is gone, so the station and the far side
   // are lit throughout; only the underpass is dark.
-  PlaceSpec(
-    id: PlaceId.station,
-    rows: stationRows,
-    legend: stationLegend,
-    background: 'assets/levels/station.png',
-  ),
+  // Painted from its rows out of the tile atlas.
+  PlaceSpec(id: PlaceId.station, rows: stationRows, legend: stationLegend),
+  // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.stationUnderpass,
     rows: stationUnderpassRows,
     legend: stationLegend,
-    background: 'assets/levels/station_underpass.png',
     indoor: true,
     // Daylight falling down both flights of stairs.
     daylight: 'DU',
   ),
+  // Painted from its rows out of the tile atlas, backdrop and all: the
+  // railcar is an object in it, and the story opens its door rather than
+  // swapping a second picture of the whole place.
   PlaceSpec(
     id: PlaceId.stationFarSide,
     rows: stationFarSideRows,
     legend: stationLegend,
-    background: 'assets/levels/station_far_side.png',
-    alternateBackground: 'assets/levels/station_far_side_open.png',
   ),
+  // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.trainInterior,
     rows: trainInteriorRows,
     legend: trainLegend,
-    background: 'assets/levels/train_interior.png',
     indoor: true,
     // Luigi keeps the lights on: the whole train is bright, end to end.
     lit: true,
   ),
+  // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.airlinerCabin,
     rows: airlinerCabinRows,
     legend: airlinerLegend,
-    background: 'assets/levels/airliner_cabin.png',
     indoor: true,
     // Daylight at the tear in the belly and at the tail break.
     daylight: 'EO',
   ),
-  // The roofs are open to the sky, so they are lit throughout.
+  // The roofs are open to the sky, so they are lit throughout. Painted
+  // from their rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.airlinerRoofs,
     rows: airlinerRoofRows,
     legend: rooftopLegend,
-    background: 'assets/levels/airliner_roofs.png',
   ),
   // Appended so adding these places does not move any existing place in a
   // saved world's shared coordinate grid.
+  // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.duomo,
     rows: duomoRows,
     legend: duomoLegend,
-    background: 'assets/levels/duomo.png',
     indoor: true,
     daylight: 'E',
     torches: duomoTorches,
     // Torchlight everywhere: the nave never sinks into the dark.
     darkness: 0.55,
   ),
+  // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.barBackroom,
     rows: barBackroomRows,
     legend: barBackroomLegend,
-    background: 'assets/levels/bar_backroom.png',
     indoor: true,
     daylight: 'E',
   ),
+  // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.duomoUpper,
     rows: duomoUpperRows,
     legend: duomoUpperLegend,
-    background: 'assets/levels/duomo_upper.png',
     indoor: true,
     // The community lives up here: every lamp is lit, no darkness at all.
     lit: true,
@@ -334,6 +328,29 @@ final GridPoint duomoStairEntryTile = duomoStairCultistTile.step(
 final GridPoint duomoUpperStairTile = _duomoUpper.tileOf('D');
 final GridPoint duomoUpperLockedDoorTile = _duomoUpper.tileOf('L');
 final GridPoint duomoUpperRobeTile = _duomoUpper.tileOf('R');
+
+/// What the mass leaves behind in the nave, once the community has eaten
+/// of the crucified zombie and turned on Don Angelo: the four mutated
+/// cultists `c` across the aisle between the first two blocks of pews,
+/// his body `d` behind them and, beside it, the backpack `9` with the key
+/// of the upper floor. None of it is there before the mass: the zombies
+/// are raised by the Duomo's script, the body is put where it lies and the
+/// backpack starts inactive.
+final List<GridPoint> duomoCultistSpawns = _duomo.tilesOf('c');
+
+/// The crucified zombie over the altar, on the shared grid: it hangs from
+/// the moment the mass is over, and is scenery, so it has no glyph and no
+/// entity of its own (see [duomoCrucifixSpot]).
+final GridPoint duomoCrucifixTile = GridPoint(
+  _duomo.origin.x + duomoCrucifixSpot.x,
+  _duomo.origin.y + duomoCrucifixSpot.y,
+);
+final GridPoint duomoPriestCorpseTile = _duomo.tileOf('d');
+final GridPoint duomoKeyTile = _duomo.tileOf('9');
+
+/// Their ids, `duomo-cultist-0` to `duomo-cultist-3`.
+const String duomoCultistPrefix = 'duomo-cultist-';
+const String duomoKeyPickupId = 'duomo-key';
 
 /// The backpack `9` in the ballast between the two wrecks, at the dead end
 /// of the station's tracks: two rounds.
@@ -901,6 +918,14 @@ WorldState createTutorialWorld({int seed = 20260920}) {
       position: duomoUpperRobeTile,
       cultistRobe: true,
     ),
+    // Beside Don Angelo's body: there is nothing to find in the nave until
+    // the mass has ended, so it lies hidden until the script reveals it.
+    Pickup(
+      id: duomoKeyPickupId,
+      position: duomoKeyTile,
+      duomoKey: true,
+      active: false,
+    ),
     Pickup(
       id: stationBackpackId,
       position: _station.tileOf('9'),
@@ -1075,6 +1100,17 @@ Entity createMallZombie(String id, GridPoint position) {
   return EntityFactory(
     BalanceConfig.standard(),
   ).zombie(id: id, kind: EntityKind.wanderer, position: position);
+}
+
+/// One of the mutated cultists of the Duomo, raised where the mass left
+/// him: he looks east, down the aisle Mario has to come along.
+Entity createDuomoCultist(String id, GridPoint position) {
+  return EntityFactory(BalanceConfig.standard()).zombie(
+    id: id,
+    kind: EntityKind.cultist,
+    position: position,
+    facing: Direction.east,
+  );
 }
 
 /// A carabiniere zombie coming out of the dark at [position].
