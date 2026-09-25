@@ -58,7 +58,6 @@ BAKERS: list[tuple[str, tuple[str, ...]]] = [
     ("build_barracks.py", ("barracks.png",)),
     ("build_mall.py", ("mall_ground.png", "mall_first.png")),
     ("build_bar.py", ("bar_arcobaleno.png",)),
-    ("build_bar_backroom.py", ("bar_backroom.png",)),
     ("build_church.py", ("church.png",)),
     ("build_duomo.py", ("duomo.png",)),
     ("build_station.py", ("station.png", "station_underpass.png")),

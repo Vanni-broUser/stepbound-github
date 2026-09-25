@@ -237,11 +237,11 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     // Torchlight everywhere: the nave never sinks into the dark.
     darkness: 0.55,
   ),
+  // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.barBackroom,
     rows: barBackroomRows,
     legend: barBackroomLegend,
-    background: 'assets/levels/bar_backroom.png',
     indoor: true,
     daylight: 'E',
   ),

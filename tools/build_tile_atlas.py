@@ -258,6 +258,92 @@ def duomo_upper(atlas: Atlas, rng) -> dict:
     }
 
 
+# ------------------------------------------- the Bar Arcobaleno's storeroom
+# Moved here from tools/build_bar_backroom.py, which this atlas replaces:
+# the cramped room behind the bar, shelves and crates on a bare screed.
+
+BACKROOM_FLOOR = (80, 74, 68)
+BACKROOM_FLOOR_ALT = (96, 88, 78)
+BACKROOM_WALL = (112, 96, 82)
+BACKROOM_WALL_DARK = (54, 46, 42)
+BACKROOM_WOOD = (94, 62, 38)
+
+
+def paint_backroom_floor(d, px, py, alternate):
+    """Bare screed, laid in two tones, with the shadow of the course above."""
+    rect(d, px, py, TILE, TILE,
+         BACKROOM_FLOOR_ALT if alternate else BACKROOM_FLOOR)
+    rect(d, px, py, TILE, 1, BACKROOM_WALL_DARK)
+
+
+def paint_backroom_wall(d, px, py, front):
+    rect(d, px, py, TILE, TILE,
+         BACKROOM_WALL_DARK if front else BACKROOM_WALL)
+    rect(d, px, py, TILE, 2, shade(BACKROOM_WALL, 20))
+
+
+def paint_backroom_shelf(d, px, py):
+    rect(d, px, py + 4, TILE, 11, BACKROOM_WOOD)
+    rect(d, px, py + 4, TILE, 2, shade(BACKROOM_WOOD, 30))
+
+
+def paint_backroom_crate(d, px, py):
+    rect(d, px + 1, py + 2, 14, 13, BACKROOM_WOOD)
+    rect(d, px + 2, py + 3, 12, 2, shade(BACKROOM_WOOD, 28))
+    rect(d, px + 7, py + 3, 2, 11, shade(BACKROOM_WOOD, -24))
+
+
+def paint_backroom_litter(d, rng, px, py):
+    for _ in range(8):
+        rect(d, px + rng.randrange(15), py + rng.randrange(15),
+             rng.randint(1, 3), 1, (52, 48, 46))
+
+
+def paint_backroom_door(d, px, py):
+    rect(d, px, py, TILE, TILE, (28, 26, 28))
+    rect(d, px + 4, py + 2, 8, TILE - 2, (176, 164, 144))
+
+
+def bar_backroom(atlas: Atlas, rng) -> dict:
+    """The rules that paint PlaceId.barBackroom."""
+    floor = [
+        atlas.bucket(lambda a=alternate: tile_of(
+            lambda d: paint_backroom_floor(d, 0, 0, a)), 1)
+        for alternate in (True, False)
+    ]
+    props = {
+        "K": paint_backroom_shelf,
+        "B": paint_backroom_crate,
+        "E": paint_backroom_door,
+    }
+    # The floor goes under every glyph that is not wall or void; the door
+    # covers its cell whole, the rest let it show.
+    floored = ".*8KB:E"
+    rules = [
+        rule("ground", floored, floor, [parity_key()]),
+        rule("structures", "WI",
+             [atlas.bucket(lambda: tile_of(
+                 lambda d: paint_backroom_wall(d, 0, 0, False)), 1)]),
+        rule("structures", "w",
+             [atlas.bucket(lambda: tile_of(
+                 lambda d: paint_backroom_wall(d, 0, 0, True)), 1)]),
+        rule("structures", ":", [atlas.bucket(
+            lambda: tile_of(lambda d: paint_backroom_litter(d, rng, 0, 0)))]),
+    ]
+    for glyph, paint in props.items():
+        rules.append(rule("structures", glyph, [atlas.bucket(
+            lambda p=paint: tile_of(lambda d: p(d, 0, 0)), 1)]))
+    for right in (False, True):
+        edge = atlas.bucket(lambda r=right: tile_of(
+            lambda d: paint_side_edge(d, 0, 0, r)), 1)
+        rules.append(rule("foreground", floored, [[], edge],
+                          [neighbour_key(1 if right else -1, 0, "x")]))
+    return {"void": "#060608", "voidGlyph": "x", "rules": rules,
+            "objects": []}
+
+
+
+
 def pattern_key(a: int, b: int, mod: int, equals: int = 0) -> dict:
     """The bakers dot a wall with graffiti on (x * a + y * b) % mod: a
     pattern, not a throw of the dice, so the renderer works it out too."""
@@ -464,7 +550,11 @@ def compose(rows: list[str], place: dict, tiles: list[Image.Image],
 
 # ----------------------------------------------------------------- writing
 
-PLACES = {"duomoUpper": duomo_upper, "stationFarSide": station_far_side}
+PLACES = {
+    "barBackroom": bar_backroom,
+    "duomoUpper": duomo_upper,
+    "stationFarSide": station_far_side,
+}
 
 
 def build() -> tuple[Atlas, dict]:
@@ -521,6 +611,7 @@ def write(root: str) -> None:
 # The marker of each converted place's ASCII rows, for --preview only: the
 # atlas itself never reads a place.
 PREVIEW_ROWS = {
+    "barBackroom": "bar-backroom-rows",
     "duomoUpper": "duomo-upper-rows",
     "stationFarSide": "far-platform-rows",
 }
