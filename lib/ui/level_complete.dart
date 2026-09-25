@@ -3,22 +3,48 @@ import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/ui/blood_decor.dart';
 import 'package:stepbound/ui/main_menu.dart';
 
-/// The black results screen shown between the last story scene and the
-/// Europe map. Memories count distinct story pictures, not dialogue lines.
-final class LevelComplete extends StatelessWidget {
-  const LevelComplete({
+/// How a level went: each count out of what the level holds, but for the
+/// steps, which have no end.
+final class LevelStats {
+  const LevelStats({
     required this.foundBackpacks,
     required this.totalBackpacks,
     required this.foundMemories,
     required this.totalMemories,
-    required this.onContinue,
-    super.key,
+    required this.killedZombies,
+    required this.totalZombies,
+    required this.knownZombieKinds,
+    required this.totalZombieKinds,
+    required this.litCampfires,
+    required this.totalCampfires,
+    required this.steps,
   });
 
   final int foundBackpacks;
   final int totalBackpacks;
+
+  /// Distinct story pictures, not dialogue lines.
   final int foundMemories;
   final int totalMemories;
+  final int killedZombies;
+  final int totalZombies;
+  final int knownZombieKinds;
+  final int totalZombieKinds;
+  final int litCampfires;
+  final int totalCampfires;
+  final int steps;
+}
+
+/// The black results screen shown between the last story scene and the
+/// Europe map.
+final class LevelComplete extends StatelessWidget {
+  const LevelComplete({
+    required this.stats,
+    required this.onContinue,
+    super.key,
+  });
+
+  final LevelStats stats;
   final VoidCallback onContinue;
 
   @override
@@ -35,31 +61,53 @@ final class LevelComplete extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 BloodyTitle('LIVELLO COMPLETATO', fontSize: 20 * unit),
-                SizedBox(height: 8 * unit),
+                SizedBox(height: 6 * unit),
                 MenuPanel(
                   unit: unit,
-                  width: MenuButton.fullWidth,
-                  child: Column(
+                  width: cardWidth,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
-                      _stat(
-                        'ZAINI TROVATI',
-                        foundBackpacks,
-                        totalBackpacks,
-                        unit,
-                        const ValueKey<String>('backpack-stat'),
+                      Expanded(
+                        child: _column(unit, <(String, String, String)>[
+                          (
+                            'ZAINI TROVATI',
+                            '${stats.foundBackpacks} / ${stats.totalBackpacks}',
+                            'backpack-stat',
+                          ),
+                          (
+                            'RICORDI VISSUTI',
+                            '${stats.foundMemories} / ${stats.totalMemories}',
+                            'memory-stat',
+                          ),
+                          (
+                            'FALÒ TROVATI',
+                            '${stats.litCampfires} / ${stats.totalCampfires}',
+                            'campfire-stat',
+                          ),
+                        ]),
                       ),
-                      SizedBox(height: 5 * unit),
-                      _stat(
-                        'RICORDI TROVATI',
-                        foundMemories,
-                        totalMemories,
-                        unit,
-                        const ValueKey<String>('memory-stat'),
+                      SizedBox(width: columnGap * unit),
+                      Expanded(
+                        child: _column(unit, <(String, String, String)>[
+                          (
+                            'TIPI DI ZOMBI CONOSCIUTI',
+                            '${stats.knownZombieKinds} / '
+                                '${stats.totalZombieKinds}',
+                            'zombie-kind-stat',
+                          ),
+                          (
+                            'ZOMBI UCCISI',
+                            '${stats.killedZombies} / ${stats.totalZombies}',
+                            'kill-stat',
+                          ),
+                          ('PASSI FATTI', '${stats.steps}', 'step-stat'),
+                        ]),
                       ),
                     ],
                   ),
                 ),
-                SizedBox(height: 10 * unit),
+                SizedBox(height: 8 * unit),
                 MenuButton(
                   key: const ValueKey<String>('level-complete-continue'),
                   label: 'CONTINUA',
@@ -74,7 +122,21 @@ final class LevelComplete extends StatelessWidget {
     );
   }
 
-  Widget _stat(String label, int found, int total, double unit, Key key) {
+  /// Wider than the menu's panels, for the two columns of figures.
+  static const double cardWidth = 300;
+  static const double columnGap = 12;
+
+  /// One column of the card: label and figure, row after row.
+  Widget _column(double unit, List<(String, String, String)> rows) => Column(
+    children: <Widget>[
+      for (final (index, (label, value, key)) in rows.indexed) ...<Widget>[
+        if (index > 0) SizedBox(height: 4 * unit),
+        _stat(label, value, unit, ValueKey<String>(key)),
+      ],
+    ],
+  );
+
+  Widget _stat(String label, String value, double unit, Key key) {
     return Row(
       key: key,
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -96,7 +158,7 @@ final class LevelComplete extends StatelessWidget {
         ),
         SizedBox(width: 5 * unit),
         Text(
-          '$found / $total',
+          value,
           style: TextStyle(
             color: BloodColors.bright,
             fontFamily: 'monospace',

@@ -2477,6 +2477,29 @@ void main() {
     );
   });
 
+  test('a level counts its own zombies, those its story raises, and its '
+      'own fires', () {
+    final hometown = levelZombieKinds(LevelId.hometown);
+    final rome = levelZombieKinds(LevelId.rome);
+    expect(rome, hasLength(terminiZombieSpots.length));
+    final atStart = createTutorialWorld().entities.values
+        .where((entity) => entity.kind != EntityKind.player)
+        .length;
+    expect(
+      hometown,
+      hasLength(
+        atStart -
+            rome.length +
+            carabiniereSpawns.length +
+            mallHordeSpawns.length +
+            duomoCultistSpawns.length,
+      ),
+    );
+    expect(hometown, contains(EntityKind.cultist));
+    expect(levelCampfires(LevelId.hometown), hasLength(3));
+    expect(levelCampfires(LevelId.rome), isEmpty);
+  });
+
   test('the wanderers of Termini stand on its platforms, and its stairs are '
       'walkable', () {
     final world = createTutorialWorld();

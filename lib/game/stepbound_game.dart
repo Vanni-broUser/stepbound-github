@@ -503,6 +503,8 @@ final class StepboundGame extends FlameGame
       switch (event) {
         case CampfireUsedEvent(:final at):
           _startRest(at);
+        case MovedEvent(:final entityId) when entityId == playerId:
+          progress.countStep();
         case TeleportedEvent(:final from, :final to):
           _goThrough(from: from, to: to);
         case AlertedEvent(entityId: final spotter):
@@ -764,6 +766,9 @@ final class StepboundGame extends FlameGame
   void _startRest(GridPoint campfire) {
     _stopMario();
     _campfire = campfire;
+    if (campfireNames[campfire] case final name?) {
+      progress.lightCampfire(name);
+    }
     _restLeft = CharacterComponent.restDuration;
     _restSaving = false;
     _campfires[campfire]?.flare();

@@ -1864,11 +1864,21 @@ void main() {
     return tester.runAsync(() async {
       final saves = MemorySaveRepository();
       final game = await _pumpReadyGame(tester, saves: saves);
-      // Where the station's scene leaves him.
+      // Where the station's scene leaves him, after a walk and a rest.
       game.simulation.player.component<PositionComponent>()
         ..position = trainMapStandTile
         ..facing = Direction.south;
-      game.progress.remember(StoryMemory.luigiAtStation);
+      game.progress
+        ..remember(StoryMemory.luigiAtStation)
+        ..countStep()
+        ..countStep()
+        ..countStep()
+        ..lightCampfire('Zona nord')
+        ..meet(EntityKind.wanderer);
+      game.simulation.entities[tutorialZombieId]!
+              .component<HealthComponent>()
+              .current =
+          0;
 
       game.completeLevel();
       await tester.pump();
@@ -1880,7 +1890,21 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('ZAINI TROVATI'), findsOneWidget);
-      expect(find.text('RICORDI TROVATI'), findsOneWidget);
+      expect(find.text('RICORDI VISSUTI'), findsOneWidget);
+      String stat(String key) => tester
+          .widgetList<Text>(
+            find.descendant(
+              of: find.byKey(ValueKey<String>(key)),
+              matching: find.byType(Text),
+            ),
+          )
+          .last
+          .data!;
+      final zombies = levelZombieKinds(LevelId.hometown);
+      expect(stat('kill-stat'), '1 / ${zombies.length}');
+      expect(stat('zombie-kind-stat'), '1 / ${zombies.toSet().length}');
+      expect(stat('campfire-stat'), '1 / 3');
+      expect(stat('step-stat'), '3');
 
       await tester.tap(
         find.byKey(const ValueKey<String>('level-complete-continue')),

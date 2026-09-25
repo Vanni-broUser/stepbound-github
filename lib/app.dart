@@ -67,10 +67,7 @@ final class _StepboundAppState extends State<StepboundApp> {
   StepboundGame? _game;
   _Phase _phase = _Phase.menu;
   GameSnapshot? _completedSnapshot;
-  int _foundBackpacks = 0;
-  int _totalBackpacks = 0;
-  int _foundMemoryImages = 0;
-  int _totalMemoryImages = 0;
+  late LevelStats _levelStats;
 
   /// Whether the loading picture fades in from the black a story ended on.
   bool _loadingFadesIn = false;
@@ -479,17 +476,40 @@ final class _StepboundAppState extends State<StepboundApp> {
         for (final scene in memoryScenes[memory] ?? const <StoryScene>[])
           scene.image,
     };
+    final level = progress.level;
+    // The level's own: Rome's story is not left behind in Molfetta.
+    bool ofLevel(StoryMemory memory) => memory.level == level;
+    final zombies = levelZombieKinds(level);
+    final campfires = levelCampfires(level);
+    final stats = LevelStats(
+      foundBackpacks: world.pickups.values
+          .where((pickup) => pickup.collected)
+          .length,
+      totalBackpacks: world.pickups.length,
+      foundMemories: pictures(progress.memories.where(ofLevel)).length,
+      totalMemories: pictures(StoryMemory.values.where(ofLevel)).length,
+      killedZombies: world.entities.values
+          .where(
+            (entity) =>
+                entity.kind != EntityKind.player &&
+                !entity.isAlive &&
+                isInLevel(
+                  entity.component<PositionComponent>().position,
+                  level,
+                ),
+          )
+          .length,
+      totalZombies: zombies.length,
+      knownZombieKinds: progress.knownZombies.where(zombies.contains).length,
+      totalZombieKinds: zombies.toSet().length,
+      litCampfires: progress.litCampfires.where(campfires.contains).length,
+      totalCampfires: campfires.length,
+      steps: progress.steps[level] ?? 0,
+    );
     _playStoryAudio();
     setState(() {
       _completedSnapshot = snapshot;
-      _foundBackpacks = world.pickups.values
-          .where((pickup) => pickup.collected)
-          .length;
-      _totalBackpacks = world.pickups.length;
-      // Molfetta's own: Rome's story is not left behind there.
-      bool hometown(StoryMemory memory) => memory.level == LevelId.hometown;
-      _foundMemoryImages = pictures(progress.memories.where(hometown)).length;
-      _totalMemoryImages = pictures(StoryMemory.values.where(hometown)).length;
+      _levelStats = stats;
       _game = null;
       _phase = _Phase.levelComplete;
     });
@@ -643,10 +663,7 @@ final class _StepboundAppState extends State<StepboundApp> {
                   onFinished: _finishOutbreak,
                 ),
                 _Phase.levelComplete => LevelComplete(
-                  foundBackpacks: _foundBackpacks,
-                  totalBackpacks: _totalBackpacks,
-                  foundMemories: _foundMemoryImages,
-                  totalMemories: _totalMemoryImages,
+                  stats: _levelStats,
                   onContinue: _openLevelMap,
                 ),
                 _Phase.levelMap => LevelMap(
