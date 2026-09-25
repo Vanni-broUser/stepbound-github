@@ -73,38 +73,55 @@ void main() {
     }
   });
 
-  test('an object is painted over the glyphs it was drawn for', () {
+  test('a placed object still lies over the rows it was painted for', () {
+    for (final place in convertedPlaces) {
+      for (final object in manifest.places[place.id.name]!.objects) {
+        final at = object.at;
+        if (at == null) {
+          continue;
+        }
+        final under = object.under!;
+        expect(
+          under,
+          isNotEmpty,
+          reason:
+              '${place.id}: ${object.image} is placed and says nothing '
+              'of what it lies over',
+        );
+        for (var row = 0; row < under.length; row++) {
+          final y = at.$2 + row;
+          final now = y < place.rows.length
+              ? place.rows[y].substring(
+                  at.$1,
+                  math.min(at.$1 + under[row].length, place.rows[y].length),
+                )
+              : '';
+          expect(
+            now,
+            under[row],
+            reason:
+                '${place.id}: ${object.image} was painted over rows that '
+                'have since changed (row $y, from column ${at.$1}). Re-run '
+                'python tools/build_tile_atlas.py',
+          );
+        }
+      }
+    }
+  });
+
+  test('an object is painted for the run of glyphs it was drawn for', () {
     for (final place in convertedPlaces) {
       for (final object in manifest.places[place.id.name]!.objects) {
         final tiles = object.tiles;
-        if (tiles == null) {
+        final glyph = object.glyph;
+        if (tiles == null || glyph == null) {
           continue;
         }
-        final at = object.at;
-        if (at != null) {
-          // Placed by hand, as the shopfronts of a wall are: every cell
-          // under it must still be one of the glyphs it was drawn over.
-          final grid = GlyphGrid(place.rows);
-          for (var y = at.$2; y < at.$2 + tiles.$2; y++) {
-            for (var x = at.$1; x < at.$1 + tiles.$1; x++) {
-              expect(
-                object.glyph,
-                contains(grid.glyphAt(x, y)),
-                reason:
-                    '${place.id}: ${object.image} covers $x,$y, which the '
-                    'rows now show as "${grid.glyphAt(x, y)}", not one of '
-                    '"${object.glyph}". Re-run '
-                    'python tools/build_tile_atlas.py after changing them',
-              );
-            }
-          }
-          continue;
-        }
-        final cells = place.tilesOf(object.glyph);
+        final cells = place.tilesOf(glyph);
         expect(
           cells,
           isNotEmpty,
-          reason: '${place.id} has no "${object.glyph}" for ${object.image}',
+          reason: '${place.id} has no "$glyph" for ${object.image}',
         );
         final xs = cells.map((tile) => tile.x);
         final ys = cells.map((tile) => tile.y);

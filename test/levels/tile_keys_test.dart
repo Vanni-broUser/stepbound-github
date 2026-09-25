@@ -78,4 +78,29 @@ void main() {
       );
     });
   });
+
+  group('beforeRun', () {
+    // Camp beds three tiles long, one against the wall on the left and one
+    // with the wall on its right: the pillow goes at the end by a wall.
+    final grid = GlyphGrid(<String>['WBBB...', '...BBBW']);
+    const key = BeforeRunKey(glyphs: 'xW');
+
+    test('is the same for every tile of a run', () {
+      for (var x = 1; x <= 3; x++) {
+        expect(key.holds(grid, x, 0), isTrue, reason: 'tile $x');
+      }
+      for (var x = 3; x <= 5; x++) {
+        expect(key.holds(grid, x, 1), isFalse, reason: 'tile $x');
+      }
+    });
+
+    test('is read from the manifest', () {
+      final parsed = TileKey.fromJson(<String, Object?>{
+        'kind': 'beforeRun',
+        'glyphs': 'xW',
+      });
+      expect(parsed, isA<BeforeRunKey>());
+      expect(parsed.holds(grid, 2, 0), isTrue);
+    });
+  });
 }

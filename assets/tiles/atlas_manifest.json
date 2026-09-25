@@ -2203,6 +2203,412 @@
         }
       ],
       "objects": []
+    },
+    "trainInterior": {
+      "void": "#060608",
+      "voidGlyph": "x",
+      "rules": [
+        {
+          "layer": "ground",
+          "glyphs": ".SLTCh*bBuofkEPlV",
+          "keys": [
+            {
+              "kind": "parity"
+            }
+          ],
+          "buckets": [
+            [
+              704,
+              705,
+              706,
+              707,
+              708,
+              709,
+              710,
+              711,
+              712,
+              713,
+              714,
+              715
+            ],
+            [
+              716,
+              717,
+              718,
+              719,
+              720,
+              721,
+              722,
+              723,
+              724,
+              725,
+              726,
+              727
+            ]
+          ]
+        },
+        {
+          "layer": "structures",
+          "glyphs": "W",
+          "keys": [
+            {
+              "kind": "pattern",
+              "a": 1,
+              "b": 0,
+              "mod": 4,
+              "equals": 1
+            },
+            {
+              "kind": "pattern",
+              "a": 1,
+              "b": 0,
+              "mod": 4,
+              "equals": 2
+            }
+          ],
+          "buckets": [
+            [
+              728
+            ],
+            [
+              729
+            ],
+            [
+              729
+            ],
+            [
+              728
+            ]
+          ]
+        },
+        {
+          "layer": "structures",
+          "glyphs": "w",
+          "keys": [],
+          "buckets": [
+            [
+              730
+            ]
+          ]
+        },
+        {
+          "layer": "structures",
+          "glyphs": "Ii",
+          "keys": [],
+          "buckets": [
+            [
+              731
+            ]
+          ]
+        },
+        {
+          "layer": "structures",
+          "glyphs": "E",
+          "keys": [],
+          "buckets": [
+            [
+              732
+            ]
+          ]
+        },
+        {
+          "layer": "structures",
+          "glyphs": "S",
+          "keys": [
+            {
+              "kind": "neighbour",
+              "dx": -1,
+              "dy": 0,
+              "glyphs": "S"
+            },
+            {
+              "kind": "neighbour",
+              "dx": 1,
+              "dy": 0,
+              "glyphs": "S"
+            }
+          ],
+          "buckets": [
+            [
+              733
+            ],
+            [
+              734
+            ],
+            [
+              735
+            ],
+            [
+              736
+            ]
+          ]
+        },
+        {
+          "layer": "structures",
+          "glyphs": "T",
+          "keys": [],
+          "buckets": [
+            [
+              737
+            ]
+          ]
+        },
+        {
+          "layer": "structures",
+          "glyphs": "L",
+          "keys": [],
+          "buckets": [
+            [
+              738,
+              739,
+              740,
+              741,
+              742,
+              743
+            ]
+          ]
+        },
+        {
+          "layer": "structures",
+          "glyphs": "C",
+          "keys": [],
+          "buckets": [
+            [
+              744,
+              745,
+              746,
+              747,
+              748,
+              749,
+              750,
+              751,
+              752,
+              753,
+              754,
+              755
+            ]
+          ]
+        },
+        {
+          "layer": "structures",
+          "glyphs": "h",
+          "keys": [],
+          "buckets": [
+            [
+              756
+            ]
+          ]
+        },
+        {
+          "layer": "structures",
+          "glyphs": "*",
+          "keys": [],
+          "buckets": [
+            [
+              757
+            ]
+          ]
+        },
+        {
+          "layer": "structures",
+          "glyphs": "b",
+          "keys": [
+            {
+              "kind": "neighbour",
+              "dx": -1,
+              "dy": 0,
+              "glyphs": "b"
+            },
+            {
+              "kind": "neighbour",
+              "dx": 1,
+              "dy": 0,
+              "glyphs": "b"
+            },
+            {
+              "kind": "beforeRun",
+              "glyphs": "xWwIiV"
+            }
+          ],
+          "buckets": [
+            [
+              758
+            ],
+            [
+              759
+            ],
+            [
+              760
+            ],
+            [
+              761
+            ],
+            [
+              758
+            ],
+            [
+              762
+            ],
+            [
+              763
+            ],
+            [
+              761
+            ]
+          ]
+        },
+        {
+          "layer": "structures",
+          "glyphs": "B",
+          "keys": [
+            {
+              "kind": "neighbour",
+              "dx": -1,
+              "dy": 0,
+              "glyphs": "B"
+            },
+            {
+              "kind": "neighbour",
+              "dx": 1,
+              "dy": 0,
+              "glyphs": "B"
+            },
+            {
+              "kind": "beforeRun",
+              "glyphs": "xWwIiV"
+            }
+          ],
+          "buckets": [
+            [
+              758
+            ],
+            [
+              759
+            ],
+            [
+              764
+            ],
+            [
+              765
+            ],
+            [
+              758
+            ],
+            [
+              766
+            ],
+            [
+              763
+            ],
+            [
+              767
+            ]
+          ]
+        },
+        {
+          "layer": "structures",
+          "glyphs": "u",
+          "keys": [],
+          "buckets": [
+            [
+              768
+            ]
+          ]
+        },
+        {
+          "layer": "structures",
+          "glyphs": "o",
+          "keys": [],
+          "buckets": [
+            [
+              769,
+              770,
+              771,
+              772,
+              773,
+              774,
+              775,
+              776,
+              777,
+              778,
+              779,
+              780
+            ]
+          ]
+        },
+        {
+          "layer": "structures",
+          "glyphs": "f",
+          "keys": [],
+          "buckets": [
+            [
+              781,
+              782,
+              783,
+              784,
+              785,
+              786,
+              787,
+              788,
+              789,
+              790,
+              791,
+              792
+            ]
+          ]
+        },
+        {
+          "layer": "structures",
+          "glyphs": "k",
+          "keys": [
+            {
+              "kind": "neighbour",
+              "dx": -1,
+              "dy": 0,
+              "glyphs": "k"
+            }
+          ],
+          "buckets": [
+            [
+              793
+            ],
+            [
+              794
+            ]
+          ]
+        }
+      ],
+      "objects": [
+        {
+          "glyph": "P",
+          "image": "train_map_table.png",
+          "tiles": [
+            4,
+            2
+          ]
+        },
+        {
+          "at": [
+            69,
+            0
+          ],
+          "image": "train_nose.png",
+          "under": [
+            "Wxxxxxxx",
+            "CVxxxxxx",
+            ".CCVxxxx",
+            "..CCVxxx",
+            "..*CCVxx",
+            "h..CCVxx",
+            "h..CCVxx",
+            "..*CCVxx",
+            "..CCVxxx",
+            ".CCVxxxx",
+            "CVxxxxxx",
+            "wxxxxxxx"
+          ]
+        }
+      ]
     }
   }
 }

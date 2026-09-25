@@ -69,6 +69,7 @@ sealed class TileKey {
         offset: (json['offset']! as num).toInt(),
         atMost: json['compare'] == 'le',
       ),
+      'beforeRun' => BeforeRunKey(glyphs: json['glyphs']! as String),
       'rowHas' => RowHasKey(
         dy: (json['dy']! as num).toInt(),
         glyph: json['glyph']! as String,
@@ -143,6 +144,26 @@ final class FirstRowKey extends TileKey {
   bool holds(GlyphGrid grid, int x, int y) {
     final row = grid.firstRowOf(glyph) + offset;
     return atMost ? y <= row : y == row;
+  }
+}
+
+/// What lies before the run this cell belongs to: walk west along the row
+/// while the glyph stays the cell's own, and ask whether the cell where it
+/// stops shows one of [glyphs]. A camp bed three tiles long has its pillow
+/// at the end against a wall, and the middle tile has to know which end.
+final class BeforeRunKey extends TileKey {
+  const BeforeRunKey({required this.glyphs});
+
+  final String glyphs;
+
+  @override
+  bool holds(GlyphGrid grid, int x, int y) {
+    final glyph = grid.glyphAt(x, y);
+    var start = x;
+    while (grid.glyphAt(start - 1, y) == glyph) {
+      start--;
+    }
+    return glyphs.contains(grid.glyphAt(start - 1, y));
   }
 }
 
@@ -257,10 +278,12 @@ final class TileRule {
 /// drawn over the run of its [glyph]. [tiles] is the size that run has to
 /// be, checked by test/levels/tile_atlas_test.dart against the rows.
 ///
-/// A place with many of a kind -- the shopfronts along a wall, each with
-/// its own name -- cannot find them by glyph: each says where it goes,
-/// [at], and then [glyph] lists the glyphs the rows must show under it,
-/// checked by the same test.
+/// An object that is not one run of a glyph -- the shopfronts along a wall,
+/// each with its own name, or the nose of a train, which follows the shape
+/// of its windscreen -- says where it goes, [at], and carries the rows it
+/// was painted over, [under]: the test fails when they are no longer the
+/// rows of the place, so a picture is never left over an arrangement it
+/// was not painted for.
 final class TileObject {
   const TileObject({
     required this.glyph,
@@ -269,13 +292,14 @@ final class TileObject {
     required this.tiles,
     required this.whenOpen,
     this.at,
+    this.under,
   });
 
   factory TileObject.fromJson(Map<String, Object?> json) {
     final tiles = json['tiles'] as List<Object?>?;
     final at = json['at'] as List<Object?>?;
     return TileObject(
-      glyph: json['glyph']! as String,
+      glyph: json['glyph'] as String?,
       image: json['image']! as String,
       offsetY: (json['offsetY'] as num?)?.toInt() ?? 0,
       tiles: tiles == null
@@ -285,14 +309,22 @@ final class TileObject {
       at: at == null
           ? null
           : ((at[0]! as num).toInt(), (at[1]! as num).toInt()),
+      under: <String>[
+        for (final row in json['under'] as List<Object?>? ?? const <Object?>[])
+          row! as String,
+      ],
     );
   }
 
-  final String glyph;
+  /// The glyph whose run it is drawn over, unless it says [at].
+  final String? glyph;
   final String image;
 
   /// The top-left cell it is drawn from, when it does not follow a glyph.
   final (int, int)? at;
+
+  /// The rows of the place it was painted over, from [at].
+  final List<String>? under;
 
   /// How far above its glyph the image starts, in tiles.
   final int offsetY;

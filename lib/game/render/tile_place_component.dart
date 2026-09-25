@@ -152,7 +152,9 @@ final class TilePlaceComponent extends PlaceBackground {
     required bool opened,
   }) {
     for (final object in art.objects) {
-      final corner = object.at ?? _blockCorner(grid, object.glyph);
+      final glyph = object.glyph;
+      final corner =
+          object.at ?? (glyph == null ? null : _blockCorner(grid, glyph));
       if (corner == null) {
         continue;
       }

@@ -202,11 +202,11 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     rows: stationFarSideRows,
     legend: stationLegend,
   ),
+  // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.trainInterior,
     rows: trainInteriorRows,
     legend: trainLegend,
-    background: 'assets/levels/train_interior.png',
     indoor: true,
     // Luigi keeps the lights on: the whole train is bright, end to end.
     lit: true,

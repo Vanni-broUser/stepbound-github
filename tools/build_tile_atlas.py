@@ -49,7 +49,7 @@ from build_street_level import (  # noqa: E402
     shade,
     text_width,
 )
-from build_mall import paint_blood  # noqa: E402
+from build_mall import Room, paint_blood  # noqa: E402
 import build_airliner as airliner  # noqa: E402
 import build_station as station  # noqa: E402
 
@@ -130,6 +130,11 @@ def row_key(y: int) -> dict:
 
 def neighbour_key(dx: int, dy: int, glyphs: str) -> dict:
     return {"kind": "neighbour", "dx": dx, "dy": dy, "glyphs": glyphs}
+
+
+def before_run_key(glyphs: str) -> dict:
+    """What lies before the run of the cell's own glyph: a wall, say."""
+    return {"kind": "beforeRun", "glyphs": glyphs}
 
 
 def row_has_key(dy: int, glyph: str) -> dict:
@@ -1383,6 +1388,472 @@ def barracks(atlas: Atlas, rng) -> dict:
     }
 
 
+
+# --------------------------------------------------------- the train's art
+# Moved here from tools/build_train.py, which this atlas replaces: two
+# passenger coaches and the locomotive Mario and Luigi live in, seen from
+# above. Two pieces are objects: the table with the map of Europe spread on
+# it, and the nose of the locomotive, whose shape is worked out from the
+# rows (the one place where this script reads them, because the picture is
+# only right for one arrangement of them; the test that holds the rows to
+# the manifest is what makes that safe).
+
+TR_VOID = (6, 6, 8)
+TR_FLOOR_A = (92, 88, 82)
+TR_FLOOR_B = (82, 78, 74)
+TR_FLOOR_LINE = (60, 58, 58)
+TR_SHELL = (198, 194, 182)
+TR_SHELL_DARK = (116, 118, 122)
+TR_SHELL_LIGHT = (226, 220, 204)
+TR_METAL = (112, 116, 124)
+TR_METAL_DARK = (48, 52, 60)
+TR_METAL_LIGHT = (174, 178, 184)
+TR_GLASS = (34, 50, 66)
+TR_GLASS_LIGHT = (76, 106, 126)
+TR_SEAT = (62, 88, 124)
+TR_SEAT_DARK = (38, 54, 78)
+TR_WOOD = (128, 90, 54)
+TR_WOOD_LIGHT = (166, 124, 76)
+TR_LUGGAGE = (94, 64, 42)
+TR_CONTROL = (50, 58, 62)
+TR_CONTROL_LIGHT = (100, 116, 112)
+TR_MAP = (196, 166, 72)
+TR_MAP_DARK = (112, 86, 34)
+TR_LAMP = (242, 232, 190)
+TR_SAFETY = (214, 178, 48)
+TR_COT_FRAME = (70, 76, 60)
+TR_COT_CANVAS = (112, 118, 86)
+# Mario's army blanket, folded square; Luigi's checked one, kicked about.
+TR_MARIO_BLANKET = (78, 92, 70)
+TR_LUIGI_BLANKET = (150, 52, 44)
+TR_LUIGI_CHECK = (206, 186, 160)
+TR_PILLOW = (214, 208, 190)
+TR_BAG = (28, 30, 32)
+TR_BAG_LIGHT = (70, 74, 78)
+TR_GLASS_GREEN = (58, 118, 70)
+TR_GLASS_BROWN = (122, 76, 30)
+TR_CAN_RED = (178, 40, 38)
+TR_CAN_SILVER = (184, 186, 190)
+TR_PAPER = (226, 220, 200)
+TR_PAPER_SHADE = (178, 170, 150)
+TR_INK = (62, 58, 60)
+TR_CRATE = (118, 84, 48)
+TR_CRATE_DARK = (78, 54, 30)
+TR_BOOK_COVERS = ((122, 38, 34), (40, 64, 104), (58, 86, 52))
+TR_WINDSCREEN_FRAME = (36, 40, 46)
+TR_ROWS = "train-interior-rows"
+TR_MAP_TABLE_TILES = (4, 2)
+# What a camp bed's pillow lies against.
+TR_COT_WALLS = "xWwIiV"
+
+
+def paint_train_floor(d, rng, x, y):
+    px, py = x * TILE, y * TILE
+    rect(d, px, py, TILE, TILE, TR_FLOOR_A if (x + y) % 2 else TR_FLOOR_B)
+    rect(d, px, py, TILE, 1, TR_FLOOR_LINE)
+    rect(d, px, py, 1, TILE, TR_FLOOR_LINE)
+    for _ in range(2):
+        rect(d, px + rng.randrange(15), py + rng.randrange(15), 1, 1,
+             shade(TR_FLOOR_A, rng.randrange(-22, 14)))
+
+
+def paint_train_shell(d, glyph, x, y):
+    """The hull: the roof edge on the north side with a window every four
+    tiles, the belly on the south side, the pillars between the coaches."""
+    px, py = x * TILE, y * TILE
+    rect(d, px, py, TILE, TILE, TR_METAL_DARK)
+    if glyph == "W":
+        rect(d, px, py + 3, TILE, 12, TR_SHELL)
+        rect(d, px, py + 3, TILE, 2, TR_SHELL_LIGHT)
+        if x % 4 in (1, 2):
+            rect(d, px + 2, py + 6, 12, 7, TR_METAL_DARK)
+            rect(d, px + 3, py + 7, 10, 5, TR_GLASS)
+            rect(d, px + 4, py + 7, 5, 1, TR_GLASS_LIGHT)
+    elif glyph == "w":
+        rect(d, px, py, TILE, 12, TR_SHELL)
+        rect(d, px, py, TILE, 2, TR_SHELL_LIGHT)
+        rect(d, px, py + 11, TILE, 4, TR_SHELL_DARK)
+    else:
+        rect(d, px + 3, py, 10, TILE, TR_SHELL_DARK)
+        rect(d, px + 5, py, 6, TILE, TR_METAL)
+        rect(d, px + 6, py, 2, TILE, TR_METAL_LIGHT)
+
+
+def paint_train_exit(d, px, py):
+    rect(d, px, py, TILE, TILE, (24, 28, 32))
+    rect(d, px, py, TILE, 2, TR_LAMP)
+    rect(d, px, py + 12, TILE, 4, TR_METAL_DARK)
+    rect(d, px + 2, py + 13, 12, 1, TR_METAL_LIGHT)
+    for rail_x in (px + 1, px + 13):
+        rect(d, rail_x, py + 2, 2, 11, TR_SAFETY)
+
+
+def paint_train_seat(d, px, py, left_end, right_end):
+    rect(d, px + 2, py + 2, 12, 12, TR_SEAT_DARK)
+    rect(d, px + 3, py + 3, 10, 6, TR_SEAT)
+    rect(d, px + 3, py + 10, 10, 3, shade(TR_SEAT, -18))
+    rect(d, px + 3, py + 3, 10, 1, shade(TR_SEAT, 34))
+    if left_end:
+        rect(d, px + 1, py + 4, 2, 9, TR_METAL_LIGHT)
+    if right_end:
+        rect(d, px + 13, py + 4, 2, 9, TR_METAL_LIGHT)
+
+
+def paint_train_table(d, px, py):
+    rect(d, px + 1, py + 5, 14, 7, shade(TR_WOOD, -24))
+    rect(d, px + 1, py + 3, 14, 7, TR_WOOD)
+    rect(d, px + 2, py + 4, 12, 1, TR_WOOD_LIGHT)
+    rect(d, px + 4, py + 10, 2, 5, TR_METAL_DARK)
+    rect(d, px + 11, py + 10, 2, 5, TR_METAL_DARK)
+
+
+def paint_train_luggage(d, rng, px, py):
+    rect(d, px + 2, py + 4, 12, 10, TR_LUGGAGE)
+    rect(d, px + 3, py + 5, 10, 2, shade(TR_LUGGAGE, 28))
+    rect(d, px + 6, py + 1, 5, 4, TR_METAL_DARK)
+    rect(d, px + 7, py + 2, 3, 3, TR_FLOOR_B)
+    rect(d, px + rng.randrange(3, 11), py + 7, 2, 5,
+         shade(TR_LUGGAGE, -28))
+
+
+def paint_train_control(d, rng, px, py):
+    rect(d, px + 1, py + 2, 14, 12, TR_CONTROL)
+    rect(d, px + 2, py + 3, 12, 4, TR_CONTROL_LIGHT)
+    for _ in range(4):
+        colour = rng.choice(((178, 52, 42), (68, 146, 82), (214, 176, 54)))
+        rect(d, px + rng.randrange(3, 13), py + rng.randrange(8, 12), 2, 2,
+             colour)
+
+
+def paint_train_map_table(d, room):
+    """The table in the middle of the locomotive, the whole block of `P`
+    tiles, with the yellowed map of Europe spread over it: a coastline, a
+    few borders, and the route drawn on it in red."""
+    tiles = [(x, y) for y in range(room.height) for x in range(room.width)
+             if room.at(x, y) == "P"]
+    left = min(x for x, _ in tiles) * TILE
+    top = min(y for _, y in tiles) * TILE
+    right = (max(x for x, _ in tiles) + 1) * TILE
+    bottom = (max(y for _, y in tiles) + 1) * TILE
+    width, height = right - left, bottom - top
+    # The table: a dark edge, the top, and its legs at the corners.
+    rect(d, left + 1, top + 3, width - 2, height - 3, shade(TR_WOOD, -34))
+    rect(d, left + 1, top + 1, width - 2, height - 4, TR_WOOD)
+    rect(d, left + 2, top + 2, width - 4, 1, TR_WOOD_LIGHT)
+    for leg_x in (left + 2, right - 5):
+        rect(d, leg_x, bottom - 3, 3, 3, TR_METAL_DARK)
+    # The map, a little askew of the table's edges, its corners curling.
+    mx, my, mw, mh = left + 5, top + 4, width - 10, height - 11
+    rect(d, mx + 1, my + 1, mw, mh, shade(TR_MAP, -60))
+    rect(d, mx, my, mw, mh, TR_MAP)
+    sea = shade(TR_MAP, -26)
+    rect(d, mx + 2, my + 2, 10, mh - 4, sea)
+    rect(d, mx + 12, my + mh - 8, 18, 6, sea)
+    rect(d, mx + mw - 12, my + 2, 10, 7, sea)
+    for bx, by, bw, bh in ((mx + 6, my + 4, 4, 5), (mx + 18, my + 6, 9, 1),
+                           (mx + 30, my + 3, 1, 9), (mx + 24, my + 12, 12, 1),
+                           (mx + 40, my + 9, 1, 8)):
+        rect(d, bx, by, bw, bh, TR_MAP_DARK)
+    for cx, cy in ((mx, my), (mx + mw - 3, my + mh - 3)):
+        rect(d, cx, cy, 3, 3, shade(TR_MAP, 36))
+    # The route: from the heel of Italy north, a red line and its stops.
+    route = ((mx + 30, my + mh - 5), (mx + 26, my + 14), (mx + 34, my + 9),
+             (mx + 36, my + 3))
+    d.line(route, fill=(172, 34, 30), width=1)
+    for sx, sy in (route[0], route[-1]):
+        rect(d, sx - 1, sy - 1, 3, 3, (172, 34, 30))
+
+
+def paint_train_driver_seat(d, px, py):
+    """One of the two drivers' chairs, its back to the room, facing the
+    controls."""
+    rect(d, px + 5, py + 12, 6, 3, TR_METAL_DARK)
+    rect(d, px + 3, py + 3, 11, 10, TR_SEAT_DARK)
+    rect(d, px + 5, py + 4, 8, 8, TR_SEAT)
+    rect(d, px + 2, py + 2, 4, 12, TR_SEAT_DARK)
+    rect(d, px + 3, py + 3, 2, 10, shade(TR_SEAT, 30))
+
+
+def paint_train_cot(d, room, x, y, glyph):
+    """One tile of a camp bed three tiles long: canvas stretched on a metal
+    frame, a pillow at the end by the wall, a blanket over the rest."""
+    px, py = x * TILE, y * TILE
+    left = room.at(x - 1, y) != glyph
+    right = room.at(x + 1, y) != glyph
+    # The pillow goes at the end that is up against a wall.
+    start = x
+    while room.at(start - 1, y) == glyph:
+        start -= 1
+    pillow_left = room.at(start - 1, y) in TR_COT_WALLS
+    rect(d, px, py + 2, TILE, 12, TR_COT_FRAME)
+    rect(d, px + (2 if left else 0), py + 3,
+         TILE - (2 if left else 0) - (2 if right else 0), 10, TR_COT_CANVAS)
+    for leg_x in ((px + 1,) if left else ()) + ((px + 13,) if right else ()):
+        rect(d, leg_x, py + 13, 2, 2, TR_METAL_DARK)
+    if (left and pillow_left) or (right and not pillow_left):
+        rect(d, px + (3 if left else 5), py + 4, 8, 8, TR_PILLOW)
+        rect(d, px + (3 if left else 5), py + 10, 8, 2, shade(TR_PILLOW, -30))
+        return
+    if glyph == "B":
+        # Tucked in tight, the edge turned down neatly.
+        end = 3 if (right and pillow_left) or (left and not pillow_left) else 0
+        start_x = px + (end if left else 0)
+        rect(d, start_x, py + 4, TILE - end, 8, TR_MARIO_BLANKET)
+        rect(d, start_x, py + 4, TILE - end, 1, shade(TR_MARIO_BLANKET, 30))
+        if room.at(x - 1, y) == glyph and room.at(x + 1, y) == glyph:
+            # The turned-down edge, next to the pillow.
+            edge = px + (1 if pillow_left else 12)
+            rect(d, edge, py + 4, 3, 8, shade(TR_MARIO_BLANKET, 22))
+    else:
+        # Half off the bed, in a heap.
+        rect(d, px, py + 3, TILE, 11, TR_LUIGI_BLANKET)
+        for cx in range(px, px + TILE, 4):
+            rect(d, cx, py + 3, 2, 11, shade(TR_LUIGI_BLANKET, -24))
+        for cy in range(py + 5, py + 14, 4):
+            rect(d, px, cy, TILE, 1, TR_LUIGI_CHECK)
+        if right:
+            rect(d, px + 10, py + 13, 6, 3, TR_LUIGI_BLANKET)
+
+
+def paint_train_bag(d, px, py):
+    """A black bin bag knotted at the top."""
+    rect(d, px + 3, py + 5, 10, 10, TR_BAG)
+    rect(d, px + 2, py + 8, 12, 6, TR_BAG)
+    rect(d, px + 6, py + 2, 4, 4, TR_BAG)
+    rect(d, px + 7, py + 1, 2, 2, TR_BAG_LIGHT)
+    rect(d, px + 4, py + 7, 2, 4, TR_BAG_LIGHT)
+    rect(d, px + 3, py + 15, 10, 1, shade(TR_FLOOR_A, -30))
+
+
+def paint_train_litter(d, rng, px, py):
+    """An empty bottle and a crushed can left on the floor."""
+    bottle = rng.choice((TR_GLASS_GREEN, TR_GLASS_BROWN))
+    bx, by = px + rng.randrange(1, 5), py + rng.randrange(2, 6)
+    rect(d, bx, by + 2, 8, 3, bottle)
+    rect(d, bx + 8, by + 3, 3, 1, bottle)
+    rect(d, bx + 1, by + 2, 6, 1, shade(bottle, 50))
+    cx, cy = px + rng.randrange(7, 12), py + rng.randrange(9, 12)
+    rect(d, cx, cy, 4, 3, TR_CAN_RED)
+    rect(d, cx, cy, 1, 3, TR_CAN_SILVER)
+    rect(d, cx + 1, cy + 1, 2, 1, shade(TR_CAN_RED, 40))
+
+
+def paint_train_papers(d, rng, px, py):
+    """Loose sheets with a few lines written on them."""
+    for _ in range(2):
+        sx, sy = px + rng.randrange(0, 7), py + rng.randrange(0, 7)
+        rect(d, sx + 1, sy + 1, 8, 9, TR_PAPER_SHADE)
+        rect(d, sx, sy, 8, 9, TR_PAPER)
+        for line in range(sy + 2, sy + 8, 2):
+            rect(d, sx + 1, line, rng.randrange(3, 7), 1, TR_INK)
+
+
+def paint_train_books(d, px, py, first):
+    """A crate for a desk, with books open on it and a stack beside."""
+    rect(d, px, py + 3, TILE, 12, TR_CRATE_DARK)
+    rect(d, px, py + 3, TILE, 10, TR_CRATE)
+    rect(d, px, py + 7, TILE, 1, TR_CRATE_DARK)
+    if first:
+        # An open book, its pages spread.
+        rect(d, px + 2, py + 1, 12, 8, TR_BOOK_COVERS[0])
+        rect(d, px + 3, py + 2, 5, 6, TR_PAPER)
+        rect(d, px + 8, py + 2, 5, 6, shade(TR_PAPER, -12))
+        for line in range(py + 3, py + 8, 2):
+            rect(d, px + 4, line, 3, 1, TR_INK)
+            rect(d, px + 9, line, 3, 1, TR_INK)
+        return
+    # Another open face down, and a stack.
+    rect(d, px + 1, py + 2, 7, 6, TR_BOOK_COVERS[1])
+    rect(d, px + 4, py + 2, 1, 6, shade(TR_BOOK_COVERS[1], -30))
+    for i, colour in enumerate(TR_BOOK_COVERS):
+        rect(d, px + 9, py + 7 - 2 * i, 6, 2, colour)
+        rect(d, px + 9, py + 7 - 2 * i, 6, 1, shade(colour, 30))
+    rect(d, px + 2, py + 10, 6, 3, TR_PAPER)
+
+
+def paint_train_lamp(d, px, py):
+    rect(d, px + 3, py + 5, 10, 5, TR_METAL_DARK)
+    rect(d, px + 4, py + 6, 8, 3, TR_LAMP)
+    rect(d, px + 6, py + 10, 4, 1, shade(TR_LAMP, -52))
+
+
+def train_nose_edge(room):
+    """The outer edge of the locomotive's nose, in pixels, for every pixel
+    row: through the outer side of each windscreen tile `V`, smoothed, and
+    closed at the top and bottom where the shell's straight walls end."""
+    anchors = []
+    for y in range(room.height):
+        vs = [x for x in range(room.width) if room.at(x, y) == "V"]
+        if vs:
+            anchors.append((y * TILE + TILE / 2, (vs[0] + 1) * TILE))
+        else:
+            walls = [x for x in range(room.width) if room.at(x, y) in "Ww"]
+            anchors.append((y * TILE + TILE / 2, (walls[-1] + 1) * TILE))
+    edge = []
+    for py in range(room.height * TILE):
+        # Interpolate between the anchors around this row, then average a
+        # little either side so the steps of the tiles melt into a curve.
+        def at(yy):
+            yy = min(max(yy, anchors[0][0]), anchors[-1][0])
+            for (y0, x0), (y1, x1) in zip(anchors, anchors[1:]):
+                if y0 <= yy <= y1:
+                    return x0 + (x1 - x0) * (yy - y0) / (y1 - y0)
+            return anchors[-1][1]
+        samples = [at(py + k) for k in range(-10, 11)]
+        edge.append(sum(samples) / len(samples))
+    return edge
+
+
+def train_nose(room):
+    """Clears everything past the nose's edge and draws the shell round it,
+    with the windscreen just inside: glass along the front, a frame line,
+    and the pillars at the two corners. Returns the picture and the tile
+    it starts from: from the column before the first windscreen tile to
+    the end of the row, over every row of the place."""
+    edge = train_nose_edge(room)
+    first = min(x for y in range(room.height) for x in range(room.width)
+                if room.at(x, y) == "V") - 1
+    left = first * TILE
+    sprite = Image.new("RGBA", ((room.width - first) * TILE,
+                                room.height * TILE), TRANSPARENT)
+    pixels = sprite.load()
+    glass_top = min(y for y in range(room.height)
+                    if "V" in room.rows[y]) * TILE
+    glass_bottom = (max(y for y in range(room.height)
+                        if "V" in room.rows[y]) + 1) * TILE
+    void = TR_VOID + (255,)
+    for py in range(room.height * TILE):
+        x_edge = int(round(edge[py]))
+        if x_edge < left:
+            continue
+        for px in range(left, room.width * TILE):
+            depth = x_edge - px
+            if depth <= 0:
+                colour = void
+            elif depth <= 2:
+                colour = TR_SHELL_DARK
+            elif depth <= 4:
+                colour = TR_SHELL
+            elif depth <= 10 and glass_top + 4 <= py < glass_bottom - 4:
+                light = 7 <= depth <= 8 and (py // 6) % 3 == 0
+                colour = TR_GLASS_LIGHT if light else TR_GLASS
+            elif depth == 11 and glass_top + 4 <= py < glass_bottom - 4:
+                colour = TR_WINDSCREEN_FRAME
+            else:
+                continue
+            pixels[px - left, py] = colour + (255,) if len(colour) == 3 \
+                else colour
+    # The pillars where the windscreen meets the roof and the floor.
+    d = ImageDraw.Draw(sprite)
+    for py in (glass_top + 3, glass_bottom - 6):
+        x_edge = int(round(edge[py]))
+        rect(d, x_edge - 12 - left, py, 9, 3, TR_SHELL_DARK)
+    return sprite, first
+
+
+def train_interior(atlas: Atlas, rng) -> dict:
+    """The rules that paint PlaceId.trainInterior."""
+    from build_street_level import read_rows  # noqa: PLC0415 - the nose
+
+    rows = read_rows(TR_ROWS)
+    floored = ".SLTCh*bBuofkEPlV"
+    floor = [
+        atlas.bucket(lambda p=parity: cell(
+            lambda d, gx, gy: paint_train_floor(d, rng, gx, gy), p, 0))
+        for parity in (0, 1)
+    ]
+
+    def one(paint):
+        return [atlas.bucket(lambda: tile_of(lambda d: paint(d, 0, 0)), 1)]
+
+    def randomly(paint):
+        return [atlas.bucket(lambda: tile_of(
+            lambda d: paint(d, rng, 0, 0)))]
+
+    def run_ends(paint, glyph):
+        """Four tiles for a run of `glyph`: key bit 0 is a neighbour to the
+        left, bit 1 one to the right; `paint(d, first, last)`."""
+        return [atlas.bucket(lambda i=i: tile_of(
+            lambda d: paint(d, not i & 1, not i & 2)), 1) for i in range(4)]
+
+    rules = [rule("ground", floored, floor, [parity_key()])]
+
+    # The hull. The north wall has a window on two tiles in every four.
+    rules.append(rule(
+        "structures", "W",
+        [atlas.bucket(lambda i=i: cell(
+            lambda d, gx, gy: paint_train_shell(d, "W", gx, gy),
+            1 if i in (1, 2) else 0, 0), 1) for i in range(4)],
+        [pattern_key(1, 0, 4, 1), pattern_key(1, 0, 4, 2)]))
+    rules.append(rule("structures", "w", [atlas.bucket(lambda: tile_of(
+        lambda d: paint_train_shell(d, "w", 0, 0)), 1)]))
+    rules.append(rule("structures", "Ii", [atlas.bucket(lambda: tile_of(
+        lambda d: paint_train_shell(d, "I", 0, 0)), 1)]))
+    rules.append(rule("structures", "E", one(paint_train_exit)))
+    rules.append(rule(
+        "structures", "S",
+        run_ends(lambda d, left, right: paint_train_seat(d, 0, 0, left,
+                                                         right), "S"),
+        [neighbour_key(-1, 0, "S"), neighbour_key(1, 0, "S")]))
+    rules.append(rule("structures", "T", one(paint_train_table)))
+    rules.append(rule("structures", "L", randomly(paint_train_luggage)))
+    rules.append(rule("structures", "C", randomly(paint_train_control)))
+    rules.append(rule("structures", "h", one(paint_train_driver_seat)))
+    rules.append(rule("structures", "*", one(paint_train_lamp)))
+
+    # A camp bed: a run of `b` or `B`, its pillow at the end that lies
+    # against a wall. Bits, in key order: something of the same glyph to
+    # the left, to the right, and a wall before the start of the run.
+    for glyph in "bB":
+        buckets = []
+        for index in range(8):
+            same_left, same_right, walled = (
+                bool(index & 1), bool(index & 2), bool(index & 4))
+
+            def around(x, y, l=same_left, r=same_right, w=walled, g=glyph):
+                before = "W" if w else "."
+                if x == -1:
+                    return g if l else before
+                if x == -2:
+                    return before if l else "."
+                if x == 1:
+                    return g if r else "."
+                return "."
+            room = Neighbourhood(glyph, around)
+            buckets.append(atlas.bucket(lambda rm=room, g=glyph: tile_of(
+                lambda d: paint_train_cot(d, rm, 0, 0, g)), 1))
+        rules.append(rule("structures", glyph, buckets,
+                          [neighbour_key(-1, 0, glyph),
+                           neighbour_key(1, 0, glyph),
+                           before_run_key(TR_COT_WALLS)]))
+    rules.append(rule("structures", "u", one(paint_train_bag)))
+    rules.append(rule("structures", "o", randomly(paint_train_litter)))
+    rules.append(rule("structures", "f", randomly(paint_train_papers)))
+    rules.append(rule(
+        "structures", "k",
+        [atlas.bucket(lambda f=first: tile_of(
+            lambda d: paint_train_books(d, 0, 0, f)), 1)
+         for first in (True, False)],
+        [neighbour_key(-1, 0, "k")]))
+
+    table = Image.new("RGBA", tuple(n * TILE for n in TR_MAP_TABLE_TILES),
+                      TRANSPARENT)
+    paint_train_map_table(ImageDraw.Draw(table),
+                          Block("P", *TR_MAP_TABLE_TILES))
+    nose, first = train_nose(Room(rows))
+    return {
+        "void": "#060608",
+        "voidGlyph": "x",
+        "rules": rules,
+        "objects": [
+            {"glyph": "P", "image": "train_map_table.png",
+             "tiles": list(TR_MAP_TABLE_TILES), "sprite": table},
+            {"at": [first, 0], "image": "train_nose.png", "sprite": nose,
+             "under": [row[first:] for row in rows]},
+        ],
+    }
+
+
 # ------------------------------------------------------ the reference draw
 # What the renderer in lib/game/render/tile_place_component.dart has to do,
 # written out once here so the manifest can be checked against the baked
@@ -1416,6 +1887,12 @@ def compose(rows: list[str], place: dict, tiles: list[Image.Image],
             return at(x + key["dx"], y + key["dy"]) in key["glyphs"]
         if kind == "pattern":
             return (x * key["a"] + y * key["b"]) % key["mod"] == key["equals"]
+        if kind == "beforeRun":
+            here = at(x, y)
+            start = x
+            while at(start - 1, y) == here:
+                start -= 1
+            return at(start - 1, y) in key["glyphs"]
         if kind == "rowHas":
             return 0 <= y + key["dy"] < height and                 key["glyph"] in rows[y + key["dy"]]
         if kind == "firstRow":
@@ -1477,6 +1954,7 @@ PLACES = {
     "duomoUpper": duomo_upper,
     "stationFarSide": station_far_side,
     "stationUnderpass": station_underpass,
+    "trainInterior": train_interior,
 }
 
 
@@ -1558,6 +2036,7 @@ PREVIEW_ROWS = {
     "duomoUpper": "duomo-upper-rows",
     "stationFarSide": "far-platform-rows",
     "stationUnderpass": "underpass-rows",
+    "trainInterior": "train-interior-rows",
 }
 
 
