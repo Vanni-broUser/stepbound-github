@@ -14,6 +14,7 @@ import 'package:stepbound/save/save_game.dart';
 import 'package:stepbound/ui/audio_scope.dart';
 import 'package:stepbound/ui/black_fade.dart';
 import 'package:stepbound/ui/blood_decor.dart';
+import 'package:stepbound/ui/blood_splat.dart';
 import 'package:stepbound/ui/game_cutscene.dart';
 import 'package:stepbound/ui/gameplay_dialogue.dart';
 import 'package:stepbound/ui/level_complete.dart';
@@ -471,7 +472,10 @@ final class _StepboundAppState extends State<StepboundApp> {
       // Browsers only start sound after a tap: the first one lets it play.
       home: Listener(
         onPointerDown: (_) => _audio.unlock(),
-        child: AudioScope(audio: _audio, child: _surface(game)),
+        child: AudioScope(
+          audio: _audio,
+          child: BloodSplatLayer(child: _surface(game)),
+        ),
       ),
     );
   }

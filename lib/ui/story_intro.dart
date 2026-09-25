@@ -4,6 +4,7 @@ import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/ui/audio_scope.dart';
 import 'package:stepbound/ui/black_fade.dart';
 import 'package:stepbound/ui/blood_decor.dart';
+import 'package:stepbound/ui/blood_splat.dart';
 import 'package:stepbound/ui/main_menu.dart';
 
 /// One full-screen frame of the intro story with its dialogue line.
@@ -90,9 +91,17 @@ final class _StoryIntroState extends State<StoryIntro> {
   bool _showText = false;
   bool _fadingOut = false;
 
+  /// Where the finger lifted: the tap that turns the story leaves blood
+  /// there, on the left of the screen as much as on the right.
+  Offset? _tappedAt;
+
   void _advance() {
     if (_fadingOut) {
       return;
+    }
+    final at = _tappedAt;
+    if (at != null) {
+      BloodSplatLayer.maybeOf(context)?.splat(at, SplatKind.tap);
     }
     AudioScope.of(context).play(Sfx.dialogue);
     setState(() {
@@ -123,6 +132,7 @@ final class _StoryIntroState extends State<StoryIntro> {
     return GestureDetector(
       key: const ValueKey<String>('story-intro'),
       behavior: HitTestBehavior.opaque,
+      onTapUp: (details) => _tappedAt = details.globalPosition,
       onTap: _advance,
       child: Semantics(
         label: _showText ? 'Tocca per continuare' : 'Tocca per leggere',

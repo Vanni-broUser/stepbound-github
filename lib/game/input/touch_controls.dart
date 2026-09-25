@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/sound.dart';
@@ -5,6 +8,7 @@ import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
 import 'package:stepbound/ui/audio_scope.dart';
 import 'package:stepbound/ui/blood_decor.dart';
+import 'package:stepbound/ui/blood_splat.dart';
 
 final class TouchControls extends StatelessWidget {
   const TouchControls({required this.game, super.key});
@@ -12,7 +16,6 @@ final class TouchControls extends StatelessWidget {
   final StepboundGame game;
 
   static const double actionButtonSize = 54;
-  static const double actionGap = 12;
 
   /// The way out, in the far corner from the thumbs: smaller than the
   /// action buttons, so it is never the one hit by mistake.
@@ -20,64 +23,58 @@ final class TouchControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // The tutorial unlocks the action buttons one at a time; the arrows
-    // are always there.
+    // No buttons to play: the left half of the screen walks, the right
+    // half interacts and shoots. What is drawn on top only shows state,
+    // plus the menu and the items carried, which take their own taps.
     return ValueListenableBuilder<Set<HudElement>>(
       valueListenable: game.hud,
       builder: (context, unlocked, _) {
-        return SafeArea(
-          minimum: const EdgeInsets.all(10),
-          child: Stack(
-            children: <Widget>[
-              // Interact sits where the thumb rests; shooting is the one
-              // worth reaching for.
-              if (unlocked.contains(HudElement.interact))
-                Positioned(
-                  right: 0,
-                  bottom: actionButtonSize + actionGap,
-                  child: _InteractButton(game: game),
-                ),
-              if (unlocked.contains(HudElement.shoot))
-                Positioned(
-                  right: actionButtonSize + actionGap,
-                  bottom: 0,
-                  child: _ShootButton(game: game),
-                ),
-              if (unlocked.contains(HudElement.ammo))
-                Positioned(
-                  right: 0,
-                  bottom: 0,
-                  child: _AmmoCounter(game: game),
-                ),
-              Positioned(
-                left: 0,
-                bottom: 0,
-                child: _DirectionalPad(game: game),
+        return Stack(
+          children: <Widget>[
+            Positioned.fill(
+              child: Row(
+                children: <Widget>[
+                  Expanded(child: MoveZone(game: game)),
+                  Expanded(child: ActionZone(game: game)),
+                ],
               ),
-              // Always there, unlocked or not: it is the way out, not
-              // something the tutorial hands over.
-              Positioned(right: 0, top: 0, child: _PauseButton(game: game)),
-              // No button at all: what Mario is carrying for Don Angelo.
-              // The far top corner from the menu, out of both thumbs' way.
-              if (unlocked.contains(HudElement.incense) ||
-                  unlocked.contains(HudElement.barKey) ||
-                  unlocked.contains(HudElement.episcopalRing))
-                Positioned(
-                  left: 0,
-                  top: 0,
-                  child: Column(
-                    children: <Widget>[
-                      if (unlocked.contains(HudElement.incense))
-                        _IncenseBadge(game: game),
-                      if (unlocked.contains(HudElement.barKey))
-                        _BarKeyBadge(game: game),
-                      if (unlocked.contains(HudElement.episcopalRing))
-                        _EpiscopalRingBadge(game: game),
-                    ],
-                  ),
-                ),
-            ],
-          ),
+            ),
+            SafeArea(
+              minimum: const EdgeInsets.all(10),
+              child: Stack(
+                children: <Widget>[
+                  if (unlocked.contains(HudElement.ammo))
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      child: IgnorePointer(child: _AmmoCounter(game: game)),
+                    ),
+                  // Always there, unlocked or not: it is the way out, not
+                  // something the tutorial hands over.
+                  Positioned(right: 0, top: 0, child: _PauseButton(game: game)),
+                  // No button at all: what Mario is carrying for Don Angelo.
+                  // The far top corner from the menu, out of both thumbs' way.
+                  if (unlocked.contains(HudElement.incense) ||
+                      unlocked.contains(HudElement.barKey) ||
+                      unlocked.contains(HudElement.episcopalRing))
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      child: Column(
+                        children: <Widget>[
+                          if (unlocked.contains(HudElement.incense))
+                            _IncenseBadge(game: game),
+                          if (unlocked.contains(HudElement.barKey))
+                            _BarKeyBadge(game: game),
+                          if (unlocked.contains(HudElement.episcopalRing))
+                            _EpiscopalRingBadge(game: game),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
         );
       },
     );
@@ -108,75 +105,464 @@ final class _PauseButton extends StatelessWidget {
   }
 }
 
-final class _ShootButton extends StatelessWidget {
-  const _ShootButton({required this.game});
+/// The direction a drag of [delta] points to: the axis it leans on most.
+/// [current] is kept until the other axis clearly wins, so a thumb
+/// drifting along a diagonal does not flicker between two directions.
+Direction directionOf(Offset delta, {Direction? current}) {
+  final horizontal = delta.dx.abs();
+  final vertical = delta.dy.abs();
+  final horizontalWins = switch (current) {
+    Direction.east || Direction.west => horizontal * _axisBias >= vertical,
+    Direction.north || Direction.south => horizontal > vertical * _axisBias,
+    null => horizontal > vertical,
+  };
+  if (horizontalWins) {
+    return delta.dx > 0 ? Direction.east : Direction.west;
+  }
+  return delta.dy > 0 ? Direction.south : Direction.north;
+}
+
+const double _axisBias = 1.25;
+
+/// The left half of the screen: wherever the thumb lands is the centre,
+/// dragging away from it walks that way for as long as the thumb stays
+/// down, and dragging elsewhere without lifting it turns.
+final class MoveZone extends StatefulWidget {
+  const MoveZone({required this.game, super.key});
 
   final StepboundGame game;
 
+  /// How far the thumb goes before Mario starts walking.
+  static const double deadZone = 16;
+
+  /// The centre follows a thumb that goes further than this, so turning
+  /// back never needs a long drag across the old centre.
+  static const double reach = 44;
+
+  @override
+  State<MoveZone> createState() => _MoveZoneState();
+}
+
+final class _MoveZoneState extends State<MoveZone> {
+  int? _pointer;
+  int _seed = 0;
+  Offset? _centre;
+  Offset? _thumb;
+  Direction? _walking;
+
+  @override
+  void dispose() {
+    _stop();
+    super.dispose();
+  }
+
+  void _down(PointerDownEvent event) {
+    if (_pointer != null) {
+      return;
+    }
+    setState(() {
+      _pointer = event.pointer;
+      _seed = Object.hash(event.localPosition, event.timeStamp);
+      _centre = event.localPosition;
+      _thumb = event.localPosition;
+    });
+  }
+
+  void _move(PointerMoveEvent event) {
+    final centre = _centre;
+    if (event.pointer != _pointer || centre == null) {
+      return;
+    }
+    final thumb = event.localPosition;
+    var delta = thumb - centre;
+    if (delta.distance > MoveZone.reach) {
+      delta = delta / delta.distance * MoveZone.reach;
+    }
+    setState(() {
+      _centre = thumb - delta;
+      _thumb = thumb;
+    });
+    if (delta.distance < MoveZone.deadZone / 2) {
+      _stop();
+      return;
+    }
+    if (delta.distance < MoveZone.deadZone && _walking == null) {
+      return;
+    }
+    final direction = directionOf(delta, current: _walking);
+    if (direction == _walking) {
+      return;
+    }
+    _stop();
+    _walking = direction;
+    widget.game.pressDirection(direction);
+  }
+
+  void _up(PointerEvent event) {
+    if (event.pointer != _pointer) {
+      return;
+    }
+    _stop();
+    setState(() {
+      _pointer = null;
+      _centre = null;
+      _thumb = null;
+    });
+  }
+
+  void _stop() {
+    final walking = _walking;
+    if (walking != null) {
+      _walking = null;
+      widget.game.releaseDirection(walking);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<bool>(
-      valueListenable: game.aiming,
-      builder: (context, isAiming, _) {
-        return ValueListenableBuilder<int>(
-          valueListenable: game.ammoLoaded,
-          builder: (context, loaded, _) {
-            final hasAmmo = loaded > 0;
-            return _ActionButton(
-              key: const ValueKey<String>('touch-shoot'),
-              semanticLabel: isAiming ? 'Spara' : 'Mira',
-              active: isAiming,
-              dimmed: !hasAmmo,
-              drips: const <BloodDrip>[
-                BloodDrip(0.3, 17, 5),
-                BloodDrip(0.62, 11, 4),
-              ],
-              icon: CustomPaint(
-                size: const Size(26, 26),
-                painter: _PistolIcon(
-                  color: hasAmmo
-                      ? (isAiming
-                            ? BloodColors.bright
-                            : const Color(0xffd8cfbf))
-                      : const Color(0x668a8377),
-                ),
-              ),
-              onPressed: game.pressShoot,
-            );
-          },
-        );
-      },
+    return Semantics(
+      label: 'Trascina per muoverti',
+      child: Listener(
+        key: const ValueKey<String>('touch-move'),
+        behavior: HitTestBehavior.opaque,
+        onPointerDown: _down,
+        onPointerMove: _move,
+        onPointerUp: _up,
+        onPointerCancel: _up,
+        child: CustomPaint(
+          painter: _StickPainter(centre: _centre, thumb: _thumb, seed: _seed),
+          child: const SizedBox.expand(),
+        ),
+      ),
     );
   }
 }
 
-final class _InteractButton extends StatelessWidget {
-  const _InteractButton({required this.game});
+/// The right half of the screen. A tap interacts, or lowers the pistol if
+/// Mario is aiming. Holding raises the pistol; a swipe while aiming, with
+/// the same finger or a new one, turns towards it and shoots. Each of the
+/// three leaves blood on the glass where the finger was, for a moment.
+final class ActionZone extends StatefulWidget {
+  const ActionZone({required this.game, super.key});
 
   final StepboundGame game;
 
+  /// How long a finger stays down before Mario aims.
+  static const Duration holdToAim = StepboundGame.holdToAim;
+
+  /// How far a finger may wander and still count as a tap or a hold.
+  static const double slop = 14;
+
+  /// How far a swipe goes before the shot is fired.
+  static const double swipe = 28;
+
+  @override
+  State<ActionZone> createState() => _ActionZoneState();
+}
+
+enum _Touch {
+  /// Down, not long enough to aim yet: lifting it now is a tap.
+  pending,
+
+  /// The pistol is up: a swipe shoots, lifting it without one ends the
+  /// touch (a tap, if the pistol was already up when it began).
+  aiming,
+
+  /// Nothing more to do until it lifts.
+  spent,
+}
+
+final class _ActionZoneState extends State<ActionZone> {
+  int? _pointer;
+  int _seed = 0;
+  Offset? _origin;
+  Offset? _thumb;
+  _Touch _touch = _Touch.spent;
+  bool _aimedBefore = false;
+  Timer? _hold;
+
+  StepboundGame get _game => widget.game;
+
+  @override
+  void dispose() {
+    _hold?.cancel();
+    super.dispose();
+  }
+
+  void _splat(Offset at, SplatKind kind, {Offset direction = Offset.zero}) {
+    final box = context.findRenderObject();
+    if (box is RenderBox) {
+      BloodSplatLayer.maybeOf(
+        context,
+      )?.splat(box.localToGlobal(at), kind, direction: direction);
+    }
+  }
+
+  void _down(PointerDownEvent event) {
+    if (_pointer != null) {
+      return;
+    }
+    _pointer = event.pointer;
+    _seed = Object.hash(event.localPosition, event.timeStamp);
+    _origin = event.localPosition;
+    _thumb = event.localPosition;
+    _aimedBefore = _game.aiming.value;
+    if (_aimedBefore) {
+      _touch = _Touch.aiming;
+    } else {
+      _touch = _Touch.pending;
+      if (_game.isUnlocked(HudElement.shoot)) {
+        _hold = Timer(ActionZone.holdToAim, _raisePistol);
+      }
+    }
+    setState(() {});
+  }
+
+  void _raisePistol() {
+    _hold = null;
+    if (_touch != _Touch.pending) {
+      return;
+    }
+    _game.beginAim();
+    final thumb = _thumb;
+    if (thumb != null) {
+      _splat(thumb, SplatKind.hold);
+    }
+    setState(() {
+      if (_game.aiming.value) {
+        _touch = _Touch.aiming;
+        // The swipe is measured from where the finger rests now.
+        _origin = _thumb;
+      } else {
+        // Nothing loaded: the pistol only clicked.
+        _touch = _Touch.spent;
+      }
+    });
+  }
+
+  void _move(PointerMoveEvent event) {
+    final origin = _origin;
+    if (event.pointer != _pointer || origin == null) {
+      return;
+    }
+    setState(() => _thumb = event.localPosition);
+    final delta = event.localPosition - origin;
+    switch (_touch) {
+      case _Touch.pending when delta.distance > ActionZone.slop:
+        // A swipe before the pistol is up is neither a tap nor a shot.
+        _hold?.cancel();
+        _hold = null;
+        _touch = _Touch.spent;
+      case _Touch.aiming when delta.distance >= ActionZone.swipe:
+        _game.shootToward(directionOf(delta));
+        _touch = _Touch.spent;
+        _splat(origin, SplatKind.swipe, direction: delta);
+      case _Touch.pending || _Touch.aiming || _Touch.spent:
+        break;
+    }
+  }
+
+  void _up(PointerEvent event) {
+    if (event.pointer != _pointer) {
+      return;
+    }
+    final tapped = event is PointerUpEvent;
+    _hold?.cancel();
+    _hold = null;
+    if (tapped && _touch == _Touch.pending) {
+      if (_game.isUnlocked(HudElement.interact)) {
+        _splat(event.localPosition, SplatKind.tap);
+      }
+      _game.pressInteract();
+    } else if (tapped && _touch == _Touch.aiming && _aimedBefore) {
+      _splat(event.localPosition, SplatKind.tap);
+      _game.cancelAim();
+    }
+    setState(() {
+      _pointer = null;
+      _origin = null;
+      _thumb = null;
+      _touch = _Touch.spent;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<bool>(
-      valueListenable: game.aiming,
-      builder: (context, isAiming, _) {
-        return _ActionButton(
-          key: const ValueKey<String>('touch-interact'),
-          semanticLabel: isAiming ? 'Annulla mira' : 'Interagisci',
-          drips: const <BloodDrip>[
-            BloodDrip(0.42, 12, 4),
-            BloodDrip(0.72, 18, 5),
-          ],
-          icon: Icon(
-            isAiming ? Icons.close : Icons.touch_app,
-            color: const Color(0xffd8cfbf),
-            size: 26,
+    return Semantics(
+      label: 'Tocca per interagire, tieni premuto per mirare',
+      child: Listener(
+        key: const ValueKey<String>('touch-act'),
+        behavior: HitTestBehavior.opaque,
+        onPointerDown: _down,
+        onPointerMove: _move,
+        onPointerUp: _up,
+        onPointerCancel: _up,
+        child: ValueListenableBuilder<bool>(
+          valueListenable: _game.aiming,
+          builder: (context, aiming, _) => CustomPaint(
+            painter: aiming && _touch == _Touch.aiming
+                ? _StickPainter(
+                    centre: _origin,
+                    thumb: _thumb,
+                    seed: _seed,
+                    reach: ActionZone.swipe,
+                    aiming: true,
+                  )
+                : null,
+            child: const SizedBox.expand(),
           ),
-          onPressed: game.pressInteract,
-        );
-      },
+        ),
+      ),
     );
   }
+}
+
+/// A pool of blood where the finger landed and a drop of it under the
+/// finger, smeared between the two, so the player sees which way the drag
+/// points. Pixel art, on the same grid as the splats; [seed] picks where
+/// the ring drips, so every touch drips differently.
+final class _StickPainter extends CustomPainter {
+  const _StickPainter({
+    required this.centre,
+    required this.thumb,
+    required this.seed,
+    this.reach = MoveZone.reach,
+    this.aiming = false,
+  });
+
+  final Offset? centre;
+  final Offset? thumb;
+  final int seed;
+  final double reach;
+  final bool aiming;
+
+  static const double _cell = BloodSplatPainter.cell;
+  static const Color _pool = Color(0x662a0606);
+  static const Color _gloss = Color(0xffeaa29a);
+  static const Color _litAiming = Color(0xffe05050);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final centre = this.centre;
+    final thumb = this.thumb;
+    if (centre == null || thumb == null) {
+      return;
+    }
+    var delta = thumb - centre;
+    if (delta.distance > reach) {
+      delta = delta / delta.distance * reach;
+    }
+    final paint = Paint()..isAntiAlias = false;
+    // Everything on the cell grid, from the cell the centre falls in.
+    final originX = (centre.dx / _cell).floorToDouble() * _cell;
+    final originY = (centre.dy / _cell).floorToDouble() * _cell;
+    void cell(int x, int y, Color color) {
+      paint.color = color;
+      canvas.drawRect(
+        Rect.fromLTWH(originX + x * _cell, originY + y * _cell, _cell, _cell),
+        paint,
+      );
+    }
+
+    final body = aiming ? BloodColors.bright : BloodColors.fresh;
+    final rim = aiming ? BloodColors.fresh : BloodColors.dried;
+    final lit = aiming ? _litAiming : BloodColors.bright;
+    final radius = reach / _cell;
+    final r = radius.ceil() + 2;
+
+    // The pool: a dark stain, its rim wet and lit from the top left. The
+    // edge wobbles, differently on every touch, like a real puddle.
+    final rng = math.Random(seed);
+    final phase1 = rng.nextDouble() * math.pi * 2;
+    final phase2 = rng.nextDouble() * math.pi * 2;
+    double edge(double angle) =>
+        radius +
+        math.sin(angle * 3 + phase1) * 0.7 +
+        math.sin(angle * 5 + phase2) * 0.4;
+    for (var y = -r; y <= r; y++) {
+      for (var x = -r; x <= r; x++) {
+        final d = math.sqrt(x * x + y * y.toDouble());
+        final out = edge(math.atan2(y.toDouble(), x.toDouble()));
+        if (d > out + 0.5) {
+          continue;
+        }
+        if (d < out - 1.4) {
+          cell(x, y, _pool);
+        } else if (y < 0 && x < 0 && d > out - 0.7) {
+          cell(x, y, body);
+        } else {
+          cell(x, y, rim);
+        }
+      }
+    }
+
+    // Drips running off the bottom of the rim, each ending in a bead.
+    for (var i = 0; i < 2 + rng.nextInt(3); i++) {
+      final angle = math.pi * (0.2 + rng.nextDouble() * 0.6);
+      final x = (math.cos(angle) * edge(angle)).round();
+      final top = (math.sin(angle) * edge(angle)).round();
+      final length = 2 + rng.nextInt(5);
+      for (var k = 0; k < length; k++) {
+        cell(x, top + k, rim);
+      }
+      for (var bx = -1; bx <= 1; bx++) {
+        cell(x + bx, top + length, rim);
+        cell(x + bx, top + length + 1, rim);
+      }
+      cell(x - 1, top + length, lit);
+    }
+
+    // The smear the drop leaves on its way out from the middle.
+    final kx = (delta.dx / _cell).round();
+    final ky = (delta.dy / _cell).round();
+    final steps = math.max(kx.abs(), ky.abs());
+    for (var i = 0; i <= steps; i++) {
+      final t = steps == 0 ? 0.0 : i / steps;
+      cell((kx * t).round(), (ky * t).round(), rim);
+    }
+
+    // The drop under the finger: round, dark underneath, glossy on top.
+    const drop = 4;
+    for (var y = -drop; y <= drop; y++) {
+      for (var x = -drop; x <= drop; x++) {
+        final d = math.sqrt(x * x + y * y.toDouble());
+        if (d > drop + 0.3) {
+          continue;
+        }
+        final Color color;
+        if (d > drop - 0.9 && y > 0) {
+          color = rim;
+        } else if (d > drop - 0.9 && y < 0) {
+          color = lit;
+        } else {
+          color = body;
+        }
+        cell(kx + x, ky + y, color);
+      }
+    }
+    cell(kx - 2, ky - 2, _gloss);
+    cell(kx - 1, ky - 2, _gloss);
+    cell(kx - 2, ky - 1, _gloss);
+
+    if (aiming) {
+      const icon = Size(20, 20);
+      canvas
+        ..save()
+        ..translate(
+          originX + (kx + 0.5) * _cell - icon.width / 2,
+          originY + (ky + 0.5) * _cell - icon.height / 2,
+        );
+      const _PistolIcon(color: Color(0xff1a1010)).paint(canvas, icon);
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(_StickPainter oldDelegate) =>
+      oldDelegate.centre != centre ||
+      oldDelegate.thumb != thumb ||
+      oldDelegate.seed != seed ||
+      oldDelegate.aiming != aiming;
 }
 
 final class _AmmoCounter extends StatelessWidget {
@@ -386,167 +772,44 @@ final class _EpiscopalRingBadge extends StatelessWidget {
   }
 }
 
-final class _DirectionalPad extends StatelessWidget {
-  const _DirectionalPad({required this.game});
-
-  static const double buttonSize = 46;
-  final StepboundGame game;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox.square(
-      dimension: buttonSize * 3,
-      child: Stack(
-        children: <Widget>[
-          Positioned(
-            left: buttonSize,
-            child: _DirectionButton(
-              key: const ValueKey<String>('touch-up'),
-              drips: const <BloodDrip>[BloodDrip(0.3, 12, 4)],
-              direction: Direction.north,
-              icon: Icons.keyboard_arrow_up,
-              game: game,
-            ),
-          ),
-          Positioned(
-            top: buttonSize,
-            child: _DirectionButton(
-              key: const ValueKey<String>('touch-left'),
-              drips: const <BloodDrip>[BloodDrip(0.7, 9, 3)],
-              direction: Direction.west,
-              icon: Icons.keyboard_arrow_left,
-              game: game,
-            ),
-          ),
-          Positioned(
-            top: buttonSize,
-            right: 0,
-            child: _DirectionButton(
-              key: const ValueKey<String>('touch-right'),
-              drips: const <BloodDrip>[
-                BloodDrip(0.25, 8, 3),
-                BloodDrip(0.66, 14, 4),
-              ],
-              direction: Direction.east,
-              icon: Icons.keyboard_arrow_right,
-              game: game,
-            ),
-          ),
-          Positioned(
-            left: buttonSize,
-            bottom: 0,
-            child: _DirectionButton(
-              key: const ValueKey<String>('touch-down'),
-              drips: const <BloodDrip>[BloodDrip(0.55, 10, 4)],
-              direction: Direction.south,
-              icon: Icons.keyboard_arrow_down,
-              game: game,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-final class _DirectionButton extends StatelessWidget {
-  const _DirectionButton({
-    required this.direction,
-    required this.icon,
-    required this.game,
-    this.drips = const <BloodDrip>[],
-    super.key,
-  });
-
-  final Direction direction;
-  final IconData icon;
-  final StepboundGame game;
-  final List<BloodDrip> drips;
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      button: true,
-      label: 'Muovi ${direction.name}',
-      child: Listener(
-        behavior: HitTestBehavior.opaque,
-        onPointerDown: (_) => game.pressDirection(direction),
-        onPointerUp: (_) => game.releaseDirection(direction),
-        onPointerCancel: (_) => game.releaseDirection(direction),
-        child: BloodOverlay(
-          painter: BloodPainter(band: 3, cornerRadius: 5, drips: drips),
-          child: Container(
-            width: _DirectionalPad.buttonSize,
-            height: _DirectionalPad.buttonSize,
-            decoration: BoxDecoration(
-              color: const Color(0xcc241a1a),
-              border: Border.all(color: BloodColors.fresh, width: 2),
-              borderRadius: BorderRadius.circular(5),
-              boxShadow: const <BoxShadow>[
-                BoxShadow(color: Color(0x99000000), offset: Offset(2, 2)),
-              ],
-            ),
-            child: Icon(icon, color: const Color(0xffd8cfbf), size: 32),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 final class _ActionButton extends StatelessWidget {
   const _ActionButton({
     required this.icon,
     required this.semanticLabel,
     required this.onPressed,
-    this.active = false,
-    this.dimmed = false,
+    required this.size,
     this.drips = const <BloodDrip>[],
-    this.size = TouchControls.actionButtonSize,
     super.key,
   });
 
   final Widget icon;
   final String semanticLabel;
   final VoidCallback onPressed;
-  final bool active;
-  final bool dimmed;
   final List<BloodDrip> drips;
   final double size;
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = active ? BloodColors.bright : BloodColors.fresh;
     return Semantics(
       button: true,
       label: semanticLabel,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onPressed,
-        child: Opacity(
-          opacity: dimmed ? 0.45 : 1,
-          child: BloodOverlay(
-            painter: BloodPainter(
-              band: 5,
-              cornerRadius: size / 2,
-              drips: drips,
-              color: active ? BloodColors.bright : BloodColors.fresh,
+        child: BloodOverlay(
+          painter: BloodPainter(band: 5, cornerRadius: size / 2, drips: drips),
+          child: Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: const Color(0xcc2e2020),
+              border: Border.all(color: BloodColors.fresh, width: 2),
+              boxShadow: const <BoxShadow>[
+                BoxShadow(color: Color(0x99000000), offset: Offset(2, 2)),
+              ],
             ),
-            child: Container(
-              width: size,
-              height: size,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: active
-                    ? const Color(0xdd4a1c1a)
-                    : const Color(0xcc2e2020),
-                border: Border.all(color: borderColor, width: 2),
-                boxShadow: const <BoxShadow>[
-                  BoxShadow(color: Color(0x99000000), offset: Offset(2, 2)),
-                ],
-              ),
-              child: Center(child: icon),
-            ),
+            child: Center(child: icon),
           ),
         ),
       ),
