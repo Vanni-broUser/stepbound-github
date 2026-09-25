@@ -59,6 +59,17 @@ void main() {
         final below = y + 1 < rows.length ? rows[y + 1][x] : '';
         if (below == '_' && covered > 0) {
           behindHull++;
+          // The feet line is hidden edge to edge: no shoe pokes out where
+          // the hull's edge runs down to it.
+          final size = levelTileSize.round();
+          final feet = (y + 1) * size - 1;
+          for (var px = x * size; px < (x + 1) * size; px++) {
+            expect(
+              front.getUint8((feet * width + px) * 4 + 3),
+              greaterThan(0),
+              reason: 'feet behind the hull at ($x, $y)',
+            );
+          }
         }
         if ((below == '/' || below == 'T') && covered > 0) {
           behindSigns++;

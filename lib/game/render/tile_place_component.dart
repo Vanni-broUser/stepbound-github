@@ -94,6 +94,7 @@ final class TilePlaceComponent extends Component {
     final grid = art.gridFor(place.rows);
     final width = grid.width * manifest.tileWidth;
     final height = grid.height * manifest.tileHeight;
+    final behind = await _cellsBehindObjects(loaded, art, grid, opened);
     final recorder = ui.PictureRecorder();
     final frontRecorder = ui.PictureRecorder();
     final frontCanvas = ui.Canvas(frontRecorder);
@@ -106,19 +107,47 @@ final class TilePlaceComponent extends Component {
       _drawLayer(canvas, loaded, art, grid, layer);
     }
     _drawObjects(canvas, loaded, art, grid, opened: opened);
-    _drawObjects(frontCanvas, loaded, art, grid, opened: opened, front: true);
+    _drawObjects(
+      frontCanvas,
+      loaded,
+      art,
+      grid,
+      opened: opened,
+      behind: behind,
+    );
     for (final layer in <String>['foreground', 'overhead']) {
       _drawLayer(canvas, loaded, art, grid, layer, front: frontCanvas);
     }
-    Future<ui.Image> image(ui.PictureRecorder recorder) async {
-      final picture = recorder.endRecording();
+    Future<ui.Image> image(ui.Picture picture) async {
       final image = await picture.toImage(width, height);
       picture.dispose();
       return image;
     }
 
-    return (await image(recorder), await image(frontRecorder));
+    final background = await image(recorder.endRecording());
+    // Behind an object, the feet are out of sight all along the bottom of
+    // the cell: where the object's edge runs down to the feet line, a
+    // shoe would otherwise poke out from behind it.
+    final composed = ui.PictureRecorder();
+    final frontComposed = ui.Canvas(composed)
+      ..drawPicture(frontRecorder.endRecording());
+    final tileWidth = manifest.tileWidth.toDouble();
+    final tileHeight = manifest.tileHeight.toDouble();
+    for (final (x, y) in behind.expand((cells) => cells)) {
+      final strip = ui.Rect.fromLTWH(
+        x * tileWidth,
+        (y + 1) * tileHeight - hiddenFeet,
+        tileWidth,
+        hiddenFeet,
+      );
+      frontComposed.drawImageRect(background, strip, strip, _paint);
+    }
+    return (background, await image(composed.endRecording()));
   }
+
+  /// How many rows of pixels at the bottom of a cell behind an object the
+  /// object hides: the feet of whoever stands there.
+  static const double hiddenFeet = 3;
 
   /// Whether someone can stand on the cell [x], [y] of [grid].
   bool _walkable(GlyphGrid grid, int x, int y) =>
@@ -215,9 +244,9 @@ final class TilePlaceComponent extends Component {
     TilePlaceArt art,
     GlyphGrid grid, {
     required bool opened,
-    bool front = false,
+    List<Set<(int, int)>>? behind,
   }) {
-    for (final object in art.objects) {
+    for (final (index, object) in art.objects.indexed) {
       final glyph = object.glyph;
       final corner =
           object.at ?? (glyph == null ? null : _blockCorner(grid, glyph));
@@ -229,11 +258,22 @@ final class TilePlaceComponent extends Component {
       if (image == null) {
         continue;
       }
-      final covered = front ? _frontCells(grid, object, loaded.manifest) : null;
-      if (front && (covered == null || covered.getBounds().isEmpty)) {
+      final cells = behind?[index];
+      if (behind != null && (cells == null || cells.isEmpty)) {
         continue;
       }
-      if (covered != null) {
+      if (cells != null) {
+        final covered = ui.Path();
+        for (final (x, y) in cells) {
+          covered.addRect(
+            ui.Rect.fromLTWH(
+              (x * loaded.manifest.tileWidth).toDouble(),
+              (y * loaded.manifest.tileHeight).toDouble(),
+              loaded.manifest.tileWidth.toDouble(),
+              loaded.manifest.tileHeight.toDouble(),
+            ),
+          );
+        }
         canvas
           ..save()
           ..clipPath(covered);
@@ -247,56 +287,71 @@ final class TilePlaceComponent extends Component {
         ),
         _paint,
       );
-      if (covered != null) {
+      if (cells != null) {
         canvas.restore();
       }
     }
   }
 
-  /// The cells where [object] stands in front of whoever is there: the
-  /// ones someone can walk on right above a cell the object itself covers
-  /// (the top of the airliner's hull leaning over the row north of it), so
-  /// the shadow it throws on the ground south of it stays on the ground.
-  ui.Path? _frontCells(
+  /// For each object, in order, the cells where it stands in front of
+  /// whoever is there: the ones someone can walk on right above a cell the
+  /// object fills entirely -- its own, the airliner's hull and wings laid
+  /// on their scorch -- so the top of the hull leans over the row north of
+  /// it, while the shadow it throws south, or a road sign under its edge,
+  /// stays where it is.
+  Future<List<Set<(int, int)>>> _cellsBehindObjects(
+    LoadedTileAtlas loaded,
+    TilePlaceArt art,
     GlyphGrid grid,
-    TileObject object,
-    TileAtlasManifest manifest,
-  ) {
-    final corner = object.underCorner;
-    final under = object.under;
-    if (corner == null || under == null || under.isEmpty) {
-      return null;
-    }
-    final (left, top) = corner;
-    final right = left + under.first.length - 1;
-    final bottom = top + under.length - 1;
-    bool covers(int x, int y) =>
-        x >= left &&
-        x <= right &&
-        y >= top &&
-        y <= bottom &&
-        !_walkable(grid, x, y);
-    final path = ui.Path();
-    for (var y = top - 1; y <= bottom; y++) {
-      for (var x = left; x <= right; x++) {
-        if (y >= 0 &&
-            x >= 0 &&
-            y < grid.height &&
-            x < grid.width &&
-            _walkable(grid, x, y) &&
-            covers(x, y + 1)) {
-          path.addRect(
-            ui.Rect.fromLTWH(
-              (x * manifest.tileWidth).toDouble(),
-              (y * manifest.tileHeight).toDouble(),
-              manifest.tileWidth.toDouble(),
-              manifest.tileHeight.toDouble(),
-            ),
-          );
+    bool opened,
+  ) async {
+    final manifest = loaded.manifest;
+    final tileWidth = manifest.tileWidth;
+    final tileHeight = manifest.tileHeight;
+    final result = <Set<(int, int)>>[];
+    for (final object in art.objects) {
+      final cells = <(int, int)>{};
+      result.add(cells);
+      final glyph = object.glyph;
+      final corner =
+          object.at ?? (glyph == null ? null : _blockCorner(grid, glyph));
+      final name = opened ? object.whenOpen ?? object.image : object.image;
+      final image = loaded.objects[name];
+      if (corner == null || image == null) {
+        continue;
+      }
+      final pixels = (await image.toByteData())!;
+      final left = corner.$1;
+      final top = corner.$2 + object.offsetY;
+      final across = image.width ~/ tileWidth;
+      final down = image.height ~/ tileHeight;
+      bool filled(int cx, int cy) {
+        for (var py = cy * tileHeight; py < (cy + 1) * tileHeight; py++) {
+          for (var px = cx * tileWidth; px < (cx + 1) * tileWidth; px++) {
+            if (pixels.getUint8((py * image.width + px) * 4 + 3) == 0) {
+              return false;
+            }
+          }
+        }
+        return true;
+      }
+
+      for (var cy = 1; cy < down; cy++) {
+        for (var cx = 0; cx < across; cx++) {
+          final x = left + cx;
+          final y = top + cy - 1;
+          if (x >= 0 &&
+              y >= 0 &&
+              x < grid.width &&
+              y < grid.height &&
+              _walkable(grid, x, y) &&
+              filled(cx, cy)) {
+            cells.add((x, y));
+          }
         }
       }
     }
-    return path;
+    return result;
   }
 
   /// The top-left cell of the run of [glyph], or null if the place has
