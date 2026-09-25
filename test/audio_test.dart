@@ -66,6 +66,50 @@ void main() {
       );
     });
 
+    test("a place's own music replaces the street's and the indoor one, "
+        'a chase still drowns it, a story scene drowns everything', () {
+      final world = _corridor();
+      final soundscape = Soundscape(world: world, fires: const []);
+      expect(
+        soundscape.update(0.1, indoor: true, theme: Music.sacred).music,
+        Music.sacred,
+      );
+      _hunt(world);
+      expect(
+        soundscape.update(0.1, indoor: true, theme: Music.sacred).music,
+        Music.danger,
+      );
+      final scene = soundscape.update(
+        0.1,
+        indoor: true,
+        theme: Music.sacred,
+        scene: Music.luigi,
+      );
+      expect(scene.music, Music.luigi);
+      expect(scene.musicLevel, 1);
+    });
+
+    test('ground on fire crackles like any fire, louder closer to it', () {
+      final world = _corridor(zombieAt: 30);
+      final soundscape = Soundscape(world: world, fires: const []);
+      expect(soundscape.update(0.1, indoor: false).ambience[Ambience.fire], 0);
+
+      world.map.setTile(const GridPoint(5, 1), const Tile(TileKind.fire));
+      final far = soundscape
+          .update(0.1, indoor: false)
+          .ambience[Ambience.fire]!;
+      expect(far, greaterThan(0));
+      world.map.setTile(const GridPoint(2, 1), const Tile(TileKind.fire));
+      final near = soundscape.update(0.1, indoor: false);
+      expect(near.ambience[Ambience.fire], greaterThan(far));
+      expect(near.musicLevel, lessThan(1), reason: 'it pushes the music back');
+      expect(
+        soundscape.update(0.1, indoor: true).ambience[Ambience.fire],
+        0,
+        reason: 'not heard indoors',
+      );
+    });
+
     test('a hunting zombie far away is no danger yet', () {
       final world = _corridor(zombieAt: Soundscape.dangerRadius + 5);
       _hunt(world);

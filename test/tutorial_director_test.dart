@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/core/core.dart';
+import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
 import 'package:stepbound/game/zombie_lore.dart';
@@ -80,6 +81,7 @@ final class _FakeHost implements TutorialHost {
   bool isUnlocked(HudElement element) => unlocked.contains(element);
 
   final List<List<CutsceneFrame>> cutscenes = <List<CutsceneFrame>>[];
+  final List<Music?> cutsceneMusic = <Music?>[];
   void Function()? onCutsceneFinished;
   bool cutsceneStaysBlack = false;
   int levelsCompleted = 0;
@@ -90,8 +92,10 @@ final class _FakeHost implements TutorialHost {
     List<CutsceneFrame> frames, {
     void Function()? onFinished,
     bool stayBlack = false,
+    Music? music,
   }) {
     cutscenes.add(frames);
+    cutsceneMusic.add(music);
     onCutsceneFinished = onFinished;
     cutsceneStaysBlack = stayBlack;
   }
@@ -280,6 +284,7 @@ void main() {
 
     expect(ring.collected, isTrue);
     expect(host.cutscenes.single, DuomoScript.initiationScene);
+    expect(host.cutsceneMusic.single, Music.sacred);
     expect(host.cutscenes.single, hasLength(2));
     expect(host.cutscenes.single.first.image, DuomoScript.initiationImage);
     expect(host.cutscenes.single.first.text, DuomoScript.familyWelcomeLine);
@@ -351,6 +356,7 @@ void main() {
     expect(host.cutscenes, hasLength(2));
     // The mass and the massacre it ends in play as one scene.
     expect(host.cutscenes.last, DuomoScript.massSequence);
+    expect(host.cutsceneMusic.last, Music.sacred);
     expect(host.cutscenes.last.first.image, DuomoScript.massImage);
     expect(host.cutscenes.last.first.text, DuomoScript.massWelcomeLine);
     expect(host.cutscenes.last[1].image, DuomoScript.crucifiedImage);
@@ -1027,6 +1033,7 @@ void main() {
       stepTo(GridPoint(trigger.left + 2, trigger.bottom));
       settle();
       final frames = host.cutscenes.single;
+      expect(host.cutsceneMusic.single, isNull, reason: 'still trapped');
       expect(frames.map((frame) => frame.speaker), <String>[
         MallScript.luigi,
         MallScript.luigi,
@@ -1112,6 +1119,7 @@ void main() {
 
       expect(host.cutscenes, hasLength(2));
       final reunion = host.cutscenes.last;
+      expect(host.cutsceneMusic.last, Music.luigi, reason: 'set free');
       expect(reunion.map((frame) => frame.speaker), <String>[
         MallScript.luigi,
         'Mario Rossi',
@@ -1175,6 +1183,7 @@ void main() {
       expect(host.shown, isEmpty, reason: 'the picture comes first');
       final scene = host.cutscenes.single;
       expect(scene, StationScript.reunionScene);
+      expect(host.cutsceneMusic.single, Music.luigi);
       expect(scene, hasLength(6));
       final frame = scene.first;
       expect(frame.speaker, StationScript.luigi);
@@ -1333,6 +1342,7 @@ void main() {
       settle();
       expect(host.shown, isEmpty, reason: 'the pictures come first');
       final frames = host.cutscenes.single;
+      expect(host.cutsceneMusic.single, Music.sacred);
       expect(frames.map((frame) => frame.speaker), <String>[
         PriestScript.priest,
         'Mario Rossi',
@@ -1380,6 +1390,7 @@ void main() {
 
         expect(host.cutscenes, hasLength(2));
         final deal = host.cutscenes.last;
+        expect(host.cutsceneMusic.last, Music.sacred);
         expect(deal.map((frame) => frame.speaker), <String>[
           'Mario Rossi',
           PriestScript.priest,
@@ -1461,6 +1472,7 @@ void main() {
 
       expect(host.cutscenes, hasLength(3));
       final welcome = host.cutscenes.last;
+      expect(host.cutsceneMusic.last, Music.sacred);
       expect(welcome, PriestScript.welcomeScene);
       expect(welcome, hasLength(5));
       expect(welcome.first.image, PriestScript.welcomeSceneImage);

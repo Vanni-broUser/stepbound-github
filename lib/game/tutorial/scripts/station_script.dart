@@ -1,4 +1,5 @@
 import 'package:stepbound/core/core.dart';
+import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
 
@@ -97,7 +98,12 @@ final class StationScript extends TutorialScript {
     }
     _reunionPlayed = true;
     progress.remember(StoryMemory.luigiAtStation);
-    host.playCutscene(reunionScene, stayBlack: true, onFinished: _board);
+    host.playCutscene(
+      reunionScene,
+      stayBlack: true,
+      music: Music.luigi,
+      onFinished: _board,
+    );
   }
 
   /// Behind the black the scene ends on, Mario gets on the train and

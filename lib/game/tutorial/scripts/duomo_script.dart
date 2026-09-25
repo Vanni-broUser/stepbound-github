@@ -1,4 +1,5 @@
 import 'package:stepbound/core/core.dart';
+import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
 
@@ -203,7 +204,11 @@ final class DuomoScript extends TutorialScript {
     }
     _ringDelivered = true;
     progress.remember(StoryMemory.priestFamily);
-    host.playCutscene(initiationScene, onFinished: _finishInitiation);
+    host.playCutscene(
+      initiationScene,
+      music: Music.sacred,
+      onFinished: _finishInitiation,
+    );
   }
 
   /// The mass waits for Mario in the Duomo in the occultist robe: coming
@@ -225,6 +230,7 @@ final class DuomoScript extends TutorialScript {
       ..remember(StoryMemory.priestMassacre);
     host.playCutscene(
       massSeen ? massacreScene : massSequence,
+      music: Music.sacred,
       onFinished: host.startDuomoMassacre,
     );
   }

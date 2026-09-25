@@ -372,11 +372,15 @@ final class StepboundGame extends FlameGame
       focus: _characters[_focusId ?? '']?.position,
     );
     _places.cull(camera.visibleWorldRect);
+    final shown = _placeShown;
+    final scene = cover.value;
     final mix = soundscape.update(
       dt,
-      indoor: _placeShown.indoor,
-      resting: _campfire != null && cover.value == null,
-      gameOver: cover.value is GameOverCover,
+      indoor: shown.indoor,
+      resting: _campfire != null && scene == null,
+      gameOver: scene is GameOverCover,
+      theme: _themeOf(shown.id),
+      scene: scene is CutsceneCover ? scene.music : null,
     );
     if (!soundscapePaused) {
       Soundscape.apply(audio, mix);
@@ -386,6 +390,19 @@ final class StepboundGame extends FlameGame
       ammoLoaded.value = loaded;
     }
   }
+
+  /// The music of a place that has its own: the churches, and the station
+  /// and the train once Luigi is waiting there.
+  Music? _themeOf(PlaceId place) => switch (place) {
+    PlaceId.church || PlaceId.duomo || PlaceId.duomoUpper => Music.sacred,
+    PlaceId.station ||
+    PlaceId.stationUnderpass ||
+    PlaceId.stationFarSide ||
+    PlaceId.trainInterior
+        when progress.memories.contains(StoryMemory.luigiRescued) =>
+      Music.luigi,
+    _ => null,
+  };
 
   /// The glint on every object Mario can use, the same one the backpacks
   /// give off (they draw their own, as it rides their drop): the panel
@@ -548,11 +565,13 @@ final class StepboundGame extends FlameGame
     List<CutsceneFrame> frames, {
     void Function()? onFinished,
     bool stayBlack = false,
+    Music? music,
   }) => _cover(
     CutsceneCover(
       List<CutsceneFrame>.unmodifiable(frames),
       onFinished: onFinished,
       stayBlack: stayBlack,
+      music: music,
     ),
   );
 

@@ -1,4 +1,5 @@
 import 'package:stepbound/core/core.dart';
+import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
 
@@ -140,7 +141,11 @@ final class MallScript extends TutorialScript {
         !host.isPromptVisible) {
       _reunionPlayed = true;
       progress.remember(StoryMemory.luigiRescued);
-      host.playCutscene(reunionScene, onFinished: _luigiTakesOver);
+      host.playCutscene(
+        reunionScene,
+        music: Music.luigi,
+        onFinished: _luigiTakesOver,
+      );
     }
   }
 

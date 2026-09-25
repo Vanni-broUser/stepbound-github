@@ -8,7 +8,13 @@ enum Music {
   story('music/story.mp3'),
   street('music/street.mp3'),
   barracks('music/barracks.mp3'),
-  danger('music/danger.mp3');
+  danger('music/danger.mp3'),
+
+  /// Organ and choir gone wrong: San Nicola, the Duomo and Don Angelo.
+  sacred('music/sacred.mp3'),
+
+  /// Setting off together: Luigi, the station and the train.
+  luigi('music/luigi.mp3');
 
   const Music(this.file);
 
@@ -107,6 +113,16 @@ const List<SoundCredit> musicCredits = <SoundCredit>[
   ),
   (
     title: 'Oppressive Gloom',
+    author: 'Kevin MacLeod (incompetech.com)',
+    licence: 'CC BY 4.0',
+  ),
+  (
+    title: 'Halls of the Undead',
+    author: 'Kevin MacLeod (incompetech.com)',
+    licence: 'CC BY 4.0',
+  ),
+  (
+    title: 'At Launch',
     author: 'Kevin MacLeod (incompetech.com)',
     licence: 'CC BY 4.0',
   ),

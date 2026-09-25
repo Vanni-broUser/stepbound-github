@@ -1,4 +1,5 @@
 import 'package:stepbound/core/core.dart';
+import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/tutorial/scripts/backpacks_script.dart';
 import 'package:stepbound/game/tutorial/scripts/bar_script.dart';
@@ -139,11 +140,12 @@ abstract interface class TutorialHost {
 
   /// Fades to black and plays [frames] like the intro story, then calls
   /// [onFinished]. Unless [stayBlack] is true, it fades back to the game
-  /// first.
+  /// first. With [music] the scene has its own, in place of the game's.
   void playCutscene(
     List<CutsceneFrame> frames, {
     void Function()? onFinished,
     bool stayBlack = false,
+    Music? music,
   });
 
   /// Saves the game as it is, Mario aboard the train, and leaves gameplay

@@ -37,6 +37,11 @@ SOURCES = {
     "oppressive_gloom": (INCOMPETECH + "Oppressive%20Gloom.mp3",
                          "Oppressive Gloom",
                          "Kevin MacLeod (incompetech.com)", "CC BY 4.0"),
+    "halls_of_the_undead": (INCOMPETECH + "Halls%20of%20the%20Undead.mp3",
+                            "Halls of the Undead",
+                            "Kevin MacLeod (incompetech.com)", "CC BY 4.0"),
+    "at_launch": (INCOMPETECH + "At%20Launch.mp3", "At Launch",
+                  "Kevin MacLeod (incompetech.com)", "CC BY 4.0"),
     "lurking": (SOUNDIMAGE + "2014/03/Lurking-in-the-Shadows.mp3",
                 "Lurking in the Shadows", "Eric Matyas (soundimage.org)",
                 "Free with attribution"),
@@ -82,6 +87,10 @@ MUSIC = [
     ("music/street.mp3", "oppressive_gloom", 0.0, 190.0, 6.0, -21),
     ("music/barracks.mp3", "lurking", 1.37, 91.2, 0.6, -22),
     ("music/danger.mp3", "closing_in", 1.38, 78.15, 0.6, -19),
+    # Organ, choir and bells over the undead: the churches and Don Angelo.
+    ("music/sacred.mp3", "halls_of_the_undead", 0.42, 284.0, 6.0, -21),
+    # Brass, snare and strings setting off: Luigi, the station, the train.
+    ("music/luigi.mp3", "at_launch", 1.0, 180.0, 4.0, -20),
 ]
 
 AMBIENCE = [

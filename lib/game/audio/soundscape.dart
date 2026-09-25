@@ -32,6 +32,11 @@ final class Soundscape {
   /// Tiles within which a fire is heard.
   static const double fireRadius = 6;
 
+  /// How loud burning ground is next to Mario, next to a campfire's 1:
+  /// the roofs past the airliner, and every tile a burning zombie sets
+  /// alight on its way.
+  static const double burningGroundWeight = 0.8;
+
   /// Tiles beyond which an effect is not heard any more.
   static const double hearingRadius = 16;
 
@@ -62,11 +67,17 @@ final class Soundscape {
 
   /// The mix for this frame: [indoor] when Mario is inside a building,
   /// [resting] while he kneels by a campfire, [gameOver] once he is dead.
+  /// [theme] is the music of the place he is in, if it has its own (the
+  /// churches, the station), in place of the street's or the indoor one;
+  /// a chase still drowns it. [scene] is the music of a story scene
+  /// playing over the game, which nothing drowns.
   SoundscapeMix update(
     double dt, {
     required bool indoor,
     bool resting = false,
     bool gameOver = false,
+    Music? theme,
+    Music? scene,
   }) {
     if (gameOver) {
       _dangerLeft = 0;
@@ -88,8 +99,12 @@ final class Soundscape {
     final danger = _dangerLeft > 0;
     final fire = indoor ? 0.0 : _fireLevel();
     final Music music;
-    if (danger) {
+    if (scene != null) {
+      music = scene;
+    } else if (danger) {
       music = Music.danger;
+    } else if (theme != null) {
+      music = theme;
     } else if (indoor) {
       music = Music.barracks;
     } else {
@@ -99,7 +114,7 @@ final class Soundscape {
     // music, a moment of calm.
     final musicLevel = resting
         ? 0.2
-        : danger
+        : danger || scene != null
         ? 1.0
         : 1 - fire * 0.6;
     return (
@@ -117,7 +132,7 @@ final class Soundscape {
   /// than a burning wreck.
   double _fireLevel() {
     final player = _player;
-    var level = 0.0;
+    var level = _burningGroundLevel(player);
     for (final spot in fires) {
       final distance = spot.tile.manhattanDistanceTo(player).toDouble();
       final closeness = 1 - distance / fireRadius;
@@ -126,6 +141,27 @@ final class Soundscape {
       }
       final weight = spot.kind == FireKind.campfire ? 1.0 : 0.6;
       level = max(level, closeness * weight);
+    }
+    return level;
+  }
+
+  /// Loudness of the closest burning tile of the map around [player]: the
+  /// fires that are not [fires] but ground set alight, some of it only
+  /// while the level is played.
+  double _burningGroundLevel(GridPoint player) {
+    final map = world.map;
+    final reach = fireRadius.floor();
+    var level = 0.0;
+    for (var dy = -reach; dy <= reach; dy++) {
+      final across = reach - dy.abs();
+      for (var dx = -across; dx <= across; dx++) {
+        final tile = GridPoint(player.x + dx, player.y + dy);
+        if (!map.contains(tile) || map.tileAt(tile).kind != TileKind.fire) {
+          continue;
+        }
+        final closeness = 1 - (dx.abs() + dy.abs()) / fireRadius;
+        level = max(level, closeness * burningGroundWeight);
+      }
     }
     return level;
   }

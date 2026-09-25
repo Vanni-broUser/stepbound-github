@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/core/core.dart';
+import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/zombie_lore.dart';
 import 'package:stepbound/ui/story_intro.dart';
@@ -183,5 +184,59 @@ void main() {
           for (final scene in memoryScenes[memory]!) scene.text,
       ],
     );
+  });
+
+  test('the memories of Luigi set free and of Don Angelo keep their music, '
+      'the rest play with the story', () {
+    Music? musicOf(StoryMemory memory) =>
+        memoryScenes[memory]!.map((scene) => scene.music).toSet().single;
+    expect(musicOf(StoryMemory.luigiRescued), Music.luigi);
+    expect(musicOf(StoryMemory.luigiAtStation), Music.luigi);
+    for (final memory in <StoryMemory>[
+      StoryMemory.priestMet,
+      StoryMemory.priestErrand,
+      StoryMemory.priestWelcomed,
+      StoryMemory.priestFamily,
+      StoryMemory.priestMass,
+      StoryMemory.priestMassacre,
+    ]) {
+      expect(musicOf(memory), Music.sacred, reason: memory.name);
+    }
+    for (final memory in <StoryMemory>[
+      StoryMemory.newsBroadcast,
+      StoryMemory.outbreakNight,
+      StoryMemory.luigiTrapped,
+    ]) {
+      expect(musicOf(memory), isNull, reason: memory.name);
+    }
+  });
+
+  testWidgets('the replay tells of every scene as it comes up, so the music '
+      'can follow it', (tester) async {
+    const scenes = <StoryScene>[
+      StoryScene(image: 'assets/story/scene_news.png', text: 'a'),
+      StoryScene(
+        image: 'assets/story/scene_blackout.png',
+        text: 'b',
+        music: Music.luigi,
+      ),
+    ];
+    final shown = <Music?>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StoryIntro(
+          scenes: scenes,
+          onFinished: () {},
+          onScene: (scene) => shown.add(scene.music),
+        ),
+      ),
+    );
+    expect(shown, <Music?>[null]);
+    final story = find.byKey(const ValueKey<String>('story-intro'));
+    await tester.tap(story);
+    await tester.pump();
+    await tester.tap(story);
+    await tester.pump();
+    expect(shown, <Music?>[null, Music.luigi]);
   });
 }

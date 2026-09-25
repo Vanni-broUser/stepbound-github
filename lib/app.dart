@@ -356,6 +356,9 @@ final class _StepboundAppState extends State<StepboundApp> {
     MemoriesCover() => StoryIntro(
       key: const ValueKey<String>('train-memories-story'),
       scenes: seenScenes(game.progress),
+      // Each memory with the music it was lived with, the rest with the
+      // story's.
+      onScene: (scene) => _audio.playMusic(scene.music ?? Music.story),
       onFinished: game.closeMemories,
       onExit: game.closeMemories,
     ),
