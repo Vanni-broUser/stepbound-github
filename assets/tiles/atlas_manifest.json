@@ -2195,7 +2195,7 @@
       "rules": [
         {
           "layer": "ground",
-          "glyphs": ".*:p123PTSUE",
+          "glyphs": ".*:p123PTSUE9cd",
           "keys": [
             {
               "kind": "parity"
@@ -2314,7 +2314,7 @@
         },
         {
           "layer": "foreground",
-          "glyphs": ".*:p123PTSUEA",
+          "glyphs": ".*:p123PTSUE9cdA",
           "keys": [
             {
               "kind": "neighbour",
@@ -2332,7 +2332,7 @@
         },
         {
           "layer": "foreground",
-          "glyphs": ".*:p123PTSUEA",
+          "glyphs": ".*:p123PTSUE9cdA",
           "keys": [
             {
               "kind": "neighbour",

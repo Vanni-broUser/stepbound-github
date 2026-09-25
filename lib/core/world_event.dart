@@ -458,6 +458,7 @@ final class PickedUpEvent extends WorldEvent {
     this.incense = false,
     this.episcopalRing = false,
     this.cultistRobe = false,
+    this.duomoKey = false,
   });
 
   factory PickedUpEvent.fromJson(Map<String, Object?> json) {
@@ -469,6 +470,7 @@ final class PickedUpEvent extends WorldEvent {
       incense: json['incense']! as bool,
       episcopalRing: json['episcopalRing']! as bool,
       cultistRobe: json['cultistRobe']! as bool,
+      duomoKey: json['duomoKey'] as bool? ?? false,
     );
   }
 
@@ -479,6 +481,7 @@ final class PickedUpEvent extends WorldEvent {
   final bool incense;
   final bool episcopalRing;
   final bool cultistRobe;
+  final bool duomoKey;
 
   @override
   String get description =>
@@ -486,7 +489,8 @@ final class PickedUpEvent extends WorldEvent {
       '${gun ? ' and a pistol' : ''}'
       '${incense ? ' and the incense' : ''}'
       '${episcopalRing ? ' and the episcopal ring' : ''}'
-      '${cultistRobe ? ' and the occultist robe' : ''}';
+      '${cultistRobe ? ' and the occultist robe' : ''}'
+      '${duomoKey ? ' and the key of the Duomo' : ''}';
 
   @override
   Map<String, Object?> toJson() => <String, Object?>{
@@ -498,6 +502,7 @@ final class PickedUpEvent extends WorldEvent {
     'incense': incense,
     'episcopalRing': episcopalRing,
     'cultistRobe': cultistRobe,
+    'duomoKey': duomoKey,
   };
 }
 

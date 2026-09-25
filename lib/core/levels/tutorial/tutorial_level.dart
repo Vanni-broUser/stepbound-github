@@ -337,6 +337,29 @@ final GridPoint duomoUpperStairTile = _duomoUpper.tileOf('D');
 final GridPoint duomoUpperLockedDoorTile = _duomoUpper.tileOf('L');
 final GridPoint duomoUpperRobeTile = _duomoUpper.tileOf('R');
 
+/// What the mass leaves behind in the nave, once the community has eaten
+/// of the crucified zombie and turned on Don Angelo: the four mutated
+/// cultists `c` across the aisle between the first two blocks of pews,
+/// his body `d` behind them and, beside it, the backpack `9` with the key
+/// of the upper floor. None of it is there before the mass: the zombies
+/// are raised by the Duomo's script, the body is put where it lies and the
+/// backpack starts inactive.
+final List<GridPoint> duomoCultistSpawns = _duomo.tilesOf('c');
+
+/// The crucified zombie over the altar, on the shared grid: it hangs from
+/// the moment the mass is over, and is scenery, so it has no glyph and no
+/// entity of its own (see [duomoCrucifixSpot]).
+final GridPoint duomoCrucifixTile = GridPoint(
+  _duomo.origin.x + duomoCrucifixSpot.x,
+  _duomo.origin.y + duomoCrucifixSpot.y,
+);
+final GridPoint duomoPriestCorpseTile = _duomo.tileOf('d');
+final GridPoint duomoKeyTile = _duomo.tileOf('9');
+
+/// Their ids, `duomo-cultist-0` to `duomo-cultist-3`.
+const String duomoCultistPrefix = 'duomo-cultist-';
+const String duomoKeyPickupId = 'duomo-key';
+
 /// The backpack `9` in the ballast between the two wrecks, at the dead end
 /// of the station's tracks: two rounds.
 const String stationBackpackId = 'backpack-station';
@@ -903,6 +926,14 @@ WorldState createTutorialWorld({int seed = 20260920}) {
       position: duomoUpperRobeTile,
       cultistRobe: true,
     ),
+    // Beside Don Angelo's body: there is nothing to find in the nave until
+    // the mass has ended, so it lies hidden until the script reveals it.
+    Pickup(
+      id: duomoKeyPickupId,
+      position: duomoKeyTile,
+      duomoKey: true,
+      active: false,
+    ),
     Pickup(
       id: stationBackpackId,
       position: _station.tileOf('9'),
@@ -1077,6 +1108,17 @@ Entity createMallZombie(String id, GridPoint position) {
   return EntityFactory(
     BalanceConfig.standard(),
   ).zombie(id: id, kind: EntityKind.wanderer, position: position);
+}
+
+/// One of the mutated cultists of the Duomo, raised where the mass left
+/// him: he looks east, down the aisle Mario has to come along.
+Entity createDuomoCultist(String id, GridPoint position) {
+  return EntityFactory(BalanceConfig.standard()).zombie(
+    id: id,
+    kind: EntityKind.cultist,
+    position: position,
+    facing: Direction.east,
+  );
 }
 
 /// A carabiniere zombie coming out of the dark at [position].

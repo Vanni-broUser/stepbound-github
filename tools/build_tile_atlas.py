@@ -880,7 +880,8 @@ def duomo(atlas: Atlas, rng) -> dict:
         "P": paint_column, "T": paint_pew, "S": paint_statue,
         "U": paint_duomo_stairs, "E": paint_portal, "A": paint_altar,
     }
-    floored = ".*:p123PTSUE"
+    # `9`, `c` and `d` are where the mass ends: plain floor until then.
+    floored = ".*:p123PTSUE9cd"
     rules = [
         rule("ground", floored, floor, [parity_key()]),
         rule("structures", "WI", [atlas.bucket(
