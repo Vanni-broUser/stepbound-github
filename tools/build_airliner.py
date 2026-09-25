@@ -94,7 +94,8 @@ def cabin_hull(d, room, x, y):
 
 def cabin_break(d, px, py, roof):
     """A break in the hull, daylight and torn skin: the tear in the belly
-    and, at the other end, the tail break."""
+    and, at the other end, the tail break, both in the belly (`roof` is
+    for a break in the roof side of the hull)."""
     rect(d, px, py, TILE, TILE, DAYLIGHT)
     top = py if roof else py + 9
     rect(d, px, top, TILE, 7, shade(DAYLIGHT, -46))

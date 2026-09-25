@@ -886,10 +886,10 @@ Map<GridPoint, Portal> _portals() {
     ),
     ..._pairedDoors(airlinerTear, airlinerCabinTear, Direction.north),
     ..._pairedDoors(airlinerCabinTear, airlinerTear, Direction.south),
-    // Both breaks are in a roof, so either way Mario lands below the one
-    // he steps through.
+    // The tail break is in the belly: Mario climbs down out of it south onto
+    // the roofs, and back up into the cabin north.
     ..._pairedDoors(airlinerTailBreak, airlinerRoofBreak, Direction.south),
-    ..._pairedDoors(airlinerRoofBreak, airlinerTailBreak, Direction.south),
+    ..._pairedDoors(airlinerRoofBreak, airlinerTailBreak, Direction.north),
   };
 }
 
