@@ -1,4 +1,5 @@
 import 'package:stepbound/core/core.dart';
+import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
 
@@ -150,14 +151,22 @@ final class PriestScript extends TutorialScript {
       if (priestSceneTrigger.contains(position)) {
         _metPlayed = true;
         progress.remember(StoryMemory.priestMet);
-        host.playCutscene(meetingScene, onFinished: _askToClearTheGate);
+        host.playCutscene(
+          meetingScene,
+          music: Music.sacred,
+          onFinished: _askToClearTheGate,
+        );
       }
       return;
     }
     if (_clearAsked && !_dealPlayed && _gateIsClear(position)) {
       _dealPlayed = true;
       progress.remember(StoryMemory.priestErrand);
-      host.playCutscene(dealScene, onFinished: _askForIncense);
+      host.playCutscene(
+        dealScene,
+        music: Music.sacred,
+        onFinished: _askForIncense,
+      );
       return;
     }
     if (!_errandGiven ||
@@ -172,7 +181,11 @@ final class PriestScript extends TutorialScript {
     if (_gateIsClear(position)) {
       _welcomePlayed = true;
       progress.remember(StoryMemory.priestWelcomed);
-      host.playCutscene(welcomeScene, onFinished: _finishWelcome);
+      host.playCutscene(
+        welcomeScene,
+        music: Music.sacred,
+        onFinished: _finishWelcome,
+      );
       return;
     }
     if (!_blockedAtGate) {

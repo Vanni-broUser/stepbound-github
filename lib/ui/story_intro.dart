@@ -11,11 +11,20 @@ import 'package:stepbound/ui/main_menu.dart';
 
 /// One full-screen frame of the intro story with its dialogue line.
 final class StoryScene {
-  const StoryScene({required this.image, required this.text, this.speaker});
+  const StoryScene({
+    required this.image,
+    required this.text,
+    this.speaker,
+    this.music,
+  });
 
   final String image;
   final String? speaker;
   final String text;
+
+  /// The music the scene was lived with, when it had its own: played again
+  /// when it is remembered.
+  final Music? music;
 }
 
 const List<StoryScene> introScenes = <StoryScene>[
@@ -76,6 +85,7 @@ final class StoryIntro extends StatefulWidget {
     this.scenes = introScenes,
     this.fadeOutAtEnd = false,
     this.onExit,
+    this.onScene,
     super.key,
   });
 
@@ -83,6 +93,9 @@ final class StoryIntro extends StatefulWidget {
   final VoidCallback onFinished;
   final bool fadeOutAtEnd;
   final VoidCallback? onExit;
+
+  /// Told of every scene as it comes up, the first one included.
+  final ValueChanged<StoryScene>? onScene;
 
   @override
   State<StoryIntro> createState() => _StoryIntroState();
@@ -100,6 +113,12 @@ final class _StoryIntroState extends State<StoryIntro> {
   /// The picture shown before the current one: it stays up until the new
   /// one is decoded, so turning a page never lets the game show through.
   String? _previousImage;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.onScene?.call(widget.scenes.first);
+  }
 
   @override
   void didChangeDependencies() {
@@ -134,6 +153,7 @@ final class _StoryIntroState extends State<StoryIntro> {
         _previousImage = shown;
         _sceneIndex += 1;
         _showText = widget.scenes[_sceneIndex].image == shown;
+        widget.onScene?.call(widget.scenes[_sceneIndex]);
         return;
       }
       if (widget.fadeOutAtEnd) {

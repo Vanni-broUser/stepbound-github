@@ -1,3 +1,4 @@
+import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
 
 /// What covers the game, one thing at a time: while anything does, Mario
@@ -17,11 +18,19 @@ final class PromptCover extends GameCover {
 
 /// A story scene: pictures and lines between two fades to black.
 final class CutsceneCover extends GameCover {
-  CutsceneCover(this.frames, {this.onFinished, this.stayBlack = false});
+  CutsceneCover(
+    this.frames, {
+    this.onFinished,
+    this.stayBlack = false,
+    this.music,
+  });
 
   final List<CutsceneFrame> frames;
   final void Function()? onFinished;
   final bool stayBlack;
+
+  /// The scene's own music, played over the game's while it lasts.
+  final Music? music;
 }
 
 /// A place announced on the way in: its picture and its name between two
