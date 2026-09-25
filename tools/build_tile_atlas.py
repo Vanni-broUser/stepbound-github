@@ -312,7 +312,7 @@ def airliner_cabin(atlas: Atlas, rng) -> dict:
                         0, 0)), 1))
         return out
 
-    floored = ".:b*+ZM9KT"
+    floored = ".:b*+ZM9KTr"
     rules = [
         rule("ground", floored, floor, [parity_key()]),
         rule("ground", floored, aisle,
@@ -334,6 +334,8 @@ def airliner_cabin(atlas: Atlas, rng) -> dict:
              [neighbour_key(0, -1, "T"), neighbour_key(0, 1, "T")]),
         rule("structures", "K", [atlas.bucket(lambda: tile_of(
             lambda d: airliner.cabin_trolley(d, 0, 0)), 1)]),
+        rule("structures", "r", [atlas.bucket(lambda: tile_of(
+            lambda d: airliner.cabin_broken_seat(d, 0, 0)), 1)]),
         rule("structures", ":", [atlas.bucket(lambda: tile_of(
             lambda d: airliner.cabin_litter(d, rng, 0, 0)))]),
         rule("structures", "b", [atlas.bucket(lambda: tile_of(

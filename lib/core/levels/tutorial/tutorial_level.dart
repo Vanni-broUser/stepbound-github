@@ -81,8 +81,13 @@ const Legend trainLegend = Legend(walls: 'xWwIiV', obstacles: 'STLCPhbBukl');
 
 /// Inside the crashed airliner (airliner.dart) the hull is a wall all
 /// round; the blocks of seats `T` and the galley trolleys `K` are waist
-/// high, and the buckled panelling `:` is walked over.
-const Legend airlinerLegend = Legend(walls: 'xWwI', obstacles: 'TK');
+/// high, and the buckled panelling `:` and the broken seats `r` are walked
+/// over, noisily.
+const Legend airlinerLegend = Legend(
+  walls: 'xWwI',
+  obstacles: 'TK',
+  debris: ':r',
+);
 
 /// The roofs the tail came down in: the drop `x`, the party walls `W`,
 /// the tail `#` and the roof across the gap `%` are all walls, while the
@@ -383,9 +388,12 @@ const String airlinerBackpackId = 'backpack-airliner';
 /// How many rounds it holds.
 const int airlinerBackpackAmmo = 2;
 
-/// The zombie on fire `Y` that walked out of the burning corner of the
-/// roofs past the airliner.
-const String rooftopBurningZombieId = 'rooftop-burning-0';
+/// The zombies on fire `Y` that walked out of the burning corner of the
+/// roofs past the airliner, `rooftop-burning-<n>`.
+const String rooftopBurningZombiePrefix = 'rooftop-burning-';
+
+/// The first of them.
+const String rooftopBurningZombieId = '${rooftopBurningZombiePrefix}0';
 
 /// The drunk zombie `U` staggering about the Bar Arcobaleno.
 const String barDrunkZombieId = 'bar-drunk-0';
@@ -892,9 +900,9 @@ WorldState createTutorialWorld({int seed = 20260920}) {
             ),
           );
         case '1':
-          pickups.add(Pickup(id: ammoBackpackId, position: point, ammo: 2));
+          pickups.add(Pickup(id: ammoBackpackId, position: point, ammo: 4));
         case '2':
-          pickups.add(Pickup(id: accidentBackpackId, position: point, ammo: 4));
+          pickups.add(Pickup(id: accidentBackpackId, position: point, ammo: 2));
         case '4':
           pickups.add(Pickup(id: parkingBackpackId, position: point, ammo: 2));
         case '5':
@@ -977,21 +985,24 @@ WorldState createTutorialWorld({int seed = 20260920}) {
       ),
     );
   }
-  entities
-    ..add(
+  // Out of the fire in the north-west corner, they look east, away from it.
+  for (final (index, tile) in _airlinerRoofs.tilesOf('Y').indexed) {
+    entities.add(
       factory.zombie(
-        id: rooftopBurningZombieId,
+        id: '$rooftopBurningZombiePrefix$index',
         kind: EntityKind.burning,
-        position: _airlinerRoofs.tileOf('Y'),
-      ),
-    )
-    ..add(
-      factory.zombie(
-        id: barDrunkZombieId,
-        kind: EntityKind.drunk,
-        position: _bar.tileOf('U'),
+        position: tile,
+        facing: Direction.east,
       ),
     );
+  }
+  entities.add(
+    factory.zombie(
+      id: barDrunkZombieId,
+      kind: EntityKind.drunk,
+      position: _bar.tileOf('U'),
+    ),
+  );
 
   return WorldState(
     map: TileMap(
