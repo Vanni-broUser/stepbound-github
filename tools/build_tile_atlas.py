@@ -1282,6 +1282,8 @@ TR_PAPER_SHADE = (178, 170, 150)
 TR_INK = (62, 58, 60)
 TR_CRATE = (118, 84, 48)
 TR_CRATE_DARK = (78, 54, 30)
+TR_AMMO_BOX = (70, 86, 52)
+TR_BRASS = (206, 164, 70)
 TR_BOOK_COVERS = ((122, 38, 34), (40, 64, 104), (58, 86, 52))
 TR_WINDSCREEN_FRAME = (36, 40, 46)
 TR_ROWS = "train-interior-rows"
@@ -1514,6 +1516,45 @@ def paint_train_books(d, px, py, first):
     rect(d, px + 2, py + 10, 6, 3, TR_PAPER)
 
 
+def paint_train_ammo(d, px, py, first):
+    """Mario's ammunition crate, two tiles long, the lid off: boxes of
+    rounds and loose cartridges in the first half, magazines and a pistol
+    in the second, and a shotgun laid along the top of it."""
+    rect(d, px, py + 3, TILE, 12, TR_CRATE_DARK)
+    rect(d, px, py + 3, TILE, 10, shade(TR_CRATE, -8))
+    rect(d, px, py + 3, TILE, 1, TR_CRATE)
+    rect(d, px, py + 13, TILE, 1, TR_CRATE_DARK)
+    if first:
+        rect(d, px, py + 3, 1, 12, TR_CRATE_DARK)
+        # Two boxes of rounds, their labels, and cartridges spilt.
+        for bx in (2, 8):
+            rect(d, px + bx, py + 5, 6, 6, TR_AMMO_BOX)
+            rect(d, px + bx, py + 5, 6, 1, shade(TR_AMMO_BOX, 30))
+            rect(d, px + bx + 1, py + 7, 4, 2, TR_PAPER)
+        for cx, cy in ((3, 12), (6, 11), (11, 12)):
+            rect(d, px + cx, py + cy, 2, 1, TR_BRASS)
+            rect(d, px + cx + 2, py + cy, 1, 1, shade(TR_BRASS, -50))
+    else:
+        rect(d, px + TILE - 1, py + 3, 1, 12, TR_CRATE_DARK)
+        # Magazines standing in a row, and a pistol beside them.
+        for mx in (1, 4, 7):
+            rect(d, px + mx, py + 5, 2, 6, TR_METAL_DARK)
+            rect(d, px + mx, py + 5, 2, 1, TR_BRASS)
+        rect(d, px + 10, py + 6, 5, 2, TR_METAL_DARK)
+        rect(d, px + 10, py + 6, 5, 1, TR_METAL)
+        rect(d, px + 10, py + 8, 2, 3, TR_METAL_DARK)
+    # The shotgun across both halves: the stock on the second, the barrel
+    # running back over the first.
+    if first:
+        rect(d, px + 1, py + 1, TILE - 1, 2, TR_METAL_DARK)
+        rect(d, px + 1, py + 1, TILE - 1, 1, TR_METAL_LIGHT)
+    else:
+        rect(d, px, py + 1, 8, 2, TR_METAL_DARK)
+        rect(d, px, py + 1, 8, 1, TR_METAL_LIGHT)
+        rect(d, px + 8, py + 1, 7, 3, TR_WOOD)
+        rect(d, px + 8, py + 1, 7, 1, TR_WOOD_LIGHT)
+
+
 def paint_train_lamp(d, px, py):
     rect(d, px + 3, py + 5, 10, 5, TR_METAL_DARK)
     rect(d, px + 4, py + 6, 8, 3, TR_LAMP)
@@ -1599,7 +1640,7 @@ def train_interior(atlas: Atlas, rng) -> dict:
     from build_street_level import read_rows  # noqa: PLC0415 - the nose
 
     rows = read_rows(TR_ROWS)
-    floored = ".SLTCh*bBuofkEPlV"
+    floored = ".SLTCh*bBuofkEPlVa"
     floor = [
         atlas.bucket(lambda p=parity: cell(
             lambda d, gx, gy: paint_train_floor(d, rng, gx, gy), p, 0))
@@ -1678,6 +1719,12 @@ def train_interior(atlas: Atlas, rng) -> dict:
             lambda d: paint_train_books(d, 0, 0, f)), 1)
          for first in (True, False)],
         [neighbour_key(-1, 0, "k")]))
+    rules.append(rule(
+        "structures", "a",
+        [atlas.bucket(lambda f=first: tile_of(
+            lambda d: paint_train_ammo(d, 0, 0, f)), 1)
+         for first in (True, False)],
+        [neighbour_key(-1, 0, "a")]))
 
     table = Image.new("RGBA", tuple(n * TILE for n in TR_MAP_TABLE_TILES),
                       TRANSPARENT)

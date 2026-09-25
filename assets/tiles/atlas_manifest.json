@@ -8761,7 +8761,7 @@
       "rules": [
         {
           "layer": "ground",
-          "glyphs": ".SLTCh*bBuofkEPlV",
+          "glyphs": ".SLTCh*bBuofkEPlVa",
           "keys": [
             {
               "kind": "parity"
@@ -8933,6 +8933,19 @@
             }
           ],
           "buckets": [[4531], [4532]]
+        },
+        {
+          "layer": "structures",
+          "glyphs": "a",
+          "keys": [
+            {
+              "kind": "neighbour",
+              "dx": -1,
+              "dy": 0,
+              "glyphs": "a"
+            }
+          ],
+          "buckets": [[4533], [4534]]
         }
       ],
       "objects": [

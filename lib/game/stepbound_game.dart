@@ -434,6 +434,12 @@ final class StepboundGame extends FlameGame
         tile: trainCotTiles[trainCotTiles.length ~/ 2],
         active: canInteract,
       ),
+      // On the lid of the ammunition crate.
+      InteractGlintComponent(
+        tile: trainAmmoTiles.first,
+        spot: const Offset(16, 6),
+        active: canInteract,
+      ),
       // On the closed leaf, until the key opens it.
       InteractGlintComponent(
         tile: barLockedDoorTile,
