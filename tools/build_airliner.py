@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
-"""Bake the cabin of the crashed airliner and the roofs its tail came down
-in.
+"""Bake the roofs the crashed airliner's tail came down in.
 
-Reads the `airliner-cabin-rows` and `airliner-roof-rows` blocks in
-airliner.dart. The cabin is a room on a dark background like the train and
-the barracks; the roofs are open to the sky, painted in the same 3/4 view
-as the streets, with the drop between the two blocks left dark. Run from
-the repository root with: python tools/build_airliner.py
+Reads the `airliner-roof-rows` block in airliner.dart: the roofs are open
+to the sky, painted in the same 3/4 view as the streets, with the drop
+between the two blocks left dark. The cabin is no longer baked: the game
+paints it from the tile atlas, out of the painters that stay in this file.
+Run from the repository root with: python tools/build_airliner.py
 """
 from __future__ import annotations
 
@@ -20,7 +19,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from build_mall import Room  # noqa: E402
 from build_street_level import TILE, read_rows, rect, shade  # noqa: E402
 
-CABIN_OUTPUT = os.path.join("assets", "levels", "airliner_cabin.png")
 ROOF_OUTPUT = os.path.join("assets", "levels", "airliner_roofs.png")
 
 VOID = (6, 6, 8)
@@ -162,45 +160,10 @@ def cabin_lamp(d, px, py, steady):
     rect(d, px + 5, py + 6, 6, 3, shade(glow, 20))
 
 
-def bake_cabin():
-    room = Room(read_rows("airliner-cabin-rows"))
-    if any(len(row) != room.width for row in room.rows):
-        raise ValueError("airliner cabin rows have different widths")
-    rng = random.Random(747)
-    image = Image.new("RGB", (room.width * TILE, room.height * TILE), VOID)
-    d = ImageDraw.Draw(image)
-
-    for y in range(room.height):
-        for x in range(room.width):
-            if room.at(x, y) not in "xWwI":
-                cabin_floor(d, rng, x, y)
-                # The aisles run fore and aft, between the banks of seats:
-                # a row with no seat in it is one of them.
-                if "T" not in room.rows[y]:
-                    cabin_aisle(d, rng, room, x, y)
-
-    for y in range(room.height):
-        for x in range(room.width):
-            glyph = room.at(x, y)
-            px, py = x * TILE, y * TILE
-            if glyph in "WwI":
-                cabin_hull(d, room, x, y)
-            elif glyph in "EO":
-                cabin_break(d, px, py, roof=glyph == "O")
-            elif glyph == "T":
-                cabin_seat(d, room, x, y)
-            elif glyph == "K":
-                cabin_trolley(d, px, py)
-            elif glyph == ":":
-                cabin_litter(d, rng, px, py)
-            elif glyph == "b":
-                cabin_blood(d, rng, px, py)
-            elif glyph in "*+":
-                cabin_lamp(d, px, py, steady=glyph == "*")
-
-    os.makedirs(os.path.dirname(CABIN_OUTPUT), exist_ok=True)
-    image.save(CABIN_OUTPUT, optimize=True)
-    print(f"{CABIN_OUTPUT}: {image.size[0]}x{image.size[1]}")
+# The cabin is not baked any more: the game paints it from its rows out of
+# the tile atlas (tools/build_tile_atlas.py), which uses the painters above.
+# What is left below bakes the roofs, the one place of this file not yet
+# converted.
 
 
 # ------------------------------------------------------------------ roofs
@@ -480,7 +443,6 @@ def bake_roofs():
 
 
 def main() -> None:
-    bake_cabin()
     bake_roofs()
 
 

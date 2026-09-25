@@ -69,6 +69,10 @@ sealed class TileKey {
         offset: (json['offset']! as num).toInt(),
         atMost: json['compare'] == 'le',
       ),
+      'rowHas' => RowHasKey(
+        dy: (json['dy']! as num).toInt(),
+        glyph: json['glyph']! as String,
+      ),
       _ => throw FormatException('unknown tile key "$kind"'),
     };
   }
@@ -139,6 +143,21 @@ final class FirstRowKey extends TileKey {
   bool holds(GlyphGrid grid, int x, int y) {
     final row = grid.firstRowOf(glyph) + offset;
     return atMost ? y <= row : y == row;
+  }
+}
+
+/// Whether the row [dy] away holds [glyph] anywhere: the aisle of a cabin is
+/// every row with no seat in it, whatever the columns say.
+final class RowHasKey extends TileKey {
+  const RowHasKey({required this.dy, required this.glyph});
+
+  final int dy;
+  final String glyph;
+
+  @override
+  bool holds(GlyphGrid grid, int x, int y) {
+    final row = y + dy;
+    return row >= 0 && row < grid.height && grid.rows[row].contains(glyph);
   }
 }
 

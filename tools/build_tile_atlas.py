@@ -47,6 +47,7 @@ from build_street_level import (  # noqa: E402
     text_width,
 )
 from build_mall import paint_blood  # noqa: E402
+import build_airliner as airliner  # noqa: E402
 import build_station as station  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -109,6 +110,10 @@ def row_key(y: int) -> dict:
 
 def neighbour_key(dx: int, dy: int, glyphs: str) -> dict:
     return {"kind": "neighbour", "dx": dx, "dy": dy, "glyphs": glyphs}
+
+
+def row_has_key(dy: int, glyph: str) -> dict:
+    return {"kind": "rowHas", "dy": dy, "glyph": glyph}
 
 
 def rule(layer: str, glyphs: str, buckets: list[list[int]],
@@ -318,6 +323,98 @@ def station_underpass(atlas: Atlas, rng) -> dict:
             lambda d: paint_side_edge(d, 0, 0, r)), 1)
         rules.append(rule("foreground", floored + "UD", [[], edge],
                           [neighbour_key(1 if right else -1, 0, "x")]))
+    return {"void": "#060608", "voidGlyph": "x", "rules": rules,
+            "objects": []}
+
+
+# ------------------------------------------------ the airliner cabin's art
+# Painted by tools/build_airliner.py, which keeps the painters and lost the
+# composition that baked this place; the roofs it opens on are still baked.
+
+class Strip:
+    """Three rows of a place, for a painter that asks whether the rows
+    beside its own have a seat in them: what tells an aisle where the
+    seats begin."""
+
+    height = 3
+
+    def __init__(self, above: bool, below: bool) -> None:
+        self.rows = ["T" if above else ".", ".", "T" if below else "."]
+
+
+def airliner_cabin(atlas: Atlas, rng) -> dict:
+    """The rules that paint PlaceId.airlinerCabin: the hull seen from above,
+    two banks of seats either side of the aisles, and the light that falls
+    in at the two breaks."""
+    floor = [
+        atlas.bucket(lambda p=parity: cell(
+            lambda d, gx, gy: airliner.cabin_floor(d, rng, gx, gy), p, 0))
+        for parity in (0, 1)
+    ]
+    # A row with no seat in it is an aisle: the runner is laid down it, and
+    # edged on whichever side the next row has seats. Bits, in key order:
+    # this row has a seat, the row above has, the row below has.
+    aisle = []
+    for index in range(8):
+        seated, above, below = (bool(index & 1), bool(index & 2),
+                                bool(index & 4))
+        aisle.append([] if seated else atlas.bucket(
+            lambda a=above, b=below: cell(
+                lambda d, gx, gy: airliner.cabin_aisle(
+                    d, rng, Strip(a, b), gx, gy), 0, 1)))
+
+    def hull(glyph):
+        """The lockers are ribbed every third column: a pattern on x."""
+        return [
+            atlas.bucket(lambda g=gx: cell(
+                lambda d, x, y: airliner.cabin_hull(
+                    d, Neighbourhood(glyph, lambda *_: ".", (x, y)), x, y),
+                g, 0), 1)
+            for gx in (1, 0)
+        ]
+
+    def seat():
+        out = []
+        for below in (False, True):
+            for above in (False, True):
+                out.append(atlas.bucket(lambda a=above, b=below: tile_of(
+                    lambda d: airliner.cabin_seat(d, Neighbourhood(
+                        "T", lambda x, y, a=a, b=b: "T"
+                        if (y == -1 and a) or (y == 1 and b) else "."),
+                        0, 0)), 1))
+        return out
+
+    floored = ".:b*+ZM9KT"
+    rules = [
+        rule("ground", floored, floor, [parity_key()]),
+        rule("ground", floored, aisle,
+             [row_has_key(0, "T"), row_has_key(-1, "T"),
+              row_has_key(1, "T")]),
+    ]
+    for glyph in "Ww":
+        rules.append(rule("structures", glyph, hull(glyph),
+                          [pattern_key(1, 0, 3)]))
+    rules += [
+        rule("structures", "I",
+             [atlas.bucket(lambda: tile_of(lambda d: airliner.cabin_hull(
+                 d, Neighbourhood("I", lambda *_: "."), 0, 0)), 1)]),
+        rule("structures", "E", [atlas.bucket(lambda: tile_of(
+            lambda d: airliner.cabin_break(d, 0, 0, roof=False)), 1)]),
+        rule("structures", "O", [atlas.bucket(lambda: tile_of(
+            lambda d: airliner.cabin_break(d, 0, 0, roof=True)), 1)]),
+        rule("structures", "T", seat(),
+             [neighbour_key(0, -1, "T"), neighbour_key(0, 1, "T")]),
+        rule("structures", "K", [atlas.bucket(lambda: tile_of(
+            lambda d: airliner.cabin_trolley(d, 0, 0)), 1)]),
+        rule("structures", ":", [atlas.bucket(lambda: tile_of(
+            lambda d: airliner.cabin_litter(d, rng, 0, 0)))]),
+        rule("structures", "b", [atlas.bucket(lambda: tile_of(
+            lambda d: airliner.cabin_blood(d, rng, 0, 0)))]),
+    ]
+    for glyph, steady in (("*", True), ("+", False)):
+        rules.append(rule("structures", glyph, [atlas.bucket(
+            lambda s=steady: tile_of(
+                lambda d: airliner.cabin_lamp(d, 0, 0, s)), 1)]))
     return {"void": "#060608", "voidGlyph": "x", "rules": rules,
             "objects": []}
 
@@ -991,6 +1088,8 @@ def compose(rows: list[str], place: dict, tiles: list[Image.Image],
             return at(x + key["dx"], y + key["dy"]) in key["glyphs"]
         if kind == "pattern":
             return (x * key["a"] + y * key["b"]) % key["mod"] == key["equals"]
+        if kind == "rowHas":
+            return 0 <= y + key["dy"] < height and                 key["glyph"] in rows[y + key["dy"]]
         if kind == "firstRow":
             edge = first_row(key["glyph"]) + key["offset"]
             return y <= edge if key["compare"] == "le" else y == edge
@@ -1034,6 +1133,7 @@ def compose(rows: list[str], place: dict, tiles: list[Image.Image],
 # ----------------------------------------------------------------- writing
 
 PLACES = {
+    "airlinerCabin": airliner_cabin,
     "barArcobaleno": bar_arcobaleno,
     "barBackroom": bar_backroom,
     "duomo": duomo,
@@ -1097,6 +1197,7 @@ def write(root: str) -> None:
 # The marker of each converted place's ASCII rows, for --preview only: the
 # atlas itself never reads a place.
 PREVIEW_ROWS = {
+    "airlinerCabin": "airliner-cabin-rows",
     "barArcobaleno": "bar-rows",
     "barBackroom": "bar-backroom-rows",
     "duomo": "duomo-rows",

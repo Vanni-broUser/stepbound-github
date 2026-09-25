@@ -212,11 +212,11 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     // Luigi keeps the lights on: the whole train is bright, end to end.
     lit: true,
   ),
+  // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.airlinerCabin,
     rows: airlinerCabinRows,
     legend: airlinerLegend,
-    background: 'assets/levels/airliner_cabin.png',
     indoor: true,
     // Daylight at the tear in the belly and at the tail break.
     daylight: 'EO',
