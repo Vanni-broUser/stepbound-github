@@ -1629,7 +1629,8 @@ void main() {
       );
     });
 
-    test('behind the engine Luigi, the books and the cot can each be walked '
+    test('behind the engine Luigi, the books, the cot and the ammunition '
+        'crate can each be walked '
         'up to and looked at, apart from each other', () {
       final world = createTutorialWorld();
       final train = place(PlaceId.trainInterior);
@@ -1639,8 +1640,10 @@ void main() {
         trainLuigiTile,
         ...trainBookTiles,
         ...trainCotTiles,
+        ...trainAmmoTiles,
       ];
       expect(trainBookTiles, isNotEmpty);
+      expect(trainAmmoTiles, isNotEmpty);
       expect(trainCotTiles, hasLength(3));
       for (final thing in things) {
         expect(world.map.tileAt(thing).isWalkable, isFalse, reason: '$thing');
@@ -1660,7 +1663,11 @@ void main() {
       final divider = luggage.map((tile) => tile.x).reduce(math.min);
       expect(trainLuigiTile.x, lessThan(divider));
       expect(trainLuigiTile.y, greaterThan(aisle));
-      for (final tile in <GridPoint>[...trainBookTiles, ...trainCotTiles]) {
+      for (final tile in <GridPoint>[
+        ...trainBookTiles,
+        ...trainCotTiles,
+        ...trainAmmoTiles,
+      ]) {
         expect(tile.x, lessThan(divider));
         expect(tile.y, lessThan(aisle));
       }

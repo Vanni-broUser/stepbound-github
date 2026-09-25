@@ -1238,6 +1238,40 @@ void main() {
       expect(host.shown, hasLength(2), reason: 'neither says anything');
     });
 
+    test('the ammunition crate loads Mario up to five rounds, as often as '
+        'he has fewer, and does nothing when he has five or more', () {
+      final ammo = world.player.component<AmmoComponent>()..loaded = 2;
+      director.onEvents(<WorldEvent>[LookedOutEvent(at: trainAmmoTiles.first)]);
+      settle();
+      expect(ammo.loaded, trainAmmoRefill);
+      expect(host.shown.last.single.text, TrainScript.ammoRefilled);
+      expect(
+        TrainScript.ammoRefilled,
+        'Munizioni ricaricate. Torna qui in qualsiasi momento se hai meno '
+        'di 5 proiettili per ricaricare',
+      );
+      expect(host.unlocked, contains(HudElement.ammo));
+      host.dismiss();
+
+      final said = host.shown.length;
+      director.onEvents(<WorldEvent>[LookedOutEvent(at: trainAmmoTiles.last)]);
+      settle();
+      expect(ammo.loaded, trainAmmoRefill);
+      expect(host.shown, hasLength(said), reason: 'five already: nothing');
+
+      ammo.loaded = 7;
+      director.onEvents(<WorldEvent>[LookedOutEvent(at: trainAmmoTiles.first)]);
+      settle();
+      expect(ammo.loaded, 7, reason: 'more than five are never taken away');
+      expect(host.shown, hasLength(said));
+
+      ammo.loaded = 0;
+      director.onEvents(<WorldEvent>[LookedOutEvent(at: trainAmmoTiles.first)]);
+      settle();
+      expect(ammo.loaded, trainAmmoRefill, reason: 'as often as needed');
+      expect(host.shown, hasLength(said + 1));
+    });
+
     test('the meeting cannot happen before Luigi has been rescued', () {
       takeAPlatformStep();
       expect(host.cutscenes, isEmpty);

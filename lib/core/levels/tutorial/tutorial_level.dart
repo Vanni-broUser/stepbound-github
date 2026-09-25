@@ -76,8 +76,8 @@ const Legend stationLegend = Legend(walls: 'xWwMP#', obstacles: 'TKmn');
 /// Inside the train the shell, the windscreen and the gangway partitions
 /// are walls. Seats, tables, luggage, the controls, the driver's seat and
 /// the map table can be seen over but not walked through, and so can the
-/// two cots, the bin bags, the books and Luigi.
-const Legend trainLegend = Legend(walls: 'xWwIiV', obstacles: 'STLCPhbBukl');
+/// two cots, the bin bags, the books, Mario's ammunition crate and Luigi.
+const Legend trainLegend = Legend(walls: 'xWwIiV', obstacles: 'STLCPhbBukla');
 
 /// Inside the crashed airliner (airliner.dart) the hull is a wall all
 /// round; the blocks of seats `T` and the galley trolleys `K` are waist
@@ -646,6 +646,13 @@ final List<GridPoint> trainBookTiles = _train.tilesOf('k');
 /// Mario's cot, where the memories come back.
 final List<GridPoint> trainCotTiles = _train.tilesOf('B');
 
+/// Mario's ammunition crate by his cot: interacting with it brings his
+/// rounds up to [trainAmmoRefill], whenever he has fewer.
+final List<GridPoint> trainAmmoTiles = _train.tilesOf('a');
+
+/// How many rounds the crate in the locomotive loads Mario up to.
+const int trainAmmoRefill = 5;
+
 /// The tear in the belly of the airliner, in the lane the wreck left open
 /// at the crossroads behind the hypermarket: two tiles wide, like the
 /// aisle it opens on.
@@ -1024,6 +1031,7 @@ WorldState createTutorialWorld({int seed = 20260920}) {
       trainLuigiTile,
       ...trainBookTiles,
       ...trainCotTiles,
+      ...trainAmmoTiles,
     ],
     playerId: 'player',
     random: SeededRandom(seed),

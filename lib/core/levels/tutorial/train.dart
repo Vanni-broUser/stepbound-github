@@ -9,7 +9,9 @@
 /// The locomotive is where the two of them live. Its back half, walled off
 /// from the middle by two stacks of luggage, is split by the aisle: Mario
 /// above it, his cot `B` and a crate of open books `k` with loose sheets
-/// `f` all round; Luigi below, his cot `b` among bin bags `u` and empty
+/// `f` all round, and beside the cot his ammunition crate `a`, with the
+/// rounds, the magazines and the guns: whenever he comes back to it with
+/// fewer than five rounds, he loads up to five; Luigi below, his cot `b` among bin bags `u` and empty
 /// bottles and cans `o` rolling on the floor, and Luigi himself `l`. In the
 /// middle stands the table with the yellowed route map spread over it `P`.
 /// Past it the two drivers' seats `h`, one above the other in line with
@@ -18,7 +20,7 @@
 // train-interior-rows-start
 const List<String> trainInteriorRows = <String>[
   'xWWWWWWWWWWWWWWWWWWWWIIIWWWWWWWWWWWWWWWWWWWWIIIWWWWWWWWWWWWWWWWWWWWWWWxxxxxxx',
-  'xW..SS....SS....SS..WI.IW..SS....SS....SS..WI.IWBBB....f..LL........CCVxxxxxx',
+  'xW..SS....SS....SS..WI.IW..SS....SS....SS..WI.IWBBB.aa.f..LL........CCVxxxxxx',
   'xW..SS....SS....SS..WI.IW..SS....SS....SS..WI.IW...*..kk..LL..........CCVxxxx',
   'xW....*........*....WI.IW....*........*....WI.IW.f.......fLL...*.......CCVxxx',
   'xW..TT....LL....TT..WI.IW..TT....LL....TT..WI.IW....f.....LL...........*CCVxx',
