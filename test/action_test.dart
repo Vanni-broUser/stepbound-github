@@ -55,6 +55,29 @@ void main() {
     expect(events.whereType<NoiseEvent>().single.radius, 14);
   });
 
+  test('a cultist zombie needs three pistol shots to go down', () {
+    final world = corridorWorld(
+      EntityKind.cultist,
+      zombiePosition: const GridPoint(4, 1),
+    );
+    final zombie = world.entities['zombie']!;
+
+    const TurnScheduler().advance(world, const ShootAction());
+
+    expect(zombie.isAlive, isTrue);
+    expect(zombie.component<HealthComponent>().current, 2);
+
+    const TurnScheduler().advance(world, const ShootAction());
+
+    expect(zombie.isAlive, isTrue);
+    expect(zombie.component<HealthComponent>().current, 1);
+
+    const TurnScheduler().advance(world, const ShootAction());
+
+    expect(zombie.isAlive, isFalse);
+    expect(zombie.component<HealthComponent>().current, 0);
+  });
+
   test('blocked movement consumes a turn without moving the player', () {
     final world = playerOnlyWorld(facing: Direction.west);
 

@@ -71,4 +71,11 @@ const Map<EntityKind, ActorStats> _defaultActorStats = <EntityKind, ActorStats>{
     contactDamage: 1,
     staggers: true,
   ),
+  EntityKind.cultist: ActorStats(
+    tickCost: 2,
+    health: 3,
+    vision: 6,
+    hearing: 8,
+    contactDamage: 1,
+  ),
 };

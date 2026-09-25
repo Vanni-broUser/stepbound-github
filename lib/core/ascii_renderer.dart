@@ -33,5 +33,6 @@ final class AsciiRenderer {
     EntityKind.mutilated => 'M',
     EntityKind.burning => 'F',
     EntityKind.drunk => 'U',
+    EntityKind.cultist => 'T',
   };
 }

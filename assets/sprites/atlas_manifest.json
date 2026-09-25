@@ -26,7 +26,8 @@
     "zombie_carabiniere.png",
     "zombie_mutilated.png",
     "zombie_burning.png",
-    "zombie_drunk.png"
+    "zombie_drunk.png",
+    "zombie_cultist.png"
   ],
   "actionSheets": [
     {
@@ -371,6 +372,43 @@
     },
     {
       "file": "zombie_drunk_death.png",
+      "columns": [
+        "death_0",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5"
+      ],
+      "actions": [
+        "death"
+      ]
+    },
+    {
+      "file": "zombie_cultist_hit.png",
+      "columns": [
+        "hit_0",
+        "hit_1",
+        "hit_2"
+      ],
+      "actions": [
+        "hit"
+      ]
+    },
+    {
+      "file": "zombie_cultist_bite.png",
+      "columns": [
+        "bite_0",
+        "bite_1",
+        "bite_2",
+        "bite_3"
+      ],
+      "actions": [
+        "bite"
+      ]
+    },
+    {
+      "file": "zombie_cultist_death.png",
       "columns": [
         "death_0",
         "death_1",
