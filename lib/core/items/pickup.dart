@@ -13,6 +13,7 @@ final class Pickup {
     this.incense = false,
     this.episcopalRing = false,
     this.cultistRobe = false,
+    this.duomoKey = false,
     this.active = true,
     this.collected = false,
   });
@@ -26,6 +27,7 @@ final class Pickup {
       incense: json['incense']! as bool,
       episcopalRing: json['episcopalRing']! as bool,
       cultistRobe: json['cultistRobe']! as bool,
+      duomoKey: json['duomoKey'] as bool? ?? false,
       active: json['active']! as bool,
       collected: json['collected'] as bool? ?? false,
     );
@@ -46,6 +48,10 @@ final class Pickup {
   /// The occultist robe, upstairs in the Duomo's dormitory.
   final bool cultistRobe;
 
+  /// The key of the Duomo's upper door, in the backpack that lies beside
+  /// Don Angelo's body once the mass is over.
+  final bool duomoKey;
+
   /// False while hidden by a script and after it has been collected.
   bool active;
 
@@ -59,6 +65,7 @@ final class Pickup {
     'incense': incense,
     'episcopalRing': episcopalRing,
     'cultistRobe': cultistRobe,
+    'duomoKey': duomoKey,
     'active': active,
     'collected': collected,
   };

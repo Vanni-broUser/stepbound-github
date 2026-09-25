@@ -259,6 +259,117 @@ void main() {
     );
   });
 
+  testWidgets('the mass leaves four cultists across the nave, Don Angelo '
+      'dead and the key beside him', (tester) {
+    return tester.runAsync(() async {
+      final game = await _pumpReadyGame(tester);
+      final map = game.simulation.map;
+      final key = game.simulation.pickups[duomoKeyPickupId]!;
+      expect(key.active, isFalse);
+      expect(map.tileAt(duomoPriestCorpseTile).isWalkable, isTrue);
+
+      game.startDuomoMassacre();
+      await tester.pump();
+
+      final cultists = game.simulation.entities.values
+          .where((entity) => entity.kind == EntityKind.cultist)
+          .toList();
+      expect(cultists, hasLength(4));
+      expect(
+        cultists.map(
+          (cultist) => cultist.component<PositionComponent>().position,
+        ),
+        unorderedEquals(duomoCultistSpawns),
+      );
+      expect(
+        cultists.every(
+          (cultist) => cultist.component<HealthComponent>().current == 3,
+        ),
+        isTrue,
+        reason: 'three shots each',
+      );
+      expect(key.active, isTrue, reason: 'the backpack is there to be taken');
+      expect(
+        map.tileAt(duomoPriestCorpseTile).isWalkable,
+        isFalse,
+        reason: 'Mario walks around the body, not over it',
+      );
+      // Nobody of the community is left standing in the nave.
+      for (final tile in <GridPoint>[
+        duomoPriestTile,
+        duomoWelcomingCultistTile,
+        duomoStairCultistMovedTile,
+      ]) {
+        expect(map.tileAt(tile).isWalkable, isTrue, reason: '$tile');
+      }
+
+      // Playing it again changes nothing: a load calls it a second time.
+      game.startDuomoMassacre();
+      await tester.pump();
+      expect(
+        game.simulation.entities.values.where(
+          (entity) => entity.kind == EntityKind.cultist,
+        ),
+        hasLength(4),
+      );
+    });
+  });
+
+  testWidgets('the key found beside Don Angelo shows on the HUD and opens '
+      'the door upstairs', (tester) {
+    return tester.runAsync(() async {
+      final game = await _pumpReadyGame(tester);
+      // Their own lesson is not what is being tested here: met already, it
+      // does not queue itself in front of the lines that are.
+      game.progress.meet(EntityKind.cultist);
+      game
+        ..startDuomoMassacre()
+        ..unlock(HudElement.interact);
+      final key = game.simulation.pickups[duomoKeyPickupId]!;
+      final mario = game.simulation.player.component<PositionComponent>()
+        ..position = key.position.step(Direction.east)
+        ..facing = Direction.west;
+      Future<void> use() async {
+        game.pressInteract();
+        for (var i = 0; i < 60; i++) {
+          game.update(1 / 20);
+        }
+        await tester.pump();
+      }
+
+      await use();
+      expect(key.collected, isTrue);
+      expect(game.hud.value, contains(HudElement.duomoKey));
+      expect(
+        (game.cover.value! as PromptCover).lines.single.text,
+        BackpacksScript.duomoKeyFound,
+      );
+      // The badge is drawn with the rest of the controls, once the line
+      // telling of it is gone.
+      await tester.tap(find.byKey(const ValueKey<String>('gameplay-dialogue')));
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey<String>('hud-duomo-key')),
+        findsOneWidget,
+      );
+
+      // The same key, used on the door of the upper floor.
+      mario
+        ..position = duomoUpperLockedDoorTile.step(Direction.south)
+        ..facing = Direction.north;
+      await use();
+      expect(
+        game.simulation.map.tileAt(duomoUpperLockedDoorTile).isWalkable,
+        isTrue,
+      );
+      expect(game.hud.value, isNot(contains(HudElement.duomoKey)));
+      expect(
+        (game.cover.value! as PromptCover).lines.single.text,
+        DuomoScript.keyUsedLine,
+      );
+    });
+  });
+
   testWidgets('the Duomo robe fades Mario into the occultist outfit and '
       'changes his portrait', (tester) {
     return tester.runAsync(() async {

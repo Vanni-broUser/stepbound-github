@@ -134,6 +134,8 @@ final class StepboundGame extends FlameGame
   NpcComponent? _luigi;
   NpcComponent? _priest;
   NpcComponent? _stairCultist;
+  NpcComponent? _welcomingCultist;
+  PriestCorpseComponent? _priestCorpse;
   bool _priestInside = false;
   bool _stairCultistMoved = false;
   bool _changingOutfit = false;
@@ -245,11 +247,12 @@ final class StepboundGame extends FlameGame
     _stairCultistMoved = simulation.map
         .tileAt(duomoStairCultistTile)
         .isWalkable;
+    final massacre = _duomoScript.massacrePlayed;
     // Nobody walks through a person: where each one stands is an obstacle.
     if (!_priestInside) {
       _occupy(priestTile);
     }
-    if (_stairCultistMoved) {
+    if (_stairCultistMoved && !massacre) {
       _occupy(duomoStairCultistMovedTile);
     }
     if (_mallScript.luigiGone) {
@@ -276,20 +279,25 @@ final class StepboundGame extends FlameGame
         PickupComponent(pickup: pickup),
       if (!_mallScript.luigiGone)
         _luigi = NpcComponent(asset: NpcComponent.luigiAsset, tile: luigiTile),
-      _priest = NpcComponent(
-        asset: NpcComponent.priestAsset,
-        tile: _priestInside ? duomoPriestTile : priestTile,
-      ),
-      _stairCultist = NpcComponent(
-        asset: NpcComponent.cultistAsset,
-        tile: _stairCultistMoved
-            ? duomoStairCultistMovedTile
-            : duomoStairCultistTile,
-      ),
-      NpcComponent(
-        asset: NpcComponent.cultistAsset,
-        tile: duomoWelcomingCultistTile,
-      ),
+      // The mass is where Don Angelo and his community end: after it none
+      // of the three is in the nave any more.
+      if (!massacre)
+        _priest = NpcComponent(
+          asset: NpcComponent.priestAsset,
+          tile: _priestInside ? duomoPriestTile : priestTile,
+        ),
+      if (!massacre)
+        _stairCultist = NpcComponent(
+          asset: NpcComponent.cultistAsset,
+          tile: _stairCultistMoved
+              ? duomoStairCultistMovedTile
+              : duomoStairCultistTile,
+        ),
+      if (!massacre)
+        _welcomingCultist = NpcComponent(
+          asset: NpcComponent.cultistAsset,
+          tile: duomoWelcomingCultistTile,
+        ),
       // Luigi at home in the locomotive. Nobody gets aboard before he has
       // opened the door, so he can be there all along.
       NpcComponent(asset: NpcComponent.luigiAsset, tile: trainLuigiTile),
@@ -314,6 +322,13 @@ final class StepboundGame extends FlameGame
       );
       _characters[entity.id] = component;
       await world.add(component);
+    }
+    // A save from after the mass has the cultists among its entities and
+    // the body's tile among its map changes; one from before this quest
+    // existed, and a test scenario built from the level, have neither. The
+    // same call puts whatever is missing back, without a sound.
+    if (massacre) {
+      _applyDuomoMassacre(announce: false);
     }
     debugOverlay = DebugWorldOverlay(simulation: simulation);
     await world.addAll(<Component>[
@@ -400,9 +415,12 @@ final class StepboundGame extends FlameGame
         spot: const Offset(8, -4),
         active: () => !simulation.map.tileAt(barLockedDoorTile).isWalkable,
       ),
+      // Like the bar's own door: nothing left to use once it is open.
       InteractGlintComponent(
         tile: duomoUpperLockedDoorTile,
-        active: canInteract,
+        active: () =>
+            canInteract() &&
+            !simulation.map.tileAt(duomoUpperLockedDoorTile).isWalkable,
       ),
       for (final fire in campfireNames.keys)
         InteractGlintComponent(
@@ -858,6 +876,58 @@ final class StepboundGame extends FlameGame
       tile: duomoStairCultistMovedTile,
     );
     _addWithoutWaiting(world, _stairCultist!);
+  }
+
+  @override
+  void startDuomoMassacre() => _applyDuomoMassacre(announce: true);
+
+  /// The nave after the mass: Don Angelo and the two cultists who stood in
+  /// it are gone, the tiles they filled are free again, his body lies in the
+  /// aisle between the first two blocks of pews with the backpack beside it,
+  /// and the four that his community has become stand across that aisle.
+  /// Called again on the next load, it only puts back what is missing:
+  /// [announce] is false then, so no zombie is heard coming out of the dark.
+  void _applyDuomoMassacre({required bool announce}) {
+    _priest?.removeFromParent();
+    _stairCultist?.removeFromParent();
+    _welcomingCultist?.removeFromParent();
+    _priest = null;
+    _stairCultist = null;
+    _welcomingCultist = null;
+    _priestInside = true;
+    <GridPoint>[
+      duomoPriestTile,
+      duomoWelcomingCultistTile,
+      duomoStairCultistTile,
+      duomoStairCultistMovedTile,
+    ].forEach(_vacate);
+    _occupy(duomoPriestCorpseTile);
+    if (_priestCorpse == null) {
+      _priestCorpse = PriestCorpseComponent(tile: duomoPriestCorpseTile);
+      _addWithoutWaiting(world, _priestCorpse!);
+    }
+    final key = simulation.pickups[duomoKeyPickupId];
+    if (key != null && !key.collected) {
+      key.active = true;
+    }
+    for (final (index, tile) in duomoCultistSpawns.indexed) {
+      final id = '$duomoCultistPrefix$index';
+      // Already raised, or somebody is standing on the tile: nobody is
+      // raised on top of Mario, whatever an old save had him doing.
+      if (simulation.entities[id] != null ||
+          simulation.entityAt(tile) != null) {
+        continue;
+      }
+      final cultist = createDuomoCultist(id, tile);
+      if (announce) {
+        spawnZombie(cultist);
+      } else {
+        simulation.addEntity(cultist);
+        final component = CharacterComponent(entity: cultist);
+        _characters[id] = component;
+        _addWithoutWaiting(world, component);
+      }
+    }
   }
 
   @override
