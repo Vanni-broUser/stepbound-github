@@ -1,0 +1,16 @@
+# The environment the level bakers are verified in. Python 3.11.15, the
+# version of the python:3.11.15-slim image the `levels_check` job of
+# gitlab/verify.yml runs on; install this file into it:
+#
+#     python -m pip install -r tools/requirements.txt
+#     python tools/build_levels.py --check
+#
+# Pillow paints every background in assets/levels. It is pinned to the
+# exact version so a baker run here and a baker run in CI paint the same
+# picture. `--check` compares the decoded pixels rather than the bytes of
+# the file, so a different PNG encoder or zlib does not fail the job on
+# its own; the pin keeps the drawing itself from moving.
+#
+# Only the level bakers are covered. The sprite, audio and quest-item
+# generators still have no pinned environment.
+Pillow==12.3.0
