@@ -106,6 +106,14 @@ final class _FakeHost implements TutorialHost {
   @override
   void openTravelMap() => travelMapsOpened++;
 
+  int endsOfDemo = 0;
+
+  @override
+  void showEndOfDemo({void Function()? onClosed}) {
+    endsOfDemo++;
+    onClosed?.call();
+  }
+
   int zombieBooksOpened = 0;
   int memoriesReplayed = 0;
 

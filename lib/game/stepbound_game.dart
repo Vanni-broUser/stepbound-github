@@ -134,9 +134,11 @@ final class StepboundGame extends FlameGame
   late final PlaceLayers _places = PlaceLayers(
     places: tutorialPlaces,
     playerFeet: () => _characters[playerId]!.position,
+    // At Termini the train is Mario's own, its door open from the start.
     showOpened: (place) =>
+        place.id == PlaceId.romeTermini ||
         place.id == PlaceId.stationFarSide &&
-        progress.memories.contains(StoryMemory.luigiRescued),
+            progress.memories.contains(StoryMemory.luigiRescued),
   );
   final Map<String, CharacterComponent> _characters =
       <String, CharacterComponent>{};
@@ -274,6 +276,7 @@ final class StepboundGame extends FlameGame
       _vacate(luigiTile);
     }
     _syncTrainDoor();
+    parkTrain(simulation, progress.level);
     await world.addAll(_places.components);
     await world.addAll(<Component>[
       for (final (index, spot) in outdoorFireSpots.indexed)
@@ -532,6 +535,7 @@ final class StepboundGame extends FlameGame
       !inputLocked &&
       !_changingOutfit &&
       !_luigiLeaving &&
+      !tutorial.holdsInput &&
       cover.value == null &&
       _campfire == null &&
       _entranceHoldLeft <= 0;
@@ -621,7 +625,25 @@ final class StepboundGame extends FlameGame
     _levelCompleted = true;
     inputLocked = true;
     soundscapePaused = true;
+    // Whichever side of the table he opened it from, the trip starts, and
+    // the next level with it, with Mario standing at the map.
+    simulation.player.component<PositionComponent>()
+      ..position = trainMapStandTile
+      ..facing = Direction.south;
     onTravelMapRequested?.call(snapshot(place: trainPlaceName));
+  }
+
+  @override
+  void showEndOfDemo({void Function()? onClosed}) =>
+      _cover(EndOfDemoCover(onClosed: onClosed));
+
+  /// Called by the end-of-demo screen once it is tapped away.
+  void closeEndOfDemo() {
+    final end = cover.value;
+    if (end is EndOfDemoCover) {
+      cover.value = null;
+      end.onClosed?.call();
+    }
   }
 
   @override
@@ -684,12 +706,17 @@ final class StepboundGame extends FlameGame
 
   /// A door or a road into another place: a short fade to black (a slower
   /// one into a building, where Mario then stands still a moment), or, into
-  /// a place with a card, its picture and name. Until the card's fade has
-  /// gone black Mario is still drawn on the [from] threshold, so the camera
-  /// keeps showing the place he is leaving.
+  /// a place with a card, its picture and name. The card only announces a
+  /// place reached by road: coming back out of one of its own buildings is
+  /// no arrival. Until the card's fade has gone black Mario is still drawn
+  /// on the [from] threshold, so the camera keeps showing the place he is
+  /// leaving.
   void _goThrough({required GridPoint from, required GridPoint to}) {
     final destination = placeAt(to);
-    if (destination?.cardImage != null && destination != placeAt(from)) {
+    final origin = placeAt(from);
+    if (destination?.cardImage != null &&
+        destination != origin &&
+        !(origin?.indoor ?? false)) {
       _cardThreshold = from;
       _cover(
         PlaceCardCover(

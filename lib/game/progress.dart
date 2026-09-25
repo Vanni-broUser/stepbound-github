@@ -37,6 +37,16 @@ enum StoryMemory {
   priestMass,
   priestMassacre,
   luigiAtStation,
+  presidentFled,
+}
+
+extension StoryMemoryLevel on StoryMemory {
+  /// The level the scene belongs to: Rome's story is not one of the
+  /// memories left to find in Molfetta.
+  LevelId get level => switch (this) {
+    StoryMemory.presidentFled => LevelId.rome,
+    _ => LevelId.hometown,
+  };
 }
 
 /// What the player has come to know over the whole game: the zombie types
@@ -50,6 +60,7 @@ final class Progress {
       PlayerOutfit.base,
     ],
     this.activeOutfit = PlayerOutfit.base,
+    this.level = LevelId.hometown,
   }) : knownZombies = Set<EntityKind>.of(knownZombies),
        memories = Set<StoryMemory>.of(memories),
        unlockedOutfits = Set<PlayerOutfit>.of(unlockedOutfits) {
@@ -88,6 +99,7 @@ final class Progress {
       activeOutfit: outfitName == null
           ? PlayerOutfit.base
           : PlayerOutfit.values.byName(outfitName),
+      level: LevelId.values.byName(json['level']! as String),
     );
   }
 
@@ -101,6 +113,14 @@ final class Progress {
   /// Clothes found in the world and the one Mario is currently wearing.
   final Set<PlayerOutfit> unlockedOutfits;
   PlayerOutfit activeOutfit;
+
+  /// The level the train last took Mario and Luigi to: where the game is
+  /// played, and where the train's door opens.
+  LevelId level;
+
+  /// Whether Molfetta is behind them: Mario has reached the train with
+  /// Luigi, whatever backpacks and memories are still to be found there.
+  bool get hometownCompleted => memories.contains(StoryMemory.luigiAtStation);
 
   void meet(EntityKind kind) => knownZombies.add(kind);
 
@@ -123,5 +143,6 @@ final class Progress {
       for (final outfit in unlockedOutfits) outfit.name,
     ],
     'activeOutfit': activeOutfit.name,
+    'level': level.name,
   };
 }

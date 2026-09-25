@@ -6,13 +6,20 @@ import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/ui/main_menu.dart';
 import 'package:stepbound/ui/screen_caption.dart';
 
-/// The loading picture: a man turning into a zombie, stage by stage, with the
-/// Stepbound logo over the top and [caption] along the bottom.
+/// The loading picture, with the Stepbound logo over the top and [caption]
+/// along the bottom: by default a man turning into a zombie, stage by
+/// stage; a level's own once there is one.
 final class LoadingArt extends StatelessWidget {
-  const LoadingArt({required this.caption, this.captionKey, super.key});
+  const LoadingArt({
+    required this.caption,
+    this.captionKey,
+    this.picture = image,
+    super.key,
+  });
 
   static const String image = 'assets/story/title_loading.jpg';
 
+  final String picture;
   final String caption;
   final Key? captionKey;
 
@@ -26,7 +33,7 @@ final class LoadingArt extends StatelessWidget {
         return Stack(
           fit: StackFit.expand,
           children: <Widget>[
-            Image.asset(image, fit: BoxFit.cover, gaplessPlayback: true),
+            Image.asset(picture, fit: BoxFit.cover, gaplessPlayback: true),
             Align(
               alignment: Alignment.topCenter,
               child: Padding(
@@ -59,6 +66,7 @@ final class LoadingCover extends StatefulWidget {
     this.fadeIn = false,
     this.minimum = const Duration(milliseconds: 900),
     this.artSize,
+    this.image = LoadingArt.image,
     super.key,
   });
 
@@ -69,6 +77,9 @@ final class LoadingCover extends StatefulWidget {
   final String caption;
   final bool fadeIn;
   final Duration minimum;
+
+  /// The picture shown.
+  final String image;
 
   /// The size of the picture, centred on black; the whole of the space
   /// when null. It covers the whole screen either way, so nothing laid out
@@ -139,11 +150,14 @@ final class _LoadingCoverState extends State<LoadingCover>
         child: ColoredBox(
           color: Colors.black,
           child: switch (widget.artSize) {
-            null => LoadingArt(caption: widget.caption),
+            null => LoadingArt(caption: widget.caption, picture: widget.image),
             final size => Center(
               child: SizedBox.fromSize(
                 size: size,
-                child: LoadingArt(caption: widget.caption),
+                child: LoadingArt(
+                  caption: widget.caption,
+                  picture: widget.image,
+                ),
               ),
             ),
           },

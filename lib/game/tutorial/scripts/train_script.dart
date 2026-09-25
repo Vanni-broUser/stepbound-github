@@ -13,6 +13,12 @@ final class TrainScript extends TutorialScript {
     "Sarà un viaggio per l'Europa molto impegnativo",
   );
 
+  /// What Luigi has to say while the train stands in Rome.
+  static const List<TutorialLine> romeLines = <TutorialLine>[
+    TutorialLine.luigi('Tutte le strade portano a Roma ragazzo'),
+    TutorialLine.luigi('Cosa? Dici che l’avevo già detto?'),
+  ];
+
   static const String ammoRefilled =
       'Munizioni ricaricate. Torna qui in qualsiasi momento se hai meno di '
       '$trainAmmoRefill proiettili per ricaricare';
@@ -26,7 +32,12 @@ final class TrainScript extends TutorialScript {
       return;
     }
     if (event.at == trainLuigiTile) {
-      say(TutorialPrompt(const <TutorialLine>[luigiLine]));
+      say(
+        TutorialPrompt(switch (progress.level) {
+          LevelId.hometown => const <TutorialLine>[luigiLine],
+          LevelId.rome => romeLines,
+        }),
+      );
     } else if (trainBookTiles.contains(event.at)) {
       host.openZombieBook();
     } else if (trainCotTiles.contains(event.at)) {

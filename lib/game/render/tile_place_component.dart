@@ -48,8 +48,9 @@ final class TilePlaceComponent extends Component {
     ..isAntiAlias = false
     ..filterQuality = ui.FilterQuality.none;
 
-  /// The name this place's art goes by in the atlas manifest.
-  String get artKey => place.id.name;
+  /// The name this place's art goes by in the atlas manifest: its own,
+  /// or that of the place it borrows its art from.
+  String get artKey => place.artId.name;
 
   /// What is on screen for this place, for tests and diagnostics.
   String get activeAssetPath =>

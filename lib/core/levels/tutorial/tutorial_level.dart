@@ -8,6 +8,7 @@ import 'package:stepbound/core/grid/tile.dart';
 import 'package:stepbound/core/grid/tile_map.dart';
 import 'package:stepbound/core/items/pickup.dart';
 import 'package:stepbound/core/levels/place.dart';
+import 'package:stepbound/core/levels/rome/termini.dart';
 import 'package:stepbound/core/levels/tutorial/airliner.dart';
 import 'package:stepbound/core/levels/tutorial/bar_arcobaleno.dart';
 import 'package:stepbound/core/levels/tutorial/bar_backroom.dart';
@@ -25,6 +26,7 @@ import 'package:stepbound/core/levels/tutorial/train.dart';
 import 'package:stepbound/core/seeded_random.dart';
 import 'package:stepbound/core/world.dart';
 
+export 'package:stepbound/core/levels/rome/termini.dart';
 export 'package:stepbound/core/levels/tutorial/airliner.dart';
 export 'package:stepbound/core/levels/tutorial/bar_arcobaleno.dart';
 export 'package:stepbound/core/levels/tutorial/bar_backroom.dart';
@@ -78,6 +80,10 @@ const Legend stationLegend = Legend(walls: 'xWwMP#', obstacles: 'TKmn');
 /// the map table can be seen over but not walked through, and so can the
 /// two cots, the bin bags, the books, Mario's ammunition crate and Luigi.
 const Legend trainLegend = Legend(walls: 'xWwIiV', obstacles: 'STLCPhbBukla');
+
+/// Roma Termini (termini.dart) keeps to the far platform's glyphs, but
+/// its train's door `P` is open from the start: the train is Mario's own.
+const Legend terminiLegend = Legend(walls: 'xWM', obstacles: 'Tn');
 
 /// Inside the crashed airliner (airliner.dart) the hull is a wall all
 /// round; the blocks of seats `T` and the galley trolleys `K` are waist
@@ -251,6 +257,14 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     lit: true,
     daylight: 'D',
   ),
+  // The first place of Rome, on the same grid: the train is the one place
+  // the two levels share, and there is no road between them.
+  PlaceSpec(
+    id: PlaceId.romeTermini,
+    rows: terminiRows,
+    legend: terminiLegend,
+    art: PlaceId.stationFarSide,
+  ),
 ]);
 
 final Map<PlaceId, Place> _placesById = <PlaceId, Place>{
@@ -287,6 +301,7 @@ final Place _airlinerRoofs = place(PlaceId.airlinerRoofs);
 final Place _duomo = place(PlaceId.duomo);
 final Place _barBackroom = place(PlaceId.barBackroom);
 final Place _duomoUpper = place(PlaceId.duomoUpper);
+final Place _termini = place(PlaceId.romeTermini);
 
 /// The four places [outdoorLegend] describes, the ones tools/
 /// build_street_level.py bakes: what walks the streets, what burns in them
@@ -635,6 +650,30 @@ final GridPoint trainMapStandTile = GridPoint(
 /// glint shows once there is somewhere to go.
 final GridPoint trainMapPanelTile = trainMapStandTile.step(Direction.south);
 
+/// The passenger door of the train standing at Roma Termini, open onto
+/// the platform.
+final GridPoint terminiTrainDoorTile = _termini.tileOf('P');
+
+/// The stairs out of Termini: for now the end of the playable game.
+final List<GridPoint> terminiExitTiles = _termini.tilesOf('D');
+
+/// The wanderers on the platforms of Termini, `termini-wanderer-<n>`.
+const String terminiZombiePrefix = 'termini-wanderer-';
+
+/// The train's door opens onto the platform of the level it stands in:
+/// Molfetta's far platform or Roma Termini. The door back aboard from
+/// either platform is always there; only the way out moves with it.
+void parkTrain(WorldState world, LevelId level) {
+  final platformDoor = switch (level) {
+    LevelId.hometown => stationTrainDoorTile,
+    LevelId.rome => terminiTrainDoorTile,
+  };
+  world.portals[trainExitTile] = Portal(
+    to: platformDoor.step(Direction.south),
+    facing: Direction.south,
+  );
+}
+
 /// What a save made aboard is called in the slots.
 const String trainPlaceName = 'Treno';
 
@@ -833,10 +872,17 @@ Map<GridPoint, Portal> _portals() {
       <GridPoint>[trainExitTile],
       Direction.north,
     ),
+    // Where the train's own door leads is up to where it stands: see
+    // parkTrain. A new game starts with it in Molfetta.
     ..._pairedDoors(
       <GridPoint>[trainExitTile],
       <GridPoint>[stationTrainDoorTile],
       Direction.south,
+    ),
+    ..._pairedDoors(
+      <GridPoint>[terminiTrainDoorTile],
+      <GridPoint>[trainExitTile],
+      Direction.north,
     ),
     ..._pairedDoors(airlinerTear, airlinerCabinTear, Direction.north),
     ..._pairedDoors(airlinerCabinTear, airlinerTear, Direction.south),
@@ -1001,6 +1047,18 @@ WorldState createTutorialWorld({int seed = 20260920}) {
         kind: EntityKind.burning,
         position: tile,
         facing: Direction.east,
+      ),
+    );
+  }
+  for (final (index, spot) in terminiZombieSpots.indexed) {
+    entities.add(
+      factory.zombie(
+        id: '$terminiZombiePrefix$index',
+        kind: EntityKind.wanderer,
+        position: GridPoint(
+          _termini.origin.x + spot.x,
+          _termini.origin.y + spot.y,
+        ),
       ),
     );
   }

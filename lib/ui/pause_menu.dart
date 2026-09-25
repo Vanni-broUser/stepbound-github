@@ -62,6 +62,7 @@ final class PauseMenu extends StatefulWidget {
     required this.onMainMenu,
     required this.onClose,
     required this.onWearOutfit,
+    this.restartsFromStory = true,
     super.key,
   });
 
@@ -72,6 +73,10 @@ final class PauseMenu extends StatefulWidget {
   /// offered.
   final ResumePoint? resumePoint;
   final VoidCallback onResumeFromCamp;
+
+  /// Whether the level starts over from the first story scene (Molfetta),
+  /// or from where Mario arrived in it.
+  final bool restartsFromStory;
   final VoidCallback onRestartLevel;
   final VoidCallback onMainMenu;
   final VoidCallback onClose;
@@ -92,6 +97,10 @@ final class _PauseMenuState extends State<PauseMenu> {
     _PausePage.resume =>
       '${widget.resumePoint?.goBack} Quello che hai fatto da lì in '
           'poi va perso.',
+    _PausePage.restart when !widget.restartsFromStory =>
+      'Ricominciare il livello? Si riparte dall’arrivo in città, con '
+          'quello che avevi allora, e lo slot viene salvato all’inizio del '
+          'livello. Restano le ore di gioco.',
     _PausePage.restart =>
       'Ricominciare il livello? Si riparte dalla prima scena della storia: '
           'proiettili, zombi conosciuti e ricordi si azzerano, e lo slot '
