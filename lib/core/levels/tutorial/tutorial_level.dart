@@ -343,6 +343,14 @@ final GridPoint duomoUpperRobeTile = _duomoUpper.tileOf('R');
 /// are raised by the Duomo's script, the body is put where it lies and the
 /// backpack starts inactive.
 final List<GridPoint> duomoCultistSpawns = _duomo.tilesOf('c');
+
+/// The crucified zombie over the altar, on the shared grid: it hangs from
+/// the moment the mass is over, and is scenery, so it has no glyph and no
+/// entity of its own (see [duomoCrucifixSpot]).
+final GridPoint duomoCrucifixTile = GridPoint(
+  _duomo.origin.x + duomoCrucifixSpot.x,
+  _duomo.origin.y + duomoCrucifixSpot.y,
+);
 final GridPoint duomoPriestCorpseTile = _duomo.tileOf('d');
 final GridPoint duomoKeyTile = _duomo.tileOf('9');
 

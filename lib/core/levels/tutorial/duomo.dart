@@ -47,6 +47,14 @@ const List<String> duomoRows = <String>[
 ];
 // duomo-rows-end
 
+/// Where the zombie hangs crucified, in the Duomo's own tiles: the top-left
+/// corner of the two-tile-wide prop, on the back wall over the middle of
+/// the altar and between the two inner torches. Nothing changes on the map
+/// for it -- that row is wall like the rest of the wall -- and nothing of
+/// it is there before the mass: the game hangs it up afterwards
+/// (`CrucifiedZombieComponent`).
+const GridPoint duomoCrucifixSpot = GridPoint(16, 1);
+
 /// Where the Duomo's torches burn, in its own tiles: one on each of the ten
 /// columns `P`, and four on the back wall behind the altar, two each side
 /// of its middle.

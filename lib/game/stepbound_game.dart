@@ -17,6 +17,7 @@ import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/aim_line_component.dart';
 import 'package:stepbound/game/render/burning_ground_component.dart';
 import 'package:stepbound/game/render/character_component.dart';
+import 'package:stepbound/game/render/crucified_zombie_component.dart';
 import 'package:stepbound/game/render/debug_overlay.dart';
 import 'package:stepbound/game/render/fire_component.dart';
 import 'package:stepbound/game/render/flag_component.dart';
@@ -107,6 +108,12 @@ final class StepboundGame extends FlameGame
   /// place he has just walked into can sink in.
   static const double entranceHoldSeconds = 2.2;
 
+  /// Standing this close to the cross, its groan is at its loudest; this
+  /// much further away, at its faintest. Further still it stays there: the
+  /// nave is long and the thing on the cross is loud.
+  static const int crossHearingNear = 6;
+  static const int crossHearingFar = 18;
+
   final WorldState simulation;
 
   /// The zombie types met and the story scenes seen, over the whole game.
@@ -136,6 +143,7 @@ final class StepboundGame extends FlameGame
   NpcComponent? _stairCultist;
   NpcComponent? _welcomingCultist;
   PriestCorpseComponent? _priestCorpse;
+  CrucifiedZombieComponent? _crucified;
   bool _priestInside = false;
   bool _stairCultistMoved = false;
   bool _changingOutfit = false;
@@ -906,6 +914,14 @@ final class StepboundGame extends FlameGame
       _priestCorpse = PriestCorpseComponent(tile: duomoPriestCorpseTile);
       _addWithoutWaiting(world, _priestCorpse!);
     }
+    if (_crucified == null) {
+      _crucified = CrucifiedZombieComponent(
+        tile: duomoCrucifixTile,
+        seed: simulation.tick,
+        onTwitch: _groanFromTheCross,
+      );
+      _addWithoutWaiting(world, _crucified!);
+    }
     final key = simulation.pickups[duomoKeyPickupId];
     if (key != null && !key.collected) {
       key.active = true;
@@ -928,6 +944,25 @@ final class StepboundGame extends FlameGame
         _addWithoutWaiting(world, component);
       }
     }
+  }
+
+  /// The thing on the cross thrashes: it is heard by anyone in the Duomo,
+  /// louder the nearer they are, and not at all over a story scene or a
+  /// text box, where it would land on top of someone talking.
+  void _groanFromTheCross() {
+    if (cover.value != null) {
+      return;
+    }
+    final mario = simulation.player.component<PositionComponent>().position;
+    if (placeAt(mario)?.id != PlaceId.duomo) {
+      return;
+    }
+    final steps = mario.manhattanDistanceTo(duomoCrucifixTile);
+    final nearness = (1 - (steps - crossHearingNear) / crossHearingFar).clamp(
+      0.0,
+      1.0,
+    );
+    audio.play(Sfx.zombieAlert, volume: 0.15 + 0.3 * nearness);
   }
 
   @override

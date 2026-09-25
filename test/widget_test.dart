@@ -8,6 +8,7 @@ import 'package:stepbound/game/audio/game_audio.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/input/touch_controls.dart';
 import 'package:stepbound/game/progress.dart';
+import 'package:stepbound/game/render/crucified_zombie_component.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/game/render/interact_glint_component.dart';
 import 'package:stepbound/game/stepbound_game.dart';
@@ -312,6 +313,68 @@ void main() {
         ),
         hasLength(4),
       );
+    });
+  });
+
+  testWidgets('the crucified zombie hangs over the altar only after the '
+      'mass, moves on its own and groans across the nave', (tester) {
+    return tester.runAsync(() async {
+      final audio = SilentAudio();
+      final game = await _pumpReadyGame(tester, audio: audio);
+      Iterable<CrucifiedZombieComponent> onTheCross() =>
+          game.world.children.whereType<CrucifiedZombieComponent>();
+      expect(onTheCross(), isEmpty, reason: 'nothing there before the mass');
+
+      game.progress.meet(EntityKind.cultist);
+      game.startDuomoMassacre();
+      // Its sheet is loaded before it is mounted, like every sprite.
+      await game.ready();
+      await tester.pump();
+
+      final cross = onTheCross().single;
+      expect(
+        cross.position,
+        Vector2(
+          duomoCrucifixTile.x * StepboundGame.tileSize,
+          duomoCrucifixTile.y * StepboundGame.tileSize,
+        ),
+      );
+      // Scenery, not an actor: it is in nobody's way and nothing in the
+      // simulation stands there, so it can neither be walked into nor bite.
+      expect(game.simulation.entityAt(duomoCrucifixTile), isNull);
+      expect(
+        game.simulation.map.tileAt(duomoCrucifixTile).isWalkable,
+        isFalse,
+        reason: 'it hangs on the back wall',
+      );
+      expect(
+        game.simulation.entities.values.where(
+          (entity) => entity.kind == EntityKind.cultist,
+        ),
+        hasLength(4),
+        reason: 'the four in the nave, and no fifth one on the cross',
+      );
+
+      // Mario in the Duomo hears it thrash; the fit itself is the sound.
+      game.simulation.player.component<PositionComponent>().position =
+          game.simulation.portals[duomoPortalTile]!.to;
+      audio.played.clear();
+      var seconds = 0.0;
+      while (!cross.isTwitching && seconds < CrucifiedZombieComponent.maxRest) {
+        game.update(1 / 60);
+        seconds += 1 / 60;
+      }
+      expect(cross.isTwitching, isTrue, reason: 'it moves on its own');
+      expect(audio.played, contains(Sfx.zombieAlert));
+
+      // From another place it is out of earshot.
+      game.simulation.player.component<PositionComponent>().position =
+          trainMapStandTile;
+      audio.played.clear();
+      for (var i = 0; i < 60 * 30; i++) {
+        game.update(1 / 60);
+      }
+      expect(audio.played, isNot(contains(Sfx.zombieAlert)));
     });
   });
 

@@ -59,6 +59,22 @@ Combat animations share the same 96×96, 4-rows-by-6-columns grid and are listed
 
 The common sheets are produced by `tools/generate_action_sprites.py`; the carabiniere and special archetypes are derived by `tools/generate_carabiniere.py` and `tools/generate_special_zombies.py`. Run the scripts from the repository root with Python and Pillow.
 
+## Props
+
+Not everything drawn in the world is a character on the 96×96 grid. Props
+are their own sheets, outside `atlas_manifest.json`, each with its own
+contract, and the game draws them from a component of its own.
+
+- `crucified_zombie.png`: 128×40, four 32×40 frames in a row — `hang_0`,
+  `hang_1` (a breath lower), `twitch_0`, `twitch_1` (the fit). Two tiles
+  wide and two and a half tall, it hangs on the back wall over the middle
+  of the Duomo's altar once the mass is over. It follows the story frame
+  `scene_crucified_zombie.jpg`: a zombie nailed to a dark wooden cross, cut
+  off at the waist, arms spread along the beam with the hands nailed and
+  bleeding, torn pale rags, a cross pendant, red eyes, and the blood of the
+  trunk pouring down the post. Painted by
+  `tools/generate_crucified_zombie.py`.
+
 ## Story scenes
 
 The full-screen pictures of the story live in `assets/story/`. The three
