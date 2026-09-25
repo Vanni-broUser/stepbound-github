@@ -413,6 +413,55 @@ def paint_bar_locked_door(d, px, py):
 BAR_WALL_TILES = (20, 2)
 
 
+
+POOL_FELT = (36, 98, 64)
+POOL_FELT_DARK = (26, 76, 50)
+POOL_RAIL = (74, 46, 28)
+POOL_RAIL_LIGHT = (104, 68, 40)
+POOL_POCKET = (16, 14, 14)
+POOL_BALLS = [(226, 216, 196), (198, 58, 48), (58, 88, 168), (228, 188, 60)]
+
+# Three ways the balls are left lying, so two cells of the same table do
+# not show the same rack. Which one falls where is the usual hash.
+POOL_RACKS = [
+    ((2, 3, 0), (7, 2, 1), (11, 4, 2), (5, 8, 3)),
+    ((3, 2, 1), (8, 5, 3), (12, 3, 0)),
+    ((2, 6, 2), (6, 3, 0), (10, 7, 1), (12, 2, 3)),
+]
+
+
+def paint_pool_table(d, px, py, left, right, top, balls=0):
+    """One cell of a pool table: the baize, the rail wherever the table
+    ends, a pocket in every corner and the balls left on the cloth. The
+    table is two rows deep, so `top` says which half this is."""
+    rect(d, px, py, TILE, TILE, POOL_FELT)
+    if top:
+        rect(d, px, py, TILE, 5, POOL_RAIL)
+        rect(d, px, py, TILE, 2, POOL_RAIL_LIGHT)
+        rect(d, px, py + 5, TILE, 1, POOL_FELT_DARK)
+    else:
+        rect(d, px, py + TILE - 5, TILE, 5, POOL_RAIL)
+        rect(d, px, py + TILE - 5, TILE, 1, POOL_RAIL_LIGHT)
+        rect(d, px, py + TILE - 6, TILE, 1, POOL_FELT_DARK)
+    if not left:
+        rect(d, px, py, 3, TILE, POOL_RAIL)
+        rect(d, px, py, 1, TILE, POOL_RAIL_LIGHT)
+        rect(d, px + 3, py, 1, TILE, POOL_FELT_DARK)
+    if not right:
+        rect(d, px + TILE - 3, py, 3, TILE, POOL_RAIL)
+        rect(d, px + TILE - 4, py, 1, TILE, POOL_FELT_DARK)
+    for corner_x, there_x in ((0, not left), (TILE - 5, not right)):
+        if not there_x:
+            continue
+        corner_y = 0 if top else TILE - 5
+        d.ellipse([px + corner_x, py + corner_y,
+                   px + corner_x + 4, py + corner_y + 4], fill=POOL_POCKET)
+    if not top and left and right:  # the balls, on the open cloth
+        for bx, by, colour in POOL_RACKS[balls % len(POOL_RACKS)]:
+            d.ellipse([px + bx, py + by, px + bx + 3, py + by + 3],
+                      fill=POOL_BALLS[colour])
+
+
 def bar_arcobaleno(atlas: Atlas, rng) -> dict:
     """The rules that paint PlaceId.barArcobaleno."""
     floor = [
@@ -450,7 +499,19 @@ def bar_arcobaleno(atlas: Atlas, rng) -> dict:
         index = 1 if (column * 5) % 7 == 0 else 0
         if tile not in front[index]:
             front[index].append(tile)
-    floored = ".*:qbU+KTJDE"
+    # In key order: the bits are "the table goes on to the left", "to the
+    # right" and "above", and the painter wants the opposite of the last
+    # one -- a cell with nothing above it is the top half.
+    pool = []
+    for above in (False, True):
+        for right in (False, True):
+            for left in (False, True):
+                racks = len(POOL_RACKS) if (left and right and above) else 1
+                pool.append([atlas.add(tile_of(
+                    lambda d, le=left, ri=right, ab=above, b=rack:
+                    paint_pool_table(d, 0, 0, le, ri, not ab, b)))
+                    for rack in range(racks)])
+    floored = ".*:qbU+KTJDEP"
     rules = [
         rule("ground", floored, floor, [parity_key()]),
         rule("structures", "w", front, [pattern_key(5, 0, 7)]),
@@ -469,6 +530,13 @@ def bar_arcobaleno(atlas: Atlas, rng) -> dict:
             lambda d: paint_side_edge(d, 0, 0, r)), 1)
         rules.append(rule("foreground", floored, [[], edge],
                           [neighbour_key(1 if right else -1, 0, "x")]))
+    # The pool tables are two rows deep and as long as the rows say: each
+    # cell asks whether the table goes on beside and above it.
+    rules.append(rule("foreground", "P", pool, [
+        neighbour_key(-1, 0, "P"),
+        neighbour_key(1, 0, "P"),
+        neighbour_key(0, -1, "P"),
+    ]))
     rules.append(rule("foreground", "K", counter,
                       [neighbour_key(1, 0, "K"), pattern_key(7, 0, 5)]))
     # The legs go where the run of tables ends, so the key is "there is a
