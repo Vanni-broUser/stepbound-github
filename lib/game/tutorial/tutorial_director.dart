@@ -70,9 +70,9 @@ final class CutsceneFrame {
 }
 
 /// What the tutorial hands over: interacting and shooting (the right half
-/// of the screen does nothing until they are unlocked), the ammo counter
-/// and the temporary quest-item badges in the top-left corner. Walking is
-/// always there.
+/// of the screen does nothing until they are unlocked), the ammo badge and
+/// the temporary quest-item badges, carried together in the top-left row
+/// in the order they were picked up. Walking is always there.
 enum HudElement {
   interact,
   ammo,
