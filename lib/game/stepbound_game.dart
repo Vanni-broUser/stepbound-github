@@ -96,6 +96,11 @@ final class StepboundGame extends FlameGame
   static const double cullMargin = 3 * tileSize;
   static const double holdRepeatSeconds = 0.18;
 
+  /// How long the space bar, or a finger on the right half of the screen,
+  /// stays down before Mario raises the pistol. Let go sooner and it is a
+  /// tap: he interacts.
+  static const Duration holdToAim = Duration(milliseconds: 300);
+
   /// How long Mario stands still on the threshold of a building, so the
   /// place he has just walked into can sink in.
   static const double entranceHoldSeconds = 2.2;
@@ -147,7 +152,7 @@ final class StepboundGame extends FlameGame
   final ValueNotifier<bool> aiming = ValueNotifier<bool>(false);
   late final ValueNotifier<int> ammoLoaded;
 
-  /// Touch controls unlocked so far by the tutorial (the arrows are always
+  /// Touch controls unlocked so far by the tutorial (walking is always
   /// available).
   final ValueNotifier<Set<HudElement>> hud;
 
@@ -176,6 +181,11 @@ final class StepboundGame extends FlameGame
   int _processedTurn = 0;
   Direction? _heldDirection;
   double _holdElapsed = 0;
+
+  /// Seconds the space bar has been down, null while it is up, and whether
+  /// the pistol was already up when it went down.
+  double? _spaceHeld;
+  bool _spaceAimedBefore = false;
   String? _focusId;
   double _gameOverCountdown = 0;
   double _entranceHoldLeft = 0;
@@ -328,6 +338,7 @@ final class StepboundGame extends FlameGame
       _entranceHoldLeft -= dt;
     }
     _updateHeldDirection(dt);
+    _updateSpace(dt);
     _syncPresentation();
     _camera.follow(
       dt,
@@ -468,6 +479,7 @@ final class StepboundGame extends FlameGame
   void _stopMario() {
     stopWalking();
     aiming.value = false;
+    _spaceHeld = null;
   }
 
   void _cover(GameCover what) {
@@ -893,6 +905,9 @@ final class StepboundGame extends FlameGame
     KeyEvent event,
     Set<LogicalKeyboardKey> keysPressed,
   ) {
+    if (event.logicalKey == LogicalKeyboardKey.space) {
+      return _onSpace(event);
+    }
     if (inputLocked || cover.value != null) {
       return KeyEventResult.ignored;
     }
@@ -913,8 +928,7 @@ final class StepboundGame extends FlameGame
       pressShoot();
     } else if (key == LogicalKeyboardKey.keyE) {
       pressInteract();
-    } else if (key == LogicalKeyboardKey.space ||
-        key == LogicalKeyboardKey.keyX) {
+    } else if (key == LogicalKeyboardKey.keyX) {
       pressWait();
     } else if (key == LogicalKeyboardKey.keyG) {
       debugOverlay.enabled = !debugOverlay.enabled;
@@ -928,8 +942,9 @@ final class StepboundGame extends FlameGame
     if (!_canAct) {
       return;
     }
+    // With the pistol up, a direction is where the shot goes.
     if (aiming.value) {
-      simulation.player.component<PositionComponent>().facing = direction;
+      shootToward(direction);
       return;
     }
     if (_heldDirection == direction) {
@@ -948,23 +963,44 @@ final class StepboundGame extends FlameGame
     _holdElapsed = 0;
   }
 
+  /// Aims if not aiming yet, shoots where Mario faces if already aiming.
   void pressShoot() {
-    if (!_canAct || !hud.value.contains(HudElement.shoot)) {
-      return;
-    }
     if (!aiming.value) {
-      if (simulation.player.component<AmmoComponent>().loaded == 0) {
-        presentation.submit(const ShootAction());
-        return;
-      }
-      _heldDirection = null;
-      _holdElapsed = 0;
-      aiming.value = true;
+      beginAim();
       return;
     }
+    if (_canAct) {
+      presentation.submit(const ShootAction());
+      aiming.value = false;
+    }
+  }
+
+  /// Raises the pistol. With nothing loaded it only clicks.
+  void beginAim() {
+    if (!_canAct || aiming.value || !hud.value.contains(HudElement.shoot)) {
+      return;
+    }
+    if (simulation.player.component<AmmoComponent>().loaded == 0) {
+      presentation.submit(const ShootAction());
+      return;
+    }
+    _heldDirection = null;
+    _holdElapsed = 0;
+    aiming.value = true;
+  }
+
+  /// Turns the aimed pistol to [direction] and fires at once.
+  void shootToward(Direction direction) {
+    if (!_canAct || !aiming.value) {
+      return;
+    }
+    simulation.player.component<PositionComponent>().facing = direction;
     presentation.submit(const ShootAction());
     aiming.value = false;
   }
+
+  /// Lowers the pistol without shooting.
+  void cancelAim() => aiming.value = false;
 
   void pressInteract() {
     if (!_canAct) {
@@ -982,6 +1018,52 @@ final class StepboundGame extends FlameGame
   void pressWait() {
     if (_canAct && !aiming.value) {
       presentation.submit(const WaitAction());
+    }
+  }
+
+  /// The space bar works like the right half of the screen: a tap
+  /// interacts (or lowers the pistol), holding it raises the pistol, and
+  /// then the arrows shoot.
+  KeyEventResult _onSpace(KeyEvent event) {
+    switch (event) {
+      case KeyDownEvent():
+        if (inputLocked || cover.value != null) {
+          return KeyEventResult.ignored;
+        }
+        _spaceHeld = 0;
+        _spaceAimedBefore = aiming.value;
+      case KeyUpEvent():
+        final held = _spaceHeld;
+        _spaceHeld = null;
+        if (held == null) {
+          return KeyEventResult.ignored;
+        }
+        if (held < _holdToAimSeconds) {
+          if (_spaceAimedBefore) {
+            cancelAim();
+          } else if (_canAct) {
+            pressInteract();
+          }
+        }
+      case KeyRepeatEvent():
+        break;
+    }
+    return KeyEventResult.handled;
+  }
+
+  static final double _holdToAimSeconds = holdToAim.inMicroseconds / 1e6;
+
+  void _updateSpace(double dt) {
+    final before = _spaceHeld;
+    if (before == null) {
+      return;
+    }
+    final now = before + dt;
+    _spaceHeld = now;
+    if (!_spaceAimedBefore &&
+        before < _holdToAimSeconds &&
+        now >= _holdToAimSeconds) {
+      beginAim();
     }
   }
 

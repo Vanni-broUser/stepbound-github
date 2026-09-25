@@ -2,23 +2,23 @@ import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
 
 /// Backpacks, wherever they are: the first one seen teaches picking them up
-/// and unlocks the interact button (slipping past the first zombie can lead
+/// and unlocks interacting (slipping past the first zombie can lead
 /// to the accident one first); each one collected says what it held,
-/// unlocking the ammo counter and, with the pistol, the shoot button.
+/// unlocking the ammo counter and, with the pistol, shooting.
 final class BackpacksScript extends TutorialScript {
   BackpacksScript(super.director);
 
   static const String backpackLesson =
       'Raccogli gli zaini in giro per trovare nuovo equipaggiamento';
   static const String interactLesson =
-      'Usa il nuovo bottone a destra per interagire con gli oggetti';
+      'Tocca la parte destra dello schermo per interagire con gli oggetti';
   static const String noGun = 'Non hai una pistola';
   static const String gunFound = 'Hai trovato una pistola';
   static const String incenseFound = "Hai trovato dell'incenso";
   static const String ringFound = 'Hai trovato un anello episcopale';
   static const String shootLesson =
-      'Usa il bottone per mirare, scegli una direzione e poi premi '
-      'nuovamente il bottone per sparare';
+      'Tieni premuto a destra per mirare, poi scorri verso una direzione '
+      'per sparare. Tocca di nuovo a destra per abbassare la pistola';
 
   /// "Non hai una pistola" only while the player really has none.
   static String ammoFound(int rounds, {required bool hasGun}) => hasGun
