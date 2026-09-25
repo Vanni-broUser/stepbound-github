@@ -158,21 +158,98 @@ convertiti per l'occhio, senza dispositivo.
   `build_station.py` resta perche dipinge ancora la stazione e il
   sottopasso, e si potra cancellare quando saranno convertiti anche quelli.
 
-### Cosa manca
+### Come si converte un posto
 
-Gli altri 16 posti, un MR per posto (`feat/tile-rendering-<place>`), nel
-resto dell'ordine suggerito: `barBackroom`, `church`, `barracks`, poi gli
-altri. `street`, `harbour` e `northDistrict` per ultimi: sono i piu grandi e
-i loro baker sono i piu elaborati. Ogni conversione cancella il baker
-corrispondente e la sua riga in `BAKERS` di `tools/build_levels.py`; quando
-un baker ne dipinge piu d'uno, si cancella con l'ultimo posto che serviva.
+La ricetta, dopo averla fatta due volte. Un MR per posto,
+`feat/tile-rendering-<place>`.
 
-Criteri di accettazione, per ogni posto convertito: il posto non ha piu
-`background` nel suo `PlaceSpec`; il suo PNG in `assets/levels/` e sparito;
-confronto visivo a schermo con la versione precedente allegato all'MR; i
-test esistenti del posto passano invariati, perche la simulazione non
-cambia; nessuna regressione di frame rate sul dispositivo minimo di
-`docs/target_devices.md`.
+1. **Misura prima.** Quante celle del PNG cotto sono davvero distinte, e
+   quante volte si ripete la piu ripetuta. Una cella che torna decine di
+   volte vuol dire che il posto e gia arte a tile; nessuna ripetizione vuol
+   dire o rumore per cella (va benissimo, bastano le varianti) o disegno
+   che attraversa la griglia (serve un oggetto). Distinguere i due casi e
+   tutto il lavoro di progetto: guarda quanti colori usa il glifo.
+2. **Leggi il baker e separalo in due.** Da una parte i painter, che
+   diventano tile; dall'altra il ciclo sui glifi, che diventa il renderer.
+   I painter con dipendenze dal contesto (`room.at(x - 1, y)`) diventano
+   chiavi `neighbour`; quelli con un pattern sulla posizione diventano
+   `pattern`; quelli che guardano una riga notevole diventano `firstRow`.
+3. **Aggiungi il posto a `PLACES` in `tools/build_tile_atlas.py`.** I
+   painter che servono solo a quel posto si spostano dentro il generatore;
+   quelli condivisi si importano dal baker che resta.
+4. **Verifica prima di scrivere una riga di Dart:**
+   `python tools/build_tile_atlas.py --preview DIR` e confronta con il PNG
+   cotto. Se non ci somigli qui, il renderer non ci somigliera.
+5. **Togli `background` dal `PlaceSpec`**, cancella il PNG, la riga in
+   `BAKERS` di `tools/build_levels.py`, e il baker se non dipinge altro.
+6. **`python tools/build_levels.py --check`**, `dart format`,
+   `flutter analyze --fatal-infos --fatal-warnings`, `flutter test`.
+7. **Guarda il posto a schermo** e allega il confronto all'MR.
+
+### Le trappole gia pagate
+
+- **La parita del pavimento.** `paint_floor(d, rng, x, y)` prende
+  coordinate in *tile* e ricava lui i pixel: generare la variante di
+  parita 1 chiedendo `x = 1` dipinge fuori dal tile. Si dipinge su una
+  tela larga due celle e si ritaglia quella giusta (`cell()`).
+- **L'ordine dei bit delle chiavi.** Il bucket e `bit0 + 2*bit1`, e il bit
+  e la chiave *come e scritta*, non come la pensa il painter: il muro
+  della stazione ha `top = sopra non c'e muro`, la chiave e `sopra c'e
+  muro`. Invertirlo costa il 9% dei pixel e non si vede finche non misuri.
+- **I painter che dipingono un'area.** Se un painter prende un rettangolo
+  invece di una cella, non e un tile: e un oggetto. Non provare a
+  spezzarlo.
+- **`comment_references` e attivo** e `--fatal-infos` lo rende bloccante:
+  un `[nome]` in un commento deve essere visibile da dove sta il commento.
+- **L'immagine dell'atlas sta su `LoadedTileAtlas`**, non sul manifest, che
+  ne tiene solo il percorso.
+
+### Quanto sono pronti i posti che restano
+
+Percentuale di celle distinte nel PNG cotto: piu e bassa, piu il posto e
+gia fatto di tile.
+
+| Posto | Tile | Celle uniche | Baker |
+| --- | --- | --- | --- |
+| `barBackroom` | 18x12 | 6% | build_bar_backroom.py (65 righe, suo) |
+| `stationUnderpass` | 30x8 | 58% | build_station.py (2 posti) |
+| `airlinerCabin` | 44x13 | 53% | build_airliner.py (2 posti) |
+| `mallFirst` | 36x15 | 64% | build_mall.py (2 posti) |
+| `barracks` | 22x17 | 66% | build_barracks.py (suo) |
+| `duomo` | 34x25 | 67% | build_duomo.py (suo) |
+| `mallGround` | 48x28 | 67% | build_mall.py (2 posti) |
+| `trainInterior` | 77x12 | 68% | build_train.py (suo) |
+| `airlinerRoofs` | 30x20 | 68% | build_airliner.py (2 posti) |
+| `barArcobaleno` | 22x14 | 72% | build_bar.py (suo) |
+| `church` | 24x20 | 78% | build_church.py (suo) |
+| `station` | 36x20 | 82% | build_station.py (2 posti) |
+| `street` | 44x42 | **93%** | build_street_level.py (2897 righe, 4 posti) |
+| `mallNorthStreet` | 74x43 | **90%** | build_street_level.py |
+| `northDistrict` | 90x60 | **89%** | build_street_level.py |
+| `harbour` | 144x62 | **93%** | build_street_level.py |
+
+Ordine consigliato: `barBackroom` per primo, e un'ora di lavoro e serve a
+prendere confidenza; poi gli interni dall'alto della tabella, che sono
+tutti come quelli gia fatti. I due posti del centro commerciale, i due
+dell'aereo e i due della stazione conviene farli a coppie: il baker si
+cancella solo con l'ultimo.
+
+I quattro della vista 3/4 esterna vanno per ultimi e **sono un problema
+diverso**, non solo piu grande: sono disegnati in prospettiva, dove un
+palazzo attraversa molte celle come il vagone attraversa le sue. Sono il
+caso in cui la Fase 3 puo ancora dire di no, e la decisione va ripresa li,
+con la stessa misura: si converte `street` per primo del gruppo, si guarda,
+e se non regge ci si ferma lasciando i quattro cotti. Non e un fallimento:
+un renderer a tile per gli interni e un baker per la citta e una divisione
+onesta, e le Fasi 1 e 2 continuano a sorvegliare cio che resta cotto.
+
+### Criteri di accettazione, per ogni posto convertito
+
+Il posto non ha piu `background` nel suo `PlaceSpec`; il suo PNG in
+`assets/levels/` e sparito; confronto visivo a schermo con la versione
+precedente allegato all'MR; i test esistenti del posto passano invariati,
+perche la simulazione non cambia; nessuna regressione di frame rate sul
+dispositivo minimo di `docs/target_devices.md`.
 
 ## Fuori ambito
 
