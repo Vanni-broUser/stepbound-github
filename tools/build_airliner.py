@@ -201,8 +201,10 @@ MAST_DARK = (72, 74, 80)
 FAR_ROOF = (44, 44, 48)
 FAR_ROOF_ALT = (40, 40, 44)
 DROP = (16, 16, 20)
-SCORCH = (28, 22, 20)
-SCORCH_ASH = (58, 50, 46)
+SCORCH = (44, 38, 36)
+SCORCH_ALT = (41, 35, 33)
+SCORCH_SOOT = (32, 27, 26)
+SCORCH_ASH = (74, 68, 64)
 SCORCH_EMBER = (150, 52, 24)
 DROP_LIGHT = (28, 28, 34)
 HULL = (206, 204, 198)
@@ -238,13 +240,18 @@ def roof_rubble(d, rng, px, py):
     rect(d, px + rng.randrange(11), py + rng.randrange(11), 5, 2, COPING_DARK)
 
 
-def roof_scorch(d, px, py):
-    """Felt burnt down to the boards where the fuel is still alight; the
-    flames themselves are drawn by the game."""
-    rect(d, px, py, TILE, TILE, SCORCH)
-    rect(d, px + 2, py + 3, 5, 2, SCORCH_ASH)
-    rect(d, px + 9, py + 10, 4, 2, SCORCH_ASH)
-    rect(d, px + 11, py + 4, 2, 1, SCORCH_EMBER)
+def roof_scorch(d, px, py, alt=False):
+    """The felt where the fuel is still alight: the same roof, its strips
+    and seams, only blackened by the fire, so the corner reads darker than
+    the rest of the terrace without turning into a hole. The flames
+    themselves are drawn by the game."""
+    rect(d, px, py, TILE, TILE, SCORCH_ALT if alt else SCORCH)
+    rect(d, px, py, TILE, 1, SCORCH_SOOT)
+    rect(d, px + 1, py + 5, 6, 4, SCORCH_SOOT)
+    rect(d, px + 9, py + 9, 5, 5, SCORCH_SOOT)
+    rect(d, px + 3, py + 12, 3, 1, SCORCH_ASH)
+    rect(d, px + 10, py + 3, 2, 1, SCORCH_ASH)
+    rect(d, px + 12, py + 11, 1, 1, SCORCH_EMBER)
 
 
 def roof_blood(d, rng, px, py):

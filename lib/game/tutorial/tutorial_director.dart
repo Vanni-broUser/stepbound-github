@@ -8,6 +8,7 @@ import 'package:stepbound/game/tutorial/scripts/duomo_script.dart';
 import 'package:stepbound/game/tutorial/scripts/mall_script.dart';
 import 'package:stepbound/game/tutorial/scripts/north_district_script.dart';
 import 'package:stepbound/game/tutorial/scripts/priest_script.dart';
+import 'package:stepbound/game/tutorial/scripts/roadblock_fire_script.dart';
 import 'package:stepbound/game/tutorial/scripts/rome_script.dart';
 import 'package:stepbound/game/tutorial/scripts/rooftops_script.dart';
 import 'package:stepbound/game/tutorial/scripts/station_script.dart';
@@ -23,6 +24,7 @@ export 'package:stepbound/game/tutorial/scripts/duomo_script.dart';
 export 'package:stepbound/game/tutorial/scripts/mall_script.dart';
 export 'package:stepbound/game/tutorial/scripts/north_district_script.dart';
 export 'package:stepbound/game/tutorial/scripts/priest_script.dart';
+export 'package:stepbound/game/tutorial/scripts/roadblock_fire_script.dart';
 export 'package:stepbound/game/tutorial/scripts/rome_script.dart';
 export 'package:stepbound/game/tutorial/scripts/rooftops_script.dart';
 export 'package:stepbound/game/tutorial/scripts/station_script.dart';
@@ -244,6 +246,7 @@ final class TutorialDirector {
       StationScript(this),
       TrainScript(this),
       RooftopsScript(this),
+      RoadblockFireScript(this),
       RomeScript(this),
       ZombieSightingsScript(this),
     ];

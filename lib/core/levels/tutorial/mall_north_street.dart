@@ -12,12 +12,18 @@
 /// What is closed, and by what. West, both streets stop at the map edge:
 /// the four-lane road behind a wrecked-car pile-up from house front to
 /// house front, wrecks in every lane and one more shunted up on each
-/// pavement, the shopping street behind concrete road blocks laid across
-/// it by the living. The wrecks are nosed forward and back of one another
-/// rather than lined up, but they all take the second column from the map
-/// edge, so the wall never opens. A second pile-up stands midway between
-/// the park's two south gates and cuts the four-lane road in half, which
-/// leaves the park the only way from one half to the other. East, nothing
+/// pavement, the shopping street, past the campfire, behind a pile-up of
+/// its own with a gap in the middle lane: no car there, only the fuel it
+/// spilt, burning `?` across the lane and under the wreck beside it, which
+/// has set the two cars either side of the gap alight too. It looks like
+/// the way through, and
+/// looking at it says what it would take (see `shoppingStreetFireTile`).
+/// The wrecks are nosed forward and back of one another rather than lined
+/// up, but they all take the second column from the map edge, so the wall
+/// never opens. A second pile-up stands midway between the park's two
+/// south gates and cuts the four-lane road in half, which leaves the park
+/// the only way from one half to the other; one of its cars is still on
+/// fire. East, nothing
 /// blocks anything: the streets simply run into the buildings.
 ///
 /// The car park and the park are the same width, each pushed to its own
@@ -46,7 +52,8 @@
 /// heap of rubbish too deep to step on, an obstacle, with `:` the rubbish
 /// spilled around it, walkable but noisy; `0` the station building, a
 /// wall, with `(` and `)` its two open doorways, floor; `j` the fire door
-/// in the rear wall, stepped onto to go back inside, floor.
+/// in the rear wall, stepped onto to go back inside, floor; `?` fuel
+/// burning on the road, shut like a wall but seen through.
 // mall-north-rows-start
 const List<String> mallNorthStreetRows = <String>[
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB000000000000000000',
@@ -56,9 +63,9 @@ const List<String> mallNorthStreetRows = <String>[
   'HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHfHHHHHHHHHHHHHHHHHHHHHH000000000000000000',
   'HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH00((000000))000000',
   'CC/===================F============:=============/=====TPPPPPPP:PPPPPPPBBB',
-  '.UU.........CC...........:........................Z....=PPPPPCCPPPPPCCPBBB',
-  'CC----------------------------------------------..Z....=PPPPPPPPPPPPPPPBBB',
-  '.UU....S..........:...........UU..................Z....=PPPPPPPPUUPPPPPBBB',
+  '.XX.........CC...........:........................Z....=PPPPPCCPPPPPCCPBBB',
+  '???---------------------------------------------..Z....=PPPPPPPPPPPPPPPBBB',
+  '?XX....S..........:...........UU..................Z....=PPPPPPPPUUPPPPPBBB',
   'CC======:=========================================TVVVV=PPPNPPPPPPPPPNPBBB',
   'BBBBBBBBBBBBBBBB^^^^^^^^^^<^^^^^^^^^^^BBBBBBBBBBBB=....=BBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBBBBBggggggggggPgggggggggggBBBBBBBBBBBB=....=BBBBBBBBBBBBBBBBBB',
@@ -74,7 +81,7 @@ const List<String> mallNorthStreetRows = <String>[
   'HHHHHHHHHHHHHHHH^^^^<^^^^^^^^^^^^<^^^^HHHHHHHHHHHH=...+++_________BBBBBBBB',
   'UU=======================CC==============:::=======VVV_________BBBBBBBBBBB',
   '.XX.CC....................UU............CC::..._____________+BBBBBBBBBBBBB',
-  '-XX----------------------UU---------------::_____________++++BBBBBBBBBBBBB',
+  '-XX----------------------XX---------------::_____________++++BBBBBBBBBBBBB',
   'XX------------------------UU----------------__[[______.=B+++++BBBBBBBBBBBB',
   '.XX..CC..................UU............UU.::::..::Z:...=BB+++++BBBBBBBBBBB',
   'CC========================CC================::===/T=====BBBB++++BBBBBBBBBB',

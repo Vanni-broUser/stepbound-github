@@ -474,6 +474,24 @@ void main() {
     expect(world.map.tileAt(duomoUpperLockedDoorTile).kind, TileKind.wall);
   });
 
+  test('looking at the fire across the shopping street says it would take '
+      'an extinguisher, every time', () {
+    for (var look = 0; look < 2; look++) {
+      director.onEvents(<WorldEvent>[
+        LookedOutEvent(at: shoppingStreetFireTile),
+      ]);
+      settle();
+      expect(host.shown.last.single.text, RoadblockFireScript.fireLine);
+      host.dismiss();
+    }
+    expect(host.shown, hasLength(2));
+    expect(
+      RoadblockFireScript.fireLine,
+      "L'incendio blocca completamente la strada, potresti passare con un "
+      'estintore',
+    );
+  });
+
   test('looking over the gap between the roofs tells Mario what it would '
       'take, every time he looks', () {
     for (var look = 0; look < 2; look++) {

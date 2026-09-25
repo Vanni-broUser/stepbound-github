@@ -436,6 +436,7 @@ final class StepboundGame extends FlameGame
         active: () => progress.memories.contains(StoryMemory.luigiRescued),
       ),
       InteractGlintComponent(tile: rooftopGapTile, active: canInteract),
+      InteractGlintComponent(tile: shoppingStreetFireTile, active: canInteract),
       // Between the two open books of the crate.
       InteractGlintComponent(
         tile: trainBookTiles.first,

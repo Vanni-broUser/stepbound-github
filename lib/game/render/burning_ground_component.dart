@@ -4,9 +4,12 @@ import 'package:flame/components.dart';
 import 'package:stepbound/core/core.dart' hide PositionComponent;
 import 'package:stepbound/game/render/fire_component.dart';
 
-/// The charred ground under a tile that is burning for good
-/// (`TileKind.fire`): drawn under the characters, while the flames over it
-/// ([burningGround]) are drawn over them, like every other fire.
+/// The ash and embers on a tile that is burning for good
+/// (`TileKind.fire`), over whatever the tile is -- the road, the roof --
+/// so the fire burns on it rather than in a black hole: drawn under the
+/// characters, while the flames over it ([burningGround]) are drawn over
+/// them, like every other fire. Where a place wants the ground itself
+/// blackened, its own art does it (the burning corner of the roofs).
 final class ScorchComponent extends PositionComponent {
   ScorchComponent(GridPoint tile, {double tileSize = 16})
     : _seed = tile.x * 7 + tile.y * 13,
@@ -19,14 +22,14 @@ final class ScorchComponent extends PositionComponent {
   final int _seed;
   final Paint _paint = Paint()..isAntiAlias = false;
 
-  static const Color _char = Color(0xff1b1311);
-  static const Color _ash = Color(0xff3a302b);
+  static const Color _soot = Color(0x661b1311);
+  static const Color _ash = Color(0xff4a403a);
   static const Color _ember = Color(0xffc83c14);
 
   @override
   void render(Canvas canvas) {
-    _paint.color = _char;
-    canvas.drawRect(Rect.fromLTWH(1, 1, size.x - 2, size.y - 2), _paint);
+    _paint.color = _soot;
+    canvas.drawOval(Rect.fromLTWH(3, 8, size.x - 6, 6), _paint);
     _paint.color = _ash;
     for (var i = 0; i < 4; i++) {
       final x = (_seed * (i + 3) * 5) % 13 + 1;
@@ -41,8 +44,8 @@ final class ScorchComponent extends PositionComponent {
   }
 }
 
-/// The two components of a tile of burning ground: the charred tile and
-/// its flames. Only every other tile smokes, or a long trail of fire would
+/// The two components of a tile of burning ground: its ash and its
+/// flames. Only every other tile smokes, or a long trail of fire would
 /// hide the roofs under one cloud.
 List<Component> burningGround(GridPoint tile, {double tileSize = 16}) {
   final left = tile.x * tileSize;
