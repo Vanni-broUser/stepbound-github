@@ -821,7 +821,8 @@ def prop_rules(atlas: Atlas, rng) -> list[dict]:
 
 
 def paint_back_passage(d, px, py):
-    """sl.paint_back_passage, for one cell."""
+    """The covered passage through the back of the barracks, `e`: an
+    opening in the roofs, dark, with its steps going down."""
     rect(d, px - 2, py, 20, 16, (150, 136, 104))
     rect(d, px, py + 2, 16, 14, (26, 24, 26))
     rect(d, px + 2, py + 4, 12, 12, (44, 40, 40))
@@ -830,7 +831,9 @@ def paint_back_passage(d, px, py):
 
 
 def paint_mall_back_door(d, px, py):
-    """sl.paint_mall_back_door, for its one cell and the well below it."""
+    """The hypermarket's fire exit `j`, seen from behind: only the opening
+    shows, a concrete well biting one tile into the roof, the door swung
+    open at its top and the exit sign lit at the bottom."""
     well = py + TILE
     rect(d, px - 2, py, 20, TILE * 2, (112, 108, 102))
     rect(d, px - 2, well + TILE - 3, 20, 3, (76, 74, 70))

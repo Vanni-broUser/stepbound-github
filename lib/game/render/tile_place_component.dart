@@ -1,26 +1,29 @@
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flame/components.dart';
 import 'package:stepbound/core/core.dart';
-import 'package:stepbound/game/render/place_background.dart';
 import 'package:stepbound/game/render/tile_atlas.dart';
 
-/// Draws a place that has no baked background, tile by tile out of the
-/// atlas, from the same ASCII rows the simulation walks on. Where
-/// LevelBackgroundComponent shows a picture of a place, this one builds
-/// the picture.
+/// Draws a place tile by tile out of the atlas, from the same ASCII rows
+/// the simulation walks on: there is no picture of it anywhere, this
+/// builds one.
 ///
 /// It is built once, into an image the size of the place, and drawn from
 /// there: a tile loop every frame would cost a thousand draws on the
 /// cheapest phone we support, and buy nothing. A place whose story can
 /// open something -- the train Luigi is in -- is built twice, shut and
 /// open, and the flip is then only a choice of image.
-final class TilePlaceComponent extends PlaceBackground {
+final class TilePlaceComponent extends Component {
   TilePlaceComponent({
     required this.place,
     this.offset = ui.Offset.zero,
     this.useOpen,
   }) : super(priority: 0);
+
+  /// Cleared by the game while the place is out of the camera's view, so
+  /// the far places' big images are not drawn every frame.
+  bool onScreen = true;
 
   final Place place;
   final ui.Offset offset;
@@ -37,7 +40,7 @@ final class TilePlaceComponent extends PlaceBackground {
   /// The name this place's art goes by in the atlas manifest.
   String get artKey => place.id.name;
 
-  @override
+  /// What is on screen for this place, for tests and diagnostics.
   String get activeAssetPath =>
       _opened ? 'tiles:$artKey:open' : 'tiles:$artKey';
 

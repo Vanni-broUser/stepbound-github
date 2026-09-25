@@ -31,7 +31,7 @@ void main() {
   //   python tools/build_tile_atlas.py --compare some/dir
   test('every converted place is drawn at the size of its rows', () async {
     resetTileAtlasCache();
-    final places = tutorialPlaces.where((place) => place.background == null);
+    final places = tutorialPlaces;
     expect(places, isNotEmpty);
     final dump = Platform.environment['TILE_RENDER_DUMP'];
     for (final place in places) {

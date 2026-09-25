@@ -6,10 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/render/tile_atlas.dart';
 
-/// The places the game paints from the tile atlas: the ones that gave up
-/// their baked picture.
-Iterable<Place> get convertedPlaces =>
-    tutorialPlaces.where((place) => place.background == null);
+/// The places the game paints from the tile atlas: every one of them.
+Iterable<Place> get convertedPlaces => tutorialPlaces;
 
 void main() {
   final manifest = TileAtlasManifest.parse(
@@ -21,7 +19,7 @@ void main() {
     expect(manifest.tileHeight, levelTileSize.round());
   });
 
-  test('every place without a picture has art to be painted with', () {
+  test('every place has art to be painted with', () {
     expect(
       convertedPlaces,
       isNotEmpty,
@@ -32,7 +30,7 @@ void main() {
         manifest.places,
         contains(place.id.name),
         reason:
-            '${place.id} has no background and no entry in '
+            '${place.id} has no entry in '
             '$tileAtlasManifestPath: it would be drawn as a bare rectangle. '
             'Run python tools/build_tile_atlas.py',
       );
@@ -139,17 +137,15 @@ void main() {
     }
   });
 
-  test('a place with a picture is not also in the atlas', () {
-    for (final place in tutorialPlaces) {
-      if (place.background == null) {
-        continue;
-      }
+  test('every place of the atlas is a place of the game', () {
+    final ids = <String>{for (final place in tutorialPlaces) place.id.name};
+    for (final name in manifest.places.keys) {
       expect(
-        manifest.places,
-        isNot(contains(place.id.name)),
+        ids,
+        contains(name),
         reason:
-            '${place.id} is baked and painted from tiles at once: one of '
-            'the two is dead weight',
+            '$name is painted in the atlas and no place is called that: '
+            'dead weight, or a place renamed on one side only',
       );
     }
   });

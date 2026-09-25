@@ -3,11 +3,11 @@ import 'package:stepbound/core/grid/tile.dart';
 import 'package:stepbound/core/items/pickup.dart';
 import 'package:stepbound/core/world.dart';
 
-/// The side of one tile, in pixels: the unit the baked backgrounds in
-/// assets/levels are painted at (`TILE` in tools/build_*.py) and the one
-/// the renderer draws the grid with. A place's background is therefore
-/// `width * levelTileSize` by `height * levelTileSize` pixels, an
-/// invariant checked by test/levels/level_background_dimensions_test.dart.
+/// The side of one tile, in pixels: the unit the tile atlas is cut at
+/// (`TILE` in tools/build_street_level.py) and the one the renderer draws
+/// the grid with. A place is therefore drawn `width * levelTileSize` by
+/// `height * levelTileSize` pixels; test/levels/tile_atlas_test.dart holds
+/// the atlas to it.
 const double levelTileSize = 16;
 
 /// Every place of the game, so code can name the one it means.
@@ -78,9 +78,9 @@ final class LightSpot {
   final bool torch;
 }
 
-/// A place as a level describes it: its ASCII [rows], what they mean, and
-/// its baked [background] -- or no background at all, for a place the
-/// renderer paints from those same rows out of the tile atlas. Indoors (a
+/// A place as a level describes it: its ASCII [rows] and what they mean.
+/// The renderer paints it from those same rows out of the tile atlas, so
+/// they are the only place its layout is written down. Indoors (a
 /// room on a dark background) it is lit by its lamps, `*` (steady) and
 /// `+` (flickering), and by daylight at the [daylight] glyphs, unless it
 /// is [lit] throughout. A place with a [cardImage] is announced, on the
@@ -90,13 +90,11 @@ final class PlaceSpec {
     required this.id,
     required this.rows,
     required this.legend,
-    this.background,
     this.indoor = false,
     this.lit = false,
     this.daylight = '',
     this.name,
     this.cardImage,
-    this.alternateBackground,
     this.torches = const <GridPoint>[],
     this.darkness = defaultDarkness,
   });
@@ -107,10 +105,6 @@ final class PlaceSpec {
   final PlaceId id;
   final List<String> rows;
   final Legend legend;
-
-  /// The picture of this place, painted from [rows] by a baker in tools/,
-  /// or null when the place is drawn from the tile atlas instead.
-  final String? background;
   final bool indoor;
 
   /// An indoor place with every light on: it sounds and is entered like a
@@ -119,10 +113,6 @@ final class PlaceSpec {
   final String daylight;
   final String? name;
   final String? cardImage;
-
-  /// A second baked view of the same place, selected by the game when
-  /// story state changes something visual without changing the layout.
-  final String? alternateBackground;
 
   /// Burning torches, in the place's own tile coordinates: fixed to walls
   /// and columns, so they are not glyphs of their own. The game draws
@@ -145,8 +135,6 @@ final class Place {
 
   PlaceId get id => spec.id;
   List<String> get rows => spec.rows;
-  String? get background => spec.background;
-  String? get alternateBackground => spec.alternateBackground;
   bool get indoor => spec.indoor;
   bool get lit => spec.lit;
   String? get name => spec.name;
