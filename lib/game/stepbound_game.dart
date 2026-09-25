@@ -88,7 +88,9 @@ final class StepboundGame extends FlameGame
     );
   }
 
-  static const double tileSize = 16;
+  /// The side of a tile on screen: the level grid's own unit, shared
+  /// with the baked backgrounds (lib/core/levels/place.dart).
+  static const double tileSize = levelTileSize;
 
   /// How far outside the view a character is still drawn, in pixels: a
   /// sprite reaches above and beside the tile its feet stand on, and a
