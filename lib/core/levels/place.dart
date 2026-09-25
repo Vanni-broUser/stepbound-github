@@ -78,18 +78,19 @@ final class LightSpot {
   final bool torch;
 }
 
-/// A place as a level describes it: its ASCII [rows], what they mean, its
-/// baked [background]. Indoors (a room on a dark background) it is lit by
-/// its lamps, `*` (steady) and `+` (flickering), and by daylight at the
-/// [daylight] glyphs, unless it is [lit] throughout. A place with a
-/// [cardImage] is announced, on the way in, by that picture and its [name]
-/// between two fades to black.
+/// A place as a level describes it: its ASCII [rows], what they mean, and
+/// its baked [background] -- or no background at all, for a place the
+/// renderer paints from those same rows out of the tile atlas. Indoors (a
+/// room on a dark background) it is lit by its lamps, `*` (steady) and
+/// `+` (flickering), and by daylight at the [daylight] glyphs, unless it
+/// is [lit] throughout. A place with a [cardImage] is announced, on the
+/// way in, by that picture and its [name] between two fades to black.
 final class PlaceSpec {
   const PlaceSpec({
     required this.id,
     required this.rows,
     required this.legend,
-    required this.background,
+    this.background,
     this.indoor = false,
     this.lit = false,
     this.daylight = '',
@@ -106,7 +107,10 @@ final class PlaceSpec {
   final PlaceId id;
   final List<String> rows;
   final Legend legend;
-  final String background;
+
+  /// The picture of this place, painted from [rows] by a baker in tools/,
+  /// or null when the place is drawn from the tile atlas instead.
+  final String? background;
   final bool indoor;
 
   /// An indoor place with every light on: it sounds and is entered like a
@@ -141,7 +145,7 @@ final class Place {
 
   PlaceId get id => spec.id;
   List<String> get rows => spec.rows;
-  String get background => spec.background;
+  String? get background => spec.background;
   String? get alternateBackground => spec.alternateBackground;
   bool get indoor => spec.indoor;
   bool get lit => spec.lit;

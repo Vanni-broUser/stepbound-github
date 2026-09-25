@@ -101,7 +101,9 @@ const String harbourCardImage = 'assets/story/scene_harbour.jpg';
 /// and its three places, and the harbour south of all that with the Duomo,
 /// the Bar Arcobaleno and the church of San Nicola. Backgrounds are baked
 /// by tools/build_street_level.py, build_barracks.py, build_mall.py,
-/// build_bar.py, build_church.py and build_station.py.
+/// build_bar.py, build_church.py and build_station.py, except for the
+/// places with no `background`: those the game paints from these same
+/// rows, out of assets/tiles (tools/build_tile_atlas.py).
 final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
   PlaceSpec(
     id: PlaceId.street,
@@ -189,12 +191,13 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     // Daylight falling down both flights of stairs.
     daylight: 'DU',
   ),
+  // Painted from its rows out of the tile atlas, backdrop and all: the
+  // railcar is an object in it, and the story opens its door rather than
+  // swapping a second picture of the whole place.
   PlaceSpec(
     id: PlaceId.stationFarSide,
     rows: stationFarSideRows,
     legend: stationLegend,
-    background: 'assets/levels/station_far_side.png',
-    alternateBackground: 'assets/levels/station_far_side_open.png',
   ),
   PlaceSpec(
     id: PlaceId.trainInterior,
@@ -242,11 +245,11 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     indoor: true,
     daylight: 'E',
   ),
+  // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.duomoUpper,
     rows: duomoUpperRows,
     legend: duomoUpperLegend,
-    background: 'assets/levels/duomo_upper.png',
     indoor: true,
     // The community lives up here: every lamp is lit, no darkness at all.
     lit: true,

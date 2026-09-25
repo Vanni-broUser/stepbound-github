@@ -86,56 +86,93 @@ variando `PYTHONHASHSEED`), il giro completo dura pochi secondi (3,3 s in
 locale) quindi non serve spezzarlo per posto, e nessun PNG committato era
 divergente dal proprio baker: la Fase 2 nasce verde.
 
-## Fase 3 - Rendering da tile atlas (da fare)
+## Fase 3 - Rendering da tile atlas (iniziata)
 
-E la fase che elimina il problema invece di sorvegliarlo. Il renderer dipinge
-il posto a runtime dalle stesse `rows` che legge la simulazione, usando un
-atlas di tile. Lo sfondo pre-cotto e il baker Python di quel posto
+E la fase che elimina il problema invece di sorvegliarlo. Il renderer
+dipinge il posto a runtime dalle stesse `rows` che legge la simulazione,
+usando un atlas di tile. Lo sfondo pre-cotto e il baker Python di quel posto
 spariscono. Un posto nuovo diventa un file ASCII e basta.
 
-- Dare corpo a `assets/tiles/atlas_manifest.json` (`stepbound-tile-atlas-v1`,
-  tile 16x16, layer `ground`/`structures`/`foreground`): oggi e una specifica
-  morta, non esistono ne il PNG dell'atlas ne un caricatore.
-- Un `TilePlaceComponent` affiancato a `LevelBackgroundComponent`, che disegna
-  da `Place.glyphs` invece che da un'immagine. Le `Legend` restano dove sono e
-  diventano l'unica definizione del glifo.
-- La scelta fra i due renderer sta nel `PlaceSpec`: un posto convertito non ha
-  piu `background`. I due percorsi convivono finche l'ultimo posto non e
-  convertito.
-- Conversione un posto alla volta, un MR per posto
-  (`feat/tile-rendering-<place>`). Ogni conversione cancella il baker Python
-  corrispondente e la sua riga in `BAKERS` di `tools/build_levels.py` nello
-  stesso MR.
-- Ordine suggerito: `barBackroom` (18x12, baker da 65 righe) per misurare il
-  costo reale, poi `duomoUpper`, `church`, `barracks`. `street`, `harbour` e
-  `northDistrict` per ultimi: sono i piu grandi e i loro baker sono i piu
-  elaborati.
+### Come e fatto
 
-Si guadagna: il glifo definito una volta sola, quindi desincronizzazione
-impossibile per costruzione e non improbabile per disciplina; il costo di un
-posto nuovo che crolla da circa 330 righe di Python di media a zero; un
-ritocco che torna a essere un diff di testo leggibile invece di un blob
-binario rigenerato; una palette o un passaggio di sporcizia da cambiare una
-volta nel renderer invece che in 11 script.
+- `tools/build_tile_atlas.py` dipinge `assets/tiles/atlas.png` e il suo
+  manifest. Li e finita l'*arte* dei baker convertiti; la loro
+  *composizione* e morta. Un baker sapeva due cose: come si dipinge una
+  panchina, e dove sono le panchine. La seconda sta nelle righe ASCII ed e
+  del gioco; solo la prima e nell'atlas, che infatti non legge mai un posto.
+- Il manifest dichiara, per posto, regole ordinate: per questi glifi, su
+  questo layer, prendi un tile da questo mucchio. Il mucchio lo scelgono
+  poche chiavi booleane (la parita della cella, la riga, un vicino), il
+  tile dentro al mucchio un hash della posizione: la resa e identica a ogni
+  avvio e non c'e nessun seed da salvare.
+- `TilePlaceComponent` (lib/game/render/) compone il posto **una volta** in
+  un'immagine e poi disegna quella: un ciclo sui tile a ogni frame
+  costerebbe mille draw sul dispositivo minimo senza comprare niente. Un
+  posto che la storia puo aprire viene composto due volte, chiuso e aperto,
+  e il cambio e solo una scelta di immagine.
+- La scelta fra i due renderer sta nel `PlaceSpec`: un posto convertito non
+  ha piu `background`. I due percorsi convivono, dietro `PlaceBackground`,
+  finche l'ultimo posto non e convertito.
 
-Si perde il dettaglio non allineato alla griglia che i baker attuali
-dipingono: sfumature, sporco, irregolarita che non stanno su un reticolo di 16
-pixel. Un renderer a tile, da solo, appiattisce l'aspetto. Mitigazioni da
-valutare sul primo posto convertito: piu varianti per glifo scelte con un hash
-deterministico della posizione del tile, cosi la resa e identica a ogni avvio
-e non c'e nessun seed da salvare; un layer `foreground` per la decorazione
-fuori griglia; tile di bordo e di angolo per muri e transizioni di pavimento.
+### I primi due posti
 
-Punto di decisione: se dopo `barBackroom` la resa non regge il confronto con
-il baked, la Fase 3 si ferma li. Le Fasi 1 e 2 restano e il problema resta
-sorvegliato invece che risolto. E un esito accettabile.
+`duomoUpper` (interno ordinato, `lit`) e `stationFarSide` (esterno sporco,
+con le interazioni di Luigi). Scelti insieme perche sono due regimi opposti,
+e la misura lo conferma: nel duomo il muro e letteralmente la stessa cella
+71 volte su 72, nella stazione **nessuna cella si ripete mai**.
+
+Confronto con la versione cotta, pixel per pixel:
+
+| Posto | Pixel diversi | Cosa differisce |
+| --- | --- | --- |
+| duomoUpper | 1,2% | la graniglia del pavimento, 3 px per cella |
+| stationFarSide | 11,5% | massicciata (26 rettangoli casuali per cella), colature sul vagone, bolle sul muro |
+
+La struttura combacia esattamente in entrambi: muri, orlo giallo della
+banchina, binari, panchine, pali, sagoma e livrea del vagone. Quello che non
+coincide e *dove cade il rumore casuale*, che non ha una posizione giusta.
+`python tools/build_tile_atlas.py --preview DIR` ridisegna i posti
+convertiti per l'occhio, senza dispositivo.
+
+### Cosa si e imparato
+
+- **Il timore non si e avverato.** Il piano temeva che un renderer a tile
+  appiattisse l'aspetto. Con 12 varianti per tipo di tile il carattere
+  regge anche sull'esterno sporco.
+- **Il vagone non e fatto di tile, ed e giusto cosi.** Il baker lo dipinge
+  come un oggetto unico steso su un rettangolo, con colature che
+  attraversano la griglia. E diventato uno sprite, la "decorazione fuori
+  griglia" che il piano prevedeva. La porta che si apre quando Luigi e
+  salvo e un secondo sprite, non piu una seconda immagine dell'intero posto.
+- **L'arte di un oggetto dipende dal layout.** Lo sprite del vagone e
+  dipinto per una corsa di `M` di 27x3 tile, e
+  `test/levels/tile_atlas_test.dart` fallisce se le righe smettono di
+  essere d'accordo. E la stessa rete della
+  Fase 1, applicata agli oggetti.
+- **Il renderer taglia cio che il baker lasciava sbordare.** I painter
+  scrivevano 1-2 px nella riga di vuoto sotto: 52 pixel in tutto, e tagliarli
+  e piu corretto.
+- **Peso.** I tre PNG cancellati pesavano 43 KB, l'atlas piu i tre oggetti
+  piu il manifest ne pesano 27, e serviranno a tutti i posti convertiti
+  dopo. Il baker `build_duomo_upper.py` (120 righe) non c'e piu;
+  `build_station.py` resta perche dipinge ancora la stazione e il
+  sottopasso, e si potra cancellare quando saranno convertiti anche quelli.
+
+### Cosa manca
+
+Gli altri 16 posti, un MR per posto (`feat/tile-rendering-<place>`), nel
+resto dell'ordine suggerito: `barBackroom`, `church`, `barracks`, poi gli
+altri. `street`, `harbour` e `northDistrict` per ultimi: sono i piu grandi e
+i loro baker sono i piu elaborati. Ogni conversione cancella il baker
+corrispondente e la sua riga in `BAKERS` di `tools/build_levels.py`; quando
+un baker ne dipinge piu d'uno, si cancella con l'ultimo posto che serviva.
 
 Criteri di accettazione, per ogni posto convertito: il posto non ha piu
-`background` nel suo `PlaceSpec`; il suo PNG in `assets/levels/` e il suo
-`tools/build_<place>.py` sono cancellati; confronto visivo a schermo con la
-versione precedente allegato all'MR; i test esistenti del posto passano
-invariati, perche la simulazione non cambia; nessuna regressione di frame rate
-sul dispositivo minimo di `docs/target_devices.md`.
+`background` nel suo `PlaceSpec`; il suo PNG in `assets/levels/` e sparito;
+confronto visivo a schermo con la versione precedente allegato all'MR; i
+test esistenti del posto passano invariati, perche la simulazione non
+cambia; nessuna regressione di frame rate sul dispositivo minimo di
+`docs/target_devices.md`.
 
 ## Fuori ambito
 

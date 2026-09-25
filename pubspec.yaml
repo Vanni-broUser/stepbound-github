@@ -30,4 +30,5 @@ flutter:
     - assets/sprites/
     - assets/story/
     - assets/tiles/
+    - assets/tiles/objects/
     - assets/palette.gpl

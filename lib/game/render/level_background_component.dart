@@ -1,11 +1,11 @@
 import 'dart:ui' as ui;
 
-import 'package:flame/components.dart';
 import 'package:stepbound/game/render/asset_image.dart';
+import 'package:stepbound/game/render/place_background.dart';
 
 /// Draws a region's pre-baked background image, pixel for pixel, with its
 /// top-left corner at [offset] in world pixels.
-final class LevelBackgroundComponent extends Component {
+final class LevelBackgroundComponent extends PlaceBackground {
   LevelBackgroundComponent({
     required this.assetPath,
     this.offset = ui.Offset.zero,
@@ -18,9 +18,6 @@ final class LevelBackgroundComponent extends Component {
   final String? alternateAssetPath;
   final bool Function()? useAlternate;
 
-  /// Cleared by the game while the place is out of the camera's view, so
-  /// the far places' big images are not drawn every frame.
-  bool onScreen = true;
   ui.Image? _image;
   ui.Image? _alternateImage;
   final ui.Paint _paint = ui.Paint()
@@ -37,6 +34,7 @@ final class LevelBackgroundComponent extends Component {
     }
   }
 
+  @override
   String get activeAssetPath =>
       useAlternate?.call() == true && alternateAssetPath != null
       ? alternateAssetPath!

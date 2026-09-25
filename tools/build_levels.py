@@ -42,6 +42,9 @@ LEVELS = os.path.join("assets", "levels")
 # they run. Deterministic on purpose: the report of a --check run reads
 # the same way twice. Sprites, audio and quest items are baked elsewhere
 # and are not part of this gate.
+#
+# A place converted to the tile atlas leaves this table: it has no picture
+# to keep up to date. The atlas itself is checked at the end of the run.
 BAKERS: list[tuple[str, tuple[str, ...]]] = [
     (
         "build_street_level.py",
@@ -58,16 +61,7 @@ BAKERS: list[tuple[str, tuple[str, ...]]] = [
     ("build_bar_backroom.py", ("bar_backroom.png",)),
     ("build_church.py", ("church.png",)),
     ("build_duomo.py", ("duomo.png",)),
-    ("build_duomo_upper.py", ("duomo_upper.png",)),
-    (
-        "build_station.py",
-        (
-            "station.png",
-            "station_underpass.png",
-            "station_far_side.png",
-            "station_far_side_open.png",
-        ),
-    ),
+    ("build_station.py", ("station.png", "station_underpass.png")),
     ("build_train.py", ("train_interior.png",)),
     ("build_airliner.py", ("airliner_cabin.png", "airliner_roofs.png")),
 ]
@@ -146,11 +140,16 @@ def orphans() -> list[str]:
     )
 
 
+ATLAS_BAKER = "build_tile_atlas.py"
+
+
 def bake_all() -> None:
     for script, outputs in BAKERS:
         run_baker(script, ROOT)
         print(f"tools/{script}: {', '.join(outputs)}")
     print(f"{sum(len(o) for _, o in BAKERS)} backgrounds painted")
+    run_baker(ATLAS_BAKER, ROOT)
+    print(f"tools/{ATLAS_BAKER}: the tile atlas of the converted places")
 
 
 def check_all() -> None:
@@ -181,6 +180,16 @@ def check_all() -> None:
             f"{', '.join(left_over)}. Delete them, or add their baker to "
             f"the BAKERS table in tools/build_levels.py"
         )
+    # The converted places have no picture to compare; what has to stay
+    # current for them is the atlas they are painted from.
+    result = subprocess.run(
+        [sys.executable, os.path.join("tools", ATLAS_BAKER), "--check"],
+        cwd=ROOT, capture_output=True, text=True,
+    )
+    sys.stdout.write(result.stdout)
+    if result.returncode != 0:
+        sys.stderr.write(result.stderr)
+        raise SystemExit(f"tools/{ATLAS_BAKER} --check failed")
     print("every level background matches its ASCII rows")
 
 

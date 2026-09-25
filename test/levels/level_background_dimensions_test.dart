@@ -50,13 +50,22 @@ void main() {
 
   test('every baked background measures its place, tile for tile', () {
     final tile = levelTileSize.round();
+    var baked = 0;
     for (final place in tutorialPlaces) {
+      final background = place.background;
+      if (background == null) {
+        // Painted from the tile atlas at runtime: there is no picture of
+        // it to keep the right size. test/levels/tile_atlas_test.dart
+        // guards that one instead.
+        continue;
+      }
+      baked++;
       final expected = (width: place.width * tile, height: place.height * tile);
       expect(
-        _pngSize(place.background),
+        _pngSize(background),
         expected,
         reason:
-            '${place.id}: ${place.background} should be '
+            '${place.id}: $background should be '
             '${place.width}x${place.height} tiles of $tile px. Re-run the '
             'baker of this place (python tools/build_levels.py) after '
             'changing its rows',
@@ -68,9 +77,14 @@ void main() {
           expected,
           reason:
               '${place.id}: $alternate is the same place seen again, so '
-              'it measures like ${place.background}',
+              'it measures like $background',
         );
       }
     }
+    expect(
+      baked,
+      greaterThan(0),
+      reason: 'the invariant is worth nothing if it checked no place',
+    );
   });
 }

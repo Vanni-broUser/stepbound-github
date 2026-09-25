@@ -29,6 +29,9 @@ guarda che `verify` sia verde.
   la stabilita; poi si toglie e diventa bloccante. Il confronto e sui pixel
   decodificati e non sui byte del file perche la codifica PNG non e
   garantita stabile fra versioni di Pillow o di zlib.
+  Copre anche l'atlas dei posti convertiti al rendering a tile
+  (`tools/build_tile_atlas.py --check`), che non hanno piu un PNG da
+  confrontare.
   L'invariante piu grossolana, ogni sfondo grande esattamente quanto la sua
   griglia, e coperta anche da `unit_tests`
   (`test/levels/level_background_dimensions_test.dart`), che gira sempre e

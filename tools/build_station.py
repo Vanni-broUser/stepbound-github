@@ -34,9 +34,6 @@ from build_street_level import (  # noqa: E402
 
 STATION_OUTPUT = os.path.join("assets", "levels", "station.png")
 UNDERPASS_OUTPUT = os.path.join("assets", "levels", "station_underpass.png")
-FAR_OUTPUT = os.path.join("assets", "levels", "station_far_side.png")
-FAR_OPEN_OUTPUT = os.path.join(
-    "assets", "levels", "station_far_side_open.png")
 
 VOID = (6, 6, 8)
 HALL_A = (172, 162, 146)
@@ -613,10 +610,10 @@ def main() -> None:
                   STATION_OUTPUT, wrecked=True)
     bake_underpass(Room(read_rows("underpass-rows")), random.Random(1931),
                    UNDERPASS_OUTPUT)
-    bake_platform(Room(read_rows("far-platform-rows")), random.Random(1948),
-                  FAR_OUTPUT, wrecked=False)
-    bake_platform(Room(read_rows("far-platform-rows")), random.Random(1948),
-                  FAR_OPEN_OUTPUT, wrecked=False, open_door=True)
+    # The far platform is not baked any more: the game paints it from its
+    # rows out of the tile atlas (tools/build_tile_atlas.py), which still
+    # uses the painters above. The rest of this file stays for the station
+    # and its underpass, which are not converted yet.
 
 
 if __name__ == "__main__":
