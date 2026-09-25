@@ -62,8 +62,8 @@ final class TilePlaceComponent extends PlaceBackground {
   /// Which tile of a bucket falls on a cell: a hash of its place in the
   /// grid, so the grit lies the same way at every start and there is
   /// nothing to save. tools/build_tile_atlas.py repeats this.
-  static int _variant(List<int> bucket, int x, int y) =>
-      bucket[((x * 73856093) ^ (y * 19349663)) % bucket.length];
+  static int _variant(int length, int x, int y) =>
+      ((x * 73856093) ^ (y * 19349663)) % length;
 
   Future<ui.Image> _draw(
     LoadedTileAtlas loaded,
@@ -71,7 +71,7 @@ final class TilePlaceComponent extends PlaceBackground {
     required bool opened,
   }) async {
     final manifest = loaded.manifest;
-    final grid = GlyphGrid(place.rows);
+    final grid = art.gridFor(place.rows);
     final width = grid.width * manifest.tileWidth;
     final height = grid.height * manifest.tileHeight;
     final recorder = ui.PictureRecorder();
@@ -84,7 +84,9 @@ final class TilePlaceComponent extends PlaceBackground {
       _drawLayer(canvas, loaded, art, grid, layer);
     }
     _drawObjects(canvas, loaded, art, grid, opened: opened);
-    _drawLayer(canvas, loaded, art, grid, 'foreground');
+    for (final layer in <String>['foreground', 'overhead']) {
+      _drawLayer(canvas, loaded, art, grid, layer);
+    }
     final picture = recorder.endRecording();
     final image = await picture.toImage(width, height);
     picture.dispose();
@@ -99,26 +101,67 @@ final class TilePlaceComponent extends PlaceBackground {
     String layer,
   ) {
     final rules = art.rules.where((rule) => rule.layer == layer).toList();
+    if (rules.isEmpty) {
+      return;
+    }
+    // Which rules a glyph can meet, in their order, so a city of a few
+    // thousand cells does not ask every rule about every one of them.
+    final byGlyph = <String, List<int>>{};
+    final byGround = <String, List<int>>{};
+    for (var i = 0; i < rules.length; i++) {
+      final index = rules[i].onGround ? byGround : byGlyph;
+      for (final glyph in rules[i].glyphs.split('')) {
+        (index[glyph] ??= <int>[]).add(i);
+      }
+    }
+    const none = <int>[];
     for (var y = 0; y < grid.height; y++) {
       for (var x = 0; x < grid.width; x++) {
-        final glyph = grid.glyphAt(x, y);
-        for (final rule in rules) {
-          if (!rule.covers(glyph)) {
-            continue;
+        final fromGlyph = byGlyph[grid.glyphAt(x, y)] ?? none;
+        final fromGround = byGround[grid.groundAt(x, y)] ?? none;
+        var a = 0;
+        var b = 0;
+        while (a < fromGlyph.length || b < fromGround.length) {
+          final int next;
+          if (b >= fromGround.length ||
+              (a < fromGlyph.length && fromGlyph[a] < fromGround[b])) {
+            next = fromGlyph[a++];
+          } else {
+            next = fromGround[b++];
           }
-          final index = rule.bucketIndex(grid, x, y);
-          final bucket = rule.buckets[index];
-          if (bucket.isEmpty) {
-            continue;
-          }
-          _drawTile(canvas, loaded, _variant(bucket, x, y), x, y);
-          // What the tile leans out over the cell above, in the same
-          // variant: painted now, so it lies over what the row above drew.
-          final up = rule.up?[index];
-          if (up != null && up.isNotEmpty && y > 0) {
-            _drawTile(canvas, loaded, _variant(up, x, y), x, y - 1);
-          }
+          _drawRule(canvas, loaded, grid, rules[next], x, y);
         }
+      }
+    }
+  }
+
+  void _drawRule(
+    ui.Canvas canvas,
+    LoadedTileAtlas loaded,
+    GlyphGrid grid,
+    TileRule rule,
+    int x,
+    int y,
+  ) {
+    final index = rule.bucketIndex(grid, x, y);
+    final bucket = rule.buckets[index];
+    if (bucket.isEmpty) {
+      return;
+    }
+    final variant = _variant(bucket.length, x, y);
+    _drawTile(canvas, loaded, bucket[variant], x, y);
+    // The rest of the picture, in the same variant: drawn now, so what a
+    // tile leans out over the row above lies over what that row drew.
+    for (final piece in rule.pieces) {
+      final tiles = piece.buckets[index];
+      final px = x + piece.dx;
+      final py = y + piece.dy;
+      if (tiles.isNotEmpty &&
+          px >= 0 &&
+          py >= 0 &&
+          px < grid.width &&
+          py < grid.height) {
+        _drawTile(canvas, loaded, tiles[variant], px, py);
       }
     }
   }

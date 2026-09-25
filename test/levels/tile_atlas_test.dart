@@ -42,9 +42,8 @@ void main() {
   test('no glyph of a converted place goes unpainted', () {
     for (final place in convertedPlaces) {
       final art = manifest.places[place.id.name]!;
-      final glyphs = <String>{for (final (_, glyph) in place.glyphs) glyph};
       expect(
-        art.unpainted(glyphs),
+        art.unpainted(art.gridFor(place.rows)),
         isEmpty,
         reason:
             '${place.id}: these glyphs are in its rows but no rule of the '
@@ -76,7 +75,7 @@ void main() {
   test('a placed object still lies over the rows it was painted for', () {
     for (final place in convertedPlaces) {
       for (final object in manifest.places[place.id.name]!.objects) {
-        final at = object.at;
+        final at = object.underCorner;
         if (at == null) {
           continue;
         }

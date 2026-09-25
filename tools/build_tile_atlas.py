@@ -55,173 +55,31 @@ from build_mall import Room, paint_blood  # noqa: E402
 import build_airliner as airliner  # noqa: E402
 import build_mall as mall  # noqa: E402
 import build_station as station  # noqa: E402
+from tile_atlas_core import (  # noqa: E402
+    SEED,
+    TRANSPARENT,
+    Atlas,
+    Block,
+    Neighbourhood,
+    before_run_key,
+    between_key,
+    cell,
+    compose,
+    first_row_key,
+    leaning,
+    neighbour_key,
+    parity_key,
+    pattern_key,
+    row_has_key,
+    rule,
+    tile_of,
+)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TILES = os.path.join("assets", "tiles")
 ATLAS = os.path.join(TILES, "atlas.png")
 MANIFEST = os.path.join(TILES, "atlas_manifest.json")
 OBJECTS = os.path.join(TILES, "objects")
-
-# How many times the same kind of tile is painted with fresh grit. The
-# renderer picks between them with a hash of the tile's position: enough
-# that no eye finds the repeat, few enough that the atlas stays small.
-VARIANTS = 12
-
-# One seed for the whole atlas: the tiles are art, and art that changes
-# every time it is baked cannot be reviewed in a diff.
-SEED = 20260925
-
-TRANSPARENT = (0, 0, 0, 0)
-
-
-class Atlas:
-    """The tiles, packed into one image, identical ones stored once."""
-
-    def __init__(self) -> None:
-        self.tiles: list[Image.Image] = []
-        self._index: dict[bytes, int] = {}
-
-    def add(self, tile: Image.Image) -> int:
-        key = tile.tobytes()
-        if key not in self._index:
-            self._index[key] = len(self.tiles)
-            self.tiles.append(tile)
-        return self._index[key]
-
-    def bucket(self, make, count: int = VARIANTS) -> list[int]:
-        """`count` paintings of the same tile, deduplicated: a tile with no
-        randomness in it collapses back to one. `make` returns a tile."""
-        indices = []
-        for _ in range(count):
-            index = self.add(make())
-            if index not in indices:
-                indices.append(index)
-        return indices
-
-    def pairs(self, make, count: int = VARIANTS
-              ) -> tuple[list[int], list[int]]:
-        """Like `bucket`, for a tile that leans out over the cell above:
-        `make` returns (tile, overhang). The two lists have one entry per
-        variant, so the renderer's choice of variant lands on both halves
-        of the same painting; a variant that repeats an earlier pair is
-        dropped from both."""
-        tiles, ups, seen = [], [], set()
-        for _ in range(count):
-            tile, up = make()
-            pair = (self.add(tile), self.add(up))
-            if pair not in seen:
-                seen.add(pair)
-                tiles.append(pair[0])
-                ups.append(pair[1])
-        return tiles, ups
-
-    def image(self, columns: int = 16) -> Image.Image:
-        rows = (len(self.tiles) + columns - 1) // columns
-        sheet = Image.new("RGBA", (columns * TILE, rows * TILE), TRANSPARENT)
-        for i, tile in enumerate(self.tiles):
-            sheet.paste(tile, ((i % columns) * TILE, (i // columns) * TILE))
-        return sheet
-
-
-def parity_key() -> dict:
-    return {"kind": "parity"}
-
-
-def row_key(y: int) -> dict:
-    return {"kind": "row", "y": y}
-
-
-def neighbour_key(dx: int, dy: int, glyphs: str) -> dict:
-    return {"kind": "neighbour", "dx": dx, "dy": dy, "glyphs": glyphs}
-
-
-def between_key(glyph: str) -> dict:
-    """Something other than `glyph` above and below in the column."""
-    return {"kind": "between", "glyph": glyph}
-
-
-def before_run_key(glyphs: str) -> dict:
-    """What lies before the run of the cell's own glyph: a wall, say."""
-    return {"kind": "beforeRun", "glyphs": glyphs}
-
-
-def row_has_key(dy: int, glyph: str) -> dict:
-    return {"kind": "rowHas", "dy": dy, "glyph": glyph}
-
-
-def rule(layer: str, glyphs: str, buckets: list[list[int]],
-         keys: list[dict] | None = None,
-         up: list[list[int]] | None = None) -> dict:
-    """`up`, if given, is drawn on the cell above: what the tile leans out
-    over it. One bucket per bucket, as long as the bucket it goes with."""
-    keys = keys or []
-    assert len(buckets) == 2 ** len(keys), (layer, glyphs, len(buckets))
-    out = {"layer": layer, "glyphs": glyphs, "keys": keys,
-           "buckets": buckets}
-    if up is not None:
-        assert len(up) == len(buckets), (layer, glyphs)
-        assert all(not u or len(u) == len(b) for u, b in zip(up, buckets)),             (layer, glyphs)
-        out["up"] = up
-    return out
-
-
-def leaning(atlas: Atlas, paint_for, keys: list[dict] | None = None,
-            count: int = VARIANTS):
-    """The buckets and overhangs of a rule whose painters lean out over the
-    cell above. `paint_for(index)` returns the painter, `paint(d, px, py)`,
-    for the bucket `index` the keys choose. It is painted on a canvas two
-    cells high: what falls on the cell above is the overhang. Returns
-    `(buckets, up)`, to hand to `rule`."""
-    buckets, ups = [], []
-    for index in range(2 ** len(keys or [])):
-        def make(i=index):
-            canvas = Image.new("RGBA", (TILE, TILE * 2), TRANSPARENT)
-            paint_for(i)(ImageDraw.Draw(canvas), 0, TILE)
-            return (canvas.crop((0, TILE, TILE, TILE * 2)),
-                    canvas.crop((0, 0, TILE, TILE)))
-        tiles, up = atlas.pairs(make, count)
-        # A painter that never reaches the cell above has no overhang.
-        blank = all(atlas.tiles[u].getbbox() is None for u in up)
-        buckets.append(tiles)
-        ups.append([] if blank else up)
-    return buckets, ups
-
-
-def tile_of(paint) -> Image.Image:
-    """A tile painted by a painter that draws at (0, 0)."""
-    tile = Image.new("RGBA", (TILE, TILE), TRANSPARENT)
-    paint(ImageDraw.Draw(tile))
-    return tile
-
-
-def cell(paint, gx: int = 0, gy: int = 0) -> Image.Image:
-    """A tile painted by a painter that takes coordinates in tiles and
-    works out the pixels itself: paint on a canvas big enough and cut out
-    the cell asked for. Which cell matters: the floors alternate on the
-    parity of x + y."""
-    wide = Image.new("RGBA", ((gx + 1) * TILE, (gy + 1) * TILE), TRANSPARENT)
-    paint(ImageDraw.Draw(wide), gx, gy)
-    return wide.crop((gx * TILE, gy * TILE, (gx + 1) * TILE, (gy + 1) * TILE))
-
-
-class Neighbourhood:
-    """What a painter that looks at its neighbours is shown while its tile
-    is being painted: the cell itself, at `cell` because a tile is not
-    always painted at the origin, and whatever we want around it."""
-
-    def __init__(self, glyph: str, around, cell=(0, 0)) -> None:
-        self.glyph = glyph
-        self.around = around
-        self.cell = cell
-        self.width = 1
-        self.height = 1
-
-    def at(self, x: int, y: int) -> str:
-        return self.glyph if (x, y) == self.cell else self.around(x, y)
-
-    def is_wall(self, x: int, y: int) -> bool:
-        return self.at(x, y) in station.WALLS
-
 
 # --------------------------------------------------- the upper Duomo's art
 # Moved here from tools/build_duomo_upper.py, which this atlas replaces:
@@ -497,24 +355,6 @@ COUNTER = (110, 70, 44)
 COUNTER_TOP = (150, 104, 66)
 BOTTLES = [(60, 110, 60), (140, 90, 40), (180, 180, 170), (110, 40, 40),
            (60, 80, 120)]
-
-
-class Block:
-    """A room that is nothing but one rectangle of `glyph`: what a painter
-    that measures its own wall is shown while its image is painted."""
-
-    def __init__(self, glyph, width, height):
-        self.glyph = glyph
-        self.width = width
-        self.height = height
-
-    def at(self, x, y):
-        if 0 <= x < self.width and 0 <= y < self.height:
-            return self.glyph
-        return "x"
-
-    def is_wall(self, x, y):
-        return self.at(x, y) in station.WALLS
 
 
 def paint_bar_floor(d, rng, x, y):
@@ -988,21 +828,6 @@ def bar_backroom(atlas: Atlas, rng) -> dict:
 
 
 
-def pattern_key(a: int, b: int, mod: int, equals: int = 0) -> dict:
-    """The bakers dot a wall with graffiti on (x * a + y * b) % mod: a
-    pattern, not a throw of the dice, so the renderer works it out too."""
-    return {"kind": "pattern", "a": a, "b": b, "mod": mod, "equals": equals}
-
-
-def first_row_key(glyph: str, offset: int, compare: str) -> dict:
-    """Against the first row of the place that holds `glyph`: the platform
-    edge is the first row with a slab on it, and the baker paints that row
-    differently. The row is read off the place's own ASCII, so it stays
-    the one source of truth."""
-    return {"kind": "firstRow", "glyph": glyph, "offset": offset,
-            "compare": compare}
-
-
 # The railcar is one object, not tiles: its grime runs across the grid. It
 # is painted at the size of the run of `M` in the far platform's rows;
 # test/levels/tile_atlas_test.dart fails if the rows stop agreeing.
@@ -1362,13 +1187,13 @@ def barracks(atlas: Atlas, rng) -> dict:
     rules.append(rule("structures", "w", one(paint_barracks_front_wall)))
 
     buckets, up = lean(lambda i: paint_barracks_emblem)
-    rules.append(rule("structures", "Q", buckets, up=up))
+    rules.append(rule("structures", "Q", buckets, pieces=up))
     rules.append(rule("structures", "N", randomly(paint_notice_board)))
     buckets, up = lean(lambda i: lambda d, px, py:
                        paint_barracks_shelves(d, rng, px, py))
-    rules.append(rule("structures", "S", buckets, up=up))
+    rules.append(rule("structures", "S", buckets, pieces=up))
     buckets, up = lean(lambda i: paint_barracks_entrance)
-    rules.append(rule("structures", "E", buckets, up=up))
+    rules.append(rule("structures", "E", buckets, pieces=up))
     rules.append(rule("structures", ":", randomly(paint_barracks_papers)))
     rules.append(rule("structures", "b", randomly(paint_barracks_blood)))
 
@@ -1383,7 +1208,7 @@ def barracks(atlas: Atlas, rng) -> dict:
         d, px, py, not i & 1, not i & 2), counter_keys)
     rules.append(rule("structures", "C", buckets, counter_keys, up))
     buckets, up = lean(lambda i: paint_barracks_cabinet)
-    rules.append(rule("structures", "A", buckets, up=up))
+    rules.append(rule("structures", "A", buckets, pieces=up))
     rules.append(rule("structures", "h", one(paint_barracks_chair)))
 
     door = Image.new("RGBA", (TILE, TILE * 3), TRANSPARENT)
@@ -2030,7 +1855,7 @@ def mall_floor(atlas: Atlas, name: str, rng) -> dict:
     # Props, which lean out over the cell above where they stand tall.
     buckets, up = leaning(atlas, lambda i: lambda d, px, py:
                           mall.paint_planter(d, rng, px, py))
-    rules.append(rule("structures", "P", buckets, up=up))
+    rules.append(rule("structures", "P", buckets, pieces=up))
     rules.append(rule(
         "structures", "T",
         [atlas.bucket(lambda t=tipped: tile_of(
@@ -2666,97 +2491,6 @@ def airliner_roofs(atlas: Atlas, rng) -> dict:
                           [tail(glyph, i) for i in range(16)], tail_keys))
     return {"void": "#060608", "voidGlyph": "x", "rules": rules,
             "objects": []}
-
-
-# ------------------------------------------------------ the reference draw
-# What the renderer in lib/game/render/tile_place_component.dart has to do,
-# written out once here so the manifest can be checked against the baked
-# PNGs while they still exist, and so --preview can show a converted place
-# without a device.
-
-def variant(tiles: list[int], x: int, y: int) -> int:
-    """Which of a bucket's tiles falls on this cell: a hash of the place
-    in the grid, so the grit is the same at every start and there is no
-    seed to save. lib/game/render/tile_place_component.dart repeats it."""
-    return tiles[((x * 73856093) ^ (y * 19349663)) % len(tiles)]
-
-
-def compose(rows: list[str], place: dict, tiles: list[Image.Image],
-            opened: bool = False) -> Image.Image:
-    width, height = len(rows[0]), len(rows)
-
-    def at(x: int, y: int) -> str:
-        if 0 <= x < width and 0 <= y < height:
-            return rows[y][x]
-        return "x"
-
-    def first_row(glyph: str) -> int:
-        return next((y for y in range(height) if glyph in rows[y]), 0)
-
-    def truth(key: dict, x: int, y: int) -> bool:
-        kind = key["kind"]
-        if kind == "parity":
-            return (x + y) % 2 == 1
-        if kind == "neighbour":
-            return at(x + key["dx"], y + key["dy"]) in key["glyphs"]
-        if kind == "pattern":
-            return (x * key["a"] + y * key["b"]) % key["mod"] == key["equals"]
-        if kind == "between":
-            return any(at(x, r) != key["glyph"] for r in range(y)) and                 any(at(x, r) != key["glyph"] for r in range(y + 1, height))
-        if kind == "beforeRun":
-            here = at(x, y)
-            start = x
-            while at(start - 1, y) == here:
-                start -= 1
-            return at(start - 1, y) in key["glyphs"]
-        if kind == "rowHas":
-            return 0 <= y + key["dy"] < height and                 key["glyph"] in rows[y + key["dy"]]
-        if kind == "firstRow":
-            edge = first_row(key["glyph"]) + key["offset"]
-            return y <= edge if key["compare"] == "le" else y == edge
-        raise ValueError(kind)
-
-    colour = place["void"].lstrip("#")
-    void = tuple(int(colour[i:i + 2], 16) for i in (0, 2, 4)) + (255,)
-    out = Image.new("RGBA", (width * TILE, height * TILE), void)
-    for layer in ("ground", "structures", "objects", "foreground"):
-        if layer == "objects":
-            for obj in place["objects"]:
-                sprite = obj["openSprite"] if opened and "openSprite" in obj \
-                    else obj["sprite"]
-                if "at" in obj:
-                    x0, y0 = obj["at"]
-                else:
-                    cells = [(x, y) for y in range(height)
-                             for x in range(width) if at(x, y) == obj["glyph"]]
-                    if not cells:
-                        continue
-                    x0 = min(x for x, _ in cells)
-                    y0 = min(y for _, y in cells)
-                out.alpha_composite(
-                    sprite, (x0 * TILE, (y0 + obj.get("offsetY", 0)) * TILE))
-            continue
-        for y in range(height):
-            for x in range(width):
-                glyph = at(x, y)
-                for spec in place["rules"]:
-                    if spec["layer"] != layer or glyph not in spec["glyphs"]:
-                        continue
-                    index = 0
-                    for bit, key in enumerate(spec["keys"]):
-                        if truth(key, x, y):
-                            index |= 1 << bit
-                    bucket = spec["buckets"][index]
-                    if not bucket:
-                        continue
-                    out.alpha_composite(
-                        tiles[variant(bucket, x, y)], (x * TILE, y * TILE))
-                    up = spec.get("up")
-                    if up and up[index] and y > 0:
-                        out.alpha_composite(
-                            tiles[variant(up[index], x, y)],
-                            (x * TILE, (y - 1) * TILE))
-    return out
 
 
 # ----------------------------------------------------------------- writing
