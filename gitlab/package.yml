@@ -1,7 +1,12 @@
-build_android_signed:
+# The release key, from the protected ANDROID_* variables. Shared by the two
+# signed Android packages. They run on combusken, a Linux machine of ours,
+# in the same Flutter image as the other jobs: the machine needs only the
+# runner and Docker, and nothing of its own reaches the build.
+.android_signed:
+  extends: .flutter_3_44_2
   stage: build
   tags:
-    - stepbound-local-android
+    - combusken-docker
   interruptible: false
   resource_group: stepbound-android-release
   rules:
@@ -10,33 +15,47 @@ build_android_signed:
       allow_failure: true
     - when: never
   before_script:
-    - flutter --version
-    - flutter pub get
+    - !reference [.flutter_3_44_2, before_script]
     - |
-      if [ -n "${ANDROID_KEYSTORE_BASE64:-}" ]; then
-        for var in ANDROID_STORE_PASSWORD ANDROID_KEY_PASSWORD ANDROID_KEY_ALIAS; do
-          if [ -z "$(printenv "$var")" ]; then
-            echo "ERRORE: $var non impostata: impossibile firmare la release." >&2
-            exit 1
-          fi
-        done
-        echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/release-keystore.jks
-        printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=release-keystore.jks\n' \
-          "$ANDROID_STORE_PASSWORD" "$ANDROID_KEY_PASSWORD" "$ANDROID_KEY_ALIAS" \
-          > android/key.properties
-        touch .stepbound-ci-signing
-      elif [ ! -f android/key.properties ]; then
-        echo "ERRORE: configura le variabili ANDROID_* oppure android/key.properties sul runner protetto." >&2
-        exit 1
-      fi
+      for var in ANDROID_KEYSTORE_BASE64 ANDROID_STORE_PASSWORD ANDROID_KEY_PASSWORD ANDROID_KEY_ALIAS; do
+        if [ -z "$(printenv "$var")" ]; then
+          echo "ERRORE: $var non impostata: configura le variabili protette ANDROID_* del progetto." >&2
+          exit 1
+        fi
+      done
+      echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/release-keystore.jks
+      printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=release-keystore.jks\n' \
+        "$ANDROID_STORE_PASSWORD" "$ANDROID_KEY_PASSWORD" "$ANDROID_KEY_ALIAS" \
+        > android/key.properties
+  after_script:
+    - rm -f android/release-keystore.jks android/key.properties
+
+# For the store.
+build_android_signed:
+  extends: .android_signed
   script:
     - flutter build appbundle --release --build-number="$CI_PIPELINE_IID"
-  after_script:
-    - if [ -f .stepbound-ci-signing ]; then rm -f android/release-keystore.jks android/key.properties .stepbound-ci-signing; fi
   artifacts:
     name: "stepbound-aab-$CI_COMMIT_SHORT_SHA"
     paths:
       - build/app/outputs/bundle/release/app-release.aab
+    expire_in: 1 month
+
+# The same release, as an APK to install by hand: for testing on a phone
+# before the store, or for handing the demo out directly. Signed with the
+# same key, so each one updates over the last. One installed from the store
+# is signed by the store's own key when Play App Signing is on, and the two
+# do not update each other.
+build_android_release_apk:
+  extends: .android_signed
+  script:
+    # STEPBOUND_DIAGNOSTICS=true, set when running the job, shows frame
+    # rate and load times over the game (lib/ui/diagnostics_overlay.dart).
+    - flutter build apk --release --build-number="$CI_PIPELINE_IID" --dart-define=STEPBOUND_DIAGNOSTICS="${STEPBOUND_DIAGNOSTICS:-false}"
+  artifacts:
+    name: "stepbound-release-apk-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - build/app/outputs/flutter-apk/app-release.apk
     expire_in: 1 month
 
 check_macos_runner:

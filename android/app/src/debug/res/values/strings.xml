@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The debug build installs beside the release one (see the
+         `.debug` suffix in build.gradle.kts): its name tells them apart. -->
+    <string name="app_name">Stepbound debug</string>
+</resources>

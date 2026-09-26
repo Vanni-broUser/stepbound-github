@@ -15,6 +15,7 @@ import 'package:stepbound/ui/audio_scope.dart';
 import 'package:stepbound/ui/black_fade.dart';
 import 'package:stepbound/ui/blood_decor.dart';
 import 'package:stepbound/ui/blood_splat.dart';
+import 'package:stepbound/ui/diagnostics_overlay.dart';
 import 'package:stepbound/ui/game_cutscene.dart';
 import 'package:stepbound/ui/gameplay_dialogue.dart';
 import 'package:stepbound/ui/letterbox.dart';
@@ -751,6 +752,7 @@ final class _StepboundAppState extends State<StepboundApp> {
               _ => _coverOf(game, cover),
             },
           ),
+        if (diagnosticsEnabled) DiagnosticsOverlay(game: game),
         // The loading picture instead of a black screen while the maps and
         // sprites load, over the bands too so no button shows beside it.
         if (_phase == _Phase.dialogue)

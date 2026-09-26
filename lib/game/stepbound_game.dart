@@ -262,6 +262,7 @@ final class StepboundGame extends FlameGame
 
   @override
   Future<void> onLoad() async {
+    final clock = Stopwatch()..start();
     await super.onLoad();
     presentation = TurnPresentationController(world: simulation);
     tutorial = TutorialDirector(
@@ -312,7 +313,14 @@ final class StepboundGame extends FlameGame
     }
     _syncTrainDoor();
     parkTrain(simulation, progress.level);
-    await world.addAll(_places.components);
+    // Only the area Mario is in, and what lies one door away from it: the
+    // rest comes in as he gets near it (see the call in update).
+    await _places.settle(
+      placeAt(simulation.player.component<PositionComponent>().position) ??
+          place(PlaceId.street),
+      simulation.portals,
+      world,
+    );
     await world.addAll(<Component>[
       for (final (index, spot) in outdoorFireSpots.indexed)
         if (spot.kind == FireKind.campfire)
@@ -392,8 +400,12 @@ final class StepboundGame extends FlameGame
     _syncPresentation();
     _camera.snapTo(_playerFeet, _placeShown);
     _acceptsInput = true;
+    loadTime = clock.elapsed;
     readyToShow.value = true;
   }
+
+  /// How long the game took to load, for measuring on a phone.
+  Duration? loadTime;
 
   @override
   void update(double dt) {
@@ -419,6 +431,7 @@ final class StepboundGame extends FlameGame
     _places.cull(camera.visibleWorldRect);
     _cullOffscreen();
     final shown = _placeShown;
+    unawaited(_places.settle(shown, simulation.portals, world));
     final scene = cover.value;
     final mix = soundscape.update(
       dt,
@@ -1392,6 +1405,13 @@ final class StepboundGame extends FlameGame
   /// The backgrounds being drawn, for tests.
   @visibleForTesting
   List<String> get drawnPlaces => _places.drawn;
+
+  /// The places whose pictures are in memory.
+  @visibleForTesting
+  Set<PlaceId> get loadedPlaces => _places.loaded.toSet();
+
+  /// How long the last area took to compose, for measuring on a phone.
+  Duration? get lastAreaLoad => _places.lastLoad;
 
   Vector2 get _playerFeet => _characters[playerId]!.position;
 

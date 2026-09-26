@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -15,6 +17,7 @@ import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/game/render/interact_glint_component.dart';
 import 'package:stepbound/game/render/npc_component.dart';
 import 'package:stepbound/game/render/offscreen_culled.dart';
+import 'package:stepbound/game/render/place_layers.dart';
 import 'package:stepbound/game/render/tile_place_component.dart';
 import 'package:stepbound/game/render/torch_component.dart';
 import 'package:stepbound/game/stepbound_game.dart';
@@ -1313,7 +1316,7 @@ void main() {
     tester,
   ) {
     return tester.runAsync(() async {
-      List<Object?> imagesOf(StepboundGame game) => <Object?>[
+      List<ui.Image?> imagesOf(StepboundGame game) => <ui.Image?>[
         for (final front in game.world.children.whereType<TilePlaceFront>())
           front.image,
       ];
@@ -1323,14 +1326,85 @@ void main() {
       final second = imagesOf(await _pumpReadyGame(tester));
       expect(first, isNotEmpty);
       expect(first, everyElement(isNotNull));
+      // Each game holds handles of its own on the same pictures.
+      expect(second, hasLength(first.length));
       for (final (index, image) in second.indexed) {
-        expect(image, same(first[index]));
+        expect(image!.isCloneOf(first[index]!), isTrue);
       }
       expect(
         await loadAssetImage(NpcComponent.luigiAsset),
         same(await loadAssetImage(NpcComponent.luigiAsset)),
       );
     });
+  });
+
+  testWidgets('only the area Mario is in, and one door past it, is in memory; '
+      'the rest comes and goes with him', (tester) {
+    return tester.runAsync(() async {
+      final world = createTutorialWorld();
+      final game = StepboundGame(world: world, progress: Progress());
+      await tester.pumpWidget(GameWidget<StepboundGame>(game: game));
+      final state = tester.state<GameWidgetState<StepboundGame>>(
+        find.byType(GameWidget<StepboundGame>),
+      );
+      await state.loaderFuture;
+      await game.ready();
+
+      Set<PlaceId> areaOf(AreaId area) => <PlaceId>{
+        for (final place in tutorialPlaces)
+          if (place.area == area) place.id,
+      };
+
+      // On the street: the town, the harbour down the road and the train
+      // at the far platform.
+      expect(game.loadedPlaces, <PlaceId>{
+        ...areaOf(AreaId.hometownTown),
+        PlaceId.harbour,
+        PlaceId.trainInterior,
+      });
+      expect(game.lastAreaLoad, isNotNull);
+
+      // Down at the harbour the town's buildings are let go, all but the
+      // district the road comes from.
+      world.player.component<PositionComponent>().position = place(
+        PlaceId.harbour,
+      ).walkableRow(place(PlaceId.harbour).height ~/ 2).first;
+      game.update(1 / 30);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      game.update(1 / 30);
+      await game.ready();
+      expect(game.loadedPlaces, <PlaceId>{
+        ...areaOf(AreaId.hometownHarbour),
+        PlaceId.northDistrict,
+      });
+      expect(
+        game.world.children.whereType<TilePlaceComponent>().map(
+          (component) => component.place.id,
+        ),
+        unorderedEquals(game.loadedPlaces),
+      );
+    });
+  });
+
+  test('the train parked at Termini keeps Termini loaded, not Molfetta', () {
+    final world = createTutorialWorld();
+    parkTrain(world, LevelId.rome);
+    expect(
+      PlaceLayers.kept(
+        place(PlaceId.trainInterior),
+        tutorialPlaces,
+        world.portals,
+      ).map((place) => place.id),
+      unorderedEquals(<PlaceId>[PlaceId.trainInterior, PlaceId.romeTermini]),
+    );
+    expect(
+      PlaceLayers.kept(
+        place(PlaceId.romeTermini),
+        tutorialPlaces,
+        world.portals,
+      ).map((place) => place.id),
+      unorderedEquals(<PlaceId>[PlaceId.romeTermini, PlaceId.trainInterior]),
+    );
   });
 
   testWidgets('rescuing Luigi opens both the train tile and its artwork', (
