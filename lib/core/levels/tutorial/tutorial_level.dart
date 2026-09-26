@@ -118,7 +118,9 @@ const Legend trainLegend = Legend(
 
 /// Roma Termini (termini.dart) keeps to the far platform's glyphs, but
 /// its train's door `P` is open from the start: the train is Mario's own.
-const Legend terminiLegend = Legend(walls: 'xWM', obstacles: 'Tn');
+/// The name board high on the wall `Q` is wall, the one on its posts at
+/// the platform's edge `o` can be seen over.
+const Legend terminiLegend = Legend(walls: 'xWMQ|', obstacles: 'Tno');
 
 /// Inside the crashed airliner (airliner.dart) the hull is a wall all
 /// round; the blocks of seats `T` and the galley trolleys `K` are waist
@@ -130,14 +132,15 @@ const Legend airlinerLegend = Legend(
   debris: ':r',
 );
 
-/// The roofs the tail came down in: the drop `x`, the party walls `W`,
-/// the tail `#` and the roof across the gap `%` are all walls, while the
-/// parapets `^`, the low stretch `>` Mario measures the gap from, the
-/// chimney stacks `T` and the aerial masts `n` can be seen over, and the
-/// corner on fire `&` burns from the start.
+/// The roofs the tail came down in: the drop `x`, the party walls `W` and
+/// the tail `#` are all walls, while the parapets `^`, the low stretch `>`
+/// Mario measures the gap from, the chimney stacks `T` and `k` and the
+/// aerial masts `n` can be seen over, and the corner on fire `&` burns
+/// from the start. The roof across the gap `%` is walked on like any
+/// other, by whoever gets there.
 const Legend rooftopLegend = Legend(
-  walls: 'xW#%',
-  obstacles: 'Tn^>',
+  walls: 'xW#',
+  obstacles: 'Tnk^>',
   fire: '&',
 );
 

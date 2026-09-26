@@ -2037,7 +2037,9 @@ def bar_backroom(atlas: Atlas, rng) -> dict:
 # is painted at the size of the run of `M` in the far platform's rows;
 # test/levels/tile_atlas_test.dart fails if the rows stop agreeing.
 RAILCAR_TILES = (34, 3)
-TERMINI_RAILCAR_TILES = (27, 3)
+TERMINI_RAILCAR_TILES = (42, 3)
+TERMINI_WALL_SIGN_TILES = (10, 2)
+TERMINI_PLATFORM_SIGN_TILES = (3, 2)
 STATION_SIGN_TILES = (8, 1)
 # Counted from the west end. The train faces east, like the locomotive
 # inside it: its red tail is at the west end and its door at the back,
@@ -2133,6 +2135,87 @@ def station_railcar_sprite(tiles, door_tile, open_door: bool) -> Image.Image:
     return sprite
 
 
+# The blue of the name boards of every Italian station, and their white.
+SIGN_BLUE = (22, 68, 142)
+SIGN_BLUE_DARK = (12, 38, 86)
+SIGN_BLUE_LIGHT = (44, 96, 172)
+SIGN_WHITE = (238, 241, 236)
+SIGN_POST = (92, 96, 104)
+
+
+def paint_name_board(d, x, y, w, h, text, scale):
+    """A station's name board: blue, a white rule inset along its edge and
+    the name in white capitals in the middle, as on every platform in
+    Italy, with a darker lip along the bottom."""
+    rect(d, x, y, w, h, SIGN_BLUE_DARK)
+    rect(d, x + 1, y + 1, w - 2, h - 2, SIGN_BLUE)
+    rect(d, x + 1, y + 1, w - 2, 1, SIGN_BLUE_LIGHT)
+    rect(d, x + 2, y + 2, w - 4, 1, SIGN_WHITE)
+    rect(d, x + 2, y + h - 3, w - 4, 1, SIGN_WHITE)
+    rect(d, x + 2, y + 2, 1, h - 4, SIGN_WHITE)
+    rect(d, x + w - 3, y + 2, 1, h - 4, SIGN_WHITE)
+    width = text_width(text) * scale
+    paint_text(d, x + (w - width) // 2, y + (h - 5 * scale) // 2, text,
+               SIGN_WHITE, scale=scale)
+
+
+def termini_wall_sign() -> Image.Image:
+    """ROMA TERMINI, high on the back wall over the train: a long board
+    bolted to the wall on four brackets, its shadow under it."""
+    width, height = (n * TILE for n in TERMINI_WALL_SIGN_TILES)
+    sprite = Image.new("RGBA", (width, height), TRANSPARENT)
+    d = ImageDraw.Draw(sprite)
+    top, board = 3, 26
+    rect(d, 2, top + board, width - 4, 2, (60, 56, 50, 140))  # its shadow
+    for bx in (10, width // 3, 2 * width // 3, width - 12):
+        rect(d, bx, top - 3, 2, 4, SIGN_POST)
+    paint_name_board(d, 0, top, width, board, "ROMA TERMINI", 3)
+    return sprite
+
+
+def termini_platform_sign() -> Image.Image:
+    """ROMA on its two posts at the edge of the platform: the board stands
+    a tile above the cells its posts are in, in front of the train."""
+    width, height = (n * TILE for n in TERMINI_PLATFORM_SIGN_TILES)
+    sprite = Image.new("RGBA", (width, height), TRANSPARENT)
+    d = ImageDraw.Draw(sprite)
+    for post in (6, width - 8):
+        rect(d, post, 10, 2, height - 12, SIGN_POST)
+        rect(d, post, 10, 1, height - 12, shade(SIGN_POST, 30))
+        rect(d, post - 1, height - 3, 4, 2, (40, 40, 44))  # its foot
+    paint_name_board(d, 1, 0, width - 2, 19, "ROMA", 2)
+    rect(d, 3, height - 2, width - 6, 2, (30, 30, 34, 110))  # its shadow
+    return sprite
+
+
+def paint_stairs_up(d, room, x, y):
+    """The foot of a flight going up, `D` at Termini: the steps climb away
+    through the front wall, each one higher and so nearer the light than the
+    one before, between two handrails, under the green plate with the arrow
+    up. Molfetta's go down into a dark well (build_station.paint_stairs)."""
+    px, py = x * TILE, y * TILE
+    glyph = room.at(x, y)
+    first = room.at(x - 1, y) != glyph
+    last = room.at(x + 1, y) != glyph
+    rect(d, px, py, TILE, TILE, (70, 68, 64))
+    for i, sy in enumerate(range(py + 4, py + TILE, 3)):
+        tread = shade((118, 114, 106), 16 * i)
+        rect(d, px, sy, TILE, 1, shade(tread, -46))  # the riser's edge
+        rect(d, px, sy + 1, TILE, 2, tread)
+    rect(d, px, py, TILE, 4, (40, 62, 48))  # the plate over the flight
+    rect(d, px, py, TILE, 1, (78, 106, 84))
+    if first:  # the arrow up, one half of it per cell
+        for i in range(4):
+            rect(d, px + 12 + i, py + 3 - i, 1, 1 + i, (232, 232, 220))
+    elif last:
+        for i in range(4):
+            rect(d, px + i, py + i, 1, 4 - i, (232, 232, 220))
+    for side, there in ((0, first), (TILE - 2, last)):
+        if there:
+            rect(d, px + side, py + 4, 2, TILE - 4, station.METAL_DARK)
+            rect(d, px + side, py + 4, 2, 2, station.METAL_LIGHT)
+
+
 def station_far_side(atlas: Atlas, rng) -> dict:
     """The rules that paint PlaceId.stationFarSide: the far platform, the
     track and the railcar Luigi is holed up in."""
@@ -2187,7 +2270,7 @@ def station_far_side(atlas: Atlas, rng) -> dict:
         # platform and its edge, and the booking hall's terrazzo elsewhere.
         rule("ground", "-", rails, [neighbour_key(-1, 0, "-")]),
         rule("ground", ",M", [ballast]),
-        rule("ground", "=Tn",
+        rule("ground", "=Tno",
              [platform(0, False), platform(1, False),
               platform(0, True), platform(1, True)],
              [parity_key(), first_row_key("=", 0, "eq")]),
@@ -2197,8 +2280,8 @@ def station_far_side(atlas: Atlas, rng) -> dict:
              [hall(0), hall(1), platform(0, False), platform(1, False)],
              [parity_key(), first_row_key("=", 2, "le")]),
         rule("ground", "DP", [hall(0), hall(1)], [parity_key()]),
-        rule("structures", "Wlr", wall,
-             [neighbour_key(0, -1, "Wlr"), pattern_key(7, 5, 9)]),
+        rule("structures", "WlrQ", wall,
+             [neighbour_key(0, -1, "WlrQ"), pattern_key(7, 5, 9)]),
         rule("structures", ":", [litter]),
         rule("structures", "D", ends(station.paint_stairs, "D"),
              [neighbour_key(-1, 0, "D"), neighbour_key(1, 0, "D")]),
@@ -4598,14 +4681,26 @@ def airliner_roofs(atlas: Atlas, rng) -> dict:
     rules.append(rule("structures", "n", one(airliner.roof_mast)))
 
     # The roof of the next block across the gap, its coping along the near
-    # edge, and the gap itself.
+    # edge, what stands on it, and the gap itself.
     rules.append(rule(
-        "structures", "%",
+        "ground", airliner.FAR_DECK,
         [atlas.bucket(lambda p=parity, u=up: cell(
             lambda d, gx, gy: airliner.roof_far(
                 d, rng, near("%", (p, 0), u="%" if u else "."), gx, gy),
             p, 0)) for parity in (0, 1) for up in (False, True)],
-        [neighbour_key(0, -1, "%"), parity_key()]))
+        [neighbour_key(0, -1, airliner.FAR_DECK), parity_key()]))
+    rules.append(rule("structures", "k", randomly(airliner.roof_stack)))
+    rules.append(rule("structures", ";", randomly(airliner.roof_rubble)))
+    rules.append(rule(
+        "structures", "S",
+        [atlas.bucket(lambda i=i: tile_of(
+            lambda d: airliner.roof_stairs_down(
+                d, near("S", u="S" if i & 1 else ".",
+                        l="S" if i & 2 else ".",
+                        r="S" if i & 4 else "."), 0, 0)), 1)
+         for i in range(8)],
+        [neighbour_key(0, -1, "S"), neighbour_key(-1, 0, "S"),
+         neighbour_key(1, 0, "S")]))
     rules.append(rule("structures", "x", [[], atlas.bucket(lambda: tile_of(
         lambda d: airliner.roof_drop(d, rng, 0, 0)))], [between_key("x")]))
 
@@ -4669,6 +4764,19 @@ def build() -> tuple[Atlas, dict]:
     far_side = places["stationFarSide"]
     places["romeTermini"] = {
         **far_side,
+        # Its stairs go up, not down: the rest of the far side's rules.
+        "rules": [spec for spec in far_side["rules"]
+                  if not (spec["layer"] == "structures"
+                          and spec["glyphs"] == "D")] + [
+            rule("structures", "D", [
+                atlas.bucket(lambda l=left, r=right: tile_of(
+                    lambda d: paint_stairs_up(d, Neighbourhood(
+                        "D", lambda x, y, l=l, r=r: "D"
+                        if (x == -1 and l) or (x == 1 and r) else "."),
+                        0, 0)), 1)
+                for right in (False, True) for left in (False, True)],
+                [neighbour_key(-1, 0, "D"), neighbour_key(1, 0, "D")]),
+        ],
         "objects": [{
             "glyph": "M",
             "image": "termini_railcar.png",
@@ -4678,6 +4786,17 @@ def build() -> tuple[Atlas, dict]:
             "whenOpen": "termini_railcar_open.png",
             "openSprite": station_railcar_sprite(
                 TERMINI_RAILCAR_TILES, TERMINI_RAILCAR_DOOR_TILE, True),
+        }, {
+            "glyph": "Q",
+            "image": "termini_sign_wall.png",
+            "tiles": list(TERMINI_WALL_SIGN_TILES),
+            "sprite": termini_wall_sign(),
+        }, {
+            "glyph": "o",
+            "image": "termini_sign_platform.png",
+            # Its board stands a tile above the posts' cells.
+            "offsetY": -1,
+            "sprite": termini_platform_sign(),
         }],
     }
     manifest = {
