@@ -981,13 +981,19 @@ void main() {
     test('torches burn on every column and behind the altar, and light the '
         'nave', () {
       final duomo = place(PlaceId.duomo);
-      final columns = duomo.tilesOf('P');
-      expect(columns, hasLength(10));
+      final columns = duomo.tilesOf('P').toSet();
       final torches = duomo.torches.toSet();
-      expect(torches, containsAll(columns), reason: 'one on each column');
+      final onColumns = torches.intersection(columns);
+      expect(onColumns, hasLength(8), reason: 'one on each column');
+      final middleX = duomo.origin.x + duomo.width / 2;
+      for (final torch in onColumns) {
+        // On the side of the shaft facing the central nave.
+        final inward = torch.x < middleX ? Direction.east : Direction.west;
+        expect(columns.contains(torch.step(inward)), isFalse);
+      }
       final altar = duomo.tilesOf('A');
       final altarTop = altar.map((tile) => tile.y).reduce(math.min);
-      final behind = torches.difference(columns.toSet());
+      final behind = torches.difference(columns);
       expect(behind, hasLength(4));
       final middle =
           (altar.map((t) => t.x).reduce(math.min) +
@@ -1026,39 +1032,85 @@ void main() {
         duomo.width * duomo.height,
         greaterThan(church.width * church.height),
       );
-      expect(duomo.tilesOf('P'), hasLength(greaterThanOrEqualTo(8)));
       expect(duomo.tilesOf('T'), hasLength(greaterThanOrEqualTo(30)));
-      expect(duomo.tilesOf('S'), hasLength(greaterThanOrEqualTo(6)));
+
+      // Every column and every statue is a block of two tiles by two, with
+      // room to walk round it.
+      void blocksOfFour(String glyph, int count) {
+        final tiles = duomo.tilesOf(glyph).toSet();
+        expect(tiles, hasLength(4 * count), reason: glyph);
+        for (final corner in tiles.where(
+          (tile) =>
+              !tiles.contains(tile.step(Direction.west)) &&
+              !tiles.contains(tile.step(Direction.north)),
+        )) {
+          expect(
+            <GridPoint>{
+              corner,
+              corner.step(Direction.east),
+              corner.step(Direction.south),
+              corner.step(Direction.east).step(Direction.south),
+            }.every(tiles.contains),
+            isTrue,
+            reason: '$glyph at $corner is not two by two',
+          );
+        }
+      }
+
+      blocksOfFour('P', 8);
+      // Six statues, each a different saint.
+      for (final saint in 'MKFVYG'.split('')) {
+        blocksOfFour(saint, 1);
+      }
 
       final columnXs = duomo.tilesOf('P').map((tile) => tile.x).toSet().toList()
         ..sort();
-      expect(columnXs, hasLength(2), reason: 'two colonnades make three naves');
+      expect(
+        columnXs,
+        hasLength(4),
+        reason: 'two colonnades, two tiles thick, make three naves',
+      );
       expect(
         duomo
             .tilesOf('T')
-            .every((pew) => pew.x > columnXs.first && pew.x < columnXs.last),
+            .every((pew) => pew.x > columnXs[1] && pew.x < columnXs[2]),
         isTrue,
         reason: 'the pews belong to the central nave',
       );
 
-      final stairs = duomo.tilesOf('U');
-      expect(stairs, hasLength(4));
+      // No stairs in the nave any more: one door in the back wall, in the
+      // north-east corner, with the cultist straight in front of it.
+      final door = duomo.tileOf('U');
+      expect(door.x, greaterThan(duomo.bounds.left + duomo.width * 2 ~/ 3));
+      expect(door.y, lessThan(duomo.bounds.top + duomo.height ~/ 3));
+      expect(duomoStairCultistTile, door.step(Direction.south));
+    });
+
+    test('the door upstairs is reached only through the tile in front of '
+        'it, whoever stands there', () {
+      final world = createTutorialWorld();
+      final door = duomoStairEntryTile;
+      for (final side in <Direction>[
+        Direction.north,
+        Direction.east,
+        Direction.west,
+      ]) {
+        expect(
+          world.map.tileAt(door.step(side)).isWalkable,
+          isFalse,
+          reason: 'the door has wall on its $side side',
+        );
+      }
       expect(
-        stairs.every(
-          (tile) => tile.x > duomo.bounds.left + duomo.width * 2 ~/ 3,
-        ),
-        isTrue,
+        world.map.tileAt(duomoStairCultistTile).isWalkable,
+        isFalse,
+        reason: 'the cultist stands in the way until the ring',
       );
-      expect(
-        stairs.every((tile) => tile.y < duomo.bounds.top + duomo.height ~/ 3),
-        isTrue,
+      final reached = world.map.floodFillDistances(
+        duomo.tileOf('E').step(Direction.north),
+        maxDistance: duomo.width * duomo.height,
       );
-      expect(
-        stairs
-            .map(duomoStairCultistTile.manhattanDistanceTo)
-            .reduce((left, right) => left < right ? left : right),
-        1,
-      );
+      expect(reached.containsKey(door), isFalse);
     });
 
     test(
@@ -1104,7 +1156,6 @@ void main() {
       expect(upper.tilesOf('T'), hasLength(greaterThanOrEqualTo(20)));
       expect(upper.tilesOf('C'), hasLength(greaterThanOrEqualTo(20)));
       expect(upper.tilesOf('B'), hasLength(greaterThanOrEqualTo(24)));
-      expect(upper.tilesOf('K'), hasLength(1));
       expect(upper.tilesOf('d'), hasLength(1));
       expect(upper.tilesOf('L'), hasLength(1));
       expect(upper.tilesOf('R'), hasLength(1));
@@ -1119,19 +1170,46 @@ void main() {
         reason: 'the open doorway interrupts the wall between both rooms',
       );
       expect(
-        upper.tilesOf('T').every((tile) => tile.x < upper.tileOf('d').x),
+        upper.tilesOf('T').every((tile) => tile.x > upper.tileOf('d').x),
         isTrue,
       );
       expect(
-        upper.tilesOf('B').every((tile) => tile.x > upper.tileOf('d').x),
+        upper.tilesOf('B').every((tile) => tile.x < upper.tileOf('d').x),
         isTrue,
       );
+
+      // A real kitchen on the refectory side: counters, hearth, sink.
+      for (final glyph in <String>['k', 'F', 'H']) {
+        expect(
+          upper.tilesOf(glyph).every((tile) => tile.x > upper.tileOf('d').x),
+          isTrue,
+          reason: glyph,
+        );
+      }
+      // Every bed is two cells long with its night table beside its head,
+      // and no bed touches another.
+      final beds = upper.tilesOf('B').toSet();
+      final heads = beds.where((b) => !beds.contains(b.step(Direction.north)));
+      expect(heads, hasLength(12));
+      for (final head in heads) {
+        expect(beds, contains(head.step(Direction.south)));
+        expect(upper.tilesOf('n'), contains(head.step(Direction.east)));
+        for (final other in heads.where((h) => h != head)) {
+          expect(
+            (other.x - head.x).abs() > 1 || (other.y - head.y).abs() > 2,
+            isTrue,
+            reason: 'beds at $head and $other touch',
+          );
+        }
+      }
+      expect(upper.tilesOf('A'), hasLength(greaterThanOrEqualTo(2)));
     });
 
-    test('the guarded stair opens onto the upper floor and returns', () {
+    test('the guarded door opens onto the upper floor and returns', () {
       final world = createTutorialWorld();
       final upper = place(PlaceId.duomoUpper);
-      expect(world.map.tileAt(duomoStairEntryTile).isWalkable, isFalse);
+      expect(world.map.tileAt(duomoStairEntryTile).isWalkable, isTrue);
+      expect(world.map.tileAt(duomoStairCultistTile).isWalkable, isFalse);
       expect(world.map.tileAt(duomoUpperLockedDoorTile).isWalkable, isFalse);
       expect(
         world.portals[duomoStairEntryTile]!.to,
@@ -1142,9 +1220,7 @@ void main() {
         duomoStairEntryTile.step(Direction.south),
       );
 
-      world.map
-        ..setTile(duomoStairCultistTile, const Tile(TileKind.floor))
-        ..setTile(duomoStairEntryTile, const Tile(TileKind.floor));
+      world.map.setTile(duomoStairCultistTile, const Tile(TileKind.floor));
       world.player.component<PositionComponent>().position =
           duomoStairCultistTile;
       var events = const TurnScheduler().advance(
@@ -1224,30 +1300,34 @@ void main() {
       expect(pews, contains(duomoPriestCorpseTile.step(Direction.south)));
     });
 
-    test('the four cultists stand across the aisle, between Mario and the '
-        'key', () {
+    test('the four cultists close both ends of the aisle, looking out of '
+        'it', () {
       final world = createTutorialWorld();
       final wall = duomoCultistSpawns.toSet();
       expect(wall, hasLength(4));
-      // Two abreast and two deep: the aisle is two tiles tall, so the wall
-      // of bodies closes it from wall of pews to wall of pews.
+      // Two pairs, each two deep: the aisle is two tiles tall, so each pair
+      // closes it from wall of pews to wall of pews.
       final rows = wall.map((tile) => tile.y).toSet();
-      final columns = wall.map((tile) => tile.x).toSet();
+      final columns = wall.map((tile) => tile.x).toSet().toList()..sort();
       expect(rows, hasLength(2));
       expect(columns, hasLength(2));
       expect(rows.contains(duomoKeyTile.y), isTrue);
       expect(rows.contains(duomoPriestCorpseTile.y), isTrue);
-      // East of the body and the backpack: between them and the stair Mario
-      // comes down, never on top of them.
-      expect(columns.every((x) => x > duomoKeyTile.x), isTrue);
+      final pews = duomo.tilesOf('T').map((tile) => tile.x);
+      expect(columns.first, pews.reduce(math.min) - 1, reason: 'west end');
+      expect(columns.last, greaterThan(duomoKeyTile.x), reason: 'east end');
       expect(
-        columns.every((x) => x < duomoStairEntryTile.x),
-        isTrue,
+        columns.last,
+        lessThan(duomoStairEntryTile.x),
         reason: 'the stair is further east still',
       );
       for (final tile in wall) {
         expect(world.map.tileAt(tile).isWalkable, isTrue, reason: 'floor');
         expect(world.entityAt(tile), isNull, reason: 'nobody there yet');
+        expect(
+          createDuomoCultist('c', tile).component<PositionComponent>().facing,
+          tile.x == columns.first ? Direction.west : Direction.east,
+        );
       }
     });
 
@@ -1272,8 +1352,8 @@ void main() {
       );
     });
 
-    test('their wall shuts the aisle off from the stair, and only the long '
-        'way round reaches the key', () {
+    test('their two pairs shut the aisle off at both ends: the key is only '
+        'reached past one of them', () {
       final world = createTutorialWorld();
       // The Duomo as the mass leaves it: the stair open behind Mario, the
       // body in the aisle, the backpack beside it and the four of them
@@ -1316,23 +1396,15 @@ void main() {
 
       final blocked = walkFromTheStair(cultistsThere: true);
       final east = duomoKeyTile.step(Direction.east);
+      final west = duomoKeyTile.step(Direction.west);
       expect(
         blocked,
-        isNot(contains(east)),
-        reason: 'the four of them shut the aisle between Mario and the key',
+        isNot(anyOf(contains(east), contains(west))),
+        reason: 'the two pairs shut the aisle at both ends',
       );
-      expect(
-        blocked,
-        contains(duomoKeyTile.step(Direction.west)),
-        reason: 'but the nave can be walked round to the far side of them',
-      );
-      // Which is the only way past them while they stand: down the aisle it
-      // cannot be done.
-      expect(
-        walkFromTheStair(cultistsThere: false),
-        contains(east),
-        reason: 'once they move, the short way is open again',
-      );
+      final open = walkFromTheStair(cultistsThere: false);
+      expect(open, contains(east), reason: 'once they move, it opens again');
+      expect(open, contains(west));
     });
 
     test('the mutated cultists take three shots and walk like wanderers', () {
@@ -1347,11 +1419,6 @@ void main() {
       expect(
         cultist.component<ActorComponent>().tickCost,
         wanderer.component<ActorComponent>().tickCost,
-      );
-      expect(
-        cultist.component<PositionComponent>().facing,
-        Direction.east,
-        reason: 'looking down the aisle Mario has to come along',
       );
     });
   });

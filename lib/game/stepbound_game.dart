@@ -134,11 +134,18 @@ final class StepboundGame extends FlameGame
   late final PlaceLayers _places = PlaceLayers(
     places: tutorialPlaces,
     playerFeet: () => _characters[playerId]!.position,
-    // At Termini the train is Mario's own, its door open from the start.
-    showOpened: (place) =>
-        place.id == PlaceId.romeTermini ||
-        place.id == PlaceId.stationFarSide &&
-            progress.memories.contains(StoryMemory.luigiRescued),
+    showOpened: (place) => switch (place.id) {
+      // At Termini the train is Mario's own, its door open from the
+      // start.
+      PlaceId.romeTermini => true,
+      PlaceId.stationFarSide => progress.memories.contains(
+        StoryMemory.luigiRescued,
+      ),
+      // The door the key opens stands open from then on.
+      PlaceId.duomoUpper =>
+        simulation.map.tileAt(duomoUpperLockedDoorTile).isWalkable,
+      _ => false,
+    },
   );
   final Map<String, CharacterComponent> _characters =
       <String, CharacterComponent>{};
@@ -407,7 +414,13 @@ final class StepboundGame extends FlameGame
   /// The music of a place that has its own: the churches, and the station
   /// and the train once Luigi is waiting there.
   Music? _themeOf(PlaceId place) => switch (place) {
-    PlaceId.church || PlaceId.duomo || PlaceId.duomoUpper => Music.sacred,
+    PlaceId.church ||
+    PlaceId.duomo ||
+    PlaceId.duomoUpper ||
+    PlaceId.duomoSecondFloor ||
+    PlaceId.duomoTower ||
+    PlaceId.duomoBells ||
+    PlaceId.duomoTowerRoof => Music.sacred,
     PlaceId.station ||
     PlaceId.stationUnderpass ||
     PlaceId.stationFarSide ||
@@ -436,6 +449,7 @@ final class StepboundGame extends FlameGame
         active: () => progress.memories.contains(StoryMemory.luigiRescued),
       ),
       InteractGlintComponent(tile: rooftopGapTile, active: canInteract),
+      InteractGlintComponent(tile: duomoTowerLookoutTile, active: canInteract),
       InteractGlintComponent(tile: shoppingStreetFireTile, active: canInteract),
       // Between the two open books of the crate.
       InteractGlintComponent(
@@ -954,12 +968,10 @@ final class StepboundGame extends FlameGame
     _addWithoutWaiting(world, _priest!);
   }
 
-  /// The stair cultist steps aside: his old tile and the stair are free,
-  /// the one he moves to is not.
+  /// The stair cultist steps aside: his old tile, in front of the door
+  /// upstairs, is free, the one he moves to is not.
   void _openDuomoUpperAccess() {
-    simulation.map
-      ..setTile(duomoStairCultistTile, const Tile(TileKind.floor))
-      ..setTile(duomoStairEntryTile, const Tile(TileKind.floor));
+    simulation.map.setTile(duomoStairCultistTile, const Tile(TileKind.floor));
     _occupy(duomoStairCultistMovedTile);
   }
 

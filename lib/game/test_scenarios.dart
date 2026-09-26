@@ -357,10 +357,9 @@ void _ringFound(ScenarioBuilder story) {
 void _upstairs(ScenarioBuilder story) {
   _ringFound(story);
   // As the game leaves them once the ring is handed over: the stair
-  // cultist stepped aside, the stair free.
+  // cultist stepped aside, the door behind him free.
   story.world.map
     ..setTile(duomoStairCultistTile, const Tile(TileKind.floor))
-    ..setTile(duomoStairEntryTile, const Tile(TileKind.floor))
     ..setTile(duomoStairCultistMovedTile, const Tile(TileKind.obstacle));
   story
     ..remember(StoryMemory.priestFamily)
