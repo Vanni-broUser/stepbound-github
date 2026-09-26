@@ -192,7 +192,9 @@ final class _MoveZoneState extends State<MoveZone> {
       _centre = thumb - delta;
       _thumb = thumb;
     });
-    if (delta.distance < MoveZone.deadZone / 2) {
+    // With the pistol up, the right thumb has the say: Mario stands and
+    // aims, and this one neither walks him nor fires.
+    if (widget.game.aiming.value || delta.distance < MoveZone.deadZone / 2) {
       _stop();
       return;
     }
@@ -248,10 +250,11 @@ final class _MoveZoneState extends State<MoveZone> {
   }
 }
 
-/// The right half of the screen. A tap interacts, or lowers the pistol if
-/// Mario is aiming. Holding raises the pistol; a swipe while aiming, with
-/// the same finger or a new one, turns towards it and shoots. Each of the
-/// three leaves blood on the glass where the finger was, for a moment.
+/// The right half of the screen. A tap interacts. Holding raises the
+/// pistol, with a splash of blood, and brings up a stick like the one that
+/// walks: dragging turns Mario where it points, and lifting the finger
+/// fires that way, unless it is lifted back in the ring in the middle,
+/// which lowers the pistol without firing.
 final class ActionZone extends StatefulWidget {
   const ActionZone({required this.game, super.key});
 
@@ -263,8 +266,13 @@ final class ActionZone extends StatefulWidget {
   /// How far a finger may wander and still count as a tap or a hold.
   static const double slop = 14;
 
-  /// How far a swipe goes before the shot is fired.
-  static const double swipe = 28;
+  /// The aiming stick's reach: its centre follows a finger that goes
+  /// further, as the walking one does.
+  static const double reach = MoveZone.reach;
+
+  /// The ring in the middle of the aiming stick: a finger lifted inside it
+  /// lowers the pistol instead of firing.
+  static const double cancelRadius = 18;
 
   @override
   State<ActionZone> createState() => _ActionZoneState();
@@ -274,8 +282,8 @@ enum _Touch {
   /// Down, not long enough to aim yet: lifting it now is a tap.
   pending,
 
-  /// The pistol is up: a swipe shoots, lifting it without one ends the
-  /// touch (a tap, if the pistol was already up when it began).
+  /// The pistol is up and follows the finger: lifting it fires, or lowers
+  /// the pistol in the middle ring.
   aiming,
 
   /// Nothing more to do until it lifts.
@@ -285,13 +293,25 @@ enum _Touch {
 final class _ActionZoneState extends State<ActionZone> {
   int? _pointer;
   int _seed = 0;
-  Offset? _origin;
+  Offset? _centre;
   Offset? _thumb;
   _Touch _touch = _Touch.spent;
-  bool _aimedBefore = false;
+  Direction? _aim;
   Timer? _hold;
 
   StepboundGame get _game => widget.game;
+
+  /// Where the stick points from its centre, no further than its reach.
+  Offset get _delta {
+    final centre = _centre;
+    final thumb = _thumb;
+    if (centre == null || thumb == null) {
+      return Offset.zero;
+    }
+    return thumb - centre;
+  }
+
+  bool get _inCancelRing => _delta.distance <= ActionZone.cancelRadius;
 
   @override
   void dispose() {
@@ -314,10 +334,11 @@ final class _ActionZoneState extends State<ActionZone> {
     }
     _pointer = event.pointer;
     _seed = Object.hash(event.localPosition, event.timeStamp);
-    _origin = event.localPosition;
+    _centre = event.localPosition;
     _thumb = event.localPosition;
-    _aimedBefore = _game.aiming.value;
-    if (_aimedBefore) {
+    _aim = null;
+    // Already up (the space bar raised it): the stick is there at once.
+    if (_game.aiming.value) {
       _touch = _Touch.aiming;
     } else {
       _touch = _Touch.pending;
@@ -341,8 +362,8 @@ final class _ActionZoneState extends State<ActionZone> {
     setState(() {
       if (_game.aiming.value) {
         _touch = _Touch.aiming;
-        // The swipe is measured from where the finger rests now.
-        _origin = _thumb;
+        // The stick is centred where the finger rests now.
+        _centre = _thumb;
       } else {
         // Nothing loaded: the pistol only clicked.
         _touch = _Touch.spent;
@@ -351,24 +372,39 @@ final class _ActionZoneState extends State<ActionZone> {
   }
 
   void _move(PointerMoveEvent event) {
-    final origin = _origin;
-    if (event.pointer != _pointer || origin == null) {
+    final centre = _centre;
+    if (event.pointer != _pointer || centre == null) {
       return;
     }
-    setState(() => _thumb = event.localPosition);
-    final delta = event.localPosition - origin;
+    final thumb = event.localPosition;
     switch (_touch) {
-      case _Touch.pending when delta.distance > ActionZone.slop:
-        // A swipe before the pistol is up is neither a tap nor a shot.
-        _hold?.cancel();
-        _hold = null;
-        _touch = _Touch.spent;
-      case _Touch.aiming when delta.distance >= ActionZone.swipe:
-        _game.shootToward(directionOf(delta));
-        _touch = _Touch.spent;
-        _splat(origin, SplatKind.swipe, direction: delta);
-      case _Touch.pending || _Touch.aiming || _Touch.spent:
-        break;
+      case _Touch.pending:
+        setState(() => _thumb = thumb);
+        if ((thumb - centre).distance > ActionZone.slop) {
+          // A swipe before the pistol is up is neither a tap nor a shot.
+          _hold?.cancel();
+          _hold = null;
+          _touch = _Touch.spent;
+        }
+      case _Touch.aiming:
+        var delta = thumb - centre;
+        if (delta.distance > ActionZone.reach) {
+          delta = delta / delta.distance * ActionZone.reach;
+        }
+        setState(() {
+          _centre = thumb - delta;
+          _thumb = thumb;
+        });
+        if (delta.distance <= ActionZone.cancelRadius) {
+          return;
+        }
+        final direction = directionOf(delta, current: _aim);
+        if (direction != _aim) {
+          _aim = direction;
+          _game.aimToward(direction);
+        }
+      case _Touch.spent:
+        setState(() => _thumb = thumb);
     }
   }
 
@@ -376,22 +412,33 @@ final class _ActionZoneState extends State<ActionZone> {
     if (event.pointer != _pointer) {
       return;
     }
-    final tapped = event is PointerUpEvent;
+    final lifted = event is PointerUpEvent;
     _hold?.cancel();
     _hold = null;
-    if (tapped && _touch == _Touch.pending) {
-      if (_game.isUnlocked(HudElement.interact)) {
-        _splat(event.localPosition, SplatKind.tap);
-      }
-      _game.pressInteract();
-    } else if (tapped && _touch == _Touch.aiming && _aimedBefore) {
-      _splat(event.localPosition, SplatKind.tap);
-      _game.cancelAim();
+    switch (_touch) {
+      case _Touch.pending when lifted:
+        if (_game.isUnlocked(HudElement.interact)) {
+          _splat(event.localPosition, SplatKind.tap);
+        }
+        _game.pressInteract();
+      case _Touch.aiming:
+        final aim = _aim;
+        final centre = _centre;
+        if (lifted && aim != null && centre != null && !_inCancelRing) {
+          _game.shootToward(aim);
+          _splat(centre, SplatKind.swipe, direction: _delta);
+        } else {
+          _splat(event.localPosition, SplatKind.tap);
+          _game.cancelAim();
+        }
+      case _Touch.pending || _Touch.spent:
+        break;
     }
     setState(() {
       _pointer = null;
-      _origin = null;
+      _centre = null;
       _thumb = null;
+      _aim = null;
       _touch = _Touch.spent;
     });
   }
@@ -399,7 +446,9 @@ final class _ActionZoneState extends State<ActionZone> {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: 'Tocca per interagire, tieni premuto per mirare',
+      label:
+          'Tocca per interagire, tieni premuto e trascina per mirare, '
+          'lascia per sparare',
       child: Listener(
         key: const ValueKey<String>('touch-act'),
         behavior: HitTestBehavior.opaque,
@@ -412,11 +461,10 @@ final class _ActionZoneState extends State<ActionZone> {
           builder: (context, aiming, _) => CustomPaint(
             painter: aiming && _touch == _Touch.aiming
                 ? _StickPainter(
-                    centre: _origin,
+                    centre: _centre,
                     thumb: _thumb,
                     seed: _seed,
-                    reach: ActionZone.swipe,
-                    aiming: true,
+                    cancelRadius: ActionZone.cancelRadius,
                   )
                 : null,
             child: const SizedBox.expand(),
@@ -430,26 +478,32 @@ final class _ActionZoneState extends State<ActionZone> {
 /// A pool of blood where the finger landed and a drop of it under the
 /// finger, smeared between the two, so the player sees which way the drag
 /// points. Pixel art, on the same grid as the splats; [seed] picks where
-/// the ring drips, so every touch drips differently.
+/// the ring drips, so every touch drips differently. Aiming, the blood is
+/// brighter and a pale ring of [cancelRadius] marks the middle: it lights
+/// up, with the pistol greyed on the drop, while the finger rests inside
+/// it, where lifting it fires nothing.
 final class _StickPainter extends CustomPainter {
   const _StickPainter({
     required this.centre,
     required this.thumb,
     required this.seed,
-    this.reach = MoveZone.reach,
-    this.aiming = false,
+    this.cancelRadius,
   });
 
   final Offset? centre;
   final Offset? thumb;
   final int seed;
-  final double reach;
-  final bool aiming;
+  static const double reach = MoveZone.reach;
+  final double? cancelRadius;
+
+  bool get aiming => cancelRadius != null;
 
   static const double _cell = BloodSplatPainter.cell;
   static const Color _pool = Color(0x662a0606);
   static const Color _gloss = Color(0xffeaa29a);
   static const Color _litAiming = Color(0xffe05050);
+  static const Color _ring = Color(0x99d8cfbf);
+  static const Color _ringLit = Color(0xfff2ebdd);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -477,7 +531,7 @@ final class _StickPainter extends CustomPainter {
     final body = aiming ? BloodColors.bright : BloodColors.fresh;
     final rim = aiming ? BloodColors.fresh : BloodColors.dried;
     final lit = aiming ? _litAiming : BloodColors.bright;
-    final radius = reach / _cell;
+    const radius = reach / _cell;
     final r = radius.ceil() + 2;
 
     // The pool: a dark stain, its rim wet and lit from the top left. The
@@ -522,6 +576,22 @@ final class _StickPainter extends CustomPainter {
       cell(x - 1, top + length, lit);
     }
 
+    // The ring in the middle, where lifting the finger fires nothing.
+    final cancelRadius = this.cancelRadius;
+    final cancelling = cancelRadius != null && delta.distance <= cancelRadius;
+    if (cancelRadius != null) {
+      final ring = cancelRadius / _cell;
+      final reachOut = ring.ceil() + 1;
+      for (var y = -reachOut; y <= reachOut; y++) {
+        for (var x = -reachOut; x <= reachOut; x++) {
+          final d = math.sqrt(x * x + y * y.toDouble());
+          if ((d - ring).abs() <= 0.55) {
+            cell(x, y, cancelling ? _ringLit : _ring);
+          }
+        }
+      }
+    }
+
     // The smear the drop leaves on its way out from the middle.
     final kx = (delta.dx / _cell).round();
     final ky = (delta.dy / _cell).round();
@@ -554,7 +624,9 @@ final class _StickPainter extends CustomPainter {
     cell(kx - 1, ky - 2, _gloss);
     cell(kx - 2, ky - 1, _gloss);
 
-    if (aiming) {
+    // Only in the middle ring, greyed: the pistol is about to be lowered.
+    // Once a direction is chosen the drop is left bare.
+    if (cancelling) {
       const icon = Size(20, 20);
       canvas
         ..save()
@@ -562,7 +634,7 @@ final class _StickPainter extends CustomPainter {
           originX + (kx + 0.5) * _cell - icon.width / 2,
           originY + (ky + 0.5) * _cell - icon.height / 2,
         );
-      const _PistolIcon(color: Color(0xff1a1010)).paint(canvas, icon);
+      const _PistolIcon(color: Color(0x88f2ebdd)).paint(canvas, icon);
       canvas.restore();
     }
   }
@@ -572,7 +644,7 @@ final class _StickPainter extends CustomPainter {
       oldDelegate.centre != centre ||
       oldDelegate.thumb != thumb ||
       oldDelegate.seed != seed ||
-      oldDelegate.aiming != aiming;
+      oldDelegate.cancelRadius != cancelRadius;
 }
 
 /// The pistol and the bullets Mario carries, in the row of the things he
