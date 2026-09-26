@@ -492,6 +492,15 @@ void main() {
     );
   });
 
+  test(
+    'the fire in the gap by the burning car at the station says the same',
+    () {
+      director.onEvents(<WorldEvent>[LookedOutEvent(at: stationTrackFireTile)]);
+      settle();
+      expect(host.shown.single.single.text, RoadblockFireScript.fireLine);
+    },
+  );
+
   test('looking over the gap between the roofs tells Mario what it would '
       'take, every time he looks', () {
     for (var look = 0; look < 2; look++) {

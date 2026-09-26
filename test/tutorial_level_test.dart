@@ -1627,7 +1627,7 @@ void main() {
       }
     });
 
-    test('the west doorway reaches the tracks, the train shuts them, and '
+    test('the west doorway reaches the platform, the train shuts it, and '
         'the two rounds are at the dead end', () {
       final world = createTutorialWorld();
       final reached = from(
@@ -1635,11 +1635,10 @@ void main() {
         world.portals[stationWestDoor.first]!.to,
         station,
       );
-      final rails = station.tilesOf('-');
       expect(
-        rails.where(reached.containsKey),
-        isNotEmpty,
-        reason: 'the platform lets Mario down onto the track',
+        station.tilesOf('-').where(reached.containsKey),
+        isEmpty,
+        reason: 'the burning car shuts the platform off from the tracks',
       );
 
       final backpack = world.pickups[stationBackpackId]!;
@@ -1650,11 +1649,13 @@ void main() {
         reason: 'it can be reached, and taken from the tile beside it',
       );
 
-      // Nothing east of the two wrecks is walked to: the railcar closes
-      // the near track and the coach on its side the far one.
+      // Nothing east of the hijacked train is walked to: its coach closes
+      // the far track, the car that turned over the near one, the platform
+      // and the hall down to the front wall.
       final wrecks = <GridPoint>[
-        ...station.tilesOf('M'),
         ...station.tilesOf('m'),
+        ...station.tilesOf('V'),
+        ...station.tilesOf('M'),
       ];
       final wreckLeft = wrecks
           .map((tile) => tile.x)
@@ -1662,27 +1663,152 @@ void main() {
       for (final tile in reached.keys) {
         expect(
           tile.x,
-          lessThanOrEqualTo(wreckLeft + 1),
-          reason: 'the wrecks are as far east as the tracks go',
+          lessThan(wreckLeft),
+          reason: 'the train is as far east as the west side goes',
         );
       }
+      final overturned = station.tilesOf('V');
+      expect(
+        overturned.map((tile) => tile.y).reduce((a, b) => a > b ? a : b),
+        station.tilesOf('E').first.y - 1,
+        reason: 'the overturned car reaches the front wall',
+      );
+      expect(
+        overturned.map((tile) => tile.y).reduce((a, b) => a < b ? a : b),
+        station
+                .tilesOf('m')
+                .map((tile) => tile.y)
+                .reduce((a, b) => a > b ? a : b) +
+            1,
+        reason: 'it hangs off the end of the coach still on the rails',
+      );
       for (final wreck in wrecks) {
         expect(world.map.tileAt(wreck).isWalkable, isFalse);
+        expect(
+          world.map.tileAt(wreck).blocksSight,
+          isTrue,
+          reason: 'the train is a wall, not something to shoot over',
+        );
       }
       expect(
-        station
-            .tilesOf('M')
-            .every((tile) => world.map.tileAt(tile).blocksSight),
-        isTrue,
-        reason: 'the railcar is a wall, not something to shoot over',
+        station.indoor,
+        isFalse,
+        reason: 'the roof is gone: no darkness is drawn over the hall',
+      );
+    });
+
+    test('the only way onto the tracks is the gap on fire by the burning '
+        'car, and looking at it is all Mario can do', () {
+      final world = createTutorialWorld();
+      final platform = from(
+        world,
+        world.portals[stationWestDoor.first]!.to,
+        station,
+      );
+      final fire = station.tilesOf('?');
+      for (final tile in fire) {
+        expect(world.map.tileAt(tile).kind, TileKind.fire);
+      }
+      // Put the fire out, and the tracks are reached through it alone.
+      for (final tile in fire) {
+        world.map.setTile(tile, const Tile(TileKind.floor));
+      }
+      final doused = from(
+        world,
+        world.portals[stationWestDoor.first]!.to,
+        station,
+      );
+      expect(station.tilesOf('-').where(doused.containsKey), isNotEmpty);
+      for (final tile in station.tilesOf('H')) {
+        expect(world.map.tileAt(tile).blocksSight, isTrue);
+      }
+
+      expect(world.lookouts, contains(stationTrackFireTile));
+      final stand = stationTrackFireTile.step(Direction.south);
+      expect(platform.containsKey(stand), isTrue);
+      final fresh = createTutorialWorld();
+      fresh.player.component<PositionComponent>()
+        ..position = stand
+        ..facing = Direction.north;
+      final events = const TurnScheduler().advance(
+        fresh,
+        const InteractAction(),
       );
       expect(
-        station
-            .tilesOf('m')
-            .every((tile) => !world.map.tileAt(tile).blocksSight),
-        isTrue,
-        reason: 'the coach is down on its side: you see over it',
+        events.whereType<LookedOutEvent>().single.at,
+        stationTrackFireTile,
       );
+      expect(
+        stationWreckFireSpots.every(
+          (spot) => station.tilesOf('H').contains(spot.tile),
+        ),
+        isTrue,
+        reason: 'the flames are on the car',
+      );
+      expect(outdoorFireSpots, containsAll(stationWreckFireSpots));
+    });
+
+    test('the rooms are walled at the sides from top to bottom, and the '
+        'tracks run on past them', () {
+      /// The rows of [room] with a side wall at both ends, and those with
+      /// track in them.
+      bool walled(String row) => row.trim().startsWith('|');
+      bool track(String row) => row.contains(RegExp('[-,]'));
+      for (final room in <Place>[station, underpass, farSide]) {
+        final rows = room.rows;
+        final sides = <int>[
+          for (var y = 0; y < rows.length; y++)
+            if (walled(rows[y].replaceAll('x', ' '))) y,
+        ];
+        expect(sides, isNotEmpty, reason: '${room.id}');
+        for (var y = sides.first; y <= sides.last; y++) {
+          final row = rows[y];
+          final west = row.indexOf('|');
+          final east = row.lastIndexOf('|');
+          expect(west, isNot(east), reason: '${room.id} row $y');
+          expect(
+            row.substring(0, west).replaceAll('x', ''),
+            isEmpty,
+            reason: '${room.id} row $y: nothing outside the west wall',
+          );
+          expect(
+            row.substring(east + 1).replaceAll('x', ''),
+            isEmpty,
+            reason: '${room.id} row $y: nothing outside the east wall',
+          );
+        }
+        for (final row in rows.where(track)) {
+          expect(row, isNot(contains('|')), reason: '${room.id}: $row');
+        }
+      }
+      // In the hall the tracks, and the train on them, run on past the
+      // platform at both ends, off the edges of the map.
+      final platform = station.rows.firstWhere((row) => row.contains('='));
+      final tracks = station.rows.where(track).toList();
+      expect(tracks, isNotEmpty);
+      for (final row in station.rows.where(
+        (row) => row.contains(RegExp('[HCmM]')),
+      )) {
+        expect(row[0], isNot('x'), reason: row);
+        expect(row[row.length - 1], isNot('x'), reason: row);
+      }
+      expect(platform.indexOf('|'), greaterThan(0));
+      expect(platform.lastIndexOf('|'), lessThan(platform.length - 1));
+    });
+
+    test('no wanderer waits right in front of a doorway', () {
+      final world = createTutorialWorld();
+      for (final door in <GridPoint>[
+        world.portals[stationWestDoor.first]!.to,
+        world.portals[stationEastDoor.first]!.to,
+      ]) {
+        for (final zombie in station.tilesOf('Z')) {
+          expect(
+            (zombie.x - door.x).abs() + (zombie.y - door.y).abs(),
+            greaterThan(4),
+          );
+        }
+      }
     });
 
     test('the east doorway reaches the stairs, and the underpass comes up '
@@ -1701,6 +1827,31 @@ void main() {
         reason: "the flight down is on the far doorway's side of the fall",
       );
 
+      final door = station.doorRow('O').last;
+      expect(
+        down.first,
+        door.step(Direction.east).step(Direction.east).step(Direction.east),
+        reason: 'two wall cells separate the doorway from the stairs',
+      );
+      final tactilePath = <GridPoint>{
+        door.step(Direction.north),
+        door.step(Direction.north).step(Direction.north),
+        door.step(Direction.north).step(Direction.north).step(Direction.east),
+        door
+            .step(Direction.north)
+            .step(Direction.north)
+            .step(Direction.east)
+            .step(Direction.east),
+        door
+            .step(Direction.north)
+            .step(Direction.north)
+            .step(Direction.east)
+            .step(Direction.east)
+            .step(Direction.east),
+        down.first.step(Direction.north),
+      };
+      expect(station.tilesOf('p').toSet(), tactilePath);
+
       GridPoint through(GridPoint step, Direction facing) {
         world.player.component<PositionComponent>().position = step.step(
           facing.opposite,
@@ -1710,7 +1861,7 @@ void main() {
         return world.player.component<PositionComponent>().position;
       }
 
-      final corridor = through(down.first, Direction.north);
+      final corridor = through(down.first, Direction.south);
       expect(underpass.bounds.contains(corridor), isTrue);
       expect(
         underpass.height,
@@ -1732,6 +1883,43 @@ void main() {
         stationPlatform.contains(platform),
         isTrue,
         reason: 'you come up onto the platform Luigi is waiting on',
+      );
+
+      final hall = through(underpass.doorRow('D').first, Direction.north);
+      expect(hall, down.first.step(Direction.north));
+    });
+
+    test('the east hall opens onto its platform through a four-cell gap, '
+        'with only a little rubble left', () {
+      final world = createTutorialWorld();
+      final reached = from(
+        world,
+        world.portals[stationEastDoor.first]!.to,
+        station,
+      );
+      final wreckRight = station.tilesOf('V').first.x + 3;
+      final eastPlatform = station
+          .tilesOf('=')
+          .where((tile) => tile.x >= wreckRight);
+      expect(eastPlatform.where(reached.containsKey), isNotEmpty);
+      final backWall = station.rows.indexWhere(
+        (row) => row.contains('WWWW....WWWW'),
+      );
+      expect(
+        station
+            .tilesOf('#')
+            .where(
+              (tile) =>
+                  tile.x >= wreckRight && tile.y < station.origin.y + backWall,
+            ),
+        hasLength(3),
+      );
+
+      expect(backWall, isNonNegative);
+      final localWreckRight = wreckRight - station.origin.x;
+      expect(
+        station.rows[backWall].substring(localWreckRight, localWreckRight + 12),
+        'WWWW....WWWW',
       );
     });
 
@@ -2375,7 +2563,9 @@ void main() {
           'the burning wrecks blocking both streets west, and one in the '
           'pile-up under the park',
     );
-    expect(count(all, FireKind.car), 14);
+    // And two on the overturned car burning at the station.
+    expect(count(all, FireKind.car), 14 + stationWreckFireSpots.length);
+    expect(stationWreckFireSpots, hasLength(2));
     expect(count(all, FireKind.bin), 10);
     expect(count(all, FireKind.window), 14);
     expect(count(all, FireKind.campfire), 3);

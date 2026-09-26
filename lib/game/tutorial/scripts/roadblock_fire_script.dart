@@ -4,7 +4,9 @@ import 'package:stepbound/game/tutorial/tutorial_director.dart';
 /// The pile-up closing the shopping street west of the campfire behind the
 /// hypermarket has a gap with no car in it, and fuel burning right across
 /// it. It is the one stretch that looks like a way through, so looking at
-/// it says what it would take; Mario can come back and look again.
+/// it says what it would take; Mario can come back and look again. The gap
+/// between the station's burning car and the rubble, the one way from the
+/// platform onto the tracks, says the same.
 final class RoadblockFireScript extends TutorialScript {
   RoadblockFireScript(super.director);
 
@@ -17,7 +19,9 @@ final class RoadblockFireScript extends TutorialScript {
 
   @override
   void onEvent(WorldEvent event) {
-    if (event is! LookedOutEvent || event.at != shoppingStreetFireTile) {
+    if (event is! LookedOutEvent ||
+        (event.at != shoppingStreetFireTile &&
+            event.at != stationTrackFireTile)) {
       return;
     }
     say(TutorialPrompt(const <TutorialLine>[TutorialLine(fireLine)]));

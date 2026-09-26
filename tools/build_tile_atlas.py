@@ -209,11 +209,7 @@ def station_underpass(atlas: Atlas, rng) -> dict:
         rules.append(rule("structures", glyph, stairs(glyph),
                           [neighbour_key(-1, 0, glyph),
                            neighbour_key(1, 0, glyph)]))
-    for right in (False, True):
-        edge = atlas.bucket(lambda r=right: tile_of(
-            lambda d: paint_side_edge(d, 0, 0, r)), 1)
-        rules.append(rule("foreground", floored + "UD", [[], edge],
-                          [neighbour_key(1 if right else -1, 0, "x")]))
+    rules += side_walls(atlas)
     return {"void": "#060608", "voidGlyph": "x", "rules": rules,
             "objects": []}
 
@@ -2191,12 +2187,14 @@ def station_far_side(atlas: Atlas, rng) -> dict:
         rule("structures", "D", ends(station.paint_stairs, "D"),
              [neighbour_key(-1, 0, "D"), neighbour_key(1, 0, "D")]),
     ]
+    # Termini paints its rows with these rules too, and has no side walls.
     for right in (False, True):
         edge = atlas.bucket(lambda r=right: tile_of(
             lambda d: paint_side_edge(d, 0, 0, r)), 1)
         rules.append(rule("foreground", "-,M=TnD:P",
                           [[], edge], [neighbour_key(1 if right else -1,
                                                      0, "x")]))
+    rules += side_walls(atlas)
     rules.append(rule("foreground", "T", ends(station.paint_bench, "T"),
                       [neighbour_key(-1, 0, "T"), neighbour_key(1, 0, "T")]))
     rules.append(rule("foreground", "n",
@@ -3923,12 +3921,30 @@ def church(atlas: Atlas, rng) -> dict:
 # still baked. It is the far platform's sister -- same slabs, same rails,
 # same painters, which stay in tools/build_station.py -- with what the far
 # platform has not: the hall, the rubble where the roof came down, the
-# doorways onto the forecourt, the ticket windows, and two wrecked trains
-# that are objects, the railcar standing derailed across the near track and
-# the coach on its side across the far one.
+# doorways onto the forecourt, the ticket windows, and the wrecked trains,
+# which are objects: the railcar standing derailed across the near track, and
+# the hijacked train -- its coach still on the far track, the car behind it
+# lying wheels up across the platform and the hall.
 
-STATION_RAILCAR_TILES = (11, 3)
-STATION_COACH_TILES = (9, 3)
+STATION_RAILCAR_TILES = (16, 3)
+STATION_COACH_TILES = (19, 3)
+STATION_UPRIGHT_TILES = (17, 3)
+STATION_OVERTURNED_TILES = (3, 12)
+# The burning car runs on off the west edge of the map: only its east end,
+# where it parted from the car still upright, is in the place.
+STATION_BURNING_TILES = (4, 3)
+STATION_BURNING_LENGTH = 12
+
+
+def side_walls(atlas: Atlas) -> list:
+    """The rule for a station room's side walls `|`: one unbroken strip of
+    coping down each side, its lit edge towards the room. It is the east
+    wall when the darkness outside the place is beside it on the east."""
+    return [rule("structures", "|",
+                 [atlas.bucket(lambda r=right: tile_of(
+                     lambda d: station.paint_side_wall(d, 0, 0, r)), 1)
+                  for right in (False, True)],
+                 [neighbour_key(1, 0, "x")])]
 
 
 def station_hall(atlas: Atlas, rng) -> dict:
@@ -3982,16 +3998,19 @@ def station_hall(atlas: Atlas, rng) -> dict:
     rules = [
         # The ground, in the order the baker laid it: track, ballast, the
         # platform and its edge, and the booking hall's terrazzo elsewhere.
-        rule("ground", "-", rails, [neighbour_key(-1, 0, "-")]),
-        rule("ground", ",Mm9", [ballast]),
-        rule("ground", "=TKn",
+        # The track runs on off the west edge of the map.
+        rule("ground", "-", rails, [neighbour_key(-1, 0, "-x")]),
+        rule("ground", ",MmCVH", [ballast]),
+        rule("ground", "?", [atlas.bucket(lambda: tile_of(
+            lambda d: station.paint_scorched_ballast(d, rng, 0, 0)))]),
+        rule("ground", "=TKn9",
              [platform(0, False), platform(1, False),
               platform(0, True), platform(1, True)],
              [parity_key(), first_row_key("=", 0, "eq")]),
         rule("ground", ":",
              [hall(0), hall(1), platform(0, False), platform(1, False)],
              [parity_key(), first_row_key("=", 2, "le")]),
-        rule("ground", ".EObZ*+U", [hall(0), hall(1)], [parity_key()]),
+        rule("ground", ".EObZ*+Up", [hall(0), hall(1)], [parity_key()]),
         rule("structures", "W", wall,
              [neighbour_key(0, -1, "W"), pattern_key(7, 5, 9)]),
         # The facade: an arched window on every sixth column, boarded or
@@ -4030,14 +4049,21 @@ def station_hall(atlas: Atlas, rng) -> dict:
         rule("structures", "U", ends(station.paint_stairs, "U"),
              [neighbour_key(-1, 0, "U"), neighbour_key(1, 0, "U")]),
     ]
-    # The trains are objects, so the dark line along the sides of the place
-    # has to lie over them: the foreground.
-    for right in (False, True):
-        edge = atlas.bucket(lambda r=right: tile_of(
-            lambda d: paint_side_edge(d, 0, 0, r)), 1)
-        rules.append(rule("foreground", "-,Mm9=TKn:b#EOU.Z*+",
-                          [[], edge], [neighbour_key(1 if right else -1,
-                                                     0, "x")]))
+    tactile_keys = [
+        neighbour_key(0, -1, "pOU"),
+        neighbour_key(1, 0, "pOU"),
+        neighbour_key(0, 1, "pOU"),
+        neighbour_key(-1, 0, "pOU"),
+    ]
+    rules.append(rule(
+        "structures", "p",
+        [atlas.bucket(
+            lambda connections=i: tile_of(lambda d: station.paint_tactile_path(
+                d, connections, 0, 0)), 1)
+         for i in range(16)],
+        tactile_keys,
+    ))
+    rules += side_walls(atlas)
     rules.append(rule("foreground", "T", ends(station.paint_bench, "T"),
                       [neighbour_key(-1, 0, "T"), neighbour_key(1, 0, "T")]))
     rules.append(rule("foreground", "K", [atlas.bucket(lambda: tile_of(
@@ -4057,17 +4083,47 @@ def station_hall(atlas: Atlas, rng) -> dict:
                           wrecked=True)
     coach = Image.new("RGBA", tuple(n * TILE for n in STATION_COACH_TILES),
                       TRANSPARENT)
-    station.paint_toppled_coach(ImageDraw.Draw(coach), rng,
-                                (0, 0, coach.width, coach.height))
+    station.paint_railcar(ImageDraw.Draw(coach), rng,
+                          (0, 0, coach.width, coach.height),
+                          wrecked=False, with_cab=False)
+    upright = Image.new("RGBA", tuple(n * TILE for n in STATION_UPRIGHT_TILES),
+                        TRANSPARENT)
+    station.paint_railcar(ImageDraw.Draw(upright), rng,
+                          (0, 0, upright.width, upright.height),
+                          wrecked=False, with_cab=False)
+    overturned = Image.new(
+        "RGBA", tuple(n * TILE for n in STATION_OVERTURNED_TILES),
+        TRANSPARENT)
+    station.paint_overturned_train(
+        ImageDraw.Draw(overturned), rng,
+        (0, 0, overturned.width, overturned.height))
+    burning = Image.new(
+        "RGBA", (STATION_BURNING_TILES[1] * TILE,
+                 STATION_BURNING_LENGTH * TILE), TRANSPARENT)
+    station.paint_overturned_train(
+        ImageDraw.Draw(burning), rng, (0, 0, burning.width, burning.height),
+        burnt=True)
+    # Painted lying north-south like the other, then turned to lie along
+    # the track, its shadow to the south, and cut to the end that shows:
+    # the torn gangway, facing the car it parted from.
+    burning = burning.transpose(Image.Transpose.ROTATE_270)
+    burning = burning.crop((burning.width - STATION_BURNING_TILES[0] * TILE,
+                            0, burning.width, burning.height))
     return {
         "void": "#060608",
         "voidGlyph": "x",
         "rules": rules,
         "objects": [
+            {"glyph": "H", "image": "station_hall_burning.png",
+             "tiles": list(STATION_BURNING_TILES), "sprite": burning},
+            {"glyph": "C", "image": "station_hall_upright.png",
+             "tiles": list(STATION_UPRIGHT_TILES), "sprite": upright},
             {"glyph": "M", "image": "station_hall_railcar.png",
              "tiles": list(STATION_RAILCAR_TILES), "sprite": railcar},
             {"glyph": "m", "image": "station_hall_coach.png",
              "tiles": list(STATION_COACH_TILES), "sprite": coach},
+            {"glyph": "V", "image": "station_hall_overturned.png",
+             "tiles": list(STATION_OVERTURNED_TILES), "sprite": overturned},
         ],
     }
 

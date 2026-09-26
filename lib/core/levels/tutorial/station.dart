@@ -7,48 +7,63 @@
 /// platforms the roof is gone, so they are lit throughout.
 ///
 /// The two doorways lead to two different corners of the building, and
-/// what came down between them -- the booking hall's roof and, on the
-/// track side, the train itself -- leaves no way from one to the other.
+/// what lies between them leaves no way from one to the other: a hijacked
+/// train that came in too fast. Its coach `m` is still standing on the far
+/// track, but the car behind it `V` broke away at the coupling, turned over
+/// and ploughed on wheels up across the platform and through the back wall
+/// of the booking hall, down to its front wall, a heap of rubble `#` along
+/// its flanks.
+///
+/// Only the hall and the platform are rooms, walled on both sides `|`: the
+/// tracks run on past them, off both edges of the map, and the cars on
+/// them with it, so it is only the wrecks that keep Mario from following.
 ///
 /// West doorway `E`: the booking hall, then the platform through the gap
-/// in its back wall, and the tracks beyond. Following them east gets
-/// nowhere: a railcar `M` stands derailed across the near track and the
-/// coach behind it `m` has gone over on its side, torn open, lying across
-/// the far one. The backpack `9`, two rounds in it, is in the pocket of
-/// ballast between the two wrecks.
+/// in its back wall. Along the near track, west of the overturned car,
+/// the rest of the train shuts the platform off from the tracks: a car `C`
+/// still upright, and past a gap the car that came off before it, `H`,
+/// over on its side and burning, running on off the west edge. The gap
+/// between them, at the west end of the platform, is on fire `?`: the
+/// only way onto the tracks, and looking at it says what it would take
+/// (see `stationTrackFireTile`). The backpack `9`, two rounds in it, is at
+/// the other end of the platform, against the rubble.
 ///
 /// East doorway `O`: the other end of the hall, cut off from the rest by
-/// the rubble `#`, with the stairs `U` down to the underpass in its back
-/// wall. That side's platform is buried under the same fall.
+/// the overturned car. A gap in the back wall reaches the platform, where
+/// only a little rubble remains and a railcar `M` stands derailed across
+/// the near track beyond it. The stairs `U` down to the underpass are in
+/// the front wall, reached from the doorway by the tactile path `p`.
 ///
-/// Common glyphs: `x` darkness, `W` back wall, `w` front wall, `M` the
-/// railcar and `#` the rubble are walls; `m` the coach on its side, `T` a
+/// Common glyphs: `x` darkness, `W` back wall, `w` front wall, `|` the side
+/// walls, `m` the coach and `C` the car still upright, `V` and `H` the
+/// overturned cars, `M` the railcar and `#` the rubble are walls; `T` a
 /// bench, `K` a ticket window, `n` a canopy post are obstacles you can see
-/// over; `.` the hall floor, `=` the platform, `,` ballast, `-` the rails,
-/// `:` litter (noisy), `b` blood, `*` a working lamp, `+` a flickering
-/// one, `Z` a wanderer. Two wanderers roam the underpass too.
+/// over; `?` burns and cannot be walked through; `.` the hall floor, `=`
+/// the platform, `,` ballast, `-` the rails, `:` litter (noisy), `b`
+/// blood, `p` the tactile path, `*` a working lamp, `+` a flickering one,
+/// `Z` a wanderer. Two wanderers roam the underpass too.
 // station-rows-start
 const List<String> stationRows = <String>[
-  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-  'xWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWx',
-  'xWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWx',
-  'x,,,,,,,,,,,,,,,,,,,,,,,,,mmmmmmmmmx',
-  'x----------------------,,-mmmmmmmmmx',
-  'x,,,,,,,,,,,,,,,,,,,,,,9,,mmmmmmmmmx',
-  'x,,,,,,,,,,,,,,,,,,,,,,,MMMMMMMMMMMx',
-  'x-----------------------MMMMMMMMMMMx',
-  'x,,:,,,,,,,,,,,,,,,,,,,,MMMMMMMMMMMx',
-  'x==================:====###########x',
-  'x==nn=====T=====nn==:===###########x',
-  'x===================:===###########x',
-  'xWWWWWWWW....WWWWWWW####WWWWUUWWWWWx',
-  'x...:......Z......:.####...........x',
-  'x..T....K.........:.####..:...T....x',
-  'x.....b......:......####.b.........x',
-  'x..:.....Z.......:..####....:....K.x',
-  'x........:..........####..........:x',
-  'xwwwwwwwwEEwwwwwwwwwwwwwwwwwOOwwwwwx',
-  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  'WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW',
+  'WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW',
+  ',,,,,,,,,,,,,,,,,,,,,,,,mmmmmmmmmmmmmmmmmmm',
+  '------------------------mmmmmmmmmmmmmmmmmmm',
+  ',,,,,,,,,,,,,,,,,,,,,,,,mmmmmmmmmmmmmmmmmmm',
+  'HHHH??CCCCCCCCCCCCCCCCC#VVVMMMMMMMMMMMMMMMM',
+  'HHHH??CCCCCCCCCCCCCCCCC#VVVMMMMMMMMMMMMMMMM',
+  'HHHH??CCCCCCCCCCCCCCCCC#VVVMMMMMMMMMMMMMMMM',
+  'xxx|==================:#VVV##==========|xxx',
+  'xxx|==nn=====T=====nn=9#VVV#===========|xxx',
+  'xxx|=================:=#VVV============|xxx',
+  'xxx|WWWWWWWW....WWWWWWWWVVVWWWW....WWWW|xxx',
+  'xxx|.Z.:......Z......:..VVV............|xxx',
+  'xxx|..T....K.........:..VVV..:...T.....|xxx',
+  'xxx|.....b......:......#VVV#b..........|xxx',
+  'xxx|..:.............:.##VVV##..:pppp...|xxx',
+  'xxx|........:.........##VVV##...p..p.:.|xxx',
+  'xxx|wwwwwwwwEEwwwwwwwwwwwwwwwwwOOwwUUww|xxx',
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
 ];
 // station-rows-end
 
@@ -59,12 +74,12 @@ const List<String> stationRows = <String>[
 // underpass-rows-start
 const List<String> stationUnderpassRows = <String>[
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-  'xWWWWWWWWWWWWWWWWWWWWWWWWWWWWx',
-  'xWDDWWWWWWWWWWWWWWWWWWWWWWUUWx',
-  'x...:......*..Z....:...Z..:..x',
-  'x.b........:...+..........b..x',
-  'x..:...*.........:.....*.....x',
-  'xwwwwwwwwwwwwwwwwwwwwwwwwwwwwx',
+  '|WWWWWWWWWWWWWWWWWWWWWWWWWWWW|',
+  '|WDDWWWWWWWWWWWWWWWWWWWWWWUUW|',
+  '|...:......*..Z....:...Z..:..|',
+  '|.b........:...+..........b..|',
+  '|..:...*.........:.....*.....|',
+  '|wwwwwwwwwwwwwwwwwwwwwwwwwwww|',
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
 ];
 // underpass-rows-end
@@ -73,7 +88,8 @@ const List<String> stationUnderpassRows = <String>[
 /// platform under what is left of its canopy and, standing on the near
 /// track, a railcar `M` that is filthy but whole, both tracks running past
 /// it. `P` is its passenger door: still part of the wall until Luigi has
-/// been rescued, then the game opens it onto the train interior.
+/// been rescued, then the game opens it onto the train interior. Only the
+/// platform is walled at the sides `|`; the tracks run on past it.
 // far-platform-rows-start
 const List<String> stationFarSideRows = <String>[
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
@@ -85,11 +101,11 @@ const List<String> stationFarSideRows = <String>[
   'x,,,MMMMMMMMMMMMMMMMMMMMMMMMMMM,,,,x',
   'x---MMMMMMMMMMMMMMMMMMMMMMMMMMM----x',
   'x,,,MMMMPMMMMMMMMMMMMMMMMMMMMMM,,,,x',
-  'x==================================x',
-  'x==nn======T=========nn=====T======x',
-  'x=:=========================:======x',
-  'x==================================x',
-  'xWWWWWWWWWWWWWWWWDDWWWWWWWWWWWWWWWWx',
+  '|==================================|',
+  '|==nn======T=========nn=====T======|',
+  '|=:=========================:======|',
+  '|==================================|',
+  '|WWWWWWWWWWWWWWWWDDWWWWWWWWWWWWWWWW|',
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
 ];
 // far-platform-rows-end

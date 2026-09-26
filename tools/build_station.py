@@ -25,6 +25,7 @@ PLATFORM = (150, 146, 138)
 PLATFORM_ALT = (140, 136, 128)
 PLATFORM_JOINT = (112, 108, 102)
 SAFETY = (198, 168, 62)
+TACTILE = (216, 184, 54)
 BALLAST = [(104, 100, 94), (88, 84, 80), (120, 114, 106), (74, 72, 70)]
 SLEEPER = (82, 66, 48)
 SLEEPER_DARK = (58, 46, 34)
@@ -185,6 +186,28 @@ def paint_back_wall(d, rng, room, x, y):
             ((140, 60, 70), (60, 90, 130), (150, 130, 60))))
 
 
+def paint_side_wall(d, px, py, right):
+    """A side wall of a room, `|`: running north-south it shows only its
+    top, the same dark coping as the back wall's, one unbroken strip from
+    the back wall down to the front one, its render catching the light
+    along the edge that faces into the room."""
+    rect(d, px, py, TILE, TILE, WALL_TOP)
+    inner = px if right else px + TILE - 3
+    rect(d, inner, py, 3, TILE, TRIM)
+    rect(d, px + (3 if right else TILE - 4), py, 1, TILE, WALL_DARK)
+    rect(d, px + (TILE - 1 if right else 0), py, 1, TILE, (30, 30, 34))
+
+
+def paint_scorched_ballast(d, rng, px, py):
+    """Ballast where the fuel is burning, `?`: blackened, the stones split
+    by the heat."""
+    paint_ballast(d, rng, px, py)
+    for _ in range(18):
+        rect(d, px + rng.randrange(14), py + rng.randrange(14),
+             rng.randint(2, 4), rng.randint(1, 3),
+             rng.choice(((30, 28, 28), (46, 40, 36), (22, 20, 20))))
+
+
 def paint_front_wall(d, rng, x, y):
     """The facade seen from inside, `w`: the same render, with the arched
     windows of the front in it, their glass gone."""
@@ -238,6 +261,41 @@ def paint_stairs(d, room, x, y):
         if there:
             rect(d, px + side, py + 4, 2, TILE - 4, METAL_DARK)
             rect(d, px + side, py + 4, 2, 2, METAL_LIGHT)
+
+
+def paint_tactile_path(d, connections, px, py):
+    """The yellow tactile guide through the booking hall.
+
+    Bits 0 to 3 say that the path continues north, east, south and west.
+    The darker bed makes the narrow strip readable on both terrazzo
+    colours; raised studs mark each turn and junction.
+    """
+    centre = TILE // 2
+    dark = shade(TACTILE, -44)
+
+    def strip(x, y, w, h):
+        rect(d, x, y, w, h, dark)
+        if w > h:
+            rect(d, x, y + 1, w, h - 2, TACTILE)
+        else:
+            rect(d, x + 1, y, w - 2, h, TACTILE)
+
+    if connections & 1:  # north
+        strip(px + centre - 2, py, 5, centre + 3)
+    if connections & 2:  # east
+        strip(px + centre - 2, py + centre - 2, centre + 2, 5)
+    if connections & 4:  # south
+        strip(px + centre - 2, py + centre - 2, 5, centre + 2)
+    if connections & 8:  # west
+        strip(px, py + centre - 2, centre + 3, 5)
+
+    rect(d, px + centre - 2, py + centre - 2, 5, 5, TACTILE)
+    if connections not in (3, 6, 9, 12):
+        return
+    # Four studs at a turn: the warning texture before changing direction.
+    for dx in (-2, 2):
+        for dy in (-2, 2):
+            rect(d, px + centre + dx, py + centre + dy, 1, 1, dark)
 
 
 # -------------------------------------------------------------------- props
@@ -302,13 +360,16 @@ def _grime(d, rng, px, py, w, h, amount):
              rng.randint(2, 5), rng.choice(((136, 128, 112), (118, 112, 100))))
 
 
-def paint_railcar(d, rng, area, wrecked, door_x=None, open_door=False):
+def paint_railcar(d, rng, area, wrecked, door_x=None, open_door=False,
+                  with_cab=True):
     """The railcar on the rails, `M`, side on: the roof with its vents, the
     body in the regional livery under years of grime, the windows, the
     skirt and the bogies, its cab at the west end where it is met. Derailed
-    it is stove in and burnt out; whole it is only filthy."""
+    it is stove in and burnt out; whole it is only filthy. Without its cab
+    it is a coach, its west end torn open where the car behind it broke
+    away."""
     px, py, w, h = area
-    body, cab = py + 9, 22
+    body, cab = py + 9, 22 if with_cab else 0
     rect(d, px, py + h - 5, w, 5, (30, 30, 34))  # its shadow on the ballast
     rect(d, px, py, w, 10, shade(LIVERY_GREEN, -38))  # the roof
     rect(d, px, py, w, 2, shade(LIVERY_GREEN, -14))
@@ -330,12 +391,16 @@ def paint_railcar(d, rng, area, wrecked, door_x=None, open_door=False):
         for ox in (bx + 3, bx + 26):
             rect(d, ox, py + h - 11, 10, 10, (26, 26, 28))
             rect(d, ox + 3, py + h - 8, 4, 4, (86, 86, 90))
-    # the cab, at the west end: the red front, the windscreen over it
-    rect(d, px, py, cab, 10, shade(LIVERY_RED, -46))
-    rect(d, px, body, cab, h - 21, LIVERY_RED)
-    rect(d, px + 3, body + 6, 15, 11, METAL_DARK)
-    rect(d, px + 4, body + 7, 13, 9, GLASS_BROKEN if wrecked else GLASS)
-    rect(d, px, py + h - 12, cab, 6, shade(LIVERY_RED, -60))
+    if with_cab:  # at the west end: the red front, the windscreen over it
+        rect(d, px, py, cab, 10, shade(LIVERY_RED, -46))
+        rect(d, px, body, cab, h - 21, LIVERY_RED)
+        rect(d, px + 3, body + 6, 15, 11, METAL_DARK)
+        rect(d, px + 4, body + 7, 13, 9, GLASS_BROKEN if wrecked else GLASS)
+        rect(d, px, py + h - 12, cab, 6, shade(LIVERY_RED, -60))
+    else:  # the gangway torn off, the coupler hanging from the end
+        for i in range(0, h - 6, 5):
+            rect(d, px, py + 2 + i, rng.randint(4, 9), 5, (30, 28, 28))
+        rect(d, px + 16, py + h - 4, 12, 3, METAL_DARK)
     _grime(d, rng, px, body, w, h - 21, w // 3)
     if not wrecked:
         if door_x is not None:
@@ -356,39 +421,98 @@ def paint_railcar(d, rng, area, wrecked, door_x=None, open_door=False):
         rect(d, sx, sy, rng.randint(5, 10), rng.randint(3, 7), (56, 50, 46))
 
 
-def paint_toppled_coach(d, rng, area):
-    """The coach behind it, `m`: it went over on its side across the far
-    track and lies flank up, so its whole side -- roof edge, livery band,
-    the row of windows -- is what shows, with the underframe and the
-    bogies heeled over towards the near track and the end torn open where
-    it parted from the railcar."""
+def paint_overturned_train(d, rng, area, burnt=False):
+    """The hijacked train's last car, `V`: it broke away from the coach
+    still on the rails, turned over and ploughed on wheels up, north to
+    south, across the platform and through the booking hall to its front
+    wall. What shows is its belly -- the underframe, the tanks and boxes
+    slung under it, the two bogies with their wheels in the air -- between
+    thin strips of its flanks, the gangway torn open at the north end and
+    the cab at the south one crushed and burnt into the rubble it pushed
+    ahead of it."""
     px, py, w, h = area
-    rect(d, px, py + h - 3, w, 3, (30, 30, 34))
-    rect(d, px, py, w, 6, shade(LIVERY_GREEN, -52))  # the roof, edge on
-    rect(d, px, py + 6, w, 6, shade(LIVERY_GREEN, -24))  # the livery band
-    rect(d, px, py + 12, w, h - 26, shade(LIVERY_WHITE, -34))
-    rect(d, px, py + h - 18, w, 4, shade(LIVERY_BLUE, -26))
-    for wx in range(px + 8, px + w - 14, 24):  # the windows, all of them out
-        rect(d, wx, py + 15, 17, 12, METAL_DARK)
-        rect(d, wx + 1, py + 16, 15, 10, GLASS_BROKEN)
-        rect(d, wx + 4, py + 18, 6, 3, (58, 56, 54))
-    # the underframe it has rolled up on, its bogies clear of the ground
-    rect(d, px, py + h - 14, w, 14, shade(LIVERY_WHITE, -92))
-    rect(d, px, py + h - 14, w, 2, METAL_DARK)
-    for cx in range(px + 4, px + w - 4, 11):  # the ribs of the floor pan
-        rect(d, cx, py + h - 12, 3, 12, (54, 52, 50))
-    for bx in (px + 10, px + w - 46):  # the bogies, wheels out sideways
-        rect(d, bx, py + h - 12, 34, 10, METAL_DARK)
-        for ox in (bx + 2, bx + 24):
-            rect(d, ox, py + h - 13, 9, 12, (26, 26, 28))
-            rect(d, ox + 2, py + h - 9, 5, 4, (92, 92, 96))
-    for i in range(0, h - 6, 5):  # the end torn open on the dark inside
-        rect(d, px, py + 2 + i, rng.randint(3, 9), 5, (30, 28, 28))
-    _grime(d, rng, px, py + 6, w, h - 20, w // 2)
-    for _ in range(w // 4):  # rust breaking out all over the wreck
-        gx, gy = px + rng.randrange(w - 4), py + 4 + rng.randrange(h - 12)
-        rect(d, gx, gy, rng.randint(2, 5), rng.randint(1, 3),
-             rng.choice((RAIL_RUST, shade(RAIL_RUST, -30), (72, 68, 64))))
+    left, right = px + 3, px + w - 3
+    rect(d, right, py + 6, 3, h - 6, (30, 30, 34))  # its shadow
+    # the flanks, heeled over: a sliver of livery down each side
+    rect(d, left, py, 4, h, shade(LIVERY_WHITE, -40))
+    rect(d, left + 1, py, 1, h, shade(LIVERY_GREEN, -30))
+    rect(d, right - 4, py, 4, h, shade(LIVERY_WHITE, -78))
+    rect(d, right - 2, py, 1, h, shade(LIVERY_BLUE, -30))
+    for wy in range(py + 12, py + h - 26, 14):  # the windows, upside down
+        rect(d, left, wy, 3, 9, GLASS_BROKEN)
+        rect(d, right - 3, wy, 3, 9, GLASS_BROKEN)
+        rect(d, left, wy, 3, 1, shade(GLASS, 26))
+    # the belly: the floor pan, its two sills and its ribs
+    belly_l, belly_r = left + 4, right - 4
+    rect(d, belly_l, py, belly_r - belly_l, h, (62, 62, 66))
+    for sx in (belly_l + 2, belly_r - 5):
+        rect(d, sx, py, 3, h, METAL_DARK)
+        rect(d, sx, py, 1, h, (92, 94, 100))
+    for ry in range(py + 4, py + h, 9):
+        rect(d, belly_l, ry, belly_r - belly_l, 1, (48, 48, 52))
+    # the boxes slung under it, between the bogies
+    for by, bh in ((py + 62, 14), (py + 82, 10), (py + 98, 12)):
+        rect(d, belly_l + 7, by, belly_r - belly_l - 14, bh, (80, 82, 88))
+        rect(d, belly_l + 7, by, belly_r - belly_l - 14, 2, (112, 114, 120))
+        rect(d, belly_l + 7, by + bh - 1, belly_r - belly_l - 14, 1,
+             (40, 40, 44))
+    rect(d, belly_l + 9, py + 84, 6, 6, (150, 132, 60))  # a warning plate
+    # the bogies, wheels up
+    for top in (py + 16, py + h - 62):
+        rect(d, belly_l + 1, top, belly_r - belly_l - 2, 36, (44, 44, 48))
+        rect(d, belly_l + 1, top, belly_r - belly_l - 2, 2, METAL)
+        for ay in (top + 8, top + 26):  # an axle and its two wheels
+            rect(d, left + 2, ay + 1, right - left - 4, 3, (96, 96, 100))
+            rect(d, left + 2, ay + 1, right - left - 4, 1, (130, 130, 136))
+            for wx in (left - 1, right - 8):  # standing up in the air
+                rect(d, wx + 2, ay - 3, 9, 13, (22, 22, 26))  # its shadow
+                rect(d, wx, ay - 5, 9, 13, (40, 38, 38))
+                rect(d, wx, ay - 5, 9, 2, (168, 166, 170))  # the tread
+                rect(d, wx + 1, ay - 3, 7, 9, shade(RAIL_RUST, -40))
+                rect(d, wx + 3, ay, 3, 3, (150, 150, 156))  # the hub
+        for cx in (belly_l + 4, belly_r - 10):  # the springs
+            for sy in range(top + 13, top + 23, 2):
+                rect(d, cx, sy, 6, 1, RAIL_RUST)
+    # the north end, where it tore off the coach: the gangway ripped open
+    # on the dark inside, the broken coupler still pointing at the coach
+    rect(d, left, py, right - left, 9, (30, 28, 28))
+    for i in range(0, right - left, 4):
+        rect(d, left + i, py + 7 + (i % 3), 3, 3, shade(LIVERY_WHITE, -60))
+    rect(d, px + w // 2 - 3, py, 6, 7, METAL_DARK)
+    rect(d, px + w // 2 - 2, py, 4, 2, METAL_LIGHT)
+    # the front cab, crushed into the heap and burnt out
+    nose = py + h - 22
+    rect(d, left, nose, right - left, 22, shade(LIVERY_RED, -70))
+    for _ in range(14):
+        sx, sy = left + rng.randrange(right - left - 6), nose + \
+            rng.randrange(18)
+        rect(d, sx, sy, rng.randint(3, 8), rng.randint(2, 5),
+             rng.choice(((38, 34, 34), (68, 58, 52), (26, 24, 24),
+                         shade(LIVERY_RED, -40))))
+    for i in range(0, right - left - 4, 5):  # the belly folded up on it
+        rect(d, left + 2 + i, nose - 2 + (i % 3), 4, 3, (32, 30, 30))
+    # scorch and rust all down it
+    for _ in range(h // 5):
+        gx, gy = left + rng.randrange(right - left - 4), py + \
+            rng.randrange(h - 24)
+        rect(d, gx, gy, rng.randint(2, 6), rng.randint(1, 4),
+             rng.choice((RAIL_RUST, shade(RAIL_RUST, -30), (72, 68, 64),
+                         (46, 42, 40))))
+    if burnt:  # the fire running along it, and what it left
+        for _ in range(h // 3):
+            gx, gy = left + rng.randrange(right - left - 6), py +                 rng.randrange(h - 8)
+            rect(d, gx, gy, rng.randint(4, 9), rng.randint(3, 7),
+                 rng.choice(((30, 26, 26), (48, 40, 36), (20, 18, 18))))
+    # the rubble it pushed ahead of it, and what fell on it
+    for _ in range(40):
+        rx = px + rng.randrange(w - 4)
+        ry = py + h - rng.randrange(1, 12)
+        rect(d, rx, ry, rng.randint(2, 6), rng.randint(2, 4),
+             rng.choice(RUBBLE))
+    for _ in range(12):
+        rx, ry = px + rng.randrange(w - 4), py + rng.randrange(h - 20)
+        rect(d, rx, ry, rng.randint(2, 4), rng.randint(1, 3),
+             rng.choice(RUBBLE))
 
 
 def paint_passenger_door(d, px, top, bottom, opened):
