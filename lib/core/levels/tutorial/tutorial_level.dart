@@ -98,9 +98,10 @@ const Legend duomoTowerRoofLegend = Legend(walls: 'x=', obstacles: '^>n');
 /// hijacked train's cars `m` and `C` and its overturned ones `V` and `H`,
 /// the railcar `M` and the rubble `#` shut the way like walls, the benches
 /// `T`, the ticket windows `K` and the canopy posts `n` can be seen over,
-/// and the gap by the burning car `?` is on fire.
+/// the far-platform signs `l` and `r` hang against the wall, and the gap by
+/// the burning car `?` is on fire.
 const Legend stationLegend = Legend(
-  walls: 'xWwMmCVHP#|',
+  walls: 'xWwMmCVHP#|lr',
   obstacles: 'TKn',
   fire: '?',
 );
@@ -297,7 +298,6 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     id: PlaceId.romeTermini,
     rows: terminiRows,
     legend: terminiLegend,
-    art: PlaceId.stationFarSide,
     level: LevelId.rome,
   ),
   // Painted from its rows out of the tile atlas.

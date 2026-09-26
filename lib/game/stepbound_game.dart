@@ -489,6 +489,12 @@ final class StepboundGame extends FlameGame
       InteractGlintComponent(tile: duomoTowerLookoutTile, active: canInteract),
       InteractGlintComponent(tile: shoppingStreetFireTile, active: canInteract),
       InteractGlintComponent(tile: stationTrackFireTile, active: canInteract),
+      // Luigi has the key: until he is free, the shut passenger door can
+      // still be examined and explains why Mario cannot board.
+      InteractGlintComponent(
+        tile: stationTrainDoorTile,
+        active: () => !simulation.map.tileAt(stationTrainDoorTile).isWalkable,
+      ),
       // Between the two open books of the crate.
       InteractGlintComponent(
         tile: trainBookTiles.first,

@@ -1949,6 +1949,29 @@ void main() {
       }
     });
 
+    test('the whole railcar backs onto the wall and fills the map', () {
+      final trainTop = stationFarSideRows.indexWhere(
+        (row) => row.contains('M'),
+      );
+      expect(trainTop, 3, reason: 'the wall ends immediately above it');
+      expect(
+        stationFarSideRows[trainTop - 1].substring(1, 35).split(''),
+        everyElement(isIn(<String>['W', 'l', 'r'])),
+      );
+      for (var y = trainTop; y < trainTop + 3; y++) {
+        expect(
+          stationFarSideRows[y].substring(1, 35).split(''),
+          everyElement(isIn(<String>['M', 'P'])),
+          reason: 'the train reaches both inner edges on row $y',
+        );
+      }
+      expect(
+        stationFarSideRows[trainTop + 2].indexOf('P'),
+        6,
+        reason: 'the extended train moves the door two cells west',
+      );
+    });
+
     test('the passenger door is closed by default and leads through two '
         'coaches to the locomotive when opened', () {
       final world = createTutorialWorld();

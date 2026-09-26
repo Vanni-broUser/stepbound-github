@@ -2036,11 +2036,14 @@ def bar_backroom(atlas: Atlas, rng) -> dict:
 # The railcar is one object, not tiles: its grime runs across the grid. It
 # is painted at the size of the run of `M` in the far platform's rows;
 # test/levels/tile_atlas_test.dart fails if the rows stop agreeing.
-RAILCAR_TILES = (27, 3)
+RAILCAR_TILES = (34, 3)
+TERMINI_RAILCAR_TILES = (27, 3)
+STATION_SIGN_TILES = (8, 1)
 # Counted from the west end. The train faces east, like the locomotive
 # inside it: its red tail is at the west end and its door at the back,
 # like the train's own way in; the east end is the locomotive's nose.
-RAILCAR_DOOR_TILE = 4
+RAILCAR_DOOR_TILE = 5
+TERMINI_RAILCAR_DOOR_TILE = 4
 # How far back from the east end the nose starts to slope.
 RAILCAR_NOSE = 46
 
@@ -2117,6 +2120,19 @@ def paint_locomotive_nose(sprite: Image.Image) -> None:
             px[x, y] = station.METAL_DARK + (255,)
 
 
+def station_railcar_sprite(tiles, door_tile, open_door: bool) -> Image.Image:
+    """The intact train, with its red tail west and streamlined nose east."""
+    width, height = (n * TILE for n in tiles)
+    sprite = Image.new("RGBA", (width, height), TRANSPARENT)
+    station.paint_railcar(
+        ImageDraw.Draw(sprite), random.Random(SEED + 1),
+        (0, 0, width, height), wrecked=False,
+        door_x=door_tile * TILE, open_door=open_door,
+    )
+    paint_locomotive_nose(sprite)
+    return sprite
+
+
 def station_far_side(atlas: Atlas, rng) -> dict:
     """The rules that paint PlaceId.stationFarSide: the far platform, the
     track and the railcar Luigi is holed up in."""
@@ -2181,8 +2197,8 @@ def station_far_side(atlas: Atlas, rng) -> dict:
              [hall(0), hall(1), platform(0, False), platform(1, False)],
              [parity_key(), first_row_key("=", 2, "le")]),
         rule("ground", "DP", [hall(0), hall(1)], [parity_key()]),
-        rule("structures", "W", wall,
-             [neighbour_key(0, -1, "W"), pattern_key(7, 5, 9)]),
+        rule("structures", "Wlr", wall,
+             [neighbour_key(0, -1, "Wlr"), pattern_key(7, 5, 9)]),
         rule("structures", ":", [litter]),
         rule("structures", "D", ends(station.paint_stairs, "D"),
              [neighbour_key(-1, 0, "D"), neighbour_key(1, 0, "D")]),
@@ -2205,17 +2221,58 @@ def station_far_side(atlas: Atlas, rng) -> dict:
                        for beam in (False, True)],
                       [neighbour_key(1, 0, "n")]))
 
-    def railcar(open_door: bool) -> Image.Image:
-        # The painter's red cab at the west end is the train's tail; the
-        # east end is shaped into the locomotive's nose.
-        width, height = (n * TILE for n in RAILCAR_TILES)
+    def station_sign(text: str, broken: bool) -> Image.Image:
+        """A weathered Italian railway name board.
+
+        The two halves still identify Molfetta together: grime has hidden
+        MOLF on the west board, while the east board has lost its ETTA end.
+        """
+        width, height = (n * TILE for n in STATION_SIGN_TILES)
         sprite = Image.new("RGBA", (width, height), TRANSPARENT)
-        station.paint_railcar(
-            ImageDraw.Draw(sprite), random.Random(SEED + 1),
-            (0, 0, width, height), wrecked=False,
-            door_x=RAILCAR_DOOR_TILE * TILE, open_door=open_door,
-        )
-        paint_locomotive_nose(sprite)
+        d = ImageDraw.Draw(sprite)
+        blue = (26, 78, 151)
+        blue_dark = (14, 45, 93)
+        blue_light = (48, 104, 181)
+        white = (235, 239, 232)
+
+        if broken:
+            # The metal tears away directly after MOLF: there is no intact
+            # blue gap that could have held the missing letters.
+            d.polygon(
+                [(1, 1), (39, 1), (43, 4), (39, 7), (44, 10),
+                 (40, 14), (1, 14)],
+                fill=blue,
+            )
+            d.line([(1, 1), (39, 1), (43, 4)], fill=white, width=1)
+            d.line([(1, 14), (40, 14)], fill=white, width=1)
+            d.line([(1, 1), (1, 14)], fill=white, width=1)
+            d.line([(39, 2), (36, 7), (42, 10), (38, 14)],
+                   fill=blue_dark, width=2)
+            d.polygon([(48, 3), (60, 2), (57, 7), (46, 8)],
+                      fill=blue_dark)
+            d.polygon([(52, 4), (58, 3), (56, 5)], fill=blue_light)
+            d.polygon([(69, 10), (78, 8), (75, 14), (66, 14)],
+                      fill=blue)
+            paint_text(d, 9, 3, text, white, scale=2)
+        else:
+            rect(d, 0, 0, width, height, blue_dark)
+            rect(d, 1, 1, width - 2, height - 2, white)
+            rect(d, 2, 2, width - 4, height - 4, blue)
+            paint_text(d, width - 39, 3, text, white, scale=2)
+
+            # Thick soot, rust and rain streaks conceal the missing MOLF.
+            grime = (55, 58, 52)
+            soot = (31, 35, 34)
+            rust = (101, 70, 43)
+            d.polygon([(2, 2), (83, 2), (88, 5), (84, 8), (89, 13),
+                       (2, 13)], fill=grime)
+            d.polygon([(2, 2), (69, 2), (83, 6), (76, 9), (24, 7)],
+                      fill=soot)
+            d.line([(12, 3), (12, 13)], fill=rust, width=2)
+            d.line([(55, 2), (58, 12)], fill=rust, width=1)
+            d.line([(82, 4), (85, 13)], fill=soot, width=2)
+            d.point([(18, 10), (63, 5), (86, 11)], fill=(142, 129, 100))
+
         return sprite
 
     return {
@@ -2224,12 +2281,20 @@ def station_far_side(atlas: Atlas, rng) -> dict:
         "rules": rules,
         "objects": [
             {"glyph": "M", "image": "station_railcar.png",
-             "tiles": list(RAILCAR_TILES), "sprite": railcar(False),
+             "tiles": list(RAILCAR_TILES),
+             "sprite": station_railcar_sprite(
+                 RAILCAR_TILES, RAILCAR_DOOR_TILE, False),
              "whenOpen": "station_railcar_open.png",
-             "openSprite": railcar(True)},
+             "openSprite": station_railcar_sprite(
+                 RAILCAR_TILES, RAILCAR_DOOR_TILE, True)},
+            {"glyph": "l", "image": "station_sign_etta.png",
+             "tiles": list(STATION_SIGN_TILES),
+             "sprite": station_sign("ETTA", broken=False)},
+            {"glyph": "r", "image": "station_sign_molf.png",
+             "tiles": list(STATION_SIGN_TILES),
+             "sprite": station_sign("MOLF", broken=True)},
         ],
     }
-
 
 
 # ------------------------------------------------------ the barracks' art
@@ -4282,6 +4347,22 @@ def build() -> tuple[Atlas, dict]:
     places = {
         name: make(atlas, random.Random(f"{SEED}/{name}"))
         for name, make in sorted(PLACES.items())
+    }
+    # Termini keeps the same material rules and railcar, but has its own
+    # art key so Molfetta's two place-name boards do not follow it to Rome.
+    far_side = places["stationFarSide"]
+    places["romeTermini"] = {
+        **far_side,
+        "objects": [{
+            "glyph": "M",
+            "image": "termini_railcar.png",
+            "tiles": list(TERMINI_RAILCAR_TILES),
+            "sprite": station_railcar_sprite(
+                TERMINI_RAILCAR_TILES, TERMINI_RAILCAR_DOOR_TILE, False),
+            "whenOpen": "termini_railcar_open.png",
+            "openSprite": station_railcar_sprite(
+                TERMINI_RAILCAR_TILES, TERMINI_RAILCAR_DOOR_TILE, True),
+        }],
     }
     manifest = {
         "format": "stepbound-tile-atlas-v1",

@@ -85,22 +85,20 @@ const List<String> stationUnderpassRows = <String>[
 // underpass-rows-end
 
 /// The far side of the station, up the second flight `D`: one long
-/// platform under what is left of its canopy and, standing on the near
-/// track, a railcar `M` that is filthy but whole, both tracks running past
-/// it. `P` is its passenger door: still part of the wall until Luigi has
+/// platform under what is left of its canopy and a railcar `M` that is
+/// filthy but whole, filling the strip between the wall and the platform.
+/// `P` is its passenger door: still part of the wall until Luigi has
 /// been rescued, then the game opens it onto the train interior. Only the
-/// platform is walled at the sides `|`; the tracks run on past it.
+/// platform is walled at the sides `|`; the tracks run on past it. The
+/// repeated `l` and `r` cells carry the two damaged Molfetta station signs.
 // far-platform-rows-start
 const List<String> stationFarSideRows = <String>[
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  'xWWWllllllllWWWWWWWWWWWWrrrrrrrrWWWx',
   'xWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWx',
-  'xWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWx',
-  'x,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,x',
-  'x----------------------------------x',
-  'x,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,x',
-  'x,,,MMMMMMMMMMMMMMMMMMMMMMMMMMM,,,,x',
-  'x---MMMMMMMMMMMMMMMMMMMMMMMMMMM----x',
-  'x,,,MMMMPMMMMMMMMMMMMMMMMMMMMMM,,,,x',
+  'xMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMx',
+  'xMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMx',
+  'xMMMMMPMMMMMMMMMMMMMMMMMMMMMMMMMMMMx',
   '|==================================|',
   '|==nn======T=========nn=====T======|',
   '|=:=========================:======|',
