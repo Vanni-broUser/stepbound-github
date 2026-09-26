@@ -841,7 +841,84 @@ def bar_backroom(atlas: Atlas, rng) -> dict:
 # is painted at the size of the run of `M` in the far platform's rows;
 # test/levels/tile_atlas_test.dart fails if the rows stop agreeing.
 RAILCAR_TILES = (27, 3)
-RAILCAR_DOOR_TILE = 23
+# Counted from the west end. The train faces east, like the locomotive
+# inside it: its red tail is at the west end and its door at the back,
+# like the train's own way in; the east end is the locomotive's nose.
+RAILCAR_DOOR_TILE = 4
+# How far back from the east end the nose starts to slope.
+RAILCAR_NOSE = 46
+
+
+def paint_locomotive_nose(sprite: Image.Image) -> None:
+    """Shapes the east end of the railcar into a streamlined nose, side
+    on: the roof curving down into a long raked windscreen and a rounded
+    front, the livery bands running on into it, a headlight low down and
+    the skirt tucked under. Whatever the railcar painter put there -- the
+    last windows, a roof vent -- is painted over."""
+    width, height = sprite.size
+    px = sprite.load()
+    start = width - RAILCAR_NOSE
+    skirt_top, skirt_bottom = height - 12, height - 6
+    band_bottom = height - 17  # where the blue band starts
+
+    def edge(y):
+        """The front's outline at pixel row `y`: an ellipse's quarter from
+        the roof down to the waist, then straight, then under the skirt."""
+        if y <= band_bottom + 5:
+            t = y / (band_bottom + 5)
+            return start + (RAILCAR_NOSE - 2) * (1 - (1 - t) ** 2) ** 0.5
+        return width - 2 - max(0, y - skirt_top)
+
+    green = station.LIVERY_GREEN
+    for y in range(skirt_bottom):
+        e = edge(y)
+        for x in range(start, width):
+            if x > e:
+                px[x, y] = TRANSPARENT
+                continue
+            if y < 9:
+                colour = shade(green, -38)
+            elif y < 16:
+                colour = green
+            elif y < band_bottom:
+                colour = station.LIVERY_WHITE
+            elif y < skirt_top:
+                colour = station.LIVERY_BLUE
+            else:
+                colour = shade(station.LIVERY_WHITE, -64)
+            if x >= int(e) - 1:
+                colour = station.METAL_DARK  # the outline
+            px[x, y] = colour + (255,)
+    # The windscreen: a band of glass following the slope, with a glint.
+    for y in range(4, 22):
+        e = int(edge(y))
+        for x in range(max(start, e - 13), e - 2):
+            px[x, y] = station.GLASS + (255,)
+        if 6 <= y <= 12:
+            px[max(start, e - 9), y] = shade(station.GLASS, 40) + (255,)
+    # The pillar between the windscreen and the side window behind it.
+    for y in range(9, 22):
+        e = int(edge(y))
+        px[max(start, e - 14), y] = station.METAL_DARK + (255,)
+    # The same years of grime as the rest of the flank, run down the nose.
+    rng = random.Random(SEED + 2)
+    for _ in range(14):
+        x = start + rng.randrange(RAILCAR_NOSE - 16)
+        y0, length = rng.randrange(16, band_bottom - 4), rng.randint(3, 8)
+        colour = rng.choice(((166, 160, 146), (146, 140, 126),
+                             (176, 170, 156)))
+        for y in range(y0, min(y0 + length, skirt_top)):
+            if x < int(edge(y)) - 3:
+                px[x, y] = colour + (255,)
+    # The headlight, low on the front, and the coupler cover under it.
+    for y in range(band_bottom - 3, band_bottom):
+        e = int(edge(y))
+        for x in range(e - 5, e - 2):
+            px[x, y] = (250, 238, 180, 255)
+    for y in range(skirt_top, skirt_top + 3):
+        e = int(edge(y))
+        for x in range(e - 4, e - 1):
+            px[x, y] = station.METAL_DARK + (255,)
 
 
 def station_far_side(atlas: Atlas, rng) -> dict:
@@ -931,6 +1008,8 @@ def station_far_side(atlas: Atlas, rng) -> dict:
                       [neighbour_key(1, 0, "n")]))
 
     def railcar(open_door: bool) -> Image.Image:
+        # The painter's red cab at the west end is the train's tail; the
+        # east end is shaped into the locomotive's nose.
         width, height = (n * TILE for n in RAILCAR_TILES)
         sprite = Image.new("RGBA", (width, height), TRANSPARENT)
         station.paint_railcar(
@@ -938,6 +1017,7 @@ def station_far_side(atlas: Atlas, rng) -> dict:
             (0, 0, width, height), wrecked=False,
             door_x=RAILCAR_DOOR_TILE * TILE, open_door=open_door,
         )
+        paint_locomotive_nose(sprite)
         return sprite
 
     return {
@@ -1266,15 +1346,23 @@ TR_LAMP = (242, 232, 190)
 TR_SAFETY = (214, 178, 48)
 TR_COT_FRAME = (70, 76, 60)
 TR_COT_CANVAS = (112, 118, 86)
-# Mario's army blanket, folded square; Luigi's checked one, kicked about.
-TR_MARIO_BLANKET = (78, 92, 70)
-TR_LUIGI_BLANKET = (150, 52, 44)
-TR_LUIGI_CHECK = (206, 186, 160)
+# Mario's red wool blanket, folded square; Luigi's green checked one,
+# kicked about.
+TR_MARIO_BLANKET = (160, 40, 36)
+TR_LUIGI_BLANKET = (58, 104, 58)
+TR_LUIGI_CHECK = (170, 196, 150)
 TR_PILLOW = (214, 208, 190)
-TR_BAG = (28, 30, 32)
-TR_BAG_LIGHT = (70, 74, 78)
-TR_GLASS_GREEN = (58, 118, 70)
-TR_GLASS_BROWN = (122, 76, 30)
+TR_BAG = (22, 24, 26)
+TR_BAG_MID = (40, 43, 47)
+TR_BAG_LIGHT = (96, 102, 110)
+TR_BAG_TIE = (214, 176, 40)
+TR_OUTLINE = (20, 18, 20)
+TR_GLASS_GREEN = (40, 110, 58)
+TR_GLASS_BROWN = (120, 68, 22)
+TR_GLASS_CLEAR = (178, 204, 206)
+TR_LABEL_RED = (182, 40, 40)
+TR_LABEL_CREAM = (232, 220, 180)
+TR_STAIN = (72, 58, 48)
 TR_CAN_RED = (178, 40, 38)
 TR_CAN_SILVER = (184, 186, 190)
 TR_PAPER = (226, 220, 200)
@@ -1284,10 +1372,44 @@ TR_CRATE = (118, 84, 48)
 TR_CRATE_DARK = (78, 54, 30)
 TR_AMMO_BOX = (70, 86, 52)
 TR_BRASS = (206, 164, 70)
-TR_BOOK_COVERS = ((122, 38, 34), (40, 64, 104), (58, 86, 52))
+TR_BOOK_COVERS = ((122, 38, 34), (40, 64, 104), (58, 86, 52),
+                  (108, 76, 40), (70, 44, 78))
+TR_GILT = (214, 180, 86)
+TR_PAGES = (236, 228, 204)
+TR_PAGE_EDGE = (196, 186, 160)
 TR_WINDSCREEN_FRAME = (36, 40, 46)
 TR_ROWS = "train-interior-rows"
-TR_MAP_TABLE_TILES = (4, 2)
+TR_MAP_TABLE_TILES = (4, 3)
+TR_WEAPON_TABLE_TILES = (3, 1)
+TR_FOOD_TABLE_TILES = (3, 1)
+TR_CLOTH = (234, 226, 206)
+TR_CLOTH_SHADE = (206, 196, 172)
+TR_CLOTH_STRIPE = (178, 44, 40)
+TR_HAM_RIND = (150, 84, 44)
+TR_HAM_DARK = (168, 58, 62)
+TR_BONE = (238, 232, 214)
+TR_TWINE = (214, 200, 160)
+TR_BOARD = (176, 128, 74)
+TR_HAM = (214, 110, 112)
+TR_HAM_FAT = (246, 226, 214)
+TR_SALAMI = (140, 40, 44)
+TR_SALAMI_FAT = (238, 214, 206)
+TR_SALAMI_SKIN = (196, 190, 176)
+TR_CHEESE = (240, 204, 96)
+TR_CHEESE_RIND = (176, 124, 46)
+TR_BREAD = (196, 138, 66)
+TR_BREAD_CRUST = (138, 84, 34)
+TR_CRUMB = (240, 220, 170)
+TR_WINE = (96, 20, 34)
+# The map of Europe: parchment land, faded blue sea, ink coasts.
+TR_MAP_LAND = (222, 196, 120)
+TR_MAP_SEA = (138, 166, 170)
+TR_MAP_COAST = (150, 114, 58)
+TR_NEEDLE = (186, 30, 28)
+TR_GUN = (58, 60, 66)
+TR_GUN_LIGHT = (128, 132, 140)
+TR_SHELL_RED = (176, 36, 32)
+TR_TABLE_DARK = (92, 62, 36)
 # What a camp bed's pillow lies against.
 TR_COT_WALLS = "xWwIiV"
 
@@ -1322,6 +1444,22 @@ def paint_train_shell(d, glyph, x, y):
         rect(d, px + 3, py, 10, TILE, TR_SHELL_DARK)
         rect(d, px + 5, py, 6, TILE, TR_METAL)
         rect(d, px + 6, py, 2, TILE, TR_METAL_LIGHT)
+
+
+def paint_train_end_wall(d, px, py, open_above=False, open_below=False):
+    """An end wall of a coach, running north-south, seen from above: the
+    top of the bulkhead as one band down the tile, lit on one edge and in
+    shadow on the other, so that tile after tile it reads as a single
+    wall. Where the aisle cuts through it the band is capped."""
+    rect(d, px, py, TILE, TILE, TR_METAL_DARK)
+    rect(d, px + 2, py, 12, TILE, TR_SHELL)
+    rect(d, px + 2, py, 2, TILE, TR_SHELL_LIGHT)
+    rect(d, px + 12, py, 2, TILE, TR_SHELL_DARK)
+    if open_above:
+        rect(d, px + 2, py, 12, 2, TR_SHELL_LIGHT)
+    if open_below:
+        rect(d, px + 2, py + 12, 12, 4, TR_SHELL_DARK)
+        rect(d, px + 2, py + 11, 12, 1, TR_SHELL)
 
 
 def paint_train_exit(d, px, py):
@@ -1370,43 +1508,139 @@ def paint_train_control(d, rng, px, py):
              colour)
 
 
-def paint_train_map_table(d, room):
-    """The table in the middle of the locomotive, the whole block of `P`
-    tiles, with the yellowed map of Europe spread over it: a coastline, a
-    few borders, and the route drawn on it in red."""
-    tiles = [(x, y) for y in range(room.height) for x in range(room.width)
-             if room.at(x, y) == "P"]
-    left = min(x for x, _ in tiles) * TILE
-    top = min(y for _, y in tiles) * TILE
-    right = (max(x for x, _ in tiles) + 1) * TILE
-    bottom = (max(y for _, y in tiles) + 1) * TILE
-    width, height = right - left, bottom - top
+# Europe as the map on the table shows it, in (longitude, latitude): the
+# mainland from Gibraltar round the coasts to the edge of the sheet in the
+# east, and the islands big enough to show. The Black Sea is drawn over
+# the land as water. Coarse on purpose: at a degree a pixel, this is all
+# of the coast a map this size can hold.
+EUROPE_MAINLAND = (
+    (-5.6, 36.0), (-6.3, 36.8), (-7.4, 37.2), (-8.9, 37.0), (-8.8, 38.7),
+    (-9.5, 39.4), (-8.7, 41.2), (-8.9, 42.9), (-9.3, 43.0), (-7.7, 43.7),
+    (-5.8, 43.6), (-3.8, 43.4), (-1.8, 43.4), (-1.2, 44.7), (-1.1, 46.2),
+    (-2.2, 47.2), (-4.7, 48.0), (-4.3, 48.7), (-1.6, 48.7), (-1.9, 49.7),
+    (-1.1, 49.4), (0.2, 49.7), (1.6, 50.9), (3.2, 51.3), (4.0, 51.9),
+    (4.7, 52.9), (6.8, 53.4), (8.5, 53.6), (8.6, 54.9), (8.1, 55.5),
+    (8.6, 57.1), (10.6, 57.7), (10.3, 56.5), (10.9, 56.3), (10.0, 55.2),
+    (10.9, 54.4), (12.2, 54.2), (14.2, 53.9), (16.0, 54.3), (18.7, 54.8),
+    (19.9, 54.4), (21.1, 55.6), (21.0, 56.8), (22.6, 57.8), (24.2, 57.1),
+    (23.5, 58.6), (24.4, 59.4), (28.0, 59.5), (30.2, 59.9), (27.0, 60.5),
+    (22.9, 59.9), (21.4, 60.8), (21.5, 61.7), (21.5, 63.2), (25.4, 65.0),
+    (24.2, 65.8), (22.1, 65.6), (21.0, 64.5), (19.3, 63.5), (17.9, 62.6),
+    (17.2, 61.3), (17.3, 60.6), (18.8, 60.1), (18.1, 59.3), (16.7, 57.9),
+    (16.4, 56.6), (15.6, 56.2), (14.3, 55.5), (12.9, 55.4), (12.6, 56.2),
+    (11.9, 57.7), (11.2, 58.9), (10.6, 59.9), (9.6, 59.0), (8.0, 58.1),
+    (5.6, 58.8), (5.2, 60.4), (5.0, 61.9), (6.5, 62.6), (8.0, 63.2),
+    (10.4, 63.4), (11.3, 64.4), (12.6, 65.9), (14.4, 67.3), (16.0, 68.4),
+    (18.9, 69.6), (23.7, 70.6), (25.8, 71.1), (28.5, 70.9), (31.0, 70.3),
+    (33.0, 69.3), (36.0, 69.0), (41.0, 67.7), (46.0, 68.0), (46.0, 36.6),
+    (36.2, 36.6), (34.6, 36.8), (32.5, 36.1), (30.6, 36.8), (29.1, 36.6),
+    (27.3, 37.0), (26.3, 38.3), (26.6, 39.5), (26.2, 40.0), (26.1, 40.6),
+    (24.4, 40.9), (22.9, 40.6), (22.6, 39.8), (23.1, 39.0), (24.0, 38.2),
+    (23.0, 38.0), (22.5, 37.0), (21.7, 36.8), (21.1, 37.8), (21.3, 38.4),
+    (20.2, 39.5), (19.4, 40.3), (19.5, 41.8), (18.5, 42.4), (16.4, 43.5),
+    (15.2, 44.2), (14.5, 45.3), (13.7, 45.6), (12.3, 45.4), (12.3, 44.5),
+    (13.6, 43.5), (14.2, 42.4), (16.2, 41.9), (15.9, 41.5), (16.9, 41.1),
+    (18.5, 40.1), (18.4, 39.8), (17.1, 40.5), (16.5, 39.7), (17.1, 39.0),
+    (16.1, 38.0), (15.6, 38.0), (15.8, 38.9), (15.6, 40.0), (14.3, 40.8),
+    (13.0, 41.2), (12.2, 41.7), (11.1, 42.4), (10.5, 43.0), (10.2, 43.9),
+    (8.9, 44.4), (7.5, 43.8), (6.0, 43.1), (4.8, 43.4), (3.2, 43.1),
+    (3.2, 42.3), (2.2, 41.4), (0.9, 41.0), (-0.3, 39.5), (0.2, 38.8),
+    (-0.5, 38.3), (-0.8, 37.6), (-2.1, 36.7), (-4.4, 36.7),
+)
+EUROPE_ISLANDS = (
+    # Great Britain.
+    ((-5.7, 50.1), (-3.0, 50.7), (1.4, 51.2), (1.7, 52.6), (0.3, 53.1),
+     (-0.1, 54.0), (-1.4, 55.0), (-2.0, 55.8), (-2.4, 57.1), (-1.8, 57.5),
+     (-3.3, 58.6), (-5.0, 58.6), (-5.7, 57.5), (-5.6, 56.3), (-4.9, 55.7),
+     (-5.1, 54.8), (-3.2, 54.9), (-3.0, 53.4), (-4.6, 53.3), (-4.3, 52.3),
+     (-5.2, 51.8), (-3.1, 51.4), (-4.2, 51.1)),
+    # Ireland.
+    ((-6.0, 52.2), (-6.2, 53.3), (-6.0, 54.1), (-5.9, 55.2), (-7.3, 55.3),
+     (-8.4, 55.1), (-8.6, 54.3), (-10.0, 54.2), (-9.9, 53.0), (-9.4, 52.6),
+     (-10.3, 51.9), (-9.5, 51.5), (-8.2, 51.8)),
+    # Sicily, Sardinia, Corsica, Crete.
+    ((12.4, 37.8), (13.4, 38.2), (15.6, 38.3), (15.1, 37.1), (14.3, 37.0),
+     (12.6, 37.6)),
+    ((8.4, 39.0), (9.0, 39.0), (9.7, 39.2), (9.8, 41.0), (9.3, 41.2),
+     (8.2, 40.9), (8.4, 39.8)),
+    ((8.6, 41.4), (9.4, 41.5), (9.5, 43.0), (8.7, 42.6)),
+    ((23.5, 35.4), (26.3, 35.3), (26.1, 35.0), (24.0, 35.1)),
+)
+EUROPE_BLACK_SEA = (
+    (28.0, 41.6), (28.7, 44.0), (29.7, 45.2), (30.7, 46.5), (32.0, 46.5),
+    (33.5, 46.0), (32.5, 45.4), (33.5, 44.4), (35.3, 44.9), (36.5, 45.3),
+    (37.5, 44.7), (38.5, 44.3), (39.8, 43.5), (41.6, 41.6), (41.0, 41.0),
+    (39.5, 41.0), (36.0, 41.7), (35.0, 42.0), (33.0, 42.0), (31.3, 41.2),
+    (29.1, 41.2),
+)
+EUROPE_BOUNDS = (-10.8, 35.0, 40.5, 71.8)  # west, south, east, north
+
+
+def paint_europe(width, height):
+    """The map itself, `width` by `height` pixels: land, sea and the coast
+    inked round the land, nothing drawn on it.
+    Drawn four times over and brought down, so the coast is the shape of
+    the real one and not of the polygon's corners."""
+    scale = 4
+    west, south, east, north = EUROPE_BOUNDS
+    big = Image.new("RGB", (width * scale, height * scale), TR_MAP_SEA)
+    draw = ImageDraw.Draw(big)
+
+    def at(lon, lat):
+        return ((lon - west) / (east - west) * width * scale,
+                (north - lat) / (north - south) * height * scale)
+
+    draw.polygon([at(*p) for p in EUROPE_MAINLAND], fill=TR_MAP_LAND)
+    for island in EUROPE_ISLANDS:
+        draw.polygon([at(*p) for p in island], fill=TR_MAP_LAND)
+    draw.polygon([at(*p) for p in EUROPE_BLACK_SEA], fill=TR_MAP_SEA)
+    small = big.resize((width, height), Image.BOX)
+    sheet = Image.new("RGB", (width, height), TR_MAP_SEA)
+    # Land where the pixel is more than half covered by it.
+    half = (sum(TR_MAP_SEA) + sum(TR_MAP_LAND)) / 2
+    land = [[sum(small.getpixel((x, y))) > half
+             for x in range(width)] for y in range(height)]
+    px = sheet.load()
+    for y in range(height):
+        for x in range(width):
+            if not land[y][x]:
+                continue
+            coast = any(
+                not (0 <= x + dx < width and 0 <= y + dy < height)
+                or not land[y + dy][x + dx]
+                for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))
+            px[x, y] = TR_MAP_COAST if coast else TR_MAP_LAND
+    return sheet
+
+
+def paint_train_map_table(sprite):
+    """The table in the middle of the locomotive, four tiles by three,
+    with their map of Europe spread over it: the whole of it, from
+    Portugal to the North Cape. Beside the map, a pencil and a compass."""
+    d = ImageDraw.Draw(sprite)
+    w, h = TR_MAP_TABLE_TILES[0] * TILE, TR_MAP_TABLE_TILES[1] * TILE
     # The table: a dark edge, the top, and its legs at the corners.
-    rect(d, left + 1, top + 3, width - 2, height - 3, shade(TR_WOOD, -34))
-    rect(d, left + 1, top + 1, width - 2, height - 4, TR_WOOD)
-    rect(d, left + 2, top + 2, width - 4, 1, TR_WOOD_LIGHT)
-    for leg_x in (left + 2, right - 5):
-        rect(d, leg_x, bottom - 3, 3, 3, TR_METAL_DARK)
-    # The map, a little askew of the table's edges, its corners curling.
-    mx, my, mw, mh = left + 5, top + 4, width - 10, height - 11
-    rect(d, mx + 1, my + 1, mw, mh, shade(TR_MAP, -60))
-    rect(d, mx, my, mw, mh, TR_MAP)
-    sea = shade(TR_MAP, -26)
-    rect(d, mx + 2, my + 2, 10, mh - 4, sea)
-    rect(d, mx + 12, my + mh - 8, 18, 6, sea)
-    rect(d, mx + mw - 12, my + 2, 10, 7, sea)
-    for bx, by, bw, bh in ((mx + 6, my + 4, 4, 5), (mx + 18, my + 6, 9, 1),
-                           (mx + 30, my + 3, 1, 9), (mx + 24, my + 12, 12, 1),
-                           (mx + 40, my + 9, 1, 8)):
-        rect(d, bx, by, bw, bh, TR_MAP_DARK)
-    for cx, cy in ((mx, my), (mx + mw - 3, my + mh - 3)):
-        rect(d, cx, cy, 3, 3, shade(TR_MAP, 36))
-    # The route: from the heel of Italy north, a red line and its stops.
-    route = ((mx + 30, my + mh - 5), (mx + 26, my + 14), (mx + 34, my + 9),
-             (mx + 36, my + 3))
-    d.line(route, fill=(172, 34, 30), width=1)
-    for sx, sy in (route[0], route[-1]):
-        rect(d, sx - 1, sy - 1, 3, 3, (172, 34, 30))
+    rect(d, 0, h - 3, w, 3, TR_OUTLINE)
+    for leg_x in (2, w - 5):
+        rect(d, leg_x, h - 4, 3, 4, TR_METAL_DARK)
+    rect(d, 0, 0, w, h - 3, TR_OUTLINE)
+    rect(d, 1, 1, w - 2, h - 5, TR_WOOD)
+    rect(d, 1, h - 5, w - 2, 1, shade(TR_WOOD, -34))
+    rect(d, 2, 2, w - 4, 1, TR_WOOD_LIGHT)
+    # The map, its shadow, a white margin and the sheet.
+    mx, my, mw, mh = 4, 3, 44, h - 9
+    rect(d, mx + 1, my + 1, mw, mh, shade(TR_WOOD, -50))
+    rect(d, mx, my, mw, mh, TR_PAPER)
+    sprite.paste(paint_europe(mw - 2, mh - 2), (mx + 1, my + 1))
+    # A pencil and a compass beside it.
+    rect(d, 52, 6, 2, 12, TR_SAFETY)
+    rect(d, 52, 18, 2, 2, TR_WOOD_LIGHT)
+    rect(d, 52, 20, 2, 1, TR_OUTLINE)
+    rect(d, 51, 26, 9, 9, TR_OUTLINE)
+    rect(d, 52, 27, 7, 7, TR_METAL_LIGHT)
+    rect(d, 53, 28, 5, 5, TR_PAPER)
+    rect(d, 55, 28, 1, 2, TR_NEEDLE)
+    rect(d, 55, 31, 1, 2, TR_OUTLINE)
 
 
 def paint_train_driver_seat(d, px, py):
@@ -1461,98 +1695,285 @@ def paint_train_cot(d, room, x, y, glyph):
 
 
 def paint_train_bag(d, px, py):
-    """A black bin bag knotted at the top."""
-    rect(d, px + 3, py + 5, 10, 10, TR_BAG)
-    rect(d, px + 2, py + 8, 12, 6, TR_BAG)
-    rect(d, px + 6, py + 2, 4, 4, TR_BAG)
-    rect(d, px + 7, py + 1, 2, 2, TR_BAG_LIGHT)
-    rect(d, px + 4, py + 7, 2, 4, TR_BAG_LIGHT)
-    rect(d, px + 3, py + 15, 10, 1, shade(TR_FLOOR_A, -30))
+    """A full black bin bag, as big as the tile, knotted with its yellow
+    ties: lumpy with what is in it, creased between the lumps, and shiny
+    where the lamps catch the plastic."""
+    rect(d, px + 1, py + 14, 15, 2, TR_OUTLINE)  # its shadow
+    lumps = ((2, 4, 12, 11), (0, 7, 16, 7), (1, 5, 14, 9))
+    for bx, by, w, h in lumps:
+        rect(d, px + bx, py + by - 1, w, h + 2, TR_OUTLINE)
+    for bx, by, w, h in lumps:
+        rect(d, px + bx + 1, py + by, w - 2, h, TR_BAG)
+    # The lit side of each lump, its rim and the creases.
+    rect(d, px + 2, py + 6, 5, 7, TR_BAG_MID)
+    rect(d, px + 9, py + 6, 4, 6, TR_BAG_MID)
+    rect(d, px + 7, py + 5, 1, 9, TR_OUTLINE)
+    rect(d, px + 3, py + 6, 2, 1, TR_BAG_LIGHT)
+    rect(d, px + 2, py + 7, 1, 4, TR_BAG_LIGHT)
+    rect(d, px + 10, py + 6, 2, 1, TR_BAG_LIGHT)
+    rect(d, px + 12, py + 7, 1, 2, TR_BAG_LIGHT)
+    rect(d, px + 4, py + 12, 2, 1, TR_BAG_MID)
+    # The neck gathered up and the knot, its two ties sticking out.
+    rect(d, px + 5, py + 1, 6, 5, TR_OUTLINE)
+    rect(d, px + 6, py + 2, 4, 3, TR_BAG_MID)
+    rect(d, px + 7, py + 2, 1, 1, TR_BAG_LIGHT)
+    rect(d, px + 3, py, 3, 2, TR_BAG_TIE)
+    rect(d, px + 10, py, 3, 2, TR_BAG_TIE)
+    rect(d, px + 6, py + 4, 4, 1, TR_BAG_TIE)
 
 
 def paint_train_litter(d, rng, px, py):
-    """An empty bottle and a crushed can left on the floor."""
-    bottle = rng.choice((TR_GLASS_GREEN, TR_GLASS_BROWN))
-    bx, by = px + rng.randrange(1, 5), py + rng.randrange(2, 6)
-    rect(d, bx, by + 2, 8, 3, bottle)
-    rect(d, bx + 8, by + 3, 3, 1, bottle)
-    rect(d, bx + 1, by + 2, 6, 1, shade(bottle, 50))
-    cx, cy = px + rng.randrange(7, 12), py + rng.randrange(9, 12)
-    rect(d, cx, cy, 4, 3, TR_CAN_RED)
-    rect(d, cx, cy, 1, 3, TR_CAN_SILVER)
-    rect(d, cx + 1, cy + 1, 2, 1, shade(TR_CAN_RED, 40))
+    """What Luigi drinks, left where it was finished: a wine bottle, a
+    beer or a clear one of grappa lying on its side, another standing or
+    a crushed can, and the sticky ring the last drops left."""
+    rect(d, px + rng.randrange(0, 5), py + rng.randrange(10, 13), 8, 3,
+         TR_STAIN)
+
+    def bottle(bx, by, glass, body, neck, label):
+        """Lying left to right, the neck to the right, outlined."""
+        rect(d, bx - 1, by - 1, body + 2, 7, TR_OUTLINE)
+        rect(d, bx + body, by + 1, neck + 1, 3, TR_OUTLINE)
+        rect(d, bx, by, body, 5, glass)
+        rect(d, bx + body - 1, by + 1, 1, 3, glass)  # the shoulder
+        rect(d, bx + body, by + 2, neck, 1, glass)
+        rect(d, bx + body + neck - 1, by + 1, 1, 3, shade(glass, -45))
+        rect(d, bx + 1, by + 1, body - 2, 1, shade(glass, 80))  # shine
+        rect(d, bx, by + 4, body, 1, shade(glass, -40))
+        if label:
+            rect(d, bx + 2, by, 4, 5, label)
+            rect(d, bx + 3, by + 2, 2, 1, TR_LABEL_RED)
+
+    kind = rng.randrange(3)
+    top = py + rng.randrange(1, 4)
+    if kind == 0:  # wine, long and dark, its label cream
+        bottle(px + 1, top, TR_GLASS_GREEN, 10, 4, TR_LABEL_CREAM)
+    elif kind == 1:  # beer, shorter and brown
+        bottle(px + 2, top, TR_GLASS_BROWN, 8, 3, TR_LABEL_CREAM)
+    else:  # grappa, clear
+        bottle(px + 1, top, TR_GLASS_CLEAR, 9, 4, TR_LABEL_RED)
+    if rng.random() < 0.5:
+        # Another standing up, seen from above: the round shoulder and
+        # the mouth of its neck.
+        sx, sy = px + rng.randrange(9, 12), py + rng.randrange(8, 11)
+        glass = rng.choice((TR_GLASS_GREEN, TR_GLASS_BROWN))
+        rect(d, sx, sy - 1, 4, 6, TR_OUTLINE)
+        rect(d, sx - 1, sy, 6, 4, TR_OUTLINE)
+        rect(d, sx, sy, 4, 4, glass)
+        rect(d, sx + 1, sy + 1, 2, 2, shade(glass, -60))
+        rect(d, sx, sy, 1, 1, shade(glass, 80))
+    else:
+        cx, cy = px + rng.randrange(9, 11), py + rng.randrange(9, 12)
+        rect(d, cx - 1, cy - 1, 7, 6, TR_OUTLINE)
+        rect(d, cx, cy, 5, 4, TR_CAN_RED)
+        rect(d, cx, cy, 1, 4, TR_CAN_SILVER)
+        rect(d, cx + 4, cy + 1, 1, 2, TR_CAN_SILVER)
+        rect(d, cx + 1, cy + 1, 3, 1, shade(TR_CAN_RED, 45))
+
+
+def paint_book_closed(d, bx, by, w, h, cover):
+    """A hardback lying shut, seen from above: its cover, a darker spine
+    down the left with two gilt bands, and the pages showing at the
+    other three edges."""
+    rect(d, bx - 1, by - 1, w + 2, h + 2, TR_OUTLINE)
+    rect(d, bx, by, w, h, TR_PAGE_EDGE)
+    rect(d, bx, by, w - 1, h - 1, cover)
+    rect(d, bx, by, 2, h, shade(cover, -35))
+    rect(d, bx, by + 1, 2, 1, TR_GILT)
+    rect(d, bx, by + h - 3, 2, 1, TR_GILT)
+    rect(d, bx + 2, by, w - 3, 1, shade(cover, 30))
+
+
+def paint_book_open(d, bx, by, cover, rng):
+    """A book open face up: two pages bowed into the spine, lines of print
+    on them, the cover showing round the edge."""
+    rect(d, bx - 1, by - 1, 14, 10, TR_OUTLINE)
+    rect(d, bx, by, 12, 8, cover)
+    rect(d, bx + 1, by, 5, 7, TR_PAGES)
+    rect(d, bx + 6, by, 5, 7, shade(TR_PAGES, -10))
+    rect(d, bx + 5, by, 2, 7, TR_PAGE_EDGE)  # the gutter
+    for line in range(by + 1, by + 6):
+        rect(d, bx + 1 + (line == by + 1), line, rng.randrange(2, 4), 1,
+             TR_INK)
+        rect(d, bx + 7, line, rng.randrange(2, 4), 1, TR_INK)
+
+
+def paint_notebook(d, bx, by, rng):
+    """A notebook of Mario's, open on squared paper, the notes in blue and
+    a pencil across it."""
+    rect(d, bx - 1, by - 1, 10, 12, TR_OUTLINE)
+    rect(d, bx, by, 8, 10, TR_PAPER)
+    rect(d, bx, by, 1, 10, (40, 40, 44))  # the spiral
+    for line in range(by + 2, by + 9, 2):
+        rect(d, bx + 2, line, rng.randrange(3, 6), 1, (48, 70, 140))
+    rect(d, bx + 3, by + 7, 7, 1, (214, 170, 50))  # the pencil
+    rect(d, bx + 9, by + 7, 1, 1, TR_INK)
 
 
 def paint_train_papers(d, rng, px, py):
-    """Loose sheets with a few lines written on them."""
-    for _ in range(2):
-        sx, sy = px + rng.randrange(0, 7), py + rng.randrange(0, 7)
-        rect(d, sx + 1, sy + 1, 8, 9, TR_PAPER_SHADE)
-        rect(d, sx, sy, 8, 9, TR_PAPER)
-        for line in range(sy + 2, sy + 8, 2):
-            rect(d, sx + 1, line, rng.randrange(3, 7), 1, TR_INK)
+    """What Mario reads and writes, on the floor round his cot: a pile of
+    hardbacks, a book left open, or his notebook with a loose sheet."""
+    covers = list(TR_BOOK_COVERS)
+    rng.shuffle(covers)
+    kind = rng.choice((0, 0, 1, 2))  # mostly books
+    if kind == 0:  # a pile, each book a little askew on the one below
+        for i, (dx, dy) in enumerate(((2, 6), (3, 4), (2, 2))):
+            paint_book_closed(d, px + dx + rng.randrange(0, 2), py + dy,
+                              10 - i, 8, covers[i])
+    elif kind == 1:
+        paint_book_open(d, px + 2, py + 4, covers[0], rng)
+    else:
+        rect(d, px + 9, py + 3, 6, 7, TR_PAPER_SHADE)  # a loose sheet
+        rect(d, px + 9, py + 2, 6, 7, TR_PAPER)
+        for line in range(py + 4, py + 8, 2):
+            rect(d, px + 10, line, 4, 1, TR_INK)
+        paint_notebook(d, px + 2, py + 4, rng)
 
 
 def paint_train_books(d, px, py, first):
-    """A crate for a desk, with books open on it and a stack beside."""
+    """A crate for a desk, with books on it: on the first half one open
+    face up beside a closed one, on the second a pile of hardbacks and a
+    row of them standing, their spines out."""
     rect(d, px, py + 3, TILE, 12, TR_CRATE_DARK)
     rect(d, px, py + 3, TILE, 10, TR_CRATE)
     rect(d, px, py + 7, TILE, 1, TR_CRATE_DARK)
+    rect(d, px, py + 11, TILE, 1, TR_CRATE_DARK)
     if first:
-        # An open book, its pages spread.
-        rect(d, px + 2, py + 1, 12, 8, TR_BOOK_COVERS[0])
-        rect(d, px + 3, py + 2, 5, 6, TR_PAPER)
-        rect(d, px + 8, py + 2, 5, 6, shade(TR_PAPER, -12))
-        for line in range(py + 3, py + 8, 2):
-            rect(d, px + 4, line, 3, 1, TR_INK)
-            rect(d, px + 9, line, 3, 1, TR_INK)
+        rng = random.Random(7)
+        paint_book_open(d, px + 1, py + 2, TR_BOOK_COVERS[0], rng)
+        paint_book_closed(d, px + 11, py + 8, 5, 6, TR_BOOK_COVERS[1])
         return
-    # Another open face down, and a stack.
-    rect(d, px + 1, py + 2, 7, 6, TR_BOOK_COVERS[1])
-    rect(d, px + 4, py + 2, 1, 6, shade(TR_BOOK_COVERS[1], -30))
-    for i, colour in enumerate(TR_BOOK_COVERS):
-        rect(d, px + 9, py + 7 - 2 * i, 6, 2, colour)
-        rect(d, px + 9, py + 7 - 2 * i, 6, 1, shade(colour, 30))
-    rect(d, px + 2, py + 10, 6, 3, TR_PAPER)
+    # A pile of three, lying shut.
+    for i, cover in enumerate(TR_BOOK_COVERS[1:4]):
+        paint_book_closed(d, px + 1 + i % 2, py + 7 - 2 * i, 7, 5, cover)
+    # Standing in a row: tall spines, a band of gilt on each.
+    for i, cover in enumerate((TR_BOOK_COVERS[4], TR_BOOK_COVERS[0],
+                               TR_BOOK_COVERS[2])):
+        sx = px + 10 + 2 * i
+        rect(d, sx, py + 1, 2, 11, TR_OUTLINE)
+        rect(d, sx, py + 2, 2, 9, cover)
+        rect(d, sx, py + 4, 2, 1, TR_GILT)
+        rect(d, sx, py + 2, 1, 9, shade(cover, 25))
 
 
-def paint_train_ammo(d, px, py, first):
-    """Mario's ammunition crate, two tiles long, the lid off: boxes of
-    rounds and loose cartridges in the first half, magazines and a pistol
-    in the second, and a shotgun laid along the top of it."""
-    rect(d, px, py + 3, TILE, 12, TR_CRATE_DARK)
-    rect(d, px, py + 3, TILE, 10, shade(TR_CRATE, -8))
-    rect(d, px, py + 3, TILE, 1, TR_CRATE)
-    rect(d, px, py + 13, TILE, 1, TR_CRATE_DARK)
-    if first:
-        rect(d, px, py + 3, 1, 12, TR_CRATE_DARK)
-        # Two boxes of rounds, their labels, and cartridges spilt.
-        for bx in (2, 8):
-            rect(d, px + bx, py + 5, 6, 6, TR_AMMO_BOX)
-            rect(d, px + bx, py + 5, 6, 1, shade(TR_AMMO_BOX, 30))
-            rect(d, px + bx + 1, py + 7, 4, 2, TR_PAPER)
-        for cx, cy in ((3, 12), (6, 11), (11, 12)):
-            rect(d, px + cx, py + cy, 2, 1, TR_BRASS)
-            rect(d, px + cx + 2, py + cy, 1, 1, shade(TR_BRASS, -50))
-    else:
-        rect(d, px + TILE - 1, py + 3, 1, 12, TR_CRATE_DARK)
-        # Magazines standing in a row, and a pistol beside them.
-        for mx in (1, 4, 7):
-            rect(d, px + mx, py + 5, 2, 6, TR_METAL_DARK)
-            rect(d, px + mx, py + 5, 2, 1, TR_BRASS)
-        rect(d, px + 10, py + 6, 5, 2, TR_METAL_DARK)
-        rect(d, px + 10, py + 6, 5, 1, TR_METAL)
-        rect(d, px + 10, py + 8, 2, 3, TR_METAL_DARK)
-    # The shotgun across both halves: the stock on the second, the barrel
-    # running back over the first.
-    if first:
-        rect(d, px + 1, py + 1, TILE - 1, 2, TR_METAL_DARK)
-        rect(d, px + 1, py + 1, TILE - 1, 1, TR_METAL_LIGHT)
-    else:
-        rect(d, px, py + 1, 8, 2, TR_METAL_DARK)
-        rect(d, px, py + 1, 8, 1, TR_METAL_LIGHT)
-        rect(d, px + 8, py + 1, 7, 3, TR_WOOD)
-        rect(d, px + 8, py + 1, 7, 1, TR_WOOD_LIGHT)
+def paint_train_food_table(d):
+    """The narrow table the two of them eat at, three tiles long against
+    the wall, seen from above: a white cloth with a red border, and on it
+    a leg of prosciutto on its stand, a salame with a few slices cut, a
+    wheel of cheese with a wedge out of it and a round loaf."""
+    w, h = TR_FOOD_TABLE_TILES[0] * TILE, TR_FOOD_TABLE_TILES[1] * TILE
+    rect(d, 1, h - 2, w - 2, 2, TR_OUTLINE)  # its shadow
+    rect(d, 0, 0, w, h - 2, TR_OUTLINE)
+    rect(d, 1, 0, w - 2, h - 3, TR_CLOTH)
+    rect(d, 1, h - 5, w - 2, 1, TR_CLOTH_STRIPE)  # the border
+    rect(d, 1, h - 4, w - 2, 1, TR_CLOTH_SHADE)
+
+    # The prosciutto: the whole leg, lying on its side, broad and round
+    # at the cut end, where the pink meat shows in its ring of white fat,
+    # narrowing to the shank, with the bone and the string to hang it by.
+    d.polygon([(2, 2), (8, 1), (15, 4), (15, 8), (8, 12), (2, 11)],
+              fill=TR_OUTLINE)
+    d.ellipse((1, 1, 11, 12), fill=TR_OUTLINE)
+    d.polygon([(5, 2), (9, 2), (14, 5), (14, 7), (9, 11), (5, 11)],
+              fill=TR_HAM_RIND)
+    d.ellipse((2, 2, 10, 11), fill=TR_HAM_FAT)  # the fat round the cut
+    d.ellipse((3, 3, 9, 10), fill=TR_HAM)
+    rect(d, 4, 5, 3, 1, shade(TR_HAM, 28))
+    rect(d, 5, 8, 3, 1, TR_HAM_DARK)
+    rect(d, 11, 4, 3, 1, shade(TR_HAM_RIND, 30))  # the shine on the rind
+    rect(d, 15, 5, 1, 3, TR_BONE)  # the bone at the shank
+    rect(d, 16, 4, 1, 1, TR_TWINE)
+    rect(d, 16, 8, 1, 1, TR_TWINE)
+
+    # The salame: a long one with round ends, flecked with fat, the cut
+    # end pale, and two slices off it.
+    rect(d, 18, 2, 10, 6, TR_OUTLINE)
+    rect(d, 17, 3, 12, 4, TR_OUTLINE)
+    rect(d, 19, 3, 8, 4, TR_SALAMI)
+    rect(d, 18, 4, 10, 2, TR_SALAMI)
+    rect(d, 19, 3, 8, 1, shade(TR_SALAMI, 45))
+    for fx, fy in ((20, 5), (22, 4), (24, 5), (26, 4)):
+        rect(d, fx, fy, 1, 1, TR_SALAMI_FAT)
+    rect(d, 27, 4, 1, 2, TR_SALAMI_FAT)  # the cut end
+    rect(d, 17, 4, 1, 1, TR_TWINE)  # the knot
+    for sx in (20, 24):
+        rect(d, sx - 1, 8, 4, 5, TR_OUTLINE)
+        rect(d, sx - 2, 9, 6, 3, TR_OUTLINE)
+        rect(d, sx - 1, 9, 4, 3, TR_SALAMI)
+        rect(d, sx, 10, 1, 1, TR_SALAMI_FAT)
+        rect(d, sx + 2, 9, 1, 1, TR_SALAMI_FAT)
+
+    # The cheese: a wheel, its rind, a wedge cut out of it.
+    d.ellipse((28, 1, 39, 12), fill=TR_OUTLINE)
+    d.ellipse((29, 2, 38, 11), fill=TR_CHEESE_RIND)
+    d.ellipse((30, 3, 37, 10), fill=TR_CHEESE)
+    d.polygon([(34, 6), (39, 1), (39, 6)], fill=TR_CLOTH)
+    rect(d, 34, 6, 5, 1, TR_CHEESE_RIND)
+    rect(d, 32, 7, 1, 1, TR_CHEESE_RIND)
+
+    # The loaf, round, the cross cut into its crust.
+    d.ellipse((39, 2, 47, 11), fill=TR_OUTLINE)
+    d.ellipse((40, 3, 46, 10), fill=TR_BREAD)
+    rect(d, 41, 4, 3, 1, shade(TR_BREAD, 34))
+    rect(d, 43, 4, 1, 6, TR_BREAD_CRUST)
+    rect(d, 41, 6, 5, 1, TR_BREAD_CRUST)
+
+
+def paint_train_weapons(d):
+    """Mario's weapons table, three tiles long against the wall, seen from
+    above: the shotgun laid along it, the pistol with a magazine beside it,
+    an open box of rounds standing in rows and a few red shotgun shells."""
+    w, h = TR_WEAPON_TABLE_TILES[0] * TILE, TR_WEAPON_TABLE_TILES[1] * TILE
+    rect(d, 1, h - 2, w - 2, 2, TR_OUTLINE)  # its shadow
+    rect(d, 0, 0, w, h - 2, TR_OUTLINE)
+    rect(d, 1, 0, w - 2, h - 3, TR_TABLE_DARK)
+    for gx in range(1, w - 1, 8):  # the planks
+        rect(d, gx, 0, 1, h - 3, shade(TR_TABLE_DARK, -22))
+    rect(d, 1, h - 4, w - 2, 1, shade(TR_TABLE_DARK, -30))
+
+    # The shotgun, all the way along: the barrel, the pump, the stock.
+    rect(d, 2, 1, 34, 4, TR_OUTLINE)
+    rect(d, 3, 2, 22, 1, TR_GUN_LIGHT)  # the barrel
+    rect(d, 3, 3, 22, 1, TR_GUN)
+    rect(d, 8, 2, 6, 2, TR_WOOD)  # the pump
+    rect(d, 25, 2, 4, 2, TR_GUN)  # the receiver
+    rect(d, 29, 1, 8, 4, TR_OUTLINE)
+    rect(d, 29, 2, 7, 2, TR_WOOD_LIGHT)  # the stock
+    rect(d, 30, 3, 6, 1, TR_WOOD)
+
+    # The pistol, on its side: the slide with its port and sights, the
+    # frame, the trigger in its guard and the grip raked back.
+    rect(d, 2, 6, 13, 5, TR_OUTLINE)
+    rect(d, 3, 7, 11, 2, TR_GUN_LIGHT)  # the slide
+    rect(d, 3, 7, 11, 1, shade(TR_GUN_LIGHT, 40))
+    rect(d, 8, 8, 2, 1, TR_OUTLINE)  # the ejection port
+    rect(d, 3, 9, 11, 1, TR_GUN)  # the frame
+    rect(d, 7, 10, 4, 3, TR_OUTLINE)  # the trigger guard
+    rect(d, 8, 10, 2, 2, TR_TABLE_DARK)
+    rect(d, 9, 10, 1, 1, TR_GUN)  # the trigger
+    rect(d, 10, 10, 5, 3, TR_OUTLINE)
+    rect(d, 11, 12, 5, 2, TR_OUTLINE)
+    rect(d, 11, 10, 3, 2, TR_GUN)  # the grip, raked back
+    rect(d, 12, 12, 3, 1, TR_GUN)
+    rect(d, 12, 11, 1, 1, TR_GUN_LIGHT)
+    # A magazine beside it.
+    rect(d, 14, 7, 3, 7, TR_OUTLINE)
+    rect(d, 15, 8, 1, 5, TR_GUN)
+    rect(d, 15, 8, 1, 1, TR_BRASS)
+
+    # The box of rounds, open: brass bases in rows, each with its primer.
+    rect(d, 19, 6, 13, 8, TR_OUTLINE)
+    rect(d, 20, 7, 11, 6, TR_AMMO_BOX)
+    for bx in range(21, 30, 2):
+        for by in (8, 10):
+            rect(d, bx, by, 1, 1, TR_BRASS)
+    rect(d, 20, 12, 11, 1, shade(TR_AMMO_BOX, -30))
+
+    # Red shotgun shells lying about, their brass heads.
+    for sx, sy in ((34, 7), (38, 9), (35, 11)):
+        rect(d, sx - 1, sy - 1, 6, 3, TR_OUTLINE)
+        rect(d, sx, sy, 3, 1, TR_SHELL_RED)
+        rect(d, sx + 3, sy, 1, 1, TR_BRASS)
+    rect(d, 41, 5, 4, 1, TR_GUN_LIGHT)  # a cleaning rod
 
 
 def paint_train_lamp(d, px, py):
@@ -1640,7 +2061,7 @@ def train_interior(atlas: Atlas, rng) -> dict:
     from build_street_level import read_rows  # noqa: PLC0415 - the nose
 
     rows = read_rows(TR_ROWS)
-    floored = ".SLTCh*bBuofkEPlVa"
+    floored = ".SLTCh*bBuofkEPlVaG"
     floor = [
         atlas.bucket(lambda p=parity: cell(
             lambda d, gx, gy: paint_train_floor(d, rng, gx, gy), p, 0))
@@ -1662,13 +2083,27 @@ def train_interior(atlas: Atlas, rng) -> dict:
 
     rules = [rule("ground", floored, floor, [parity_key()])]
 
-    # The hull. The north wall has a window on two tiles in every four.
+    # The hull. The north wall has a window on two tiles in every four;
+    # the end walls of the coaches, running north-south, are seen from
+    # above as one band down their whole length, closed off only where
+    # the aisle goes through. Key bits: the two of the windows, then a
+    # wall above, below, to the left and to the right.
+    def hull(i):
+        window = 1 if i & 3 in (1, 2) else 0
+        above, below = bool(i & 4), bool(i & 8)
+        across = bool(i & 16) or bool(i & 32)
+        if (above or below) and not across:
+            return tile_of(lambda d: paint_train_end_wall(
+                d, 0, 0, open_above=not above, open_below=not below))
+        return cell(lambda d, gx, gy: paint_train_shell(d, "W", gx, gy),
+                    window, 0)
+
     rules.append(rule(
         "structures", "W",
-        [atlas.bucket(lambda i=i: cell(
-            lambda d, gx, gy: paint_train_shell(d, "W", gx, gy),
-            1 if i in (1, 2) else 0, 0), 1) for i in range(4)],
-        [pattern_key(1, 0, 4, 1), pattern_key(1, 0, 4, 2)]))
+        [atlas.bucket(lambda i=i: hull(i), 1) for i in range(64)],
+        [pattern_key(1, 0, 4, 1), pattern_key(1, 0, 4, 2),
+         neighbour_key(0, -1, "W"), neighbour_key(0, 1, "W"),
+         neighbour_key(-1, 0, "W"), neighbour_key(1, 0, "W")]))
     rules.append(rule("structures", "w", [atlas.bucket(lambda: tile_of(
         lambda d: paint_train_shell(d, "w", 0, 0)), 1)]))
     rules.append(rule("structures", "Ii", [atlas.bucket(lambda: tile_of(
@@ -1719,17 +2154,17 @@ def train_interior(atlas: Atlas, rng) -> dict:
             lambda d: paint_train_books(d, 0, 0, f)), 1)
          for first in (True, False)],
         [neighbour_key(-1, 0, "k")]))
-    rules.append(rule(
-        "structures", "a",
-        [atlas.bucket(lambda f=first: tile_of(
-            lambda d: paint_train_ammo(d, 0, 0, f)), 1)
-         for first in (True, False)],
-        [neighbour_key(-1, 0, "a")]))
 
     table = Image.new("RGBA", tuple(n * TILE for n in TR_MAP_TABLE_TILES),
                       TRANSPARENT)
-    paint_train_map_table(ImageDraw.Draw(table),
-                          Block("P", *TR_MAP_TABLE_TILES))
+    paint_train_map_table(table)
+    weapons = Image.new("RGBA",
+                        tuple(n * TILE for n in TR_WEAPON_TABLE_TILES),
+                        TRANSPARENT)
+    paint_train_weapons(ImageDraw.Draw(weapons))
+    food = Image.new("RGBA", tuple(n * TILE for n in TR_FOOD_TABLE_TILES),
+                     TRANSPARENT)
+    paint_train_food_table(ImageDraw.Draw(food))
     nose, first = train_nose(Room(rows))
     return {
         "void": "#060608",
@@ -1738,6 +2173,10 @@ def train_interior(atlas: Atlas, rng) -> dict:
         "objects": [
             {"glyph": "P", "image": "train_map_table.png",
              "tiles": list(TR_MAP_TABLE_TILES), "sprite": table},
+            {"glyph": "a", "image": "train_weapons_table.png",
+             "tiles": list(TR_WEAPON_TABLE_TILES), "sprite": weapons},
+            {"glyph": "G", "image": "train_food_table.png",
+             "tiles": list(TR_FOOD_TABLE_TILES), "sprite": food},
             {"at": [first, 0], "image": "train_nose.png", "sprite": nose,
              "under": [row[first:] for row in rows]},
         ],

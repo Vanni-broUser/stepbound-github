@@ -84,7 +84,7 @@ const List<String> stationFarSideRows = <String>[
   'x,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,x',
   'x,,,MMMMMMMMMMMMMMMMMMMMMMMMMMM,,,,x',
   'x---MMMMMMMMMMMMMMMMMMMMMMMMMMM----x',
-  'x,,,MMMMMMMMMMMMMMMMMMMMMMMPMMM,,,,x',
+  'x,,,MMMMPMMMMMMMMMMMMMMMMMMMMMM,,,,x',
   'x==================================x',
   'x==nn======T=========nn=====T======x',
   'x=:=========================:======x',

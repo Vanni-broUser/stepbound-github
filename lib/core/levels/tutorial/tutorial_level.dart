@@ -80,8 +80,9 @@ const Legend stationLegend = Legend(walls: 'xWwMP#', obstacles: 'TKmn');
 /// Inside the train the shell, the windscreen and the gangway partitions
 /// are walls. Seats, tables, luggage, the controls, the driver's seat and
 /// the map table can be seen over but not walked through, and so can the
-/// two cots, the bin bags, the books, Mario's ammunition crate and Luigi.
-const Legend trainLegend = Legend(walls: 'xWwIiV', obstacles: 'STLCPhbBukla');
+/// two cots, the bin bags, the books, Mario's ammunition crate, the table
+/// laid for eating and Luigi.
+const Legend trainLegend = Legend(walls: 'xWwIiV', obstacles: 'STLCPhbBuklaG');
 
 /// Roma Termini (termini.dart) keeps to the far platform's glyphs, but
 /// its train's door `P` is open from the start: the train is Mario's own.
@@ -432,12 +433,14 @@ const Map<PlaceId, String> _campNames = <PlaceId, String>{
   PlaceId.harbour: 'Cantiere navale',
 };
 
-/// Campfires, by tile, with the name shown in the save slots.
+/// Campfires, by tile, with the name shown in the save slots. Aboard, the
+/// table laid with food takes the place of one, and saves as the train.
 final Map<GridPoint, String> campfireNames = <GridPoint, String>{
   for (final place in _streets)
     for (final (point, glyph) in place.glyphs)
       if (glyph == 'S' && _campNames.containsKey(place.id))
         point: _campNames[place.id]!,
+  for (final tile in trainFoodTiles) tile: trainPlaceName,
 };
 
 /// The flagpole planted on the forecourt, where the tricolour flies.
@@ -643,15 +646,18 @@ final GridPoint trainExitTile = _train.tileOf('E');
 final List<GridPoint> trainMapTiles = _train.tilesOf('P');
 
 /// Where Mario stands aboard when the story puts him there: at the map
-/// table, looking down at it from the aisle side.
+/// table, below it, looking up at it ([trainMapFacing]).
 final GridPoint trainMapStandTile = GridPoint(
   trainMapTiles.first.x + 1,
-  trainMapTiles.first.y - 1,
+  trainMapTiles.last.y + 1,
 );
+
+/// Which way Mario faces from [trainMapStandTile]: at the table.
+const Direction trainMapFacing = Direction.north;
 
 /// The part of the map Mario looks at from [trainMapStandTile], where the
 /// glint shows once there is somewhere to go.
-final GridPoint trainMapPanelTile = trainMapStandTile.step(Direction.south);
+final GridPoint trainMapPanelTile = trainMapStandTile.step(trainMapFacing);
 
 /// The passenger door of the train standing at Roma Termini, open onto
 /// the platform.
@@ -692,6 +698,11 @@ final List<GridPoint> trainCotTiles = _train.tilesOf('B');
 /// Mario's ammunition crate by his cot: interacting with it brings his
 /// rounds up to [trainAmmoRefill], whenever he has fewer.
 final List<GridPoint> trainAmmoTiles = _train.tilesOf('a');
+
+/// The narrow table against the wall above the map table, laid with cured
+/// meats, cheese and bread: stopping to eat there saves the game, as
+/// resting at a campfire does. Its middle tile is where it glints.
+final List<GridPoint> trainFoodTiles = _train.tilesOf('G');
 
 /// How many rounds the crate in the locomotive loads Mario up to.
 const int trainAmmoRefill = 5;
@@ -1205,7 +1216,8 @@ List<EntityKind> levelZombieKinds(LevelId level) => <EntityKind>[
 /// The names of the campfires of [level].
 Set<String> levelCampfires(LevelId level) => <String>{
   for (final MapEntry(key: tile, value: name) in campfireNames.entries)
-    if (isInLevel(tile, level)) name,
+    // The table aboard saves like a fire but is not one to find.
+    if (isInLevel(tile, level) && !trainFoodTiles.contains(tile)) name,
 };
 
 /// A wanderer coming in through the hypermarket's gate at [position],
