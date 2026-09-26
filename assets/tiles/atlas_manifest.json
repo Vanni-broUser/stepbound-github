@@ -4813,8 +4813,8 @@
           "at": [1, 1],
           "image": "mallGround_shops_1_1.png",
           "under": [
-            "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
-            "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW"
+            "WWWWWWWWWWWWWWWWWWWWWWWWWWW",
+            "WWWWWWWWWWWWWWWWWWWWWWWWWWW"
           ]
         },
         {
@@ -4829,8 +4829,8 @@
           "at": [25, 15],
           "image": "mallGround_shops_25_15.png",
           "under": [
-            "WWWWWWWWWWWWWWWWWW",
-            "WWWWWWWWWWWWWWWWWW"
+            "WWWWWW",
+            "WWWWWW"
           ]
         },
         {

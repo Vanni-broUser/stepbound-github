@@ -174,6 +174,8 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     indoor: true,
     // The entrance, the stairs, and daylight through the fire exit.
     daylight: 'EUX',
+    lamps: mallGroundSignLights,
+    flickeringLamps: mallGroundFlickeringSignLights,
   ),
   // Painted from its rows out of the tile atlas.
   PlaceSpec(

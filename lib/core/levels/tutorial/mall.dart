@@ -1,3 +1,5 @@
+import 'package:stepbound/core/grid/grid_point.dart';
+
 /// Inside the hypermarket, two floors in the barracks' style (rooms on a
 /// dark background):
 /// - `x` darkness, `W` shopfronts along the back wall, `w` front wall (on
@@ -19,36 +21,54 @@
 ///   through the gate.
 // mall-ground-rows-start
 const List<String> mallGroundRows = <String>[
-  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-  'xWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWx',
-  'xWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWXWWx',
-  'x.....:..............:........b........:..Z...Zx',
-  'x.........PP......*......T..........PP.....*...x',
-  'x....T........:.............KK..........b......x',
-  'x.......*........BBB.............*...........T.x',
-  'x..........:...........P...........:.....T.....x',
-  'x...T.....................*...KK...........*...x',
-  'x............PP.........:.......BBB..........P.x',
-  'x.....*............T........:.........*........x',
-  'xw..wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwx',
-  'xx..xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-  'xx+.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-  'xx..xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-  'xW..WWWWWWWWWWWWWWWWWWUUUWWWWWWWWWWWWWWWWWWWWWWx',
-  'xW..WWWWWWWWWWWWWWWWWWUUUWWWWWWWWWWWWWWWWWWWWWWx',
-  'x........:..........*............:......b......x',
-  'x......T.......PP............TT.......P........x',
-  'x....*......:.............*..............*.....x',
-  'x.........b.......KK.......BBB.....KK..........x',
-  'x.....:.......*.................T......:.......x',
-  'x.......PP...........*.........P..........T....x',
-  'x...T............:.......BBB.........*.........x',
-  'x..........*.......PP.........:.........T......x',
-  'x......:.....T...............*......:........*.x',
-  'xwwwwwwwwwwwwwwwwwwwwwEEEwwwwwwwwwwwwwwwwwwwwwwx',
-  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  'xWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWx',
+  'xWWWWWWWWWWWWWWWWWWWWWWWWWWWXWWx',
+  'x.....:................:..Z...Zx',
+  'x.........PP........PP.....*...x',
+  'x....T........:.........b......x',
+  'x.......*........*...........T.x',
+  'x..........:.......:.....T.....x',
+  'x...T..........KK..........*...x',
+  'x............PP.BBB..........P.x',
+  'x.....*...............*........x',
+  'xw..wwwwwwwwwwwwwwwwwwwwwwwwwwwx',
+  'xx.*xxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  'xx+.xxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  'xx*.xxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  'xW..WWWWWWWWWWWWWWWWWWUUUWWWWWWx',
+  'xW..WWWWWWWWWWWWWWWWWWUUUWWWWWWx',
+  'x........:..........*..........x',
+  'x......T.......PP............TTx',
+  'x....*......:.............*....x',
+  'x.........b.......KK.......BBB.x',
+  'x.....:.......*................x',
+  'x.......PP...........*.........x',
+  'x...T............:.......BBB...x',
+  'x..........*.......PP.........:x',
+  'x......:.....T...............*.x',
+  'xwwwwwwwwwwwwwwwwwwwwwEEEwwwwwwx',
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
 ];
 // mall-ground-rows-end
+
+/// The lamps over the ground floor's shop signs, one at the middle of
+/// each shopfront, on the top course of its wall.
+const List<GridPoint> mallGroundSignLights = <GridPoint>[
+  // The upper area: TABACCHI, GIOCATTOLI, LIBRERIA, FIORI. OTTICA stays
+  // dark.
+  GridPoint(3, 1),
+  GridPoint(15, 1),
+  GridPoint(21, 1),
+  GridPoint(26, 1),
+  // The hall: PROFUMERIA. SCARPE and BAR stay dark.
+  GridPoint(18, 15),
+];
+
+/// The failing light over ELETTRONICA's sign.
+const List<GridPoint> mallGroundFlickeringSignLights = <GridPoint>[
+  GridPoint(6, 15),
+];
 
 // mall-first-rows-start
 const List<String> mallFirstRows = <String>[
