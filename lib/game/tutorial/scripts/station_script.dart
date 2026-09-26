@@ -14,10 +14,10 @@ final class StationScript extends TutorialScript {
   StationScript(super.director);
 
   static const String luigi = 'Luigi Rovaga';
-  static const String platformScene = 'assets/story/scene_station_luigi.jpg';
-  static const String planScene = 'assets/story/scene_station_plan.jpg';
+  static const String platformScene = 'assets/story/scenes/station_luigi.jpg';
+  static const String planScene = 'assets/story/scenes/station_plan.jpg';
   static const String northCapeScene =
-      'assets/story/scene_station_north_cape.jpg';
+      'assets/story/scenes/station_north_cape.jpg';
   static const String lockedDoorLine = 'La porta è chiusa';
 
   /// Luigi leaning out of the cab of the one train still in one piece.

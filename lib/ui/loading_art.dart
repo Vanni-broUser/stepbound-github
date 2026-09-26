@@ -17,7 +17,7 @@ final class LoadingArt extends StatelessWidget {
     super.key,
   });
 
-  static const String image = 'assets/story/title_loading.jpg';
+  static const String image = 'assets/story/ui/title_loading.jpg';
 
   final String picture;
   final String caption;

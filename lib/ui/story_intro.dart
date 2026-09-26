@@ -29,19 +29,19 @@ final class StoryScene {
 
 const List<StoryScene> introScenes = <StoryScene>[
   StoryScene(
-    image: 'assets/story/scene_news.png',
+    image: 'assets/story/scenes/news.png',
     speaker: 'Telecronista',
     text:
         'Attenzione, interrompiamo le comunicazioni per una edizione '
         'straordinaria del telegiornale',
   ),
   StoryScene(
-    image: 'assets/story/scene_blackout.png',
+    image: 'assets/story/scenes/blackout.png',
     speaker: 'Telecronista',
     text: '... Che succede? ... Ragazzi, la luce?',
   ),
   StoryScene(
-    image: 'assets/story/scene_attack.png',
+    image: 'assets/story/scenes/attack.png',
     speaker: 'Telecronista',
     text: 'Aaaaahhh!',
   ),
@@ -50,24 +50,24 @@ const List<StoryScene> introScenes = <StoryScene>[
 /// Played after the title card: the night the outbreak spread.
 const List<StoryScene> outbreakScenes = <StoryScene>[
   StoryScene(
-    image: 'assets/story/scene_outbreak.jpg',
+    image: 'assets/story/scenes/outbreak.jpg',
     text:
         'Quella notte migliaia di persone in ogni dove si trasformarono in '
         'zombi, creature non morte prive di una coscienza propria, '
         'interessate solo a divorare altri esseri umani',
   ),
   StoryScene(
-    image: 'assets/story/scene_plane_help.jpg',
+    image: 'assets/story/scenes/plane_help.jpg',
     speaker: 'Hostess',
     text: 'Aiuto, comandante! Aiuto!',
   ),
   StoryScene(
-    image: 'assets/story/scene_plane_captain.jpg',
+    image: 'assets/story/scenes/plane_captain.jpg',
     speaker: 'Hostess',
     text: 'Comandante?',
   ),
   StoryScene(
-    image: 'assets/story/scene_collapse.jpg',
+    image: 'assets/story/scenes/collapse.jpg',
     text:
         "Quella notte l'intera civiltà umana crollò per colpa di "
         'questa malvagia e misteriosa minaccia',
@@ -78,53 +78,53 @@ const List<StoryScene> outbreakScenes = <StoryScene>[
 /// army cannot hold Rome and the President keeps his troops for himself.
 const List<StoryScene> romeScenes = <StoryScene>[
   StoryScene(
-    image: 'assets/story/scene_rome_vittoriano.jpg',
+    image: 'assets/story/scenes/rome_vittoriano.jpg',
     speaker: 'Generale',
     text: 'Signor presidente, abbiamo bisogno di rinforzi!',
   ),
   StoryScene(
-    image: 'assets/story/scene_rome_president_call.jpg',
+    image: 'assets/story/scenes/rome_president_call.jpg',
     speaker: 'Presidente',
     text: 'Non è possibile, tutte le nostre forze sono già occupate',
   ),
   StoryScene(
-    image: 'assets/story/scene_rome_president_call.jpg',
+    image: 'assets/story/scenes/rome_president_call.jpg',
     speaker: 'Generale',
     text:
         'Signore qui siamo nella merda, ci sono centinaia e centinaia di '
         'questi zombi bastardi',
   ),
   StoryScene(
-    image: 'assets/story/scene_rome_president_call.jpg',
+    image: 'assets/story/scenes/rome_president_call.jpg',
     speaker: 'Presidente',
     text: 'Generale non posso fare altrimenti, dovete vedervela da soli',
   ),
   StoryScene(
-    image: 'assets/story/scene_rome_secretary.jpg',
+    image: 'assets/story/scenes/rome_secretary.jpg',
     speaker: 'Segretaria',
     text: 'Signor presidente siete sicuro di quello che state facendo?',
   ),
   StoryScene(
-    image: 'assets/story/scene_rome_secretary.jpg',
+    image: 'assets/story/scenes/rome_secretary.jpg',
     speaker: 'Presidente',
     text:
         'Non preoccuparti Petunia, quei rinforzi servono per proteggere il '
         'mio bunker',
   ),
   StoryScene(
-    image: 'assets/story/scene_rome_departure.jpg',
+    image: 'assets/story/scenes/rome_departure.jpg',
     speaker: 'Segretaria',
     text:
         'Ma... ma signor presidente quelle persone lì fuori stanno '
         'morendo...',
   ),
   StoryScene(
-    image: 'assets/story/scene_rome_departure.jpg',
+    image: 'assets/story/scenes/rome_departure.jpg',
     speaker: 'Presidente',
     text: 'Petunia non essere petulante oppure non ti ci porto nel bunker',
   ),
   StoryScene(
-    image: 'assets/story/scene_rome_president_attacked.jpg',
+    image: 'assets/story/scenes/rome_president_attacked.jpg',
     speaker: 'Presidente',
     text: 'Oddio aiuto! Petunia, aiutooo!',
   ),

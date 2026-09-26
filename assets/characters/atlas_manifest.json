@@ -17,23 +17,23 @@
     "north"
   ],
   "files": [
-    "protagonist.png",
-    "protagonist_cultist.png",
-    "protagonist_roma.png",
-    "protagonist_lazio.png",
-    "zombie_wanderer.png",
-    "zombie_sprinter.png",
-    "zombie_brute.png",
-    "zombie_blind.png",
-    "zombie_carabiniere.png",
-    "zombie_mutilated.png",
-    "zombie_burning.png",
-    "zombie_drunk.png",
-    "zombie_cultist.png"
+    "mario/sprites/base.png",
+    "mario/sprites/cultist.png",
+    "mario/sprites/roma.png",
+    "mario/sprites/lazio.png",
+    "zombies/sprites/wanderer.png",
+    "zombies/sprites/sprinter.png",
+    "zombies/sprites/brute.png",
+    "zombies/sprites/blind.png",
+    "zombies/sprites/carabiniere.png",
+    "zombies/sprites/mutilated.png",
+    "zombies/sprites/burning.png",
+    "zombies/sprites/drunk.png",
+    "zombies/sprites/cultist.png"
   ],
   "actionSheets": [
     {
-      "file": "protagonist_gun.png",
+      "file": "mario/sprites/base_gun.png",
       "columns": [
         "aim_0",
         "aim_1",
@@ -48,7 +48,7 @@
       ]
     },
     {
-      "file": "protagonist_pickup.png",
+      "file": "mario/sprites/base_pickup.png",
       "columns": [
         "pick_0",
         "pick_1",
@@ -62,7 +62,7 @@
       ]
     },
     {
-      "file": "protagonist_cultist_gun.png",
+      "file": "mario/sprites/cultist_gun.png",
       "columns": [
         "aim_0",
         "aim_1",
@@ -77,7 +77,7 @@
       ]
     },
     {
-      "file": "protagonist_cultist_pickup.png",
+      "file": "mario/sprites/cultist_pickup.png",
       "columns": [
         "pick_0",
         "pick_1",
@@ -91,7 +91,7 @@
       ]
     },
     {
-      "file": "protagonist_roma_gun.png",
+      "file": "mario/sprites/roma_gun.png",
       "columns": [
         "aim_0",
         "aim_1",
@@ -106,7 +106,7 @@
       ]
     },
     {
-      "file": "protagonist_roma_pickup.png",
+      "file": "mario/sprites/roma_pickup.png",
       "columns": [
         "pick_0",
         "pick_1",
@@ -120,7 +120,7 @@
       ]
     },
     {
-      "file": "protagonist_lazio_gun.png",
+      "file": "mario/sprites/lazio_gun.png",
       "columns": [
         "aim_0",
         "aim_1",
@@ -135,7 +135,7 @@
       ]
     },
     {
-      "file": "protagonist_lazio_pickup.png",
+      "file": "mario/sprites/lazio_pickup.png",
       "columns": [
         "pick_0",
         "pick_1",
@@ -149,7 +149,7 @@
       ]
     },
     {
-      "file": "zombie_wanderer_hit.png",
+      "file": "zombies/sprites/wanderer_hit.png",
       "columns": [
         "hit_0",
         "hit_1",
@@ -160,7 +160,7 @@
       ]
     },
     {
-      "file": "zombie_wanderer_bite.png",
+      "file": "zombies/sprites/wanderer_bite.png",
       "columns": [
         "bite_0",
         "bite_1",
@@ -172,7 +172,7 @@
       ]
     },
     {
-      "file": "zombie_wanderer_death.png",
+      "file": "zombies/sprites/wanderer_death.png",
       "columns": [
         "death_0",
         "death_1",
@@ -186,7 +186,7 @@
       ]
     },
     {
-      "file": "zombie_sprinter_hit.png",
+      "file": "zombies/sprites/sprinter_hit.png",
       "columns": [
         "hit_0",
         "hit_1",
@@ -197,7 +197,7 @@
       ]
     },
     {
-      "file": "zombie_sprinter_bite.png",
+      "file": "zombies/sprites/sprinter_bite.png",
       "columns": [
         "bite_0",
         "bite_1",
@@ -209,7 +209,7 @@
       ]
     },
     {
-      "file": "zombie_sprinter_death.png",
+      "file": "zombies/sprites/sprinter_death.png",
       "columns": [
         "death_0",
         "death_1",
@@ -223,7 +223,7 @@
       ]
     },
     {
-      "file": "zombie_brute_hit.png",
+      "file": "zombies/sprites/brute_hit.png",
       "columns": [
         "hit_0",
         "hit_1",
@@ -234,7 +234,7 @@
       ]
     },
     {
-      "file": "zombie_brute_bite.png",
+      "file": "zombies/sprites/brute_bite.png",
       "columns": [
         "bite_0",
         "bite_1",
@@ -246,7 +246,7 @@
       ]
     },
     {
-      "file": "zombie_brute_death.png",
+      "file": "zombies/sprites/brute_death.png",
       "columns": [
         "death_0",
         "death_1",
@@ -260,7 +260,7 @@
       ]
     },
     {
-      "file": "zombie_blind_hit.png",
+      "file": "zombies/sprites/blind_hit.png",
       "columns": [
         "hit_0",
         "hit_1",
@@ -271,7 +271,7 @@
       ]
     },
     {
-      "file": "zombie_blind_bite.png",
+      "file": "zombies/sprites/blind_bite.png",
       "columns": [
         "bite_0",
         "bite_1",
@@ -283,7 +283,7 @@
       ]
     },
     {
-      "file": "zombie_blind_death.png",
+      "file": "zombies/sprites/blind_death.png",
       "columns": [
         "death_0",
         "death_1",
@@ -297,7 +297,7 @@
       ]
     },
     {
-      "file": "zombie_carabiniere_hit.png",
+      "file": "zombies/sprites/carabiniere_hit.png",
       "columns": [
         "hit_0",
         "hit_1",
@@ -308,7 +308,7 @@
       ]
     },
     {
-      "file": "zombie_carabiniere_bite.png",
+      "file": "zombies/sprites/carabiniere_bite.png",
       "columns": [
         "swing_0",
         "swing_1",
@@ -320,7 +320,7 @@
       ]
     },
     {
-      "file": "zombie_carabiniere_death.png",
+      "file": "zombies/sprites/carabiniere_death.png",
       "columns": [
         "death_0",
         "death_1",
@@ -334,7 +334,7 @@
       ]
     },
     {
-      "file": "zombie_mutilated_hit.png",
+      "file": "zombies/sprites/mutilated_hit.png",
       "columns": [
         "hit_0",
         "hit_1",
@@ -345,7 +345,7 @@
       ]
     },
     {
-      "file": "zombie_mutilated_bite.png",
+      "file": "zombies/sprites/mutilated_bite.png",
       "columns": [
         "bite_0",
         "bite_1",
@@ -357,7 +357,7 @@
       ]
     },
     {
-      "file": "zombie_mutilated_death.png",
+      "file": "zombies/sprites/mutilated_death.png",
       "columns": [
         "death_0",
         "death_1",
@@ -371,7 +371,7 @@
       ]
     },
     {
-      "file": "zombie_burning_hit.png",
+      "file": "zombies/sprites/burning_hit.png",
       "columns": [
         "hit_0",
         "hit_1",
@@ -382,7 +382,7 @@
       ]
     },
     {
-      "file": "zombie_burning_bite.png",
+      "file": "zombies/sprites/burning_bite.png",
       "columns": [
         "bite_0",
         "bite_1",
@@ -394,7 +394,7 @@
       ]
     },
     {
-      "file": "zombie_burning_death.png",
+      "file": "zombies/sprites/burning_death.png",
       "columns": [
         "death_0",
         "death_1",
@@ -408,7 +408,7 @@
       ]
     },
     {
-      "file": "zombie_drunk_hit.png",
+      "file": "zombies/sprites/drunk_hit.png",
       "columns": [
         "hit_0",
         "hit_1",
@@ -419,7 +419,7 @@
       ]
     },
     {
-      "file": "zombie_drunk_bite.png",
+      "file": "zombies/sprites/drunk_bite.png",
       "columns": [
         "bite_0",
         "bite_1",
@@ -431,7 +431,7 @@
       ]
     },
     {
-      "file": "zombie_drunk_death.png",
+      "file": "zombies/sprites/drunk_death.png",
       "columns": [
         "death_0",
         "death_1",
@@ -445,7 +445,7 @@
       ]
     },
     {
-      "file": "zombie_cultist_hit.png",
+      "file": "zombies/sprites/cultist_hit.png",
       "columns": [
         "hit_0",
         "hit_1",
@@ -456,7 +456,7 @@
       ]
     },
     {
-      "file": "zombie_cultist_bite.png",
+      "file": "zombies/sprites/cultist_bite.png",
       "columns": [
         "bite_0",
         "bite_1",
@@ -468,7 +468,7 @@
       ]
     },
     {
-      "file": "zombie_cultist_death.png",
+      "file": "zombies/sprites/cultist_death.png",
       "columns": [
         "death_0",
         "death_1",

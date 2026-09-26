@@ -39,7 +39,7 @@ deps_check:
     - flutter pub outdated --no-transitive || true
 
 # Il gioco dipinge ogni posto dalle sue righe ASCII, con i tile e gli
-# oggetti di assets/tiles, che i painter in tools/ generano. Nessun altro job
+# oggetti di assets/levels, che i painter in tools/ generano. Nessun altro job
 # guarda quelle immagini, cosi un painter cambiato senza rilanciare il
 # generatore arriva fino al dispositivo. Qui l'atlas riparte da zero in una
 # directory temporanea e il risultato viene confrontato pixel per pixel con

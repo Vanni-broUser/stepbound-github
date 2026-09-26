@@ -146,7 +146,7 @@ const Legend rooftopLegend = Legend(
 
 /// The card shown on the way into the harbour.
 const String harbourName = 'Porto e centro storico';
-const String harbourCardImage = 'assets/story/scene_harbour.jpg';
+const String harbourCardImage = 'assets/story/scenes/harbour.jpg';
 
 /// The tutorial: the street where Mario wakes up, the inside of the
 /// carabinieri barracks, the north district behind it with the two floors
@@ -155,7 +155,7 @@ const String harbourCardImage = 'assets/story/scene_harbour.jpg';
 /// the Bar Arcobaleno and the church of San Nicola. Backgrounds are baked
 /// by the bakers listed in tools/build_levels.py, except for the
 /// places with no `background`: those the game paints from these same
-/// rows, out of assets/tiles (tools/build_tile_atlas.py).
+/// rows, out of assets/levels/tiles (tools/build_tile_atlas.py).
 final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
   PlaceSpec(
     id: PlaceId.street,

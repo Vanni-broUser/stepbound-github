@@ -9,8 +9,9 @@ final class DuomoScript extends TutorialScript {
   DuomoScript(super.director);
 
   static const String cultist = 'Cultista';
-  static const String cultistPortrait = 'assets/story/portrait_cultist.png';
-  static const String initiationImage = 'assets/story/scene_priest_family.jpg';
+  static const String cultistPortrait =
+      'assets/characters/npcs/portraits/cultist.png';
+  static const String initiationImage = 'assets/story/scenes/priest_family.jpg';
   static const String stairBlockedLine =
       'Potrai passare da qui solo quando sarai anche tu davvero parte '
       'della nostra comunità';
@@ -43,9 +44,9 @@ final class DuomoScript extends TutorialScript {
     ),
   ];
 
-  static const String massImage = 'assets/story/scene_priest_mass.jpg';
+  static const String massImage = 'assets/story/scenes/priest_mass.jpg';
   static const String crucifiedImage =
-      'assets/story/scene_crucified_zombie.jpg';
+      'assets/story/scenes/crucified_zombie.jpg';
   static const String massWelcomeLine =
       'Noi siamo tutti pronti a cominciare giovanotto, accomodati pure!';
   static const String massSermonLine =
@@ -66,11 +67,11 @@ final class DuomoScript extends TutorialScript {
     ),
   ];
 
-  static const String sermonImage = 'assets/story/scene_priest_worship.jpg';
-  static const String feastImage = 'assets/story/scene_cultists_feast.jpg';
+  static const String sermonImage = 'assets/story/scenes/priest_worship.jpg';
+  static const String feastImage = 'assets/story/scenes/cultists_feast.jpg';
   static const String mutationImage =
-      'assets/story/scene_cultists_mutation.jpg';
-  static const String seizedImage = 'assets/story/scene_priest_seized.jpg';
+      'assets/story/scenes/cultists_mutation.jpg';
+  static const String seizedImage = 'assets/story/scenes/priest_seized.jpg';
 
   static const String worshipLine =
       'Lo zombi non va temuto. Lo zombi va venerato. Attraverso la nostra '

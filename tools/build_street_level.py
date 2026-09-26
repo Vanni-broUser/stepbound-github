@@ -1858,7 +1858,9 @@ def paint_traffic_light(d, px, py):
     rect(d, px + 7, py - 5, 2, 1, (30, 70, 40))
 
 
-_BODY_SOURCE = os.path.join("assets", "sprites", "zombie_wanderer.png")
+_BODY_SOURCE = os.path.join(
+    "assets", "characters", "zombies", "sprites", "wanderer.png"
+)
 _bodies: list[Image.Image] = []
 
 

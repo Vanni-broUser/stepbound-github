@@ -20,7 +20,7 @@ final class PickupComponent extends PositionComponent {
         priority: 15,
       );
 
-  static const String backpackAssetPath = 'assets/sprites/backpack.png';
+  static const String backpackAssetPath = 'assets/objects/backpack.png';
   static const double dropDuration = 0.45;
   static const double lingerDuration = 0.3;
 

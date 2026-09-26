@@ -42,18 +42,18 @@ final class TutorialLine {
   /// A line spoken by Mario, with his portrait over the box.
   const TutorialLine.mario(this.text)
     : speaker = 'Mario Rossi',
-      portrait = 'assets/story/portrait_mario.png';
+      portrait = 'assets/characters/mario/portraits/base.png';
 
   /// A line spoken by Luigi, with his portrait over the box.
   const TutorialLine.luigi(this.text)
     : speaker = 'Luigi Rovaga',
-      portrait = 'assets/story/portrait_luigi.png';
+      portrait = 'assets/characters/npcs/portraits/luigi.png';
 
   /// A line spoken by the priest of the Duomo, with his portrait over the
   /// box.
   const TutorialLine.priest(this.text)
     : speaker = PriestScript.priest,
-      portrait = 'assets/story/portrait_priest.png';
+      portrait = 'assets/characters/npcs/portraits/priest.png';
 
   /// A member of Don Angelo's community inside the Duomo.
   const TutorialLine.cultist(this.text)

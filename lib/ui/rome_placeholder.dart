@@ -6,7 +6,7 @@ import 'package:stepbound/ui/screen_caption.dart';
 final class RomePlaceholder extends StatelessWidget {
   const RomePlaceholder({required this.onBack, super.key});
 
-  static const String image = 'assets/story/rome_placeholder.jpg';
+  static const String image = 'assets/story/placeholders/rome.jpg';
   static const String message =
       'Vanni deve ancora programmarla questa parte\n'
       'Fagli sapere se ti piace il gioco';

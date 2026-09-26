@@ -1127,7 +1127,10 @@ void main() {
         expect(lore, isNotNull, reason: '$kind has no lore');
         expect(lore!.lesson, isNotEmpty, reason: '$kind');
         expect(lore.description, isNotEmpty, reason: '$kind');
-        expect(lore.portrait, startsWith('assets/story/portrait_'));
+        expect(
+          lore.portrait,
+          startsWith('assets/characters/zombies/portraits/'),
+        );
       }
     });
   });
@@ -1375,7 +1378,7 @@ void main() {
         settle();
         final line = host.shown.last.single;
         expect(line.speaker, 'Luigi Rovaga');
-        expect(line.portrait, 'assets/story/portrait_luigi.png');
+        expect(line.portrait, 'assets/characters/npcs/portraits/luigi.png');
         expect(line.text, "Sarà un viaggio per l'Europa molto impegnativo");
         host.dismiss();
       }

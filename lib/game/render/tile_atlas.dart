@@ -13,7 +13,7 @@ import 'package:stepbound/game/render/asset_image.dart';
 /// The place's ASCII rows stay the only place its layout is written down:
 /// nothing here knows where anything is, only what a glyph looks like and
 /// how its look changes with its neighbours.
-const String tileAtlasManifestPath = 'assets/tiles/atlas_manifest.json';
+const String tileAtlasManifestPath = 'assets/levels/tiles/atlas_manifest.json';
 
 /// The glyphs of a place, as the rules read them.
 final class GlyphGrid {
@@ -704,7 +704,7 @@ final class TilePlaceArt {
   }
 }
 
-/// The manifest as it is written in assets/tiles/atlas_manifest.json.
+/// The manifest as it is written in assets/levels/tiles/atlas_manifest.json.
 final class TileAtlasManifest {
   const TileAtlasManifest({
     required this.tileWidth,
@@ -781,7 +781,7 @@ Future<LoadedTileAtlas> _load(String manifestPath) async {
     for (final object in place.objects) {
       for (final name in <String?>[object.image, object.whenOpen]) {
         if (name != null && !objects.containsKey(name)) {
-          objects[name] = await loadAssetImage('assets/tiles/objects/$name');
+          objects[name] = await loadAssetImage('assets/levels/places/$name');
         }
       }
     }

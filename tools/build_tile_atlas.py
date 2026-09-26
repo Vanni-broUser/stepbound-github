@@ -4,7 +4,7 @@
 A place used to exist twice: as the ASCII rows the simulation reads and as
 a PNG painted from those rows by a baker. A converted place has no PNG:
 the renderer paints it at runtime from the same rows, one tile per glyph,
-out of assets/tiles/atlas.png.
+out of assets/levels/tiles/atlas.png.
 
 This is where the bakers' *art* goes on living once their *composition*
 dies. A baker knew two things: how to paint a bench, and where the benches
@@ -87,10 +87,27 @@ from tile_atlas_core import (  # noqa: E402
 COLUMNS = 64
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-TILES = os.path.join("assets", "tiles")
+TILES = os.path.join("assets", "levels", "tiles")
 ATLAS = os.path.join(TILES, "atlas.png")
 MANIFEST = os.path.join(TILES, "atlas_manifest.json")
-OBJECTS = os.path.join(TILES, "objects")
+PLACES_DIR = os.path.join("assets", "levels", "places")
+
+
+def place_group(filename: str) -> str:
+    """Return the level-area folder that owns a generated prop."""
+    if filename.startswith(("duomo_", "termini_")):
+        return "rome"
+    if filename.startswith("train_"):
+        return "train"
+    return "hometown"
+
+
+def place_asset(filename: str) -> str:
+    return os.path.join(PLACES_DIR, place_group(filename), filename)
+
+
+def manifest_place_asset(filename: str) -> str:
+    return f"{place_group(filename)}/{filename}"
 
 # --------------------------------------------------- the upper Duomo's art
 # Moved here from tools/build_duomo_upper.py, which this atlas replaces:
@@ -4853,8 +4870,12 @@ def build() -> tuple[Atlas, dict]:
                    if key in place},
                 "rules": place["rules"],
                 "objects": [
-                    {k: v for k, v in obj.items()
-                     if k not in ("sprite", "openSprite")}
+                    {
+                        k: manifest_place_asset(v)
+                        if k in ("image", "whenOpen") else v
+                        for k, v in obj.items()
+                        if k not in ("sprite", "openSprite")
+                    }
                     for obj in place["objects"]
                 ],
             }
@@ -4895,16 +4916,18 @@ def save_object(sprite: Image.Image, path: str) -> None:
 
 def write(root: str) -> None:
     atlas, built = build()
-    os.makedirs(os.path.join(root, OBJECTS), exist_ok=True)
+    os.makedirs(os.path.join(root, TILES), exist_ok=True)
     atlas.image(built["manifest"]["columns"]).save(
         os.path.join(root, ATLAS), optimize=True)
     for place in built["places"].values():
         for obj in place["objects"]:
-            save_object(obj["sprite"], os.path.join(root, OBJECTS,
-                                                    obj["image"]))
+            image_path = os.path.join(root, place_asset(obj["image"]))
+            os.makedirs(os.path.dirname(image_path), exist_ok=True)
+            save_object(obj["sprite"], image_path)
             if "openSprite" in obj:
-                save_object(obj["openSprite"],
-                            os.path.join(root, OBJECTS, obj["whenOpen"]))
+                open_path = os.path.join(root, place_asset(obj["whenOpen"]))
+                os.makedirs(os.path.dirname(open_path), exist_ok=True)
+                save_object(obj["openSprite"], open_path)
     with open(os.path.join(root, MANIFEST), "w", encoding="utf-8") as out:
         out.write(manifest_json(built["manifest"]))
     print(f"{ATLAS}: {len(atlas.tiles)} tile")
@@ -5014,25 +5037,33 @@ def check() -> None:
                     f"{name} is out of date{where}.\nRe-run it and commit "
                     f"the result:\n    python tools/build_tile_atlas.py")
             print(f"{name}: up to date")
-        for entry in sorted(os.listdir(os.path.join(tmp, OBJECTS))):
-            committed = os.path.join(ROOT, OBJECTS, entry)
-            with Image.open(os.path.join(tmp, OBJECTS, entry)) as fresh:
-                new = fresh.convert("RGBA")
-            if not os.path.exists(committed):
-                raise SystemExit(f"{OBJECTS}/{entry} is missing")
-            with Image.open(committed) as a:
-                if a.convert("RGBA").tobytes() != new.tobytes():
-                    raise SystemExit(
-                        f"{OBJECTS}/{entry} is out of date.\nRe-run it and "
-                        f"commit the result:\n"
-                        f"    python tools/build_tile_atlas.py")
-            print(f"{OBJECTS}/{entry}: up to date")
-        made = set(os.listdir(os.path.join(tmp, OBJECTS)))
-        left_over = sorted(set(os.listdir(os.path.join(ROOT, OBJECTS)))
-                           - made)
+        made = set()
+        for directory, _, filenames in os.walk(os.path.join(tmp, PLACES_DIR)):
+            for entry in filenames:
+                fresh_path = os.path.join(directory, entry)
+                relative = os.path.relpath(fresh_path, tmp)
+                made.add(relative)
+                committed = os.path.join(ROOT, relative)
+                with Image.open(fresh_path) as fresh:
+                    new = fresh.convert("RGBA")
+                if not os.path.exists(committed):
+                    raise SystemExit(f"{relative} is missing")
+                with Image.open(committed) as a:
+                    if a.convert("RGBA").tobytes() != new.tobytes():
+                        raise SystemExit(
+                            f"{relative} is out of date.\nRe-run it and "
+                            f"commit the result:\n"
+                            f"    python tools/build_tile_atlas.py")
+                print(f"{relative}: up to date")
+        committed_objects = set()
+        for directory, _, filenames in os.walk(os.path.join(ROOT, PLACES_DIR)):
+            for entry in filenames:
+                committed_objects.add(os.path.relpath(
+                    os.path.join(directory, entry), ROOT))
+        left_over = sorted(committed_objects - made)
         if left_over:
             raise SystemExit(
-                f"{OBJECTS} holds pictures no painter makes any more: "
+                f"{PLACES_DIR} holds pictures no painter makes any more: "
                 f"{', '.join(left_over)}. Delete them.")
     print("the tile atlas matches its painters")
 

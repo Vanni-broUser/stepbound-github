@@ -20,7 +20,7 @@ guarda che `verify` sia verde.
   dal report perche nessun test la carica.
 - `levels_check`: rigenera l'atlas da cui il gioco dipinge ogni posto con
   `python tools/build_levels.py --check` e lo confronta, pixel per pixel,
-  con quello committato in `assets/tiles`: `atlas.png`, il manifest e le
+  con quello committato in `assets/levels`: `tiles/atlas.png`, il manifest e le
   immagini degli oggetti, e fallisce anche su un'immagine di oggetto che
   nessun painter produce piu. Gira su `python:3.11.15-slim` con
   `tools/requirements.txt` (Pillow fissato), non sull'immagine Flutter, e

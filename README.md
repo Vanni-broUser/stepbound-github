@@ -66,7 +66,7 @@ Controls: W/A/S/D move, E interacts with the faced tile, X waits, and Q quits. T
 
 ## Sprite contract
 
-Runtime character atlases live in `assets/sprites/` as transparent 96×96 PNG files. Each sheet contains a 4×6 grid of 16×24 frames:
+Runtime character atlases live under `assets/characters/` as transparent 96×96 PNG files. Mario, NPCs and zombies each have their own `sprites` and `portraits` folders. Every sheet contains a 4×6 grid of 16×24 frames:
 
 - Rows: south, west, east, north
 - Columns: idle_0, idle_1, walk_0, walk_1, walk_2, walk_3
@@ -101,7 +101,10 @@ GitLab CI runs formatting, static analysis, and tests with Flutter 3.44.2. Signe
 - `lib/save`: persistence adapters
 - `lib/ui`: Flutter interface
 - `assets/balance/default.json`: authoritative balance defaults, compiled into the core by `tools/generate_balance.dart`
-- `assets/sprites`: production sprite atlases and atlas contract
+- `assets/characters`: Mario (including skins), NPC and zombie portraits and sprite atlases
+- `assets/objects`: generic inventory and world objects
+- `assets/levels`: tile atlas and place-specific art grouped by level area
+- `assets/story`: cutscene scenes, maps, UI art and placeholders
 - `bin/stepbound_runner.dart`: headless ASCII runner
 - `tools/benchmark_world.dart`: deterministic simulation scaling benchmark
 

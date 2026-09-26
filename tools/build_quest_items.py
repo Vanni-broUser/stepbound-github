@@ -23,4 +23,4 @@ def build_episcopal_ring(path: str) -> None:
 
 
 if __name__ == "__main__":
-    build_episcopal_ring(os.path.join("assets", "sprites", "episcopal_ring.png"))
+    build_episcopal_ring(os.path.join("assets", "objects", "episcopal_ring.png"))

@@ -249,9 +249,9 @@ void main() {
   testWidgets('the replay tells of every scene as it comes up, so the music '
       'can follow it', (tester) async {
     const scenes = <StoryScene>[
-      StoryScene(image: 'assets/story/scene_news.png', text: 'a'),
+      StoryScene(image: 'assets/story/scenes/news.png', text: 'a'),
       StoryScene(
-        image: 'assets/story/scene_blackout.png',
+        image: 'assets/story/scenes/blackout.png',
         text: 'b',
         music: Music.luigi,
       ),

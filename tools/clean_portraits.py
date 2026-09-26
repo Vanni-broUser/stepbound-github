@@ -15,7 +15,7 @@ A few white blocks caught between locks of hair look to any rule like an
 eye or a tooth; they are listed by hand in HAND_FIXES and filled with the
 colour most of their surroundings have.
 
-    python tools/clean_portraits.py            # every assets/story/portrait_*.png
+    python tools/clean_portraits.py            # every character portrait
     python tools/clean_portraits.py --check    # exit 1 if any still needs it
 """
 
@@ -33,8 +33,8 @@ CHECKER_MIN = 40
 # Portrait file name -> boxes (left, top, right, bottom, inclusive) whose
 # near-white pixels are stray background, not part of the drawing.
 HAND_FIXES = {
-    "portrait_mutilated.png": [(595, 552, 611, 573)],
-    "portrait_burning.png": [
+    "mutilated.png": [(595, 552, 611, 573)],
+    "burning.png": [
         (570, 299, 608, 344),
         (530, 346, 552, 353),
         (709, 347, 717, 353),
@@ -141,7 +141,15 @@ def clean(im, name=""):
 def main():
     check = "--check" in sys.argv
     dirty = []
-    for path in sorted(glob.glob(os.path.join("assets", "story", "portrait_*.png"))):
+    portrait_dirs = [
+        os.path.join("assets", "characters", kind, "portraits")
+        for kind in ("mario", "npcs", "zombies")
+    ]
+    paths = sorted(
+        path for directory in portrait_dirs
+        for path in glob.glob(os.path.join(directory, "*.png"))
+    )
+    for path in paths:
         im = Image.open(path).convert("RGBA")
         cleared = clean(im, os.path.basename(path))
         if cleared:

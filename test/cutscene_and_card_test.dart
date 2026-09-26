@@ -23,7 +23,7 @@ void main() {
         tester,
         LocationCard(
           name: 'Porto e centro storico',
-          image: 'assets/story/scene_harbour.jpg',
+          image: 'assets/story/scenes/harbour.jpg',
           onBlack: () => blacks++,
           onFinished: () => finishes++,
         ),
@@ -76,12 +76,12 @@ void main() {
   group('the in-game cutscene', () {
     const frames = <CutsceneFrame>[
       CutsceneFrame(
-        image: 'assets/story/scene_luigi_trapped.jpg',
+        image: 'assets/story/scenes/luigi_trapped.jpg',
         speaker: 'Luigi Rovaga',
         text: 'Mario! Sono qui dentro!',
       ),
       CutsceneFrame(
-        image: 'assets/story/scene_luigi_rescue.jpg',
+        image: 'assets/story/scenes/luigi_rescue.jpg',
         text: 'La saracinesca si alza.',
       ),
     ];
