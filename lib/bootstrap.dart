@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:stepbound/app.dart';
@@ -10,5 +11,6 @@ Future<void> bootstrap() async {
     DeviceOrientation.landscapeRight,
   ]);
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-  runApp(StepboundApp(audio: PlayerAudio()));
+  // In the browser, where the game is only tested, it starts silent.
+  runApp(StepboundApp(audio: PlayerAudio(startMuted: kIsWeb)));
 }

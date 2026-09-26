@@ -225,6 +225,24 @@ void main() {
     expect(await preferences.getBool(PlayerAudio.mutedKey), isTrue);
   });
 
+  testWidgets('started muted, as in the browser, it is silent whatever was '
+      'saved, and a choice made then is still remembered', (tester) async {
+    await preferences.setBool(PlayerAudio.mutedKey, false);
+    final sound = PlayerAudio(
+      preferences: preferences,
+      device: device,
+      startMuted: true,
+    )..playMusic(Music.menu);
+    await run(tester, 2);
+    expect(sound.muted, isTrue);
+    expect(device.loop('music-b').volume, 0);
+
+    sound.muted = false;
+    await run(tester, 2);
+    expect(device.loop('music-b').volume, greaterThan(0));
+    expect(await preferences.getBool(PlayerAudio.mutedKey), isFalse);
+  });
+
   testWidgets('in the background everything pauses, and comes back after', (
     tester,
   ) async {

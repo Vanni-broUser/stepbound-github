@@ -6,6 +6,7 @@ import 'package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/progress.dart';
+import 'package:stepbound/save/published_save.dart';
 import 'package:stepbound/save/save_game.dart';
 
 /// Storage that cannot even be read, as a broken preferences store.
@@ -131,6 +132,50 @@ void main() {
     final migrated = Progress.fromJson(oldSave);
     expect(migrated.unlockedOutfits, <PlayerOutfit>{PlayerOutfit.base});
     expect(migrated.activeOutfit, PlayerOutfit.base);
+  });
+
+  group('the saves of the public build', () {
+    const publicFormat = SaveGame.format - 1;
+    String public() => jsonEncode(save().toJson()..['format'] = publicFormat);
+
+    test('are migrated to the current format', () {
+      final read = SaveGame.decode(
+        public(),
+        published: PublishedSaves(
+          format: publicFormat,
+          migrate: (old) => <String, Object?>{...old, 'place': 'Migrato'},
+        ),
+      );
+      expect(read.game?.place, 'Migrato');
+      expect(read.game?.toJson()['format'], SaveGame.format);
+    });
+
+    test('are damaged while the migration fails', () {
+      final read = SaveGame.decode(
+        public(),
+        published: const PublishedSaves(format: publicFormat),
+      );
+      expect(
+        (read as DamagedSave).reason,
+        startsWith('cannot be migrated from format $publicFormat'),
+      );
+    });
+
+    test('are the only older ones migrated', () {
+      final older = jsonEncode(save().toJson()..['format'] = publicFormat - 1);
+      final read = SaveGame.decode(
+        older,
+        published: PublishedSaves(format: publicFormat, migrate: (old) => old),
+      );
+      expect(read, isA<EmptySave>());
+    });
+
+    test('have no migration until one is written', () {
+      expect(
+        () => migratePublishedSave(save().toJson()),
+        throwsUnsupportedError,
+      );
+    });
   });
 
   group('reading a slot', () {

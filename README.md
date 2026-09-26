@@ -129,6 +129,7 @@ A new actor is a deliberate three-step change: the `EntityKind` enum, the
 JSON asset, and the generator's own list of kinds.
 
 See `CONTRIBUTING.md` for the GitLab workflow,
-`docs/target_devices.md` for the physical-device matrix, and
+`docs/target_devices.md` for the physical-device matrix,
+`docs/save_policy.md` for which save formats a build must still load, and
 `docs/maintainability_and_scalability_backlog.md` for the prioritised technical
 improvement backlog.

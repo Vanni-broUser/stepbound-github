@@ -13,7 +13,7 @@
   "columns": 64,
   "places": {
     "airlinerCabin": {
-      "void": "#060608",
+      "void": "#000000",
       "voidGlyph": "x",
       "rules": [
         {
@@ -153,7 +153,7 @@
       "objects": []
     },
     "airlinerRoofs": {
-      "void": "#060608",
+      "void": "#000000",
       "voidGlyph": "x",
       "rules": [
         {
@@ -396,7 +396,7 @@
       "objects": []
     },
     "barArcobaleno": {
-      "void": "#060608",
+      "void": "#000000",
       "voidGlyph": "x",
       "rules": [
         {
@@ -557,7 +557,7 @@
       ]
     },
     "barBackroom": {
-      "void": "#060608",
+      "void": "#000000",
       "voidGlyph": "x",
       "rules": [
         {
@@ -654,7 +654,7 @@
       "objects": []
     },
     "barracks": {
-      "void": "#060608",
+      "void": "#000000",
       "voidGlyph": "x",
       "rules": [
         {
@@ -853,7 +853,7 @@
       ]
     },
     "church": {
-      "void": "#060608",
+      "void": "#000000",
       "voidGlyph": "x",
       "rules": [
         {
@@ -1037,7 +1037,7 @@
       ]
     },
     "duomo": {
-      "void": "#060608",
+      "void": "#000000",
       "voidGlyph": "x",
       "rules": [
         {
@@ -1546,7 +1546,7 @@
       ]
     },
     "duomoBells": {
-      "void": "#060608",
+      "void": "#000000",
       "voidGlyph": "x",
       "rules": [
         {
@@ -1762,7 +1762,7 @@
       ]
     },
     "duomoSecondFloor": {
-      "void": "#060608",
+      "void": "#000000",
       "voidGlyph": "x",
       "rules": [
         {
@@ -1991,7 +1991,7 @@
       ]
     },
     "duomoTower": {
-      "void": "#060608",
+      "void": "#000000",
       "voidGlyph": "x",
       "rules": [
         {
@@ -2202,7 +2202,7 @@
       ]
     },
     "duomoTowerRoof": {
-      "void": "#060608",
+      "void": "#000000",
       "voidGlyph": "x",
       "rules": [
         {
@@ -2304,7 +2304,7 @@
       ]
     },
     "duomoUpper": {
-      "void": "#060608",
+      "void": "#000000",
       "voidGlyph": "x",
       "rules": [
         {
@@ -4147,7 +4147,7 @@
       ]
     },
     "mallFirst": {
-      "void": "#060608",
+      "void": "#000000",
       "voidGlyph": "x",
       "rules": [
         {
@@ -4653,7 +4653,7 @@
       ]
     },
     "mallGround": {
-      "void": "#060608",
+      "void": "#000000",
       "voidGlyph": "x",
       "rules": [
         {
@@ -8047,7 +8047,7 @@
       ]
     },
     "station": {
-      "void": "#060608",
+      "void": "#000000",
       "voidGlyph": "x",
       "rules": [
         {
@@ -8386,7 +8386,7 @@
       ]
     },
     "stationFarSide": {
-      "void": "#060608",
+      "void": "#000000",
       "voidGlyph": "x",
       "rules": [
         {
@@ -8587,7 +8587,7 @@
       ]
     },
     "stationUnderpass": {
-      "void": "#060608",
+      "void": "#000000",
       "voidGlyph": "x",
       "rules": [
         {
@@ -10152,7 +10152,7 @@
       ]
     },
     "trainInterior": {
-      "void": "#060608",
+      "void": "#000000",
       "voidGlyph": "x",
       "rules": [
         {
@@ -10466,7 +10466,7 @@
       ]
     },
     "romeTermini": {
-      "void": "#060608",
+      "void": "#000000",
       "voidGlyph": "x",
       "rules": [
         {

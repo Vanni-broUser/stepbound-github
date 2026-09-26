@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/sound.dart';
+import 'package:stepbound/game/input/game_input_controller.dart';
 import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
 import 'package:stepbound/ui/audio_scope.dart';
@@ -183,7 +184,9 @@ final class _PinchZoneState extends State<PinchZone> {
       global: event.position,
       at: event.timeStamp,
     );
-    if (_game.pinching.value || _touches.length != 2 || _game.aiming.value) {
+    if (_game.pinching.value ||
+        _touches.length != 2 ||
+        _game.input.aiming.value) {
       return;
     }
     final first = _touches.entries.firstWhere(
@@ -331,7 +334,8 @@ final class _MoveZoneState extends State<MoveZone> {
     });
     // With the pistol up, the right thumb has the say: Mario stands and
     // aims, and this one neither walks him nor fires.
-    if (widget.game.aiming.value || delta.distance < MoveZone.deadZone / 2) {
+    if (widget.game.input.aiming.value ||
+        delta.distance < MoveZone.deadZone / 2) {
       _stop();
       return;
     }
@@ -344,7 +348,7 @@ final class _MoveZoneState extends State<MoveZone> {
     }
     _stop();
     _walking = direction;
-    widget.game.pressDirection(direction);
+    widget.game.input.pressDirection(direction);
   }
 
   void _up(PointerEvent event) {
@@ -363,7 +367,7 @@ final class _MoveZoneState extends State<MoveZone> {
     final walking = _walking;
     if (walking != null) {
       _walking = null;
-      widget.game.releaseDirection(walking);
+      widget.game.input.releaseDirection(walking);
     }
   }
 
@@ -398,7 +402,7 @@ final class ActionZone extends StatefulWidget {
   final StepboundGame game;
 
   /// How long a finger stays down before Mario aims.
-  static const Duration holdToAim = StepboundGame.holdToAim;
+  static const Duration holdToAim = GameInputController.holdToAim;
 
   /// How far a finger may wander and still count as a tap or a hold.
   static const double slop = 14;
@@ -499,7 +503,7 @@ final class _ActionZoneState extends State<ActionZone> {
     _thumb = event.localPosition;
     _aim = null;
     // Already up (the space bar raised it): the stick is there at once.
-    if (_game.aiming.value) {
+    if (_game.input.aiming.value) {
       _touch = _Touch.aiming;
     } else {
       _touch = _Touch.pending;
@@ -515,13 +519,13 @@ final class _ActionZoneState extends State<ActionZone> {
     if (_touch != _Touch.pending) {
       return;
     }
-    _game.beginAim();
+    _game.input.beginAim();
     final thumb = _thumb;
     if (thumb != null) {
       _splat(thumb, SplatKind.hold);
     }
     setState(() {
-      if (_game.aiming.value) {
+      if (_game.input.aiming.value) {
         _touch = _Touch.aiming;
         // The stick is centred where the finger rests now.
         _centre = _thumb;
@@ -562,7 +566,7 @@ final class _ActionZoneState extends State<ActionZone> {
         final direction = directionOf(delta, current: _aim);
         if (direction != _aim) {
           _aim = direction;
-          _game.aimToward(direction);
+          _game.input.aimToward(direction);
         }
       case _Touch.spent:
         setState(() => _thumb = thumb);
@@ -581,16 +585,16 @@ final class _ActionZoneState extends State<ActionZone> {
         if (_game.isUnlocked(HudElement.interact)) {
           _splat(event.localPosition, SplatKind.tap);
         }
-        _game.pressInteract();
+        _game.input.pressInteract();
       case _Touch.aiming:
         final aim = _aim;
         final centre = _centre;
         if (lifted && aim != null && centre != null && !_inCancelRing) {
-          _game.shootToward(aim);
+          _game.input.shootToward(aim);
           _splat(centre, SplatKind.swipe, direction: _delta);
         } else {
           _splat(event.localPosition, SplatKind.tap);
-          _game.cancelAim();
+          _game.input.cancelAim();
         }
       case _Touch.pending || _Touch.spent:
         break;
@@ -618,7 +622,7 @@ final class _ActionZoneState extends State<ActionZone> {
         onPointerUp: _up,
         onPointerCancel: _up,
         child: ValueListenableBuilder<bool>(
-          valueListenable: _game.aiming,
+          valueListenable: _game.input.aiming,
           builder: (context, aiming, _) => CustomPaint(
             painter: aiming && _touch == _Touch.aiming
                 ? _StickPainter(
