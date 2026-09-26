@@ -1,3 +1,4 @@
+import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
 
 /// The north district: the first camp in sight teaches resting (with the
@@ -17,7 +18,12 @@ final class NorthDistrictScript extends TutorialScript {
 
   @override
   void update({required bool turnAnimating}) {
-    if (_campLessonGiven || !world.campfires.any(host.isTileVisible)) {
+    // The table aboard saves too, but it is no fire: the lesson waits for
+    // a real one.
+    if (_campLessonGiven ||
+        !world.campfires
+            .where((camp) => !trainFoodTiles.contains(camp))
+            .any(host.isTileVisible)) {
       return;
     }
     _campLessonGiven = true;

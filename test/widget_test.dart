@@ -1247,8 +1247,10 @@ void main() {
       // best: a crate or a cot spans a few tiles.
       bool glinted(GridPoint tile) =>
           glints.any((glint) => tileOf(glint).manhattanDistanceTo(tile) <= 1);
+      // The table laid aboard is one thing, six tiles wide: one glint on it.
+      expect(trainFoodTiles.any(glinted), isTrue);
       for (final tile in <GridPoint>[
-        ...world.campfires,
+        ...world.campfires.where((camp) => !trainFoodTiles.contains(camp)),
         ...world.lookouts.where((tile) => tile != trainLuigiTile),
         ...world.controls.keys,
         // What the scripts answer when interacted with.
@@ -1396,6 +1398,50 @@ void main() {
         isNot(camp.step(Direction.west)),
         reason: 'Mario is up again once the line is gone',
       );
+    });
+  });
+
+  testWidgets('the table laid with food above the map table saves aboard '
+      'the train', (tester) {
+    return tester.runAsync(() async {
+      final saves = MemorySaveRepository();
+      final game = await _pumpReadyGame(tester, saves: saves);
+      final table = trainFoodTiles[1];
+      final train = place(PlaceId.trainInterior);
+      expect(train.bounds.contains(table), isTrue);
+      expect(
+        trainFoodTiles.map((tile) => tile.y).toSet(),
+        <int>{train.origin.y + 1},
+        reason: 'one row, against the top wall',
+      );
+      expect(
+        trainMapTiles.map((tile) => tile.x),
+        containsAll(trainFoodTiles.map((tile) => tile.x)),
+        reason: 'right above the map table',
+      );
+      expect(game.simulation.campfires, containsAll(trainFoodTiles));
+      game.simulation.player.component<PositionComponent>()
+        ..position = table.step(Direction.south)
+        ..facing = Direction.north;
+      game
+        ..unlock(HudElement.interact)
+        ..pressInteract();
+      for (var i = 0; i < 60; i++) {
+        game.update(1 / 20);
+      }
+      await tester.pump();
+      final saved = (await saves.load(1))!;
+      expect(saved.place, trainPlaceName);
+      expect(saved.atCampfire, isTrue);
+      expect(
+        (game.cover.value! as PromptCover).lines.map((line) => line.text),
+        <String>[StepboundGame.mealLine, StepboundGame.savedLine],
+      );
+      // It saves like a fire, but is not one of the fires to find.
+      expect(game.progress.litCampfires, isNot(contains(trainPlaceName)));
+      for (final level in LevelId.values) {
+        expect(levelCampfires(level), isNot(contains(trainPlaceName)));
+      }
     });
   });
 
@@ -1867,7 +1913,7 @@ void main() {
       // Where the station's scene leaves him, after a walk and a rest.
       game.simulation.player.component<PositionComponent>()
         ..position = trainMapStandTile
-        ..facing = Direction.south;
+        ..facing = trainMapFacing;
       game.progress
         ..remember(StoryMemory.luigiAtStation)
         ..countStep()
@@ -1942,7 +1988,7 @@ void main() {
         trainMapStandTile,
         reason: 'back home in the train, in front of the map',
       );
-      expect(mario.facing, Direction.south);
+      expect(mario.facing, trainMapFacing);
       final cover = tester.widget<LoadingCover>(find.byType(LoadingCover));
       expect(cover.image, LevelMap.hometownImage);
       expect(cover.caption, 'Città natale');
@@ -1966,7 +2012,7 @@ void main() {
       // Where the station's scene leaves him.
       game.simulation.player.component<PositionComponent>()
         ..position = trainMapStandTile
-        ..facing = Direction.south;
+        ..facing = trainMapFacing;
       game.completeLevel();
       await tester.pump();
       await tester.tap(

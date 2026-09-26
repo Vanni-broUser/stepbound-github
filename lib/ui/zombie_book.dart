@@ -151,8 +151,9 @@ final Map<StoryMemory, List<StoryScene>> memoryScenes =
 /// were lived: the harbour and the hypermarket can be played in either
 /// order, and half of one before the other, so the memories are replayed
 /// as [Progress.memories] holds them, not as the enum lists them.
-List<StoryScene> seenScenes(Progress progress) => <StoryScene>[
-  for (final memory in progress.memories) ...memoryScenes[memory]!,
+List<StoryScene> seenScenes(Progress progress, LevelId level) => <StoryScene>[
+  for (final memory in progress.memories)
+    if (memory.level == level) ...memoryScenes[memory]!,
 ];
 
 /// The books open on the crate by Mario's cot, aboard the train: the zombie

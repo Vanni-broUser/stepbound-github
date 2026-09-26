@@ -149,7 +149,7 @@ void main() {
 
   test('the memories are the scenes seen so far', () {
     expect(
-      seenScenes(Progress.newGame()).length,
+      seenScenes(Progress.newGame(), LevelId.hometown).length,
       introScenes.length + outbreakScenes.length,
     );
     expect(
@@ -161,9 +161,41 @@ void main() {
             StoryMemory.luigiTrapped,
           ],
         ),
+        LevelId.hometown,
       ).length,
       introScenes.length + outbreakScenes.length + 3,
     );
+  });
+
+  test("each city keeps its own memories: Rome's are not Molfetta's", () {
+    final progress = Progress(
+      memories: const <StoryMemory>[
+        StoryMemory.newsBroadcast,
+        StoryMemory.outbreakNight,
+        StoryMemory.luigiAtStation,
+        StoryMemory.presidentFled,
+      ],
+    );
+    expect(seenScenes(progress, LevelId.rome), romeScenes);
+    expect(
+      seenScenes(progress, LevelId.hometown),
+      isNot(contains(romeScenes.first)),
+    );
+    expect(
+      seenScenes(progress, LevelId.hometown),
+      hasLength(
+        introScenes.length +
+            outbreakScenes.length +
+            memoryScenes[StoryMemory.luigiAtStation]!.length,
+      ),
+    );
+    for (final memory in StoryMemory.values) {
+      expect(
+        memoryScenes,
+        contains(memory),
+        reason: '$memory has scenes to play again',
+      );
+    }
   });
 
   test('memories are replayed in the order they were lived, not in the '
@@ -178,7 +210,10 @@ void main() {
       StoryMemory.priestWelcomed,
     ];
     expect(
-      seenScenes(Progress(memories: lived)).map((scene) => scene.text),
+      seenScenes(
+        Progress(memories: lived),
+        LevelId.hometown,
+      ).map((scene) => scene.text),
       <String>[
         for (final memory in lived)
           for (final scene in memoryScenes[memory]!) scene.text,

@@ -112,7 +112,7 @@ final class StationScript extends TutorialScript {
   void _board() {
     world.player.component<PositionComponent>()
       ..position = trainMapStandTile
-      ..facing = Direction.south;
+      ..facing = trainMapFacing;
     host.completeLevel();
   }
 

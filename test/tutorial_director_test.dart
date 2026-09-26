@@ -1234,7 +1234,7 @@ void main() {
         trainMapStandTile,
         reason: 'the save, and the way back home, find him at the map',
       );
-      expect(mario.facing, Direction.south);
+      expect(mario.facing, trainMapFacing);
       expect(mario.position.step(mario.facing), trainMapPanelTile);
       director.onEvents(<WorldEvent>[
         TravelMapUsedEvent(at: trainMapTiles.last),
@@ -1262,19 +1262,34 @@ void main() {
       }
       expect(host.shown, hasLength(2));
 
-      for (final book in trainBookTiles) {
+      for (final (index, book) in trainBookTiles.indexed) {
         director.onEvents(<WorldEvent>[LookedOutEvent(at: book)]);
+        settle();
+        expect(host.shown.last.single.text, 'Appunti sugli zombi conosciuti');
+        expect(host.zombieBooksOpened, index, reason: 'not before the line');
+        host.dismiss();
+        expect(host.zombieBooksOpened, index + 1);
       }
-      expect(host.zombieBooksOpened, trainBookTiles.length);
-      for (final cot in trainCotTiles) {
-        director.onEvents(<WorldEvent>[LookedOutEvent(at: cot)]);
+      // The cot names the city whose memories it plays, then plays them.
+      for (final (index, level) in LevelId.values.indexed) {
+        progress.level = level;
+        director.onEvents(<WorldEvent>[
+          LookedOutEvent(at: trainCotTiles[index % trainCotTiles.length]),
+        ]);
+        settle();
+        expect(host.shown.last.single.text, switch (level) {
+          LevelId.hometown => 'Rivedi i ricordi della città natale',
+          LevelId.rome => 'Rivedi i ricordi di Roma',
+        });
+        expect(host.memoriesReplayed, index, reason: 'not before the line');
+        host.dismiss();
+        expect(host.memoriesReplayed, index + 1);
       }
-      expect(host.memoriesReplayed, trainCotTiles.length);
-      expect(host.shown, hasLength(2), reason: 'neither says anything');
     });
 
     test('the ammunition crate loads Mario up to five rounds, as often as '
-        'he has fewer, and does nothing when he has five or more', () {
+        'he has fewer, and says there is nothing to take when he has five '
+        'or more', () {
       final ammo = world.player.component<AmmoComponent>()..loaded = 2;
       director.onEvents(<WorldEvent>[LookedOutEvent(at: trainAmmoTiles.first)]);
       settle();
@@ -1288,23 +1303,29 @@ void main() {
       expect(host.unlocked, contains(HudElement.ammo));
       host.dismiss();
 
-      final said = host.shown.length;
       director.onEvents(<WorldEvent>[LookedOutEvent(at: trainAmmoTiles.last)]);
       settle();
       expect(ammo.loaded, trainAmmoRefill);
-      expect(host.shown, hasLength(said), reason: 'five already: nothing');
+      expect(host.shown.last.single.text, TrainScript.ammoFull);
+      expect(
+        TrainScript.ammoFull,
+        'Hai già abbastanza munizioni. Torna qui quando avrai meno di 5 '
+        'proiettili per ricaricare',
+      );
+      host.dismiss();
 
       ammo.loaded = 7;
       director.onEvents(<WorldEvent>[LookedOutEvent(at: trainAmmoTiles.first)]);
       settle();
       expect(ammo.loaded, 7, reason: 'more than five are never taken away');
-      expect(host.shown, hasLength(said));
+      expect(host.shown.last.single.text, TrainScript.ammoFull);
+      host.dismiss();
 
       ammo.loaded = 0;
       director.onEvents(<WorldEvent>[LookedOutEvent(at: trainAmmoTiles.first)]);
       settle();
       expect(ammo.loaded, trainAmmoRefill, reason: 'as often as needed');
-      expect(host.shown, hasLength(said + 1));
+      expect(host.shown.last.single.text, TrainScript.ammoRefilled);
     });
 
     test('the meeting cannot happen before Luigi has been rescued', () {

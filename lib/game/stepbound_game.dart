@@ -448,10 +448,9 @@ final class StepboundGame extends FlameGame
         tile: trainCotTiles[trainCotTiles.length ~/ 2],
         active: canInteract,
       ),
-      // On the lid of the ammunition crate.
+      // In the middle of the weapons table.
       InteractGlintComponent(
-        tile: trainAmmoTiles.first,
-        spot: const Offset(16, 6),
+        tile: trainAmmoTiles[trainAmmoTiles.length ~/ 2],
         active: canInteract,
       ),
       // On the closed leaf, until the key opens it.
@@ -468,11 +467,17 @@ final class StepboundGame extends FlameGame
             !simulation.map.tileAt(duomoUpperLockedDoorTile).isWalkable,
       ),
       for (final fire in campfireNames.keys)
-        InteractGlintComponent(
-          tile: fire,
-          spot: const Offset(11, 3),
-          active: canInteract,
-        ),
+        if (!trainFoodTiles.contains(fire))
+          InteractGlintComponent(
+            tile: fire,
+            spot: const Offset(11, 3),
+            active: canInteract,
+          ),
+      // The table aboard is one place to eat: one glint, in its middle.
+      InteractGlintComponent(
+        tile: trainFoodTiles[trainFoodTiles.length ~/ 2],
+        active: canInteract,
+      ),
     ];
   }
 
@@ -632,7 +637,7 @@ final class StepboundGame extends FlameGame
     // the next level with it, with Mario standing at the map.
     simulation.player.component<PositionComponent>()
       ..position = trainMapStandTile
-      ..facing = Direction.south;
+      ..facing = trainMapFacing;
     onTravelMapRequested?.call(snapshot(place: trainPlaceName));
   }
 
@@ -762,19 +767,26 @@ final class StepboundGame extends FlameGame
 
   // ------------------------------------------------------------- camps
 
-  /// Mario kneels by the fire, which roars up; when the moment is over the
-  /// game is saved, and a line says so.
+  /// Mario kneels by the fire, which roars up, or stops at the table
+  /// aboard for a bite; when the moment is over the game is saved, and a
+  /// line says so.
   void _startRest(GridPoint campfire) {
     _stopMario();
     _campfire = campfire;
-    if (campfireNames[campfire] case final name?) {
+    if (campfireNames[campfire] case final name?
+        when !trainFoodTiles.contains(campfire)) {
       progress.lightCampfire(name);
     }
     _restLeft = CharacterComponent.restDuration;
     _restSaving = false;
+    if (_atTable) {
+      return;
+    }
     _campfires[campfire]?.flare();
     _characters[playerId]?.playRest(_facingOf(playerId));
   }
+
+  bool get _atTable => trainFoodTiles.contains(_campfire);
 
   void _updateRest(double dt) {
     if (_campfire == null || _restSaving) {
@@ -791,6 +803,11 @@ final class StepboundGame extends FlameGame
   static const String saveFailedLine =
       'Salvataggio non riuscito. Riposati di nuovo accanto al fuoco per '
       'riprovare';
+  static const String mealLine =
+      'Pane, salame e un pezzo di formaggio. Per un momento sembra tutto '
+      'normale';
+  static const String mealSaveFailedLine =
+      'Salvataggio non riuscito. Torna al tavolo per riprovare';
 
   /// Saves the game as it is at this campfire, then says whether it
   /// worked; Mario gets up once the line is gone either way, and a failed
@@ -806,7 +823,14 @@ final class StepboundGame extends FlameGame
       saved = false;
     }
     showPrompt(<TutorialLine>[
-      TutorialLine(saved ? savedLine : saveFailedLine),
+      if (_atTable) const TutorialLine(mealLine),
+      TutorialLine(
+        saved
+            ? savedLine
+            : _atTable
+            ? mealSaveFailedLine
+            : saveFailedLine,
+      ),
     ], onDismissed: () => _campfire = null);
   }
 

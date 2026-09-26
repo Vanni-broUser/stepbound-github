@@ -1643,7 +1643,7 @@ void main() {
         isTrue,
         reason: 'the clear gangways join both coaches to the locomotive',
       );
-      expect(trainMapTiles, hasLength(8), reason: 'a table four by two');
+      expect(trainMapTiles, hasLength(12), reason: 'a table four by three');
       for (final map in trainMapTiles) {
         expect(world.map.tileAt(map).isWalkable, isFalse);
         expect(world.travelMaps, contains(map));
