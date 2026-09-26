@@ -166,6 +166,9 @@ final class ZombieBook extends StatefulWidget {
   final Progress progress;
   final VoidCallback onClose;
 
+  /// Dims the whole screen behind the book, the world still in view.
+  static const Color backdrop = Color(0xc2180e0c);
+
   @override
   State<ZombieBook> createState() => _ZombieBookState();
 }
@@ -183,13 +186,10 @@ final class _ZombieBookState extends State<ZombieBook> {
         final unit = constraints.maxHeight.isFinite
             ? constraints.maxHeight / IntegerResolutionViewport.virtualHeight
             : 1.0;
-        return ColoredBox(
-          color: const Color(0xc2180e0c),
-          child: Padding(
-            key: const ValueKey<String>('zombie-book'),
-            padding: EdgeInsets.all(8 * unit),
-            child: _zombies(unit),
-          ),
+        return Padding(
+          key: const ValueKey<String>('zombie-book'),
+          padding: EdgeInsets.all(8 * unit),
+          child: _zombies(unit),
         );
       },
     );

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
 import 'package:stepbound/ui/black_fade.dart';
+import 'package:stepbound/ui/letterbox.dart';
 import 'package:stepbound/ui/story_intro.dart';
 
 enum _Stage { toBlack, story, fromBlack }
@@ -52,7 +53,9 @@ final class _GameCutsceneState extends State<GameCutscene> {
         toBlack: true,
         onDone: () => setState(() => _stage = _Stage.story),
       ),
-      _Stage.story => ColoredBox(
+      // The frames keep their shape; the fades around them cover the whole
+      // screen, as the game does.
+      _Stage.story => Letterbox(
         color: Colors.black,
         child: StoryIntro(
           key: const ValueKey<String>('cutscene-story'),

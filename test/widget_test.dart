@@ -724,11 +724,12 @@ void main() {
   testWidgets('camera starts clamped around the player', (tester) {
     return tester.runAsync(() async {
       final game = await _pumpReadyGame(tester);
-      // The player starts near the south-west corner of the tutorial street,
-      // so both axes sit on a clamp: x at half the view width, y at the
-      // map height (42 tiles) minus half the view height.
-      expect(game.camera.viewfinder.position.x, 192);
-      expect(game.camera.viewfinder.position.y, 42 * 16 - 108);
+      // The player starts near the south-west corner of the tutorial street:
+      // the view stops at the map's left edge instead of centring on him,
+      // and never reaches past its bottom (42 tiles).
+      final view = game.camera.visibleWorldRect;
+      expect(view.left, closeTo(0, 0.01));
+      expect(view.bottom, lessThanOrEqualTo(42 * 16 + 0.01));
     });
   });
 
@@ -744,6 +745,7 @@ void main() {
         }
       }
 
+      final whole = game.camera.visibleWorldRect.width;
       final left = tester.getCenter(
         find.byKey(const ValueKey<String>('touch-move')),
       );
@@ -754,7 +756,10 @@ void main() {
       await b.moveBy(const Offset(30, 0));
       play(1);
       expect(game.zoom, greaterThan(1));
-      expect(game.camera.viewfinder.zoom, game.zoom);
+      expect(
+        game.camera.visibleWorldRect.width,
+        closeTo(whole / game.zoom, 0.01),
+      );
       expect(mario.position, start, reason: 'a pinch is not a step');
       await a.up();
       await b.up();
@@ -2346,7 +2351,8 @@ void main() {
   });
 
   group('on a phone longer than 16:9, with the camera on the left', () {
-    /// A 20:9 phone in landscape: the picture leaves a band on each side.
+    /// A 20:9 phone in landscape: the 16:9 picture the menus keep would
+    /// leave a band on each side.
     const screen = Size(915, 412);
     const cutout = 32.0;
     final picture =
@@ -2394,9 +2400,9 @@ void main() {
     ) async {
       await loadOnThePhone(tester);
       expect(
-        rectOf(tester, 'stepbound-game').width,
-        moreOrLessEquals(picture),
-        reason: 'the picture keeps its 16:9',
+        rectOf(tester, 'stepbound-game'),
+        Offset.zero & screen,
+        reason: 'the world fills the screen',
       );
 
       // The camera cutout is on the left; the right edge keeps the same
@@ -2405,7 +2411,7 @@ void main() {
       // right, and both keep that mirrored gap.
       final left = rectOf(tester, 'touch-ammo').left;
       expect(left, moreOrLessEquals(cutout), reason: 'same gap both sides');
-      expect(left, lessThan(band), reason: 'out in the band, off the game');
+      expect(left, lessThan(band), reason: 'out by the edge of the screen');
       expect(
         screen.width - rectOf(tester, 'touch-menu').right,
         moreOrLessEquals(cutout),
