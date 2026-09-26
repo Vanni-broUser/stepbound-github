@@ -26,6 +26,8 @@ void main() {
     const names = <String>[
       'protagonist',
       'protagonist_cultist',
+      'protagonist_roma',
+      'protagonist_lazio',
       'zombie_wanderer',
       'zombie_sprinter',
       'zombie_brute',
@@ -114,8 +116,13 @@ void main() {
     }
   });
 
-  test('maranza portraits match the story portrait contract', () async {
-    for (final name in <String>['maranza_roma', 'maranza_lazio']) {
+  test('new portraits match the story portrait contract', () async {
+    for (final name in <String>[
+      'maranza_roma',
+      'maranza_lazio',
+      'mario_roma',
+      'mario_lazio',
+    ]) {
       final image = await loadAsset('assets/story/portrait_$name.png');
       expect(image.width, 1048, reason: name);
       expect(image.height, 1501, reason: name);
