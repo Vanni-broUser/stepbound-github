@@ -82,6 +82,37 @@ void main() {
     expect(loaded.litCampfires, <String>{'Zona nord'});
   });
 
+  test(
+    'bullets stay in the level they were found in: the train arrives '
+    'with those left there, never fewer than five, and a save keeps them',
+    () {
+      final progress = Progress.newGame();
+      expect(progress.hasTravelled, isFalse);
+
+      expect(progress.travel(LevelId.rome, rounds: 12), arrivalRounds);
+      expect(progress.level, LevelId.rome);
+      expect(progress.hasTravelled, isTrue);
+      expect(
+        progress.travel(LevelId.hometown, rounds: 3),
+        12,
+        reason: 'more than five left at home stay his',
+      );
+      expect(progress.travel(LevelId.rome, rounds: 1), arrivalRounds);
+      expect(
+        progress.travel(LevelId.hometown, rounds: 2),
+        arrivalRounds,
+        reason: 'the one left at home made up to five',
+      );
+
+      final loaded = Progress.fromJson(progress.toJson());
+      expect(loaded.roundsLeft, <LevelId, int>{
+        LevelId.hometown: 1,
+        LevelId.rome: 2,
+      });
+      expect(loaded.hasTravelled, isTrue);
+    },
+  );
+
   test('a save keeps unlocked clothes and the outfit in use', () {
     final progress = Progress.newGame()
       ..unlockOutfit(PlayerOutfit.cultist)

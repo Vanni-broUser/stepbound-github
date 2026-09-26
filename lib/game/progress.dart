@@ -1,4 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:stepbound/core/core.dart';
+
+/// How many rounds Mario has at least when the train brings him into a
+/// level.
+const int arrivalRounds = 5;
 
 /// Clothes Mario can wear. Each outfit owns the matching world atlases and
 /// dialogue/menu portrait so every view changes together.
@@ -63,7 +69,9 @@ final class Progress {
     this.level = LevelId.hometown,
     Map<LevelId, int> steps = const <LevelId, int>{},
     Iterable<String> litCampfires = const <String>[],
+    Map<LevelId, int> roundsLeft = const <LevelId, int>{},
   }) : steps = Map<LevelId, int>.of(steps),
+       roundsLeft = Map<LevelId, int>.of(roundsLeft),
        litCampfires = Set<String>.of(litCampfires),
        knownZombies = Set<EntityKind>.of(knownZombies),
        memories = Set<StoryMemory>.of(memories),
@@ -110,6 +118,11 @@ final class Progress {
           LevelId.values.byName(key): value! as int,
       },
       litCampfires: (json['litCampfires']! as List<Object?>).cast<String>(),
+      roundsLeft: <LevelId, int>{
+        for (final MapEntry(:key, :value)
+            in (json['roundsLeft']! as Map<String, Object?>).entries)
+          LevelId.values.byName(key): value! as int,
+      },
     );
   }
 
@@ -134,6 +147,24 @@ final class Progress {
   /// The campfires Mario has rested at, by name: each one lit is a place
   /// to come back to.
   final Set<String> litCampfires;
+
+  /// The rounds Mario had on him when the train last left each level:
+  /// bullets are used up, so they stay with the level they were found in.
+  final Map<LevelId, int> roundsLeft;
+
+  /// Whether the train has taken Mario anywhere yet, from the Europe map.
+  bool get hasTravelled => roundsLeft.isNotEmpty;
+
+  /// The train leaves [level] for [destination] with Mario carrying
+  /// [rounds]. Those stay behind, and what he has on arrival is returned:
+  /// the ones he left in [destination], but never fewer than
+  /// [arrivalRounds]. Whatever is not used up (the pistol, the keys) is
+  /// not counted here: it travels with him.
+  int travel(LevelId destination, {required int rounds}) {
+    roundsLeft[level] = rounds;
+    level = destination;
+    return math.max(roundsLeft[destination] ?? 0, arrivalRounds);
+  }
 
   void countStep() => steps[level] = (steps[level] ?? 0) + 1;
 
@@ -169,5 +200,8 @@ final class Progress {
       for (final MapEntry(:key, :value) in steps.entries) key.name: value,
     },
     'litCampfires': <String>[...litCampfires],
+    'roundsLeft': <String, int>{
+      for (final MapEntry(:key, :value) in roundsLeft.entries) key.name: value,
+    },
   };
 }

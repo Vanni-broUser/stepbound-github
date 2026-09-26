@@ -528,18 +528,22 @@ final class _StepboundAppState extends State<StepboundApp> {
 
   /// The train takes Mario and Luigi to [level]: the game picks up aboard,
   /// with the train's door onto that level's station, and is saved there.
+  /// Mario's rounds stay in the level he leaves (see [Progress.travel]).
   /// Rome starts over from here.
   void _startLevel(LevelId level) {
     final snapshot = _completedSnapshot;
     if (snapshot == null) {
       return;
     }
-    final progress = Progress.fromJson(snapshot.progress)..level = level;
+    final progress = Progress.fromJson(snapshot.progress);
+    final world = restoreTutorialWorld(snapshot.world);
+    final ammo = world.player.component<AmmoComponent>();
+    ammo.loaded = progress.travel(level, rounds: ammo.loaded);
     if (level == LevelId.rome) {
       progress.remember(StoryMemory.presidentFled);
     }
     final arrival = (
-      world: snapshot.world,
+      world: saveTutorialWorld(world),
       tutorial: snapshot.tutorial,
       progress: progress.toJson(),
       hud: snapshot.hud,
