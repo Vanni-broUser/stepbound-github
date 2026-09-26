@@ -3,8 +3,9 @@
 /// Inside the airliner that came down on the crossroads behind the
 /// hypermarket (see mall_north_street.dart, where its body lies across the
 /// junction). Drawn as a room on a dark background like the barracks, and
-/// lit like one: the cabin lost its power long ago and what light there is
-/// falls in at the two breaks in the hull.
+/// lit like one: the cabin lost its main power long ago, but a line of
+/// emergency lamps still marks the aisle and daylight falls in at the two
+/// breaks in the hull.
 ///
 /// The map runs the way the aeroplane does, nose west, tail east. Mario
 /// comes in through the tear in the belly `E`, under the forward galley at
@@ -42,7 +43,7 @@ const List<String> airlinerCabinRows = <String>[
   'xI.:.TTT..TTT..TTT.::.TTT..TTT..TTT.......Ix',
   'xI.K.TTT..TTT..TrT.::.TTT.MTTT..TTT......:Ix',
   'xI.....b....Z.........:.....M....b........Ix',
-  'xI..*.......:..........:.......*..........Ix',
+  'xI..*.......:*........*:.......*........*.Ix',
   'xI*K.TTTM.TrT..TTT.::.TTT..rrr..TTT.......Ix',
   'xIM:.TTT..TTT..TTT.::.TTT..TTT..TTT...+...Ix',
   'xI...TTT..TTT..TTT.::.TTT..TTT..TTT..K.K..Ix',

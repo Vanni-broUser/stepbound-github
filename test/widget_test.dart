@@ -159,6 +159,35 @@ void main() {
     });
   });
 
+  testWidgets("Luigi's music waits for the reunion on the far platform", (
+    tester,
+  ) {
+    return tester.runAsync(() async {
+      final audio = SilentAudio();
+      final game = await _pumpReadyGame(tester, audio: audio);
+      game.progress.remember(StoryMemory.luigiRescued);
+      final mario = game.simulation.player.component<PositionComponent>()
+        ..position = place(PlaceId.stationUnderpass).tilesOf('*').first;
+      game.update(1 / 60);
+      expect(
+        audio.music,
+        isNot(Music.luigi),
+        reason: 'crossing the underpass must not start the reunion music',
+      );
+
+      mario.position = GridPoint(
+        (stationPlatform.left + stationPlatform.right) ~/ 2,
+        stationPlatform.top,
+      );
+      game.update(1 / 60);
+      expect(
+        audio.music,
+        isNot(Music.luigi),
+        reason: 'the StationScript starts it with the reunion cutscene',
+      );
+    });
+  });
+
   testWidgets('quest inventory badges show their item name when tapped', (
     tester,
   ) {
@@ -1533,8 +1562,8 @@ void main() {
       expect(saved.place, trainPlaceName);
       expect(saved.atCampfire, isTrue);
       expect(
-        (game.cover.value! as PromptCover).lines.map((line) => line.text),
-        <String>[StepboundGame.mealLine, StepboundGame.savedLine],
+        (game.cover.value! as PromptCover).lines.single.text,
+        StepboundGame.savedLine,
       );
       // It saves like a fire, but is not one of the fires to find.
       expect(game.progress.litCampfires, isNot(contains(trainPlaceName)));
@@ -2039,6 +2068,8 @@ void main() {
       );
       expect(find.text('ZAINI TROVATI'), findsOneWidget);
       expect(find.text('RICORDI VISSUTI'), findsOneWidget);
+      expect(find.text('ZOMBI CONOSCIUTI'), findsOneWidget);
+      expect(find.text('TIPI DI ZOMBI CONOSCIUTI'), findsNothing);
       String stat(String key) => tester
           .widgetList<Text>(
             find.descendant(

@@ -448,8 +448,9 @@ final class StepboundGame extends FlameGame
     }
   }
 
-  /// The music of a place that has its own: the churches, and the station
-  /// and the train once Luigi is waiting there.
+  /// The music of a place that has its own: the churches, and the train
+  /// once Luigi is waiting there. The station reunion starts Luigi's music
+  /// with its cutscene, not while Mario is still crossing the station.
   Music? _themeOf(PlaceId place) => switch (place) {
     PlaceId.church ||
     PlaceId.duomo ||
@@ -458,9 +459,6 @@ final class StepboundGame extends FlameGame
     PlaceId.duomoTower ||
     PlaceId.duomoBells ||
     PlaceId.duomoTowerRoof => Music.sacred,
-    PlaceId.station ||
-    PlaceId.stationUnderpass ||
-    PlaceId.stationFarSide ||
     PlaceId.trainInterior
         when progress.memories.contains(StoryMemory.luigiRescued) =>
       Music.luigi,
@@ -861,9 +859,6 @@ final class StepboundGame extends FlameGame
   static const String saveFailedLine =
       'Salvataggio non riuscito. Riposati di nuovo accanto al fuoco per '
       'riprovare';
-  static const String mealLine =
-      'Pane, salame e un pezzo di formaggio. Per un momento sembra tutto '
-      'normale';
   static const String mealSaveFailedLine =
       'Salvataggio non riuscito. Torna al tavolo per riprovare';
 
@@ -881,7 +876,6 @@ final class StepboundGame extends FlameGame
       saved = false;
     }
     showPrompt(<TutorialLine>[
-      if (_atTable) const TutorialLine(mealLine),
       TutorialLine(
         saved
             ? savedLine

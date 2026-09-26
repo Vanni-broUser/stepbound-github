@@ -2134,6 +2134,29 @@ void main() {
       return world.player.component<PositionComponent>().position;
     }
 
+    test('five emergency lamps evenly mark the cabin aisle', () {
+      final aisleRow = airlinerCabinRows.indexWhere(
+        (row) => row.startsWith('xI..*'),
+      );
+      final lamps = cabin
+          .tilesOf('*')
+          .where((tile) => tile.y == cabin.origin.y + aisleRow)
+          .toList();
+      expect(lamps, hasLength(5));
+      expect(
+        <int>[
+          for (var i = 1; i < lamps.length; i++) lamps[i].x - lamps[i - 1].x,
+        ],
+        everyElement(9),
+        reason: 'the light pools continue at the existing nine-cell rhythm',
+      );
+      expect(
+        cabin.tilesOf('+'),
+        hasLength(1),
+        reason: 'the damaged lamp still flickers separately',
+      );
+    });
+
     test('it lies across the crossroads, wings where the street sees '
         'them', () {
       final world = createTutorialWorld();
