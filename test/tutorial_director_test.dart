@@ -73,6 +73,10 @@ final class _FakeHost implements TutorialHost {
   void collectCultistRobe() => cultistRobesCollected++;
 
   int duomoMassacres = 0;
+  final List<PlayerOutfit> outfitsWorn = <PlayerOutfit>[];
+
+  @override
+  void wearOutfit(PlayerOutfit outfit) => outfitsWorn.add(outfit);
 
   @override
   void startDuomoMassacre() => duomoMassacres++;
@@ -449,6 +453,80 @@ void main() {
 
     expect(host.cutscenes.single, DuomoScript.massacreScene);
     expect(progress.memories, contains(StoryMemory.priestMassacre));
+  });
+
+  group('out of the Duomo after the massacre', () {
+    // The way out of the Duomo, and where it comes out on the harbour.
+    late GridPoint inside;
+    late GridPoint outside;
+
+    setUp(() {
+      inside = world.portals[duomoPortalTile]!.to;
+      final out = world.portals.entries.firstWhere(
+        (portal) =>
+            placeAt(portal.key)?.id == PlaceId.duomo &&
+            placeAt(portal.value.to)?.id == PlaceId.harbour,
+      );
+      outside = out.value.to;
+      director.restore(<String, Object?>{
+        'duomo': <String, Object?>{'ringDelivered': true, 'massacre': true},
+      });
+      progress.unlockOutfit(PlayerOutfit.cultist);
+    });
+
+    void leave() {
+      director.onEvents(<WorldEvent>[
+        TeleportedEvent(entityId: world.playerId, from: inside, to: outside),
+      ]);
+      settle();
+    }
+
+    test('in the robe, Mario comes out in his own clothes, told once that '
+        'the menu changes them', () {
+      progress.wearOutfit(PlayerOutfit.cultist);
+      leave();
+      expect(host.outfitsWorn, <PlayerOutfit>[PlayerOutfit.base]);
+      expect(host.shown.single.map((line) => line.text), <String>[
+        DuomoScript.outfitChangedLine,
+        DuomoScript.outfitMenuLine,
+      ]);
+      expect(
+        DuomoScript.outfitChangedLine,
+        'Mario cambia abbigliamento uscito dal duomo',
+      );
+      expect(
+        DuomoScript.outfitMenuLine,
+        'Puoi cambiare il tuo abbigliamento attraverso una funzione '
+        'disponibile nel menù',
+      );
+      host.dismiss();
+
+      final saved = director.toJson();
+      director.restore(saved);
+      progress.wearOutfit(PlayerOutfit.cultist);
+      leave();
+      expect(host.outfitsWorn, hasLength(1), reason: 'only the first time');
+      expect(host.shown, hasLength(1));
+    });
+
+    test('already in his own clothes, nothing is said, then or later', () {
+      progress.wearOutfit(PlayerOutfit.base);
+      leave();
+      progress.wearOutfit(PlayerOutfit.cultist);
+      leave();
+      expect(host.outfitsWorn, isEmpty);
+      expect(host.shown, isEmpty);
+    });
+
+    test('before the massacre, the robe stays on', () {
+      director.restore(<String, Object?>{
+        'duomo': <String, Object?>{'ringDelivered': true},
+      });
+      progress.wearOutfit(PlayerOutfit.cultist);
+      leave();
+      expect(host.outfitsWorn, isEmpty);
+      expect(host.shown, isEmpty);
+    });
   });
 
   test('the key beside Don Angelo says whose it was, and opens the door '

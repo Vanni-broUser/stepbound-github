@@ -2523,9 +2523,12 @@ void main() {
       expect(world.map.tileAt(rooftopGapTile).isWalkable, isFalse);
       expect(world.lookouts, contains(rooftopGapTile));
       // Beyond the parapet there is the drop, and then a roof nobody can
-      // reach from here.
-      for (final tile in roofs.tilesOf('%')) {
+      // reach from here, though it can be walked on, down its stairs too.
+      final farRoof = <GridPoint>[...roofs.tilesOf('%'), ...roofs.tilesOf('S')];
+      expect(roofs.tilesOf('S'), isNotEmpty);
+      for (final tile in farRoof) {
         expect(reached.containsKey(tile), isFalse);
+        expect(world.map.tileAt(tile).isWalkable, isTrue);
       }
       for (final tile in reached.keys) {
         expect(roofs.bounds.contains(tile), isTrue);
@@ -2960,6 +2963,21 @@ void main() {
     for (final tile in terminiExitTiles) {
       expect(world.map.tileAt(tile).isWalkable, isTrue);
     }
+    // As on Molfetta's far platform, the train fills the track from edge
+    // to edge: the only way on is the platform, never round the train.
+    final door = terminiTrainDoorTile;
+    for (var x = termini.bounds.left; x <= termini.bounds.right; x++) {
+      for (var y = termini.bounds.top; y < door.y; y++) {
+        expect(
+          world.map.tileAt(GridPoint(x, y)).isWalkable,
+          isFalse,
+          reason: 'nothing to walk on north of the platform',
+        );
+      }
+    }
+    // Both of Rome's name boards are up.
+    expect(termini.tilesOf('Q'), isNotEmpty);
+    expect(termini.tilesOf('o'), isNotEmpty);
   });
 }
 

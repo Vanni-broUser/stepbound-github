@@ -351,17 +351,44 @@ def roof_drop(d, rng, x, y):
              rng.randint(1, 3), 1, DROP_LIGHT)
 
 
+FAR_DECK = "%;kS"
+
+
 def roof_far(d, rng, room, x, y):
-    """The roof of the next block, across the gap: the same tar, flattened
-    by the distance, with its own coping along the near edge."""
+    """The roof of the next block, across the gap: a paler, older felt than
+    this one's, laid in squares, with its own coping along the near edge."""
     px, py = x * TILE, y * TILE
     rect(d, px, py, TILE, TILE, FAR_ROOF if (x + y) % 2 else FAR_ROOF_ALT)
     for _ in range(3):
         rect(d, px + rng.randrange(15), py + rng.randrange(15), 1, 1,
              shade(FAR_ROOF, rng.randrange(-8, 26)))
-    if room.at(x, y - 1) != "%":
+    if room.at(x, y - 1) not in FAR_DECK:
         rect(d, px, py, TILE, 3, shade(COPING, -54))
         rect(d, px, py, TILE, 1, shade(COPING, -20))
+
+
+def roof_stairs_down(d, room, x, y):
+    """The open stairwell on the next roof: a flight going down into the
+    block, south, the steps darker the deeper they go, a low kerb and a
+    rail round the three sides that are not the way in."""
+    px, py = x * TILE, y * TILE
+    top = room.at(x, y - 1) != "S"
+    left = room.at(x - 1, y) != "S"
+    right = room.at(x + 1, y) != "S"
+    depth = 0 if top else 1  # which of the two rows of the flight
+    rect(d, px, py, TILE, TILE, DROP)
+    for i, sy in enumerate(range(py + (4 if top else 0), py + TILE, 4)):
+        step = shade(COPING, -40 - 18 * (i + depth * 3))
+        rect(d, px, sy, TILE, 3, step)
+        rect(d, px, sy + 3, TILE, 1, shade(step, -30))
+    if top:
+        rect(d, px, py, TILE, 3, COPING)
+        rect(d, px, py + 3, TILE, 1, COPING_SHADOW)
+    for side, dx in ((left, 0), (right, TILE - 2)):
+        if side:
+            rect(d, px + dx, py, 2, TILE, COPING)
+            rect(d, px + dx + (1 if dx else 0), py, 1, TILE,
+                 shade(COPING, -30))
 
 
 def roof_tail(d, room, x, y):

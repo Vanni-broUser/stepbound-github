@@ -64,10 +64,14 @@ const List<String> airlinerCabinRows = <String>[
 /// the break `D` torn in its side.
 ///
 /// The lower terrace ends, south, at the parapet along the street front.
-/// There the roof of the next block stands just across the gap, near
-/// enough to look at and too far to jump: `>` is the low stretch of the
-/// parapet where Mario stops to measure it, `x` the drop into the street
-/// between the two blocks, and `%` the roof on the far side.
+/// There the roof of the next block stands just across the gap, two
+/// cells of drop, near enough to look at and too far to jump: `>` is the
+/// low stretch of the parapet where Mario stops to measure it, `x` the
+/// drop into the street between the two blocks, and `%` the roof on the
+/// far side, flat and walkable, with its own chimney stacks `k`, gravel
+/// `;` and the open stairwell `S` going down into that block. Only a
+/// grappling hook would get Mario over there, and the game has none yet,
+/// so the stairs lead nowhere for now.
 ///
 /// The airliner struck the building at the north-west corner of the upper
 /// terrace on its way down, and the fuel it spilt there is still burning
@@ -76,10 +80,11 @@ const List<String> airlinerCabinRows = <String>[
 /// alight, shut for good.
 ///
 /// Glyphs: `x` the drop and the sky, `W` the party walls and the roofline
-/// the tail sits in, `#` the tail itself and `%` the next roof, all walls;
-/// `T`, `n`, `^` and `>` obstacles you can see over; `.` the roof deck,
-/// `:` slate and gravel (noisy), `b` blood, `&` the roof on fire, `Y` a
-/// burning zombie, `D` the tail break.
+/// the tail sits in and `#` the tail itself, all walls; `T`, `n`, `k`,
+/// `^` and `>` obstacles you can see over; `.` the roof deck, `%` the next
+/// roof's, `:` slate and gravel (noisy), `;` the next roof's gravel, `b`
+/// blood, `&` the roof on fire, `Y` a burning zombie, `D` the tail break,
+/// `S` the next roof's stairs down.
 // airliner-roof-rows-start
 const List<String> airlinerRoofRows = <String>[
   'xxxxxxxxxxx########xxxxxxxxxxx',
@@ -99,8 +104,11 @@ const List<String> airlinerRoofRows = <String>[
   'xW^^^^^^^^^^^^^>^^^^^^^^^^^^Wx',
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-  'x%%%%%%%%%%%%%%%%%%%%%%%%%%%%x',
-  'x%%%%%%%%%%%%%%%%%%%%%%%%%%%%x',
+  'xW%%%%%%%%%%%%%%%%%%%%%%%%%%Wx',
+  'xW%%%k%%%%%%%%%%%%SS%%%%%%%%Wx',
+  'xW%%%%%%%%%;%%%%%%SS%%%%%k%%Wx',
+  'xW%%;%%%%%%%%%%%%%%%%%%;%%%%Wx',
+  'xW%%%%%%%%%%%%%%%%%%%%%%%%%%Wx',
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
 ];
 // airliner-roof-rows-end

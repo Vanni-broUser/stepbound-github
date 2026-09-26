@@ -1143,6 +1143,7 @@ final class StepboundGame extends FlameGame
 
   /// Changes every player action sheet immediately. The pause-menu wardrobe
   /// calls this only for clothes already found in the world.
+  @override
   void wearOutfit(PlayerOutfit outfit) {
     if (!progress.wearOutfit(outfit)) {
       return;

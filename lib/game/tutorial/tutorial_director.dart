@@ -138,6 +138,9 @@ abstract interface class TutorialHost {
   /// Collects the robe upstairs, fades to black and dresses Mario in it.
   void collectCultistRobe();
 
+  /// Dresses Mario in [outfit], one he has already found, at once.
+  void wearOutfit(PlayerOutfit outfit);
+
   /// What the mass leaves behind, once its scene is over: Don Angelo's
   /// community are four mutated cultists standing across the nave, his body
   /// lies behind them and the backpack beside it, with the key of the upper

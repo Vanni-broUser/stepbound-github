@@ -117,8 +117,18 @@ final class DuomoScript extends TutorialScript {
   static const String keyUsedLine =
       'Hai usato la Chiave del Duomo per aprire la porta';
 
+  static const String outfitChangedLine =
+      'Mario cambia abbigliamento uscito dal duomo';
+  static const String outfitMenuLine =
+      'Puoi cambiare il tuo abbigliamento attraverso una funzione '
+      'disponibile nel menù';
+
+  /// Leaves the portal's fade time to lift off the harbour first.
+  static const double outfitLessonDelay = 0.8;
+
   bool _ringDelivered = false;
   bool _massacrePlayed = false;
+  bool _leftAfterMassacre = false;
 
   bool get ringDelivered => _ringDelivered;
 
@@ -131,6 +141,14 @@ final class DuomoScript extends TutorialScript {
 
   @override
   void onEvent(WorldEvent event) {
+    if (event case TeleportedEvent(
+      :final entityId,
+      :final from,
+      :final to,
+    ) when entityId == world.playerId) {
+      _leaveAfterMassacre(from, to);
+      return;
+    }
     // The robe lies in a backpack, like everything Mario picks up.
     if (event case PickedUpEvent(cultistRobe: true)) {
       say(
@@ -235,6 +253,30 @@ final class DuomoScript extends TutorialScript {
     );
   }
 
+  /// The first time Mario comes out of the Duomo onto the harbour after
+  /// the massacre, the robe comes off: he is back in his own clothes, and
+  /// is told the menu can change them. Out in his own clothes already, he
+  /// has found the wardrobe by himself, and nothing is said.
+  void _leaveAfterMassacre(GridPoint from, GridPoint to) {
+    if (!_massacrePlayed ||
+        _leftAfterMassacre ||
+        placeAt(from)?.id != PlaceId.duomo ||
+        placeAt(to)?.id != PlaceId.harbour) {
+      return;
+    }
+    _leftAfterMassacre = true;
+    if (progress.activeOutfit != PlayerOutfit.cultist) {
+      return;
+    }
+    host.wearOutfit(PlayerOutfit.base);
+    say(
+      TutorialPrompt(const <TutorialLine>[
+        TutorialLine(outfitChangedLine),
+        TutorialLine(outfitMenuLine),
+      ], delay: outfitLessonDelay),
+    );
+  }
+
   void _finishInitiation() {
     host
       ..removeHud(HudElement.episcopalRing)
@@ -245,11 +287,13 @@ final class DuomoScript extends TutorialScript {
   Map<String, Object?> toJson() => <String, Object?>{
     'ringDelivered': _ringDelivered,
     'massacre': _massacrePlayed,
+    'leftAfterMassacre': _leftAfterMassacre,
   };
 
   @override
   void restore(Map<String, Object?> json) {
     _ringDelivered = json['ringDelivered'] as bool? ?? false;
     _massacrePlayed = json['massacre'] as bool? ?? false;
+    _leftAfterMassacre = json['leftAfterMassacre'] as bool? ?? false;
   }
 }
