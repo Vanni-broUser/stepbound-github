@@ -8,9 +8,15 @@ import 'package:stepbound/game/audio/game_audio.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/input/touch_controls.dart';
 import 'package:stepbound/game/progress.dart';
+import 'package:stepbound/game/render/asset_image.dart';
 import 'package:stepbound/game/render/crucified_zombie_component.dart';
+import 'package:stepbound/game/render/fire_component.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/game/render/interact_glint_component.dart';
+import 'package:stepbound/game/render/npc_component.dart';
+import 'package:stepbound/game/render/offscreen_culled.dart';
+import 'package:stepbound/game/render/tile_place_component.dart';
+import 'package:stepbound/game/render/torch_component.dart';
 import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
 import 'package:stepbound/save/save_game.dart';
@@ -1197,6 +1203,46 @@ void main() {
         ..update(0.3);
       // The barracks are painted from the tile atlas: no picture to name.
       expect(game.drawnPlaces, <String>['tiles:barracks']);
+    });
+  });
+
+  testWidgets('only the fires in view are drawn', (tester) {
+    return tester.runAsync(() async {
+      final game = await _pumpReadyGame(tester);
+      game.update(1 / 30);
+      final view = game.camera.visibleWorldRect;
+      final culled = game.world.children.whereType<OffscreenCulled>().toList();
+      expect(culled.whereType<FireComponent>(), isNotEmpty);
+      expect(culled.whereType<TorchComponent>(), isNotEmpty);
+      for (final component in culled) {
+        expect(component.onScreen, component.reach.overlaps(view));
+      }
+      // The city's fires lie mostly far from the first street.
+      expect(culled.where((component) => !component.onScreen), isNotEmpty);
+    });
+  });
+
+  testWidgets('a new game reuses the images the last one decoded and built', (
+    tester,
+  ) {
+    return tester.runAsync(() async {
+      List<Object?> imagesOf(StepboundGame game) => <Object?>[
+        for (final front in game.world.children.whereType<TilePlaceFront>())
+          front.image,
+      ];
+
+      final first = imagesOf(await _pumpReadyGame(tester));
+      await tester.pumpWidget(const SizedBox());
+      final second = imagesOf(await _pumpReadyGame(tester));
+      expect(first, isNotEmpty);
+      expect(first, everyElement(isNotNull));
+      for (final (index, image) in second.indexed) {
+        expect(image, same(first[index]));
+      }
+      expect(
+        await loadAssetImage(NpcComponent.luigiAsset),
+        same(await loadAssetImage(NpcComponent.luigiAsset)),
+      );
     });
   });
 

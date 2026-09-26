@@ -3,12 +3,13 @@ import 'dart:ui' as ui;
 import 'package:flame/components.dart';
 import 'package:stepbound/core/core.dart' hide PositionComponent;
 import 'package:stepbound/game/render/fire_component.dart';
+import 'package:stepbound/game/render/offscreen_culled.dart';
 
 /// A torch burning on a wall or a column: an iron cup on a short bracket
 /// and a small flame, no smoke, animated like every fire in the game. It is
 /// drawn over the darkness of the room, which its light cuts into (see
 /// `LightSpot.torch`).
-final class TorchComponent extends PositionComponent {
+final class TorchComponent extends PositionComponent with OffscreenCulled {
   TorchComponent({required GridPoint tile, int seed = 0, double tileSize = 16})
     : super(
         // The middle of the cup's rim, a little above the middle of the
@@ -32,6 +33,15 @@ final class TorchComponent extends PositionComponent {
   static const ui.Color _iron = ui.Color(0xff2a2522);
   static const ui.Color _ironLight = ui.Color(0xff5a4d42);
   final ui.Paint _paint = ui.Paint()..isAntiAlias = false;
+
+  /// The bracket and the small flame over it, sparks included.
+  @override
+  ui.Rect get reach => ui.Rect.fromLTRB(
+    position.x - 16,
+    position.y - 40,
+    position.x + 16,
+    position.y + 8,
+  );
 
   @override
   void render(ui.Canvas canvas) {

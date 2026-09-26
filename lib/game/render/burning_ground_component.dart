@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flame/components.dart';
 import 'package:stepbound/core/core.dart' hide PositionComponent;
 import 'package:stepbound/game/render/fire_component.dart';
+import 'package:stepbound/game/render/offscreen_culled.dart';
 
 /// The ash and embers on a tile that is burning for good
 /// (`TileKind.fire`), over whatever the tile is -- the road, the roof --
@@ -10,7 +11,7 @@ import 'package:stepbound/game/render/fire_component.dart';
 /// characters, while the flames over it ([burningGround]) are drawn over
 /// them, like every other fire. Where a place wants the ground itself
 /// blackened, its own art does it (the burning corner of the roofs).
-final class ScorchComponent extends PositionComponent {
+final class ScorchComponent extends PositionComponent with OffscreenCulled {
   ScorchComponent(GridPoint tile, {double tileSize = 16})
     : _seed = tile.x * 7 + tile.y * 13,
       super(
@@ -25,6 +26,9 @@ final class ScorchComponent extends PositionComponent {
   static const Color _soot = Color(0x661b1311);
   static const Color _ash = Color(0xff4a403a);
   static const Color _ember = Color(0xffc83c14);
+
+  @override
+  Rect get reach => toRect();
 
   @override
   void render(Canvas canvas) {

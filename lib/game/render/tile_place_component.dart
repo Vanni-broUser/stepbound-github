@@ -69,14 +69,35 @@ final class TilePlaceComponent extends Component {
         '$tileAtlasManifestPath: run python tools/build_tile_atlas.py',
       );
     }
-    final shut = await _draw(loaded, art, opened: false);
+    final shut = await _drawn(loaded, art, opened: false);
     _shut = shut.$1;
     _frontShut = shut.$2;
     if (art.objects.any((object) => object.whenOpen != null)) {
-      final open = await _draw(loaded, art, opened: true);
+      final open = await _drawn(loaded, art, opened: true);
       _open = open.$1;
       _frontOpen = open.$2;
     }
+  }
+
+  /// The images already built, for the atlas they were built from: a place
+  /// looks the same in every game, so the game started at a campfire, or
+  /// after a game over, draws the ones the last game built. Building them
+  /// again each time was slow, and left the old ones -- tens of megabytes
+  /// for the whole city -- behind in memory.
+  static final Map<(Place, bool), Future<(ui.Image, ui.Image)>> _built =
+      <(Place, bool), Future<(ui.Image, ui.Image)>>{};
+  static LoadedTileAtlas? _builtFrom;
+
+  Future<(ui.Image, ui.Image)> _drawn(
+    LoadedTileAtlas loaded,
+    TilePlaceArt art, {
+    required bool opened,
+  }) {
+    if (!identical(loaded, _builtFrom)) {
+      _built.clear();
+      _builtFrom = loaded;
+    }
+    return _built[(place, opened)] ??= _draw(loaded, art, opened: opened);
   }
 
   /// Which tile of a bucket falls on a cell: a hash of its place in the
