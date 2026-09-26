@@ -14,8 +14,35 @@
       when: manual
       allow_failure: true
     - when: never
+  # What the image lacks and every build would download again: Gradle's
+  # dependencies and wrapper, and the SDK packages Gradle installs itself
+  # (gitlab/android_sdk_cache.sh). Kept even when a build fails, so a
+  # retry does not start over.
+  variables:
+    GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle-home"
+    # A daemon would hold the cache's lock files until the container goes.
+    GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+    ANDROID_SDK_CACHE: "$CI_PROJECT_DIR/.android-sdk-cache"
+    # The NDK alone is gigabytes: packing it fast beats packing it small,
+    # the cache stays on combusken's own disk.
+    FF_USE_FASTZIP: "true"
+    CACHE_COMPRESSION_LEVEL: "fastest"
+  cache:
+    # The same as every job's (.gitlab-ci.yml): a job's own list replaces it.
+    - key:
+        files:
+          - pubspec.lock
+      paths:
+        - .pub-cache/
+    - key: android-release-$FLUTTER_VERSION
+      when: always
+      paths:
+        - .gradle-home/caches/
+        - .gradle-home/wrapper/
+        - .android-sdk-cache/
   before_script:
     - !reference [.flutter_3_44_2, before_script]
+    - sh gitlab/android_sdk_cache.sh restore
     - |
       for var in ANDROID_KEYSTORE_BASE64 ANDROID_STORE_PASSWORD ANDROID_KEY_PASSWORD ANDROID_KEY_ALIAS; do
         if [ -z "$(printenv "$var")" ]; then
@@ -29,14 +56,22 @@
       printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=release-keystore.jks\n' \
         "$ANDROID_STORE_PASSWORD" "$ANDROID_KEY_PASSWORD" "$ANDROID_KEY_ALIAS" \
         > android/key.properties
+  # The build's outcome waits until what it installed is in the cache.
+  # STEPBOUND_DIAGNOSTICS=true, set when running the job, shows frame rate
+  # and load times over the game (lib/ui/diagnostics_overlay.dart).
+  script:
+    - status=0
+    - flutter build "$ANDROID_PACKAGE" --release --build-number="$CI_PIPELINE_IID" --dart-define=STEPBOUND_DIAGNOSTICS="${STEPBOUND_DIAGNOSTICS:-false}" || status=$?
+    - sh gitlab/android_sdk_cache.sh save
+    - exit "$status"
   after_script:
     - rm -f android/app/release-keystore.jks android/key.properties
 
 # For the store.
 build_android_signed:
   extends: .android_signed
-  script:
-    - flutter build appbundle --release --build-number="$CI_PIPELINE_IID"
+  variables:
+    ANDROID_PACKAGE: appbundle
   artifacts:
     name: "stepbound-aab-$CI_COMMIT_SHORT_SHA"
     paths:
@@ -50,10 +85,8 @@ build_android_signed:
 # do not update each other.
 build_android_release_apk:
   extends: .android_signed
-  script:
-    # STEPBOUND_DIAGNOSTICS=true, set when running the job, shows frame
-    # rate and load times over the game (lib/ui/diagnostics_overlay.dart).
-    - flutter build apk --release --build-number="$CI_PIPELINE_IID" --dart-define=STEPBOUND_DIAGNOSTICS="${STEPBOUND_DIAGNOSTICS:-false}"
+  variables:
+    ANDROID_PACKAGE: apk
   artifacts:
     name: "stepbound-release-apk-$CI_COMMIT_SHORT_SHA"
     paths:
