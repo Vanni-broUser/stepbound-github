@@ -35,6 +35,8 @@ void main() {
       'zombie_burning',
       'zombie_drunk',
       'zombie_cultist',
+      'maranza_roma',
+      'maranza_lazio',
     ];
     for (final name in names) {
       final image = await loadSheet(name);
@@ -93,6 +95,27 @@ void main() {
       'drunk',
       'zombie_cultist',
     ]) {
+      final image = await loadAsset('assets/story/portrait_$name.png');
+      expect(image.width, 1048, reason: name);
+      expect(image.height, 1501, reason: name);
+      final rgba = await pixelsOf(image);
+      var hasTransparentPixel = false;
+      var hasOpaquePixel = false;
+      for (var index = 3; index < rgba.length; index += 4) {
+        hasTransparentPixel |= rgba[index] == 0;
+        hasOpaquePixel |= rgba[index] == 255;
+        if (hasTransparentPixel && hasOpaquePixel) {
+          break;
+        }
+      }
+      expect(hasTransparentPixel, isTrue, reason: '$name needs alpha');
+      expect(hasOpaquePixel, isTrue, reason: '$name needs visible pixels');
+      image.dispose();
+    }
+  });
+
+  test('maranza portraits match the story portrait contract', () async {
+    for (final name in <String>['maranza_roma', 'maranza_lazio']) {
       final image = await loadAsset('assets/story/portrait_$name.png');
       expect(image.width, 1048, reason: name);
       expect(image.height, 1501, reason: name);
