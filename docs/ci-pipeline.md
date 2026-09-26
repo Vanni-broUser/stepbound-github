@@ -84,6 +84,16 @@ arriva dalle variabili GitLab protette e mascherate, come in Delivery:
 
 I file di firma creati dal job vengono rimossi sempre in `after_script`.
 
+L'immagine Flutter non ha NDK, platform e CMake che la build Android
+installa da sola, e ogni container ricomincerebbe da zero, dipendenze di
+Gradle comprese. I due job li tengono nella cache locale di combusken
+(chiave `android-release-<versione di Flutter>`): la home di Gradle in
+`.gradle-home/` e i pacchetti dell'SDK in `.android-sdk-cache/`, che
+`gitlab/android_sdk_cache.sh` collega nell'SDK dell'immagine prima della
+build e ci rimette dopo. La cache si salva anche quando la build fallisce;
+cambiando versione di Flutter ne parte una nuova. Per svuotarla: "Clear
+runner caches" nella pagina Pipelines del progetto.
+
 La chiave di release non si puo cambiare ne perdere: un APK firmato con
 un'altra chiave non aggiorna quello installato, e Android lo rifiuta ("il
 pacchetto e in conflitto con un pacchetto esistente"). Tenerne una copia di
