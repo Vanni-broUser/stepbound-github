@@ -2126,7 +2126,7 @@ void main() {
         trainMapStandTile,
         reason: 'back home in the train, in front of the map',
       );
-      expect(mario.facing, trainMapFacing);
+      expect(mario.facing, trainArrivalFacing, reason: 'away from the map');
       final cover = tester.widget<LoadingCover>(find.byType(LoadingCover));
       expect(cover.image, LevelMap.hometownImage);
       expect(cover.caption, 'Città natale');

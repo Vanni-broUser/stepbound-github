@@ -15,6 +15,7 @@ void main() {
     WidgetTester tester, {
     ResumePoint? resumePoint = ResumePoint.campfire,
     bool cultistFound = true,
+    bool wardrobe = false,
   }) async {
     resumes = 0;
     restarts = 0;
@@ -33,6 +34,7 @@ void main() {
           progress: progress,
           key: ValueKey<ResumePoint?>(resumePoint),
           resumePoint: resumePoint,
+          wardrobe: wardrobe,
           onResumeFromCamp: () => resumes++,
           onRestartLevel: () => restarts++,
           onMainMenu: () => quits++,
@@ -142,6 +144,20 @@ void main() {
 
     await tap(tester, 'pause-outfit-back');
     expect(find.text('TORNA AL GIOCO'), findsOneWidget);
+  });
+
+  testWidgets('from the wardrobe aboard it opens on the outfits, even with '
+      'only the base clothes, and going back returns to the game', (
+    tester,
+  ) async {
+    await pumpMenu(tester, wardrobe: true, cultistFound: false);
+    expect(
+      find.byKey(const ValueKey<String>('pause-outfit-page')),
+      findsOneWidget,
+    );
+    await tap(tester, 'pause-outfit-back');
+    expect(closes, 1);
+    expect(find.text('TORNA AL GIOCO'), findsNothing);
   });
 
   testWidgets('the outfits still to come are "???" and cannot be worn', (

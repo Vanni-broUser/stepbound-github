@@ -2,8 +2,11 @@ import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
 
 /// Mario and Luigi's home in the locomotive: talking to Luigi, the books by
-/// Mario's cot (the zombie types met so far), the cot itself (the memories
-/// of the city the train stands in) and the ammunition crate beside it,
+/// Mario's cot (the zombie types met so far), the abacus and calculator
+/// beside them (the figures of the adventure, city by city), the wardrobe
+/// (what to wear), the cot
+/// itself (the memories of the city the train stands in) and the
+/// ammunition crate beside it,
 /// which loads Mario up to [trainAmmoRefill] rounds whenever he has fewer.
 /// Each says a line first, so Mario always knows what he is using. None of
 /// it is used up, so each can be come back to.
@@ -38,6 +41,13 @@ final class TrainScript extends TutorialScript {
   /// What the books say before they open.
   static const String zombieNotes = 'Appunti sugli zombi conosciuti';
 
+  /// What the wardrobe says before the outfits show.
+  static const String wardrobeLine = 'Scegli quale abbigliamento indossare';
+
+  /// What the abacus and the calculator say before the figures show.
+  static const String adventureFigures =
+      "Osserva le statistiche e i progressi dell'avventura";
+
   @override
   String get key => 'train';
 
@@ -58,6 +68,18 @@ final class TrainScript extends TutorialScript {
         TutorialPrompt(const <TutorialLine>[
           TutorialLine(zombieNotes),
         ], onDismissed: host.openZombieBook),
+      );
+    } else if (trainWardrobeTiles.contains(event.at)) {
+      say(
+        TutorialPrompt(const <TutorialLine>[
+          TutorialLine(wardrobeLine),
+        ], onDismissed: host.openWardrobe),
+      );
+    } else if (trainStatsTiles.contains(event.at)) {
+      say(
+        TutorialPrompt(const <TutorialLine>[
+          TutorialLine(adventureFigures),
+        ], onDismissed: host.openAdventureStats),
       );
     } else if (trainCotTiles.contains(event.at)) {
       say(

@@ -166,6 +166,13 @@ final class Progress {
     return math.max(roundsLeft[destination] ?? 0, arrivalRounds);
   }
 
+  /// Whether Mario has been to [level] at least once: Molfetta always,
+  /// another city once the train has brought him there.
+  bool visited(LevelId level) =>
+      level == LevelId.hometown ||
+      this.level == level ||
+      roundsLeft.containsKey(level);
+
   void countStep() => steps[level] = (steps[level] ?? 0) + 1;
 
   void lightCampfire(String name) => litCampfires.add(name);

@@ -120,6 +120,16 @@ final class _FakeHost implements TutorialHost {
   @override
   void openZombieBook() => zombieBooksOpened++;
 
+  int adventureStatsOpened = 0;
+
+  int wardrobesOpened = 0;
+
+  @override
+  void openWardrobe() => wardrobesOpened++;
+
+  @override
+  void openAdventureStats() => adventureStatsOpened++;
+
   @override
   void replayMemories() => memoriesReplayed++;
 
@@ -1257,8 +1267,12 @@ void main() {
         trainMapStandTile,
         reason: 'the save, and the way back home, find him at the map',
       );
-      expect(mario.facing, trainMapFacing);
-      expect(mario.position.step(mario.facing), trainMapPanelTile);
+      expect(mario.facing, trainArrivalFacing, reason: 'away from the map');
+      expect(
+        trainMapTiles,
+        isNot(contains(mario.position.step(mario.facing))),
+        reason: 'a stray tap does not open the map again',
+      );
       director.onEvents(<WorldEvent>[
         TravelMapUsedEvent(at: trainMapTiles.last),
       ]);
@@ -1293,6 +1307,34 @@ void main() {
         host.dismiss();
         expect(host.zombieBooksOpened, index + 1);
       }
+      expect(trainBookTiles, hasLength(1), reason: 'one cell of books');
+      // The abacus and the calculator at the left end of the desk.
+      expect(trainStatsTiles, hasLength(1));
+      // The two ends of the desk, the mug and the candle between them.
+      expect(trainStatsTiles.single.x, trainBookTiles.single.x - 2);
+      director.onEvents(<WorldEvent>[
+        LookedOutEvent(at: trainStatsTiles.single),
+      ]);
+      settle();
+      expect(
+        host.shown.last.single.text,
+        "Osserva le statistiche e i progressi dell'avventura",
+      );
+      expect(host.adventureStatsOpened, 0, reason: 'not before the line');
+      host.dismiss();
+      expect(host.adventureStatsOpened, 1);
+      // The wardrobe, then the outfits to choose from.
+      director.onEvents(<WorldEvent>[
+        LookedOutEvent(at: trainWardrobeTiles.first),
+      ]);
+      settle();
+      expect(
+        host.shown.last.single.text,
+        'Scegli quale abbigliamento indossare',
+      );
+      expect(host.wardrobesOpened, 0, reason: 'not before the line');
+      host.dismiss();
+      expect(host.wardrobesOpened, 1);
       // The cot names the city whose memories it plays, then plays them.
       for (final (index, level) in LevelId.values.indexed) {
         progress.level = level;

@@ -10106,7 +10106,7 @@
       "rules": [
         {
           "layer": "ground",
-          "glyphs": ".SLTCh*bBuofkEPlVaG",
+          "glyphs": ".SLTCh*bBuofEPlVaGYROcm",
           "keys": [
             {
               "kind": "parity"
@@ -10210,21 +10210,90 @@
         },
         {
           "layer": "structures",
+          "glyphs": "R",
+          "keys": [
+            {
+              "kind": "neighbour",
+              "dx": -1,
+              "dy": 0,
+              "glyphs": "R"
+            },
+            {
+              "kind": "neighbour",
+              "dx": 1,
+              "dy": 0,
+              "glyphs": "R"
+            }
+          ],
+          "buckets": [[4841], [4842], [4843], [4844]]
+        },
+        {
+          "layer": "structures",
+          "glyphs": "Y",
+          "keys": [
+            {
+              "kind": "neighbour",
+              "dx": -1,
+              "dy": 0,
+              "glyphs": "Y"
+            },
+            {
+              "kind": "neighbour",
+              "dx": 1,
+              "dy": 0,
+              "glyphs": "Y"
+            }
+          ],
+          "buckets": [[4845], [4846], [4845], [4846]]
+        },
+        {
+          "layer": "structures",
+          "glyphs": "O",
+          "keys": [
+            {
+              "kind": "neighbour",
+              "dx": -1,
+              "dy": 0,
+              "glyphs": "O"
+            },
+            {
+              "kind": "neighbour",
+              "dx": 1,
+              "dy": 0,
+              "glyphs": "O"
+            }
+          ],
+          "buckets": [[4847], [4848], [4849], [4848]]
+        },
+        {
+          "layer": "structures",
+          "glyphs": "c",
+          "keys": [],
+          "buckets": [[4850, 4851, 4852, 4853, 4854, 4855, 4856, 4857]]
+        },
+        {
+          "layer": "structures",
+          "glyphs": "m",
+          "keys": [],
+          "buckets": [[4858, 4859, 4860, 4861, 4862, 4863, 4864, 4865]]
+        },
+        {
+          "layer": "structures",
           "glyphs": "C",
           "keys": [],
-          "buckets": [[4841, 4842, 4843, 4844, 4845, 4846, 4847, 4848, 4849, 4850, 4851, 4852]]
+          "buckets": [[4866, 4867, 4868, 4869, 4870, 4871, 4872, 4873, 4874, 4875, 4876, 4877]]
         },
         {
           "layer": "structures",
           "glyphs": "h",
           "keys": [],
-          "buckets": [[4853]]
+          "buckets": [[4878]]
         },
         {
           "layer": "structures",
           "glyphs": "*",
           "keys": [],
-          "buckets": [[4854]]
+          "buckets": [[4879]]
         },
         {
           "layer": "structures",
@@ -10247,7 +10316,7 @@
               "glyphs": "xWwIiV"
             }
           ],
-          "buckets": [[4855], [4856], [4857], [4858], [4855], [4859], [4860], [4858]]
+          "buckets": [[4880], [4881], [4882], [4883], [4880], [4884], [4885], [4883]]
         },
         {
           "layer": "structures",
@@ -10270,38 +10339,43 @@
               "glyphs": "xWwIiV"
             }
           ],
-          "buckets": [[4855], [4856], [4861], [4862], [4855], [4863], [4860], [4864]]
+          "buckets": [[4880], [4881], [4886], [4887], [4880], [4888], [4885], [4889]]
         },
         {
           "layer": "structures",
           "glyphs": "u",
           "keys": [],
-          "buckets": [[4865]]
+          "buckets": [[4890]]
         },
         {
           "layer": "structures",
           "glyphs": "o",
           "keys": [],
-          "buckets": [[4866, 4867, 4868, 4869, 4870, 4871, 4872, 4873, 4874, 4875, 4876, 4877]]
+          "buckets": [[4891, 4892, 4893, 4894, 4895, 4896, 4897, 4898, 4899, 4900, 4901, 4902]]
         },
         {
           "layer": "structures",
           "glyphs": "f",
           "keys": [],
-          "buckets": [[4878, 4879, 4880, 4881, 4882, 4883, 4884, 4885, 4886, 4887, 4888]]
+          "buckets": [[4903, 4904, 4905, 4906, 4907, 4908, 4909, 4910, 4911, 4912, 4913, 4914]]
         },
         {
           "layer": "structures",
           "glyphs": "k",
-          "keys": [
-            {
-              "kind": "neighbour",
-              "dx": -1,
-              "dy": 0,
-              "glyphs": "k"
-            }
-          ],
-          "buckets": [[4889], [4890]]
+          "keys": [],
+          "buckets": [[4915]]
+        },
+        {
+          "layer": "structures",
+          "glyphs": "K",
+          "keys": [],
+          "buckets": [[4916]]
+        },
+        {
+          "layer": "structures",
+          "glyphs": "q",
+          "keys": [],
+          "buckets": [[4917]]
         }
       ],
       "objects": [

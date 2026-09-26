@@ -421,6 +421,14 @@ final class _StepboundAppState extends State<StepboundApp> {
       onBlack: game.placeCardBlack,
       onFinished: game.dismissPlaceCard,
     ),
+    AdventureStatsCover() => Letterbox(
+      color: AdventureStats.backdrop,
+      child: AdventureStats(
+        world: game.simulation,
+        progress: game.progress,
+        onClose: game.closeAdventureStats,
+      ),
+    ),
     ZombieBookCover() => Letterbox(
       color: ZombieBook.backdrop,
       child: ZombieBook(progress: game.progress, onClose: game.closeZombieBook),
@@ -444,8 +452,9 @@ final class _StepboundAppState extends State<StepboundApp> {
         onBack: game.closeEndOfDemo,
       ),
     ),
-    PauseCover() => PauseMenu(
+    PauseCover(:final wardrobe) => PauseMenu(
       progress: game.progress,
+      wardrobe: wardrobe,
       resumePoint: _resumePoint,
       restartsFromStory: _levelStart == null,
       onResumeFromCamp: () => unawaited(_resumeFromCamp()),
@@ -481,41 +490,7 @@ final class _StepboundAppState extends State<StepboundApp> {
   void _completeLevel(GameSnapshot snapshot) {
     final world = restoreTutorialWorld(snapshot.world);
     final progress = Progress.fromJson(snapshot.progress);
-    Set<String> pictures(Iterable<StoryMemory> memories) => <String>{
-      for (final memory in memories)
-        for (final scene in memoryScenes[memory] ?? const <StoryScene>[])
-          scene.image,
-    };
-    final level = progress.level;
-    // The level's own: Rome's story is not left behind in Molfetta.
-    bool ofLevel(StoryMemory memory) => memory.level == level;
-    final zombies = levelZombieKinds(level);
-    final campfires = levelCampfires(level);
-    final stats = LevelStats(
-      foundBackpacks: world.pickups.values
-          .where((pickup) => pickup.collected)
-          .length,
-      totalBackpacks: world.pickups.length,
-      foundMemories: pictures(progress.memories.where(ofLevel)).length,
-      totalMemories: pictures(StoryMemory.values.where(ofLevel)).length,
-      killedZombies: world.entities.values
-          .where(
-            (entity) =>
-                entity.kind != EntityKind.player &&
-                !entity.isAlive &&
-                isInLevel(
-                  entity.component<PositionComponent>().position,
-                  level,
-                ),
-          )
-          .length,
-      totalZombies: zombies.length,
-      knownZombieKinds: progress.knownZombies.where(zombies.contains).length,
-      totalZombieKinds: zombies.toSet().length,
-      litCampfires: progress.litCampfires.where(campfires.contains).length,
-      totalCampfires: campfires.length,
-      steps: progress.steps[level] ?? 0,
-    );
+    final stats = LevelStats.of(world, progress, progress.level);
     _playStoryAudio();
     setState(() {
       _completedSnapshot = snapshot;
@@ -549,6 +524,11 @@ final class _StepboundAppState extends State<StepboundApp> {
     final world = restoreTutorialWorld(snapshot.world);
     final ammo = world.player.component<AmmoComponent>();
     ammo.loaded = progress.travel(level, rounds: ammo.loaded);
+    // At the map, but turned away from it: a stray tap on arrival does
+    // not open it again.
+    world.player.component<PositionComponent>()
+      ..position = trainMapStandTile
+      ..facing = trainArrivalFacing;
     if (level == LevelId.rome) {
       progress.remember(StoryMemory.presidentFled);
     }
