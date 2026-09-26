@@ -39,6 +39,7 @@ final class MoveAction extends PlayerAction {
       world.emit(
         TeleportedEvent(entityId: player.id, from: from, to: doorway.to),
       );
+      _landOnZombie(world);
       return;
     }
 
@@ -72,11 +73,31 @@ final class MoveAction extends PlayerAction {
       world.emit(
         TeleportedEvent(entityId: player.id, from: target, to: portal.to),
       );
+      _landOnZombie(world);
     }
     world.emitNoise(
       origin: position.position,
       radius: world.map.tileAt(position.position).movementNoiseRadius,
       sourceEntityId: player.id,
+    );
+  }
+
+  /// Through a door straight into a zombie standing right behind it: the
+  /// zombies do not get the turn after a door, but this one has Mario in
+  /// its arms already, and it is the end of him.
+  static void _landOnZombie(WorldState world) {
+    final player = world.player;
+    final zombie = world.entityAt(
+      player.component<PositionComponent>().position,
+      excluding: player.id,
+    );
+    if (zombie == null) {
+      return;
+    }
+    world.damage(
+      entityId: player.id,
+      amount: player.component<HealthComponent>().current,
+      sourceEntityId: zombie.id,
     );
   }
 }

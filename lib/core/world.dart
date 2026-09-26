@@ -332,6 +332,9 @@ final class WorldState {
     return noises;
   }
 
+  /// What has happened since the last [drainEvents], oldest first.
+  List<WorldEvent> get pendingEvents => UnmodifiableListView(_events);
+
   List<WorldEvent> drainEvents() {
     final events = List<WorldEvent>.of(_events);
     _events.clear();
