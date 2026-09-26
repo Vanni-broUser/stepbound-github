@@ -525,6 +525,31 @@ void main() {
       expect(out, door.step(Direction.south));
     });
 
+    test('only the electronics sign flickers while optics, shoes and bar '
+        'stay dark', () {
+      final ground = place(PlaceId.mallGround);
+      GridPoint absolute(GridPoint local) =>
+          GridPoint(ground.origin.x + local.x, ground.origin.y + local.y);
+
+      const electronics = GridPoint(6, 15);
+      const unlitSigns = <GridPoint>[
+        GridPoint(9, 1), // OTTICA
+        GridPoint(12, 15), // SCARPE
+        GridPoint(27, 15), // BAR
+      ];
+
+      final electronicsLight = ground.lights.singleWhere(
+        (light) => light.tile == absolute(electronics),
+      );
+      expect(electronicsLight.flickers, isTrue);
+      for (final sign in unlitSigns) {
+        expect(
+          ground.lights.map((light) => light.tile),
+          isNot(contains(absolute(sign))),
+        );
+      }
+    });
+
     test('the stairs join the two floors', () {
       final world = createTutorialWorld();
       final lowerStep = mallGroundRows.lastIndexWhere(

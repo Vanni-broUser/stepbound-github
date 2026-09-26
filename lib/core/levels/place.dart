@@ -113,6 +113,7 @@ final class PlaceSpec {
     this.cardImage,
     this.torches = const <GridPoint>[],
     this.lamps = const <GridPoint>[],
+    this.flickeringLamps = const <GridPoint>[],
     this.darkness = defaultDarkness,
     this.art,
     this.level = LevelId.hometown,
@@ -142,6 +143,10 @@ final class PlaceSpec {
   /// table, a sign on the wall -- in the place's own tile coordinates:
   /// they light the room like its `*`.
   final List<GridPoint> lamps;
+
+  /// Lamps fixed over a wall or another occupied tile that flicker like
+  /// the `+` lamps in the place's map.
+  final List<GridPoint> flickeringLamps;
 
   /// How dark the room is between its lights, 0 to 1; only for indoor
   /// places that are not [lit].
@@ -240,6 +245,12 @@ final class Place {
     if (indoor)
       for (final lamp in spec.lamps)
         LightSpot(GridPoint(origin.x + lamp.x, origin.y + lamp.y)),
+    if (indoor)
+      for (final lamp in spec.flickeringLamps)
+        LightSpot(
+          GridPoint(origin.x + lamp.x, origin.y + lamp.y),
+          flickers: true,
+        ),
   ];
 }
 
