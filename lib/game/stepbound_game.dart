@@ -258,7 +258,7 @@ final class StepboundGame extends FlameGame
   String get playerId => simulation.playerId;
 
   @override
-  Color backgroundColor() => PixelPalette.voidBlack;
+  Color backgroundColor() => PixelPalette.screenBlack;
 
   @override
   Future<void> onLoad() async {

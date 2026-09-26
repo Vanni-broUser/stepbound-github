@@ -13,11 +13,21 @@ import 'package:stepbound/game/audio/sound.dart';
 /// unless another is given. Music and ambience are looping players whose
 /// volumes glide towards a target on a small timer; effects are shots the
 /// device plays side by side.
+///
+/// With `startMuted` the game starts silent whatever was saved, and does not
+/// read the saved setting: the browser build, which is only for testing,
+/// starts that way, so a tab left open does not play on.
 final class PlayerAudio implements GameAudio {
-  PlayerAudio({SharedPreferencesAsync? preferences, AudioDevice? device})
-    : _preferences = preferences ?? SharedPreferencesAsync(),
-      _device = device ?? AudioplayersDevice() {
-    unawaited(_loadMuted());
+  PlayerAudio({
+    SharedPreferencesAsync? preferences,
+    AudioDevice? device,
+    bool startMuted = false,
+  }) : _preferences = preferences ?? SharedPreferencesAsync(),
+       _device = device ?? AudioplayersDevice(),
+       _muted = startMuted {
+    if (!startMuted) {
+      unawaited(_loadMuted());
+    }
     // The sounds of the first minutes are loaded ahead, so they are not
     // late the first time.
     for (final sfx in preloaded) {
@@ -61,7 +71,7 @@ final class PlayerAudio implements GameAudio {
   final LingeringShots _lingering = LingeringShots();
 
   Timer? _fader;
-  bool _muted = false;
+  bool _muted;
   bool _paused = false;
 
   LoopingPlayer _newPlayer(String id) => _device.loopingPlayer(id);

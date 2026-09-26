@@ -1,6 +1,11 @@
 import 'dart:ui';
 
 abstract final class PixelPalette {
+  /// What lies around the picture: the bands beside a story frame or a
+  /// menu, and the dark around a place smaller than the screen. As black as
+  /// the screen goes, like a phone that is off.
+  static const Color screenBlack = Color(0xff000000);
+
   static const Color voidBlack = Color(0xff111718);
   static const Color asphalt = Color(0xff202a2c);
   static const Color asphaltLight = Color(0xff2b3638);
