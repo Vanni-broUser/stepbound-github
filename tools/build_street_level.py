@@ -1146,20 +1146,22 @@ def paint_hull(d, rng, px, py, w, h):
              3, 1, shade(red, -rng.randint(10, 40)))
 
 
-def paint_gantry(d, px, py):
+def paint_gantry(d, px, py, w, h):
     """The gantry crane over the stocks: two legs, a jib across them and
-    the hook block hanging still."""
+    the hook block hanging still, all inside its cells (every one of them
+    is an obstacle, so nothing of it may stand on the concrete you walk)."""
     steel, rust = (150, 134, 70), (120, 86, 48)
-    for lx in (px + 2, px + 24):
-        rect(d, lx, py - 26, 5, 56, steel)
-        rect(d, lx + 1, py - 26, 1, 56, rust)
-        rect(d, lx - 3, py + 28, 11, 4, (70, 70, 74))
-    rect(d, px - 22, py - 30, 56, 6, steel)  # the jib
-    rect(d, px - 22, py - 24, 56, 1, rust)
-    for i in range(px - 20, px + 32, 8):  # its lattice
-        rect(d, i, py - 24, 1, 5, rust)
-    rect(d, px - 4, py - 24, 2, 18, (60, 60, 64))  # the fall
-    rect(d, px - 7, py - 6, 8, 7, (80, 78, 82))    # the hook block
+    for lx in (px + 3, px + w - 8):
+        rect(d, lx, py + 2, 5, h - 6, steel)
+        rect(d, lx + 1, py + 2, 1, h - 6, rust)
+        rect(d, lx - 3, py + h - 6, 11, 4, (70, 70, 74))
+    rect(d, px, py + 2, w, 6, steel)  # the jib
+    rect(d, px, py + 8, w, 1, rust)
+    for i in range(px + 2, px + w - 1, 8):  # its lattice
+        rect(d, i, py + 3, 1, 5, rust)
+    cx = px + w // 2
+    rect(d, cx - 1, py + 9, 2, h // 2 - 4, (60, 60, 64))  # the fall
+    rect(d, cx - 4, py + h // 2 + 5, 8, 7, (80, 78, 82))  # the hook block
 
 
 def paint_duomo(d, rng, level):

@@ -108,13 +108,15 @@ const List<StoryScene> romeScenes = <StoryScene>[
     image: 'assets/story/scene_rome_secretary.jpg',
     speaker: 'Presidente',
     text:
-        'Petunia non preoccuparti, quelle forze servono per proteggere il '
+        'Non preoccuparti Petunia, quei rinforzi servono per proteggere il '
         'mio bunker',
   ),
   StoryScene(
     image: 'assets/story/scene_rome_departure.jpg',
     speaker: 'Segretaria',
-    text: 'Ma... ma signor presidente...',
+    text:
+        'Ma... ma signor presidente quelle persone lì fuori stanno '
+        'morendo...',
   ),
   StoryScene(
     image: 'assets/story/scene_rome_departure.jpg',

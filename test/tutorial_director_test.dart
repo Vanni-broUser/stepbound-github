@@ -95,12 +95,16 @@ final class _FakeHost implements TutorialHost {
   void playCutscene(
     List<CutsceneFrame> frames, {
     void Function()? onFinished,
+    void Function()? onBlack,
     bool stayBlack = false,
     Music? music,
   }) {
     cutscenes.add(frames);
     cutsceneMusic.add(music);
-    onCutsceneFinished = onFinished;
+    onCutsceneFinished = () {
+      onBlack?.call();
+      onFinished?.call();
+    };
     cutsceneStaysBlack = stayBlack;
   }
 

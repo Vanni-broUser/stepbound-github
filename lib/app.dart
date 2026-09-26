@@ -412,6 +412,7 @@ final class _StepboundAppState extends State<StepboundApp> {
       key: ObjectKey(cover),
       frames: frames,
       stayBlack: cover.stayBlack,
+      onBlack: game.cutsceneBlack,
       onFinished: game.finishCutscene,
     ),
     PlaceCardCover(:final name, :final image) => LocationCard(

@@ -149,10 +149,13 @@ abstract interface class TutorialHost {
 
   /// Fades to black and plays [frames] like the intro story, then calls
   /// [onFinished]. Unless [stayBlack] is true, it fades back to the game
-  /// first. With [music] the scene has its own, in place of the game's.
+  /// first; [onBlack] is called before that, while the screen is still
+  /// black, so whatever the scene changes in the world is never seen
+  /// happening. With [music] the scene has its own, in place of the game's.
   void playCutscene(
     List<CutsceneFrame> frames, {
     void Function()? onFinished,
+    void Function()? onBlack,
     bool stayBlack = false,
     Music? music,
   });

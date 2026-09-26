@@ -10,19 +10,22 @@ enum _Stage { toBlack, story, fromBlack }
 
 /// A story scene during play: the game fades to black, [frames] play like
 /// the intro story (picture, then its text on a tap, then the next
-/// picture), the last one fades to black and the game fades back in before
-/// [onFinished]. The pictures sit on black and are decoded while the game
-/// fades out, so the world never shows between one and the next.
+/// picture), the last one fades to black, [onBlack] is called while the
+/// screen is black, and the game fades back in before [onFinished]. The
+/// pictures sit on black and are decoded while the game fades out, so the
+/// world never shows between one and the next.
 final class GameCutscene extends StatefulWidget {
   const GameCutscene({
     required this.frames,
     required this.onFinished,
+    this.onBlack,
     this.stayBlack = false,
     super.key,
   });
 
   final List<CutsceneFrame> frames;
   final VoidCallback onFinished;
+  final VoidCallback? onBlack;
   final bool stayBlack;
 
   @override
@@ -68,9 +71,14 @@ final class _GameCutsceneState extends State<GameCutscene> {
               ),
           ],
           fadeOutAtEnd: true,
-          onFinished: widget.stayBlack
-              ? widget.onFinished
-              : () => setState(() => _stage = _Stage.fromBlack),
+          onFinished: () {
+            widget.onBlack?.call();
+            if (widget.stayBlack) {
+              widget.onFinished();
+            } else {
+              setState(() => _stage = _Stage.fromBlack);
+            }
+          },
         ),
       ),
       _Stage.fromBlack => BlackFade(

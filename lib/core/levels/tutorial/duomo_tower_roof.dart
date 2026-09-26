@@ -8,7 +8,9 @@
 /// Everything else, `x`, is the long way down, and it is all in view: the
 /// Duomo itself below the towers, its three domes in a row along the nave
 /// and the stone roofs of its aisles, the white terraces of the old town
-/// either side, and the seafront and the harbour to the south. None of it
+/// either side, and to the south, as on the harbour map, the sagrato, the
+/// palazzi and the alley with its gate, the seafront road, the promenade
+/// and at last the sea. None of it
 /// can be walked on; the atlas paints it as one picture round the towers.
 // duomo-roof-rows-start
 const List<String> duomoTowerRoofRows = <String>[
@@ -35,6 +37,18 @@ const List<String> duomoTowerRoofRows = <String>[
   'xxxxxxxxxx^......^xxxxxx^....:.^xxxxxxxxxx',
   'xxxxxxxxxx^....D.^xxxxxx^......^xxxxxxxxxx',
   'xxxxxxxxxx^^^^^^^^xxxxxx^^^^^^^^xxxxxxxxxx',
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
