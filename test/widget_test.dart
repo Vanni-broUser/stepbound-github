@@ -159,6 +159,35 @@ void main() {
     });
   });
 
+  testWidgets("Luigi's music waits for the reunion on the far platform", (
+    tester,
+  ) {
+    return tester.runAsync(() async {
+      final audio = SilentAudio();
+      final game = await _pumpReadyGame(tester, audio: audio);
+      game.progress.remember(StoryMemory.luigiRescued);
+      final mario = game.simulation.player.component<PositionComponent>()
+        ..position = place(PlaceId.stationUnderpass).tilesOf('*').first;
+      game.update(1 / 60);
+      expect(
+        audio.music,
+        isNot(Music.luigi),
+        reason: 'crossing the underpass must not start the reunion music',
+      );
+
+      mario.position = GridPoint(
+        (stationPlatform.left + stationPlatform.right) ~/ 2,
+        stationPlatform.top,
+      );
+      game.update(1 / 60);
+      expect(
+        audio.music,
+        isNot(Music.luigi),
+        reason: 'the StationScript starts it with the reunion cutscene',
+      );
+    });
+  });
+
   testWidgets('quest inventory badges show their item name when tapped', (
     tester,
   ) {
