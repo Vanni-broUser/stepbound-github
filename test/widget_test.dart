@@ -703,6 +703,59 @@ void main() {
     });
   });
 
+  testWidgets('two fingers landing together zoom the view instead of '
+      'walking, and two thumbs, one after the other, still play', (tester) {
+    return tester.runAsync(() async {
+      final game = await _pumpReadyGame(tester);
+      final mario = game.simulation.player.component<PositionComponent>();
+      final start = mario.position;
+      void play(double seconds) {
+        for (var t = 0.0; t < seconds; t += 1 / 30) {
+          game.update(1 / 30);
+        }
+      }
+
+      final left = tester.getCenter(
+        find.byKey(const ValueKey<String>('touch-move')),
+      );
+      final a = await tester.startGesture(left - const Offset(12, 0));
+      final b = await tester.startGesture(left + const Offset(12, 0));
+      expect(game.pinching.value, isTrue);
+      await a.moveBy(const Offset(-30, 0));
+      await b.moveBy(const Offset(30, 0));
+      play(1);
+      expect(game.zoom, greaterThan(1));
+      expect(game.camera.viewfinder.zoom, game.zoom);
+      expect(mario.position, start, reason: 'a pinch is not a step');
+      await a.up();
+      await b.up();
+      expect(game.pinching.value, isFalse);
+      expect(game.zoom, greaterThan(1), reason: 'the view stays close');
+
+      // Walking with the left thumb, then touching the right a while
+      // later: that is playing, not zooming.
+      final zoomed = game.zoom;
+      final thumb = await tester.createGesture();
+      await thumb.down(left, timeStamp: const Duration(seconds: 10));
+      final right = await tester.createGesture();
+      await right.down(
+        tester.getCenter(find.byKey(const ValueKey<String>('touch-act'))),
+        timeStamp:
+            const Duration(seconds: 10) +
+            PinchZone.together +
+            const Duration(milliseconds: 100),
+      );
+      expect(game.pinching.value, isFalse);
+      await thumb.moveBy(const Offset(0, -40));
+      await right.moveBy(const Offset(0, 4));
+      play(1);
+      expect(game.zoom, zoomed);
+      expect(mario.position, isNot(start), reason: 'the thumb walked');
+      await thumb.up();
+      await right.up();
+    });
+  });
+
   testWidgets('a drag on the left walks that way for as long as it is held, '
       'turns without lifting and stops on release', (tester) {
     return tester.runAsync(() async {

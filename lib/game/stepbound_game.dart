@@ -192,6 +192,40 @@ final class StepboundGame extends FlameGame
   /// Set by the app while Mario's opening lines play over the game.
   bool inputLocked = false;
 
+  /// True while two fingers are zooming the view: the touches that began
+  /// as a step or an action are dropped, and nothing new starts until
+  /// both have lifted.
+  final ValueNotifier<bool> pinching = ValueNotifier<bool>(false);
+
+  /// How close the view is: 1 for the whole of it, see [FollowCamera].
+  double get zoom => _camera.zoom;
+
+  /// Two fingers came down around [focus], in global coordinates.
+  void beginPinch(Offset focus) {
+    pinching.value = true;
+    _camera.beginPinch(_viewFraction(focus));
+  }
+
+  /// The fingers are [scale] times as far apart as when they came down,
+  /// now around [focus].
+  void pinch(double scale, Offset focus) =>
+      _camera.pinch(scale, _viewFraction(focus));
+
+  /// Both fingers are up.
+  void endPinch() {
+    _camera.endPinch();
+    pinching.value = false;
+  }
+
+  /// [global] as a fraction of the picture the game is drawn in.
+  Offset _viewFraction(Offset global) {
+    if (!isAttached || canvasSize.x == 0 || canvasSize.y == 0) {
+      return const Offset(0.5, 0.5);
+    }
+    final local = convertGlobalToLocalCoordinate(Vector2(global.dx, global.dy));
+    return Offset(local.x / canvasSize.x, local.y / canvasSize.y);
+  }
+
   /// While true the game leaves the music and ambience alone: a story is
   /// playing over it (memories at a camp, the level starting over).
   bool soundscapePaused = false;
