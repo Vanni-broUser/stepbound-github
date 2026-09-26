@@ -225,7 +225,7 @@ final class DuomoScript extends TutorialScript {
     host.playCutscene(
       initiationScene,
       music: Music.sacred,
-      onFinished: _finishInitiation,
+      onBlack: _finishInitiation,
     );
   }
 
@@ -249,7 +249,7 @@ final class DuomoScript extends TutorialScript {
     host.playCutscene(
       massSeen ? massacreScene : massSequence,
       music: Music.sacred,
-      onFinished: host.startDuomoMassacre,
+      onBlack: host.startDuomoMassacre,
     );
   }
 

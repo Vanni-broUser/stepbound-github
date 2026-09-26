@@ -38,9 +38,12 @@ from PIL import Image, ImageChops, ImageDraw
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from build_street_level import (  # noqa: E402
+    ASPHALT,
+    ASPHALT_SPECKLE,
     BLOOD,
     BLOOD_DARK,
     DOOR_GREEN,
+    LANE,
     OUTLINE,
     RAINBOW,
     TILE,
@@ -1786,40 +1789,75 @@ def paint_tower_view(rows, rng) -> Image.Image:
                                    (right + 1) * TILE, (bottom + 1) * TILE))
     towers.sort()
     (ax0, ay0, ax1, ay1), (bx0, _, bx1, by1) = towers[0], towers[-1]
-    front = ay1 + 30         # where the seafront begins
-    quay = front + 28        # where the sea begins
+    # South of the church it is the harbour map, as it runs there: the
+    # sagrato in front of the towers, a row of palazzi with the alley and
+    # its gate, the seafront road between its two sidewalks, the promenade
+    # and its palms, the parapet, and only then the sea.
+    front = ay1 + 30         # where the sagrato begins
+    church_x0, church_x1 = ax0, bx1
+    ridge = (bx0 + ax1) // 2
+    palazzi = front + 36     # the row of palazzi across the sagrato
+    kerb = palazzi + 54      # the sidewalk of the seafront road
+    road = kerb + 12         # the road itself
+    promenade = road + 60    # the far sidewalk, then the promenade
+    quay = promenade + 40    # the parapet, and the sea past it
 
-    # The sea, the harbour's quay and the seafront.
     rect(d, 0, quay, width, height - quay, SEA)
-    for _ in range(90):
+    for _ in range(40):
         wx, wy = rng.randrange(width), rng.randrange(quay + 6, height)
         rect(d, wx, wy, rng.randint(3, 8), 1, SEA_LIGHT)
-    for bx, by, hull in ((70, quay + 30, (236, 236, 230)),
-                         (width - 120, quay + 44, (70, 110, 170)),
-                         (width // 2 + 150, quay + 20, (236, 236, 230))):
+    for bx, hull in ((70, (236, 236, 230)), (width - 120, (70, 110, 170))):
+        by = quay + 14
         d.polygon([(bx, by), (bx + 26, by), (bx + 22, by + 8),
                    (bx + 4, by + 8)], fill=hull)
         rect(d, bx + 8, by - 5, 9, 5, (200, 180, 140))
         rect(d, bx + 2, by + 8, 22, 1, (30, 60, 80))
-    rect(d, 0, quay - 5, width, 5, LIMESTONE_DARK)
+    rect(d, 0, quay - 5, width, 5, LIMESTONE_DARK)  # the parapet
     rect(d, 0, quay - 5, width, 1, LIMESTONE)
-    rect(d, 0, front, width, quay - 5 - front, PAVING)
-    for x in range(0, width, 12):
-        rect(d, x, front, 1, quay - 5 - front, shade(PAVING, -14))
-    for y in range(front + 8, quay - 5, 8):
-        rect(d, 0, y, width, 1, shade(PAVING, -10))
+    for top_, bottom_ in ((kerb, road), (promenade, quay - 5)):
+        rect(d, 0, top_, width, bottom_ - top_, PAVING)
+        for x in range(0, width, 12):
+            rect(d, x, top_, 1, bottom_ - top_, shade(PAVING, -14))
+        for y in range(top_ + 8, bottom_, 8):
+            rect(d, 0, y, width, 1, shade(PAVING, -10))
+        rect(d, 0, bottom_ - 2, width, 2, shade(PAVING, -30))  # the kerb
+    rect(d, 0, road, width, promenade - road, ASPHALT)
+    for _ in range(width // 3):
+        rect(d, rng.randrange(width), rng.randrange(road, promenade), 1, 1,
+             ASPHALT_SPECKLE)
+    middle = (road + promenade) // 2
+    for x in range(4, width, 24):  # the dashed line down its middle
+        rect(d, x, middle - 1, 12, 2, LANE)
+    for px in range(40, width - 20, 96):  # palms along the promenade
+        rect(d, px, promenade + 8, 3, 14, (110, 84, 56))
+        d.ellipse([px - 9, promenade + 1, px + 12, promenade + 13],
+                  fill=(60, 96, 52))
+        d.ellipse([px - 5, promenade + 3, px + 8, promenade + 10],
+                  fill=(84, 124, 66))
 
-    # The old town either side of the church, and north of it.
-    church_x0, church_x1 = ax0, bx1
-    _old_town(d, rng, 0, 0, church_x0 - 10, front - 4)
-    _old_town(d, rng, church_x1 + 10, 0, width, front - 4)
+    # The old town either side of the church and north of it, down to the
+    # seafront road; the sagrato in front of the towers, and across it the
+    # palazzi, split by the alley with the churchyard gate at its top.
+    _old_town(d, rng, 0, 0, church_x0 - 10, kerb - 4)
+    _old_town(d, rng, church_x1 + 10, 0, width, kerb - 4)
     rect(d, church_x0 - 10, 0, church_x1 - church_x0 + 20, 26, PAVING)
+    rect(d, church_x0 - 10, front, church_x1 - church_x0 + 20,
+         palazzi - front, PAVING)
+    for x in range(church_x0 - 10, church_x1 + 10, 12):
+        rect(d, x, front, 1, palazzi - front, shade(PAVING, -14))
+    _old_town(d, rng, church_x0 - 10, palazzi, ridge - 12, kerb - 4)
+    _old_town(d, rng, ridge + 12, palazzi, church_x1 + 10, kerb - 4)
+    rect(d, ridge - 12, palazzi - 2, 24, kerb - palazzi + 2, PAVING)
+    for y in range(palazzi + 4, kerb, 8):
+        rect(d, ridge - 12, y, 24, 1, shade(PAVING, -12))
+    for x in range(ridge - 12, ridge + 12, 4):  # the gate's railings
+        rect(d, x, palazzi - 2, 1, 7, (40, 34, 30))
+    rect(d, ridge - 12, palazzi - 2, 24, 1, (40, 34, 30))
 
     # The church: the aisles under their single slopes, the nave between
     # the towers under its ridge, the east end between the towers.
     top = 26
     nave_x0, nave_x1 = ax1, bx0
-    ridge = (nave_x0 + nave_x1) // 2
     _slab_roof(d, rng, church_x0, top, nave_x0, ay0, SLAB_LIGHT, False)
     _slab_roof(d, rng, nave_x1, top, church_x1, by1 - (ay1 - ay0),
                SLAB, False)

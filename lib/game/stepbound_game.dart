@@ -651,16 +651,26 @@ final class StepboundGame extends FlameGame
   void playCutscene(
     List<CutsceneFrame> frames, {
     void Function()? onFinished,
+    void Function()? onBlack,
     bool stayBlack = false,
     Music? music,
   }) => _cover(
     CutsceneCover(
       List<CutsceneFrame>.unmodifiable(frames),
       onFinished: onFinished,
+      onBlack: onBlack,
       stayBlack: stayBlack,
       music: music,
     ),
   );
+
+  /// Called by the cutscene overlay once its last frame has faded to black.
+  void cutsceneBlack() {
+    final cutscene = cover.value;
+    if (cutscene is CutsceneCover) {
+      cutscene.onBlack?.call();
+    }
+  }
 
   /// Called by the cutscene overlay once the game has faded back in.
   void finishCutscene() {
@@ -1081,6 +1091,7 @@ final class StepboundGame extends FlameGame
     if (key != null && !key.collected) {
       key.active = true;
     }
+    var raised = false;
     for (final (index, tile) in duomoCultistSpawns.indexed) {
       final id = '$duomoCultistPrefix$index';
       // Already raised, or somebody is standing on the tile: nobody is
@@ -1089,15 +1100,17 @@ final class StepboundGame extends FlameGame
           simulation.entityAt(tile) != null) {
         continue;
       }
+      // Already standing when the game fades back in from the mass: they
+      // do not climb out of the floor in front of Mario.
       final cultist = createDuomoCultist(id, tile);
-      if (announce) {
-        spawnZombie(cultist);
-      } else {
-        simulation.addEntity(cultist);
-        final component = CharacterComponent(entity: cultist);
-        _characters[id] = component;
-        _addWithoutWaiting(world, component);
-      }
+      simulation.addEntity(cultist);
+      final component = CharacterComponent(entity: cultist);
+      _characters[id] = component;
+      _addWithoutWaiting(world, component);
+      raised = true;
+    }
+    if (announce && raised) {
+      audio.play(Sfx.zombieAlert);
     }
   }
 

@@ -89,6 +89,7 @@ void main() {
     Future<int Function()> playThrough(
       WidgetTester tester, {
       required bool stayBlack,
+      VoidCallback? onBlack,
     }) async {
       var finishes = 0;
       await pumpIn(
@@ -96,6 +97,7 @@ void main() {
         GameCutscene(
           frames: frames,
           stayBlack: stayBlack,
+          onBlack: onBlack,
           onFinished: () => finishes++,
         ),
       );
@@ -130,6 +132,25 @@ void main() {
       await tester.pump(const Duration(seconds: 2));
       await tester.pump();
       expect(finishes(), 1);
+    });
+
+    testWidgets('what the scene changes is done while the screen is still '
+        'black, before the game fades back in', (tester) async {
+      var blacks = 0;
+      final finishes = await playThrough(
+        tester,
+        stayBlack: false,
+        onBlack: () => blacks++,
+      );
+      expect(blacks, 1);
+      expect(
+        find.byKey(const ValueKey<String>('cutscene-from-black')),
+        findsOneWidget,
+      );
+      expect(finishes(), 0);
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pump();
+      expect((blacks, finishes()), (1, 1));
     });
 
     testWidgets('one that ends the level stays black', (tester) async {

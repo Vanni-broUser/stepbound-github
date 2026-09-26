@@ -21,12 +21,18 @@ final class CutsceneCover extends GameCover {
   CutsceneCover(
     this.frames, {
     this.onFinished,
+    this.onBlack,
     this.stayBlack = false,
     this.music,
   });
 
   final List<CutsceneFrame> frames;
   final void Function()? onFinished;
+
+  /// Called once the last frame has faded to black, before the game fades
+  /// back in: what the scene changed in the world is already there when it
+  /// shows again.
+  final void Function()? onBlack;
   final bool stayBlack;
 
   /// The scene's own music, played over the game's while it lasts.

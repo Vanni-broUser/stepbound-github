@@ -184,7 +184,7 @@ final class PriestScript extends TutorialScript {
       host.playCutscene(
         welcomeScene,
         music: Music.sacred,
-        onFinished: _finishWelcome,
+        onBlack: _finishWelcome,
       );
       return;
     }
@@ -238,8 +238,9 @@ final class PriestScript extends TutorialScript {
     );
   }
 
-  /// The incense has been handed over. Back in gameplay the churchyard is
-  /// open, Don Angelo waits at the altar and Mario carries the bar key.
+  /// The incense has been handed over. Before the game shows again the
+  /// churchyard is open, Don Angelo waits at the altar and Mario carries
+  /// the bar key.
   void _finishWelcome() {
     host
       ..removeHud(HudElement.incense)

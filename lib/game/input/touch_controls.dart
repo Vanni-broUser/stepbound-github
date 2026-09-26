@@ -1349,13 +1349,14 @@ final class _ChurchKeyIcon extends CustomPainter {
     canvas
       ..save()
       ..scale(size.width / 24)
-      ..drawRect(const Rect.fromLTWH(4, 2, 3, 12), iron)
-      ..drawRect(const Rect.fromLTWH(1, 6, 9, 3), iron)
-      ..drawRect(const Rect.fromLTWH(1, 8, 9, 1), dark)
-      ..drawRect(const Rect.fromLTWH(7, 15, 15, 3), iron)
-      ..drawRect(const Rect.fromLTWH(7, 17, 15, 1), dark)
-      ..drawRect(const Rect.fromLTWH(17, 18, 3, 4), iron)
-      ..drawRect(const Rect.fromLTWH(20, 18, 2, 3), iron)
+      // the cross lies on its side: its long arm is the shaft itself
+      ..drawRect(const Rect.fromLTWH(1, 9, 21, 3), iron)
+      ..drawRect(const Rect.fromLTWH(1, 11, 21, 1), dark)
+      ..drawRect(const Rect.fromLTWH(5, 3, 3, 15), iron)
+      ..drawRect(const Rect.fromLTWH(7, 3, 1, 15), dark)
+      // the bit
+      ..drawRect(const Rect.fromLTWH(16, 12, 3, 5), iron)
+      ..drawRect(const Rect.fromLTWH(19, 12, 3, 3), iron)
       ..restore();
   }
 

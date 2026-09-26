@@ -1037,8 +1037,8 @@ def city_place(atlas: Atlas, rng, name: str, marker, storefront_table,
     if gantry:
         objects.append(picture(
             rows, level, f"{name}_gantry",
-            lambda d, lv: sl.paint_gantry(d, gantry[0] * TILE,
-                                          gantry[1] * TILE), "i"))
+            lambda d, lv: sl.paint_gantry(d, *(v * TILE for v in gantry)),
+            "i"))
     fountain = run_of(rows, "O")
     if fountain:
         x, y, w, _ = fountain
