@@ -70,34 +70,74 @@ final class TilePlaceComponent extends Component {
       );
     }
     final shut = await _drawn(loaded, art, opened: false);
+    final open = art.objects.any((object) => object.whenOpen != null)
+        ? await _drawn(loaded, art, opened: true)
+        : null;
     _shut = shut.$1;
     _frontShut = shut.$2;
-    if (art.objects.any((object) => object.whenOpen != null)) {
-      final open = await _drawn(loaded, art, opened: true);
-      _open = open.$1;
-      _frontOpen = open.$2;
+    _open = open?.$1;
+    _frontOpen = open?.$2;
+    // Let go of while it was being drawn: what it would hold is not kept.
+    if (_released) {
+      release();
     }
+  }
+
+  bool _released = false;
+
+  /// Lets go of this place's images: the game calls it when the place is
+  /// taken out of the world, having left its area.
+  void release() {
+    _released = true;
+    for (final image in <ui.Image?>[_shut, _open, _frontShut, _frontOpen]) {
+      image?.dispose();
+    }
+    _shut = _open = _frontShut = _frontOpen = null;
   }
 
   /// The images already built, for the atlas they were built from: a place
   /// looks the same in every game, so the game started at a campfire, or
   /// after a game over, draws the ones the last game built. Building them
-  /// again each time was slow, and left the old ones -- tens of megabytes
-  /// for the whole city -- behind in memory.
-  static final Map<(Place, bool), Future<(ui.Image, ui.Image)>> _built =
-      <(Place, bool), Future<(ui.Image, ui.Image)>>{};
+  /// again each time was slow. Only the places the game keeps loaded stay
+  /// here: see [keepOnly].
+  static final Map<(Place, bool), _Built> _built = <(Place, bool), _Built>{};
   static LoadedTileAtlas? _builtFrom;
 
+  /// Drops the images built for any place but [places]. A component
+  /// drawing one holds a handle of its own, and one still waiting for it
+  /// gets it: the images go once nobody needs them.
+  static void keepOnly(Set<Place> places) {
+    final gone = _built.keys.where((key) => !places.contains(key.$1)).toList();
+    for (final key in gone) {
+      _built.remove(key)!.drop();
+    }
+  }
+
+  /// This place's images, as handles of the caller's own: the cache can
+  /// then drop its own while the caller still draws them.
   Future<(ui.Image, ui.Image)> _drawn(
     LoadedTileAtlas loaded,
     TilePlaceArt art, {
     required bool opened,
-  }) {
+  }) async {
     if (!identical(loaded, _builtFrom)) {
+      for (final built in _built.values) {
+        built.drop();
+      }
       _built.clear();
       _builtFrom = loaded;
     }
-    return _built[(place, opened)] ??= _draw(loaded, art, opened: opened);
+    final built = _built[(place, opened)] ??= _Built(
+      _draw(loaded, art, opened: opened),
+    );
+    built.users++;
+    try {
+      final images = await built.images;
+      return (images.$1.clone(), images.$2.clone());
+    } finally {
+      built.users--;
+      built.disposeIfDropped();
+    }
   }
 
   /// Which tile of a bucket falls on a cell: a hash of its place in the
@@ -468,5 +508,33 @@ final class _TileBatch {
       null,
       paint,
     );
+  }
+}
+
+/// A place's images in the cache, and how many are still waiting for them.
+final class _Built {
+  _Built(this.images);
+
+  final Future<(ui.Image, ui.Image)> images;
+  int users = 0;
+  bool _dropped = false;
+  bool _disposed = false;
+
+  /// Out of the cache: the images go once the last one waiting has its
+  /// own handles.
+  void drop() {
+    _dropped = true;
+    disposeIfDropped();
+  }
+
+  void disposeIfDropped() {
+    if (!_dropped || users > 0 || _disposed) {
+      return;
+    }
+    _disposed = true;
+    images.then((images) {
+      images.$1.dispose();
+      images.$2.dispose();
+    }).ignore();
   }
 }

@@ -21,8 +21,8 @@ variables:
   PUB_CACHE: "$CI_PROJECT_DIR/.pub-cache"
 
 # Tutti i job girano sui runner `test`, come nelle pipeline degli altri
-# progetti; quelli firmati dichiarano i propri runner locali
-# (gitlab/package.yml), che sostituiscono questi.
+# progetti; quelli firmati dichiarano i propri runner (gitlab/package.yml):
+# combusken per Android, il Mac per iOS.
 default:
   image: ghcr.io/cirruslabs/flutter:3.44.0
   interruptible: true
@@ -41,7 +41,7 @@ cache:
 
 # cirruslabs non pubblica ancora un'immagine 3.44.2. I job containerizzati
 # partono dalla 3.44.0 e passano al tag richiesto da .fvmrc/pubspec.yaml.
-# I job firmati su runner locali non estendono questo template.
+# Lo estendono anche i job Android firmati; quelli iOS, sul Mac, no.
 .flutter_3_44_2:
   variables:
     FLUTTER_VERSION: "3.44.2"

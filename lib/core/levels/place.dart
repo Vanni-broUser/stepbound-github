@@ -48,6 +48,32 @@ enum LevelId {
   rome,
 }
 
+/// A part of a level whose places are loaded together: their pictures are
+/// composed while Mario is in the area, or one door away from it, and
+/// released once he has left. A level is split into a few of them so its
+/// places need not all be in memory at once, however much it grows.
+enum AreaId {
+  /// Molfetta from the street Mario wakes up in to the station: the
+  /// barracks, the north district with the hypermarket, the airliner and
+  /// the station's three places.
+  hometownTown(LevelId.hometown),
+
+  /// Molfetta's harbour and old town: the Duomo and its tower, the Bar
+  /// Arcobaleno and the church of San Nicola.
+  hometownHarbour(LevelId.hometown),
+
+  /// The train, shared by every level. It counts as Molfetta's, where it
+  /// is found.
+  train(LevelId.hometown),
+
+  /// Roma Termini.
+  romeTermini(LevelId.rome);
+
+  const AreaId(this.level);
+
+  final LevelId level;
+}
+
 /// What the glyphs of a place's ASCII map mean for movement and sight: the
 /// ones in [walls] block both, the ones in [obstacles] block movement but
 /// not sight (a wreck you can shoot over), the ones in [debris] are
@@ -106,6 +132,7 @@ final class PlaceSpec {
     required this.id,
     required this.rows,
     required this.legend,
+    required this.area,
     this.indoor = false,
     this.lit = false,
     this.daylight = '',
@@ -116,7 +143,6 @@ final class PlaceSpec {
     this.flickeringLamps = const <GridPoint>[],
     this.darkness = defaultDarkness,
     this.art,
-    this.level = LevelId.hometown,
   });
 
   /// How dark an unlit room is, between its lamps: nearly black.
@@ -156,9 +182,12 @@ final class PlaceSpec {
   /// it has none of its own: its rows then keep to that place's glyphs.
   final PlaceId? art;
 
+  /// The area the place is loaded with.
+  final AreaId area;
+
   /// The level the place belongs to. The train, shared by all of them,
   /// counts as Molfetta's, where it is found.
-  final LevelId level;
+  LevelId get level => area.level;
 }
 
 /// A place laid on the level's grid at [origin].
@@ -177,6 +206,7 @@ final class Place {
   String? get name => spec.name;
   String? get cardImage => spec.cardImage;
 
+  AreaId get area => spec.area;
   LevelId get level => spec.level;
 
   /// The place whose art in the tile atlas paints this one.

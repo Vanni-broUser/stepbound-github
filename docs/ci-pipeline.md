@@ -38,7 +38,11 @@ guarda che `verify` sia verde.
 - `deps_check`: dipendenze obsolete, informativo.
 - `build_android_debug`: APK debug installabile, manuale e non bloccante.
 - `build_android_signed` / `build_ios_signed`: pacchetti release manuali solo su ref
-  protette e su runner dedicati.
+  protette, su combusken (Android) e sul Mac (iOS).
+- `build_android_release_apk`: la stessa release Android come APK firmato,
+  da installare a mano sul telefono (prove prima dello store, o la demo
+  distribuita direttamente). Stesse regole e stessa chiave di
+  `build_android_signed`.
 
 Il web non ha un job: non distribuiamo il gioco sul browser, lo usiamo solo
 per provarlo in locale con `flutter build web` o `flutter run -d chrome`, e
@@ -68,8 +72,10 @@ cambiandone uno va cambiato anche l'altro.
 
 ## Firma Android
 
-Il runner puo continuare a fornire `android/key.properties`. In alternativa,
-come in Delivery, impostare come variabili GitLab protette e mascherate:
+I job Android firmati girano su combusken (tag `combusken-docker`), una
+nostra macchina Linux, nell'immagine Flutter degli altri job: sulla
+macchina servono solo il runner, con esecutore Docker, e Docker. La chiave
+arriva dalle variabili GitLab protette e mascherate, come in Delivery:
 
 - `ANDROID_KEYSTORE_BASE64`
 - `ANDROID_STORE_PASSWORD`
@@ -77,6 +83,19 @@ come in Delivery, impostare come variabili GitLab protette e mascherate:
 - `ANDROID_KEY_ALIAS`
 
 I file di firma creati dal job vengono rimossi sempre in `after_script`.
+
+La chiave di release non si puo cambiare ne perdere: un APK firmato con
+un'altra chiave non aggiorna quello installato, e Android lo rifiuta ("il
+pacchetto e in conflitto con un pacchetto esistente"). Tenerne una copia di
+sicurezza fuori da GitLab.
+
+Senza `android/key.properties`, in locale `flutter build apk --release`
+firma con la chiave di debug della macchina: serve a provare una release sul
+telefono, ma quell'APK non aggiorna ne e aggiornato da quello firmato con la
+chiave vera. Le build di debug hanno l'id `com.genericlab.stepbound.debug`
+e il nome "Stepbound debug": si installano accanto alla release, senza
+conflitti. Gli APK di debug della CI pero hanno ognuno una chiave diversa
+(il container la genera ogni volta), e fra loro vanno ancora disinstallati.
 
 ## Differenze intenzionali rispetto a Delivery
 

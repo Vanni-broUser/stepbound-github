@@ -157,10 +157,16 @@ const String harbourCardImage = 'assets/story/scene_harbour.jpg';
 /// places with no `background`: those the game paints from these same
 /// rows, out of assets/tiles (tools/build_tile_atlas.py).
 final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
-  PlaceSpec(id: PlaceId.street, rows: streetLevelRows, legend: outdoorLegend),
+  PlaceSpec(
+    id: PlaceId.street,
+    area: AreaId.hometownTown,
+    rows: streetLevelRows,
+    legend: outdoorLegend,
+  ),
   // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.barracks,
+    area: AreaId.hometownTown,
     rows: barracksRows,
     legend: barracksLegend,
     indoor: true,
@@ -168,11 +174,13 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
   ),
   PlaceSpec(
     id: PlaceId.northDistrict,
+    area: AreaId.hometownTown,
     rows: northDistrictRows,
     legend: outdoorLegend,
   ),
   PlaceSpec(
     id: PlaceId.harbour,
+    area: AreaId.hometownHarbour,
     rows: harbourRows,
     legend: outdoorLegend,
     name: harbourName,
@@ -181,6 +189,7 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
   // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.mallGround,
+    area: AreaId.hometownTown,
     rows: mallGroundRows,
     legend: mallLegend,
     indoor: true,
@@ -192,6 +201,7 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
   // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.mallFirst,
+    area: AreaId.hometownTown,
     rows: mallFirstRows,
     legend: mallLegend,
     indoor: true,
@@ -200,12 +210,14 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
   ),
   PlaceSpec(
     id: PlaceId.mallNorthStreet,
+    area: AreaId.hometownTown,
     rows: mallNorthStreetRows,
     legend: outdoorLegend,
   ),
   // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.barArcobaleno,
+    area: AreaId.hometownHarbour,
     rows: barArcobalenoRows,
     legend: barLegend,
     indoor: true,
@@ -215,6 +227,7 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
   // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.church,
+    area: AreaId.hometownHarbour,
     rows: churchRows,
     legend: churchLegend,
     indoor: true,
@@ -224,10 +237,16 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
   // Over the platforms the roof is gone, so the station and the far side
   // are lit throughout; only the underpass is dark.
   // Painted from its rows out of the tile atlas.
-  PlaceSpec(id: PlaceId.station, rows: stationRows, legend: stationLegend),
+  PlaceSpec(
+    id: PlaceId.station,
+    area: AreaId.hometownTown,
+    rows: stationRows,
+    legend: stationLegend,
+  ),
   // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.stationUnderpass,
+    area: AreaId.hometownTown,
     rows: stationUnderpassRows,
     legend: stationLegend,
     indoor: true,
@@ -239,12 +258,14 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
   // swapping a second picture of the whole place.
   PlaceSpec(
     id: PlaceId.stationFarSide,
+    area: AreaId.hometownTown,
     rows: stationFarSideRows,
     legend: stationLegend,
   ),
   // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.trainInterior,
+    area: AreaId.train,
     rows: trainInteriorRows,
     legend: trainLegend,
     indoor: true,
@@ -254,6 +275,7 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
   // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.airlinerCabin,
+    area: AreaId.hometownTown,
     rows: airlinerCabinRows,
     legend: airlinerLegend,
     indoor: true,
@@ -264,6 +286,7 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
   // from their rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.airlinerRoofs,
+    area: AreaId.hometownTown,
     rows: airlinerRoofRows,
     legend: rooftopLegend,
   ),
@@ -272,6 +295,7 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
   // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.duomo,
+    area: AreaId.hometownHarbour,
     rows: duomoRows,
     legend: duomoLegend,
     indoor: true,
@@ -283,6 +307,7 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
   // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.barBackroom,
+    area: AreaId.hometownHarbour,
     rows: barBackroomRows,
     legend: barBackroomLegend,
     indoor: true,
@@ -291,6 +316,7 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
   // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.duomoUpper,
+    area: AreaId.hometownHarbour,
     rows: duomoUpperRows,
     legend: duomoUpperLegend,
     indoor: true,
@@ -302,13 +328,14 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
   // the two levels share, and there is no road between them.
   PlaceSpec(
     id: PlaceId.romeTermini,
+    area: AreaId.romeTermini,
     rows: terminiRows,
     legend: terminiLegend,
-    level: LevelId.rome,
   ),
   // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.duomoSecondFloor,
+    area: AreaId.hometownHarbour,
     rows: duomoSecondFloorRows,
     legend: duomoSecondFloorLegend,
     indoor: true,
@@ -318,6 +345,7 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
   // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.duomoTower,
+    area: AreaId.hometownHarbour,
     rows: duomoTowerRows,
     legend: duomoTowerLegend,
     indoor: true,
@@ -327,6 +355,7 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
   // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.duomoBells,
+    area: AreaId.hometownHarbour,
     rows: duomoBellsRows,
     legend: duomoTowerLegend,
     indoor: true,
@@ -337,6 +366,7 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
   // Open to the sky. Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.duomoTowerRoof,
+    area: AreaId.hometownHarbour,
     rows: duomoTowerRoofRows,
     legend: duomoTowerRoofLegend,
   ),
