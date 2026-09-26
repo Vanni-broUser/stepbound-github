@@ -5,6 +5,7 @@ import 'package:stepbound/game/tutorial/scripts/backpacks_script.dart';
 import 'package:stepbound/game/tutorial/scripts/bar_script.dart';
 import 'package:stepbound/game/tutorial/scripts/barracks_script.dart';
 import 'package:stepbound/game/tutorial/scripts/duomo_script.dart';
+import 'package:stepbound/game/tutorial/scripts/journey_script.dart';
 import 'package:stepbound/game/tutorial/scripts/mall_script.dart';
 import 'package:stepbound/game/tutorial/scripts/north_district_script.dart';
 import 'package:stepbound/game/tutorial/scripts/priest_script.dart';
@@ -21,6 +22,7 @@ export 'package:stepbound/game/tutorial/scripts/backpacks_script.dart';
 export 'package:stepbound/game/tutorial/scripts/bar_script.dart';
 export 'package:stepbound/game/tutorial/scripts/barracks_script.dart';
 export 'package:stepbound/game/tutorial/scripts/duomo_script.dart';
+export 'package:stepbound/game/tutorial/scripts/journey_script.dart';
 export 'package:stepbound/game/tutorial/scripts/mall_script.dart';
 export 'package:stepbound/game/tutorial/scripts/north_district_script.dart';
 export 'package:stepbound/game/tutorial/scripts/priest_script.dart';
@@ -226,8 +228,9 @@ abstract class TutorialScript {
 /// other: the backpacks, the first street, the barracks, the north
 /// district, the hypermarket, the Duomo, the station, the train Mario and
 /// Luigi live in, the roofs the crashed airliner came down in, the arrival
-/// in Rome and the zombie types met on sight. It records what the player
-/// comes to know in [progress].
+/// in Rome, what the train carries from one level to the next and the
+/// zombie types met on sight. It records what the player comes to know in
+/// [progress].
 final class TutorialDirector {
   TutorialDirector({
     required this.world,
@@ -248,6 +251,7 @@ final class TutorialDirector {
       RooftopsScript(this),
       RoadblockFireScript(this),
       RomeScript(this),
+      JourneyScript(this),
       ZombieSightingsScript(this),
     ];
   }

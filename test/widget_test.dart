@@ -1920,6 +1920,9 @@ void main() {
         ..countStep()
         ..lightCampfire('Zona nord')
         ..meet(EntityKind.wanderer);
+      game.simulation.player.component<AmmoComponent>()
+        ..loaded = 2
+        ..hasGun = true;
       game.simulation.entities[tutorialZombieId]!
               .component<HealthComponent>()
               .current =
@@ -1991,6 +1994,24 @@ void main() {
       final cover = tester.widget<LoadingCover>(find.byType(LoadingCover));
       expect(cover.image, LevelMap.hometownImage);
       expect(cover.caption, 'Città natale');
+      final ammo = returned.simulation.player.component<AmmoComponent>();
+      expect(ammo.loaded, arrivalRounds, reason: 'two made up to five');
+      expect(ammo.hasGun, isTrue, reason: 'the pistol travels with him');
+
+      // Before Mario can move, what the train carries between levels.
+      await _waitForGame(tester);
+      expect(returned.tutorial.holdsInput, isTrue);
+      for (var i = 0; i < 30 && !returned.isPromptVisible; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(find.text(JourneyScript.carryLines.first.text), findsOneWidget);
+      final dialogue = find.byKey(const ValueKey<String>('gameplay-dialogue'));
+      await tester.tap(dialogue);
+      await tester.pump();
+      expect(find.text(JourneyScript.carryLines.last.text), findsOneWidget);
+      await tester.tap(dialogue);
+      await tester.pump();
+      expect(returned.isPromptVisible, isFalse);
 
       returned.cover.value = const GameOverCover();
       await tester.pump();
@@ -2012,6 +2033,7 @@ void main() {
       game.simulation.player.component<PositionComponent>()
         ..position = trainMapStandTile
         ..facing = trainMapFacing;
+      game.simulation.player.component<AmmoComponent>().loaded = 12;
       game.completeLevel();
       await tester.pump();
       await tester.tap(
@@ -2061,8 +2083,24 @@ void main() {
         await tester.pump(const Duration(milliseconds: 100));
       }
       expect(find.text(RomeScript.arrivalLines.first.text), findsOneWidget);
+      expect(
+        rome.simulation.player.component<AmmoComponent>().loaded,
+        arrivalRounds,
+        reason: 'the twelve rounds stayed in Molfetta',
+      );
       final dialogue = find.byKey(const ValueKey<String>('gameplay-dialogue'));
       for (var i = 0; i < RomeScript.arrivalLines.length; i++) {
+        await tester.tap(dialogue);
+        await tester.pump();
+      }
+
+      // Then, after Luigi, what the train carries between levels.
+      expect(rome.tutorial.holdsInput, isTrue);
+      for (var i = 0; i < 30 && !rome.isPromptVisible; i++) {
+        await tester.pump(const Duration(milliseconds: 100));
+      }
+      expect(find.text(JourneyScript.carryLines.first.text), findsOneWidget);
+      for (var i = 0; i < JourneyScript.carryLines.length; i++) {
         await tester.tap(dialogue);
         await tester.pump();
       }
