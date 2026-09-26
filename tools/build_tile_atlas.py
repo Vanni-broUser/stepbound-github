@@ -433,11 +433,12 @@ def paint_bar_door(d, px, py):
 
 def paint_bar_locked_door(d, px, py):
     """The open service doorway under the dynamic locked-door component."""
-    top = py - TILE
-    rect(d, px + 1, top, TILE - 2, TILE * 2, OUTLINE)
-    rect(d, px + 3, top + 2, TILE - 6, TILE * 2 - 3, (18, 16, 18))
-    rect(d, px + 2, top + 1, 2, TILE * 2 - 2, (88, 58, 38))
-    rect(d, px + 12, top + 1, 2, TILE * 2 - 2, (88, 58, 38))
+    top = py - TILE + 6  # the top of the wall shows over it
+    height = TILE * 2 - 6
+    rect(d, px + 1, top, TILE - 2, height, OUTLINE)
+    rect(d, px + 3, top + 2, TILE - 6, height - 3, (18, 16, 18))
+    rect(d, px + 2, top + 1, 2, height - 2, (88, 58, 38))
+    rect(d, px + 12, top + 1, 2, height - 2, (88, 58, 38))
     rect(d, px + 4, py + 12, TILE - 8, 4, (104, 96, 86))
 
 
@@ -1907,8 +1908,73 @@ def paint_backroom_wall(d, px, py, front):
 
 
 def paint_backroom_shelf(d, px, py):
-    rect(d, px, py + 4, TILE, 11, BACKROOM_WOOD)
-    rect(d, px, py + 4, TILE, 2, shade(BACKROOM_WOOD, 30))
+    """A plank on trestles, liquor bottles standing along it."""
+    rect(d, px, py + 8, TILE, 7, BACKROOM_WOOD)
+    rect(d, px, py + 8, TILE, 2, shade(BACKROOM_WOOD, 30))
+    for i, bx in enumerate((1, 5, 9, 13)):
+        colour = LIQUORS[i % len(LIQUORS)]
+        tall = i % 2 == 0
+        top = py + (1 if tall else 3)
+        rect(d, px + bx, top + 2, 3, py + 8 - top - 2, colour)
+        rect(d, px + bx + 1, top, 1, 2, colour)  # the neck
+        rect(d, px + bx + 1, top - 1, 1, 1, CORK)
+        rect(d, px + bx, top + 4, 3, 2, (214, 204, 176))  # the label
+        rect(d, px + bx, top + 2, 1, 2, shade(colour, 50))
+
+
+# Wine and spirits: bottle glass, and what is in the clear ones.
+LIQUORS = [(146, 92, 34), (196, 188, 170), (58, 104, 56), (120, 30, 36),
+           (176, 130, 50)]
+WINE_GLASS = [(40, 72, 40), (70, 24, 30), (34, 58, 34)]
+CORK = (150, 110, 70)
+WICKER = (158, 118, 62)
+WICKER_DARK = (104, 74, 40)
+DEMIJOHN_GLASS = (48, 98, 60)
+
+
+def paint_demijohn(d, px, py):
+    """A big wine demijohn, green glass in a wicker basket up to its
+    shoulders, corked."""
+    rect(d, px + 3, py + 14, 10, 2, (30, 26, 24))  # its shadow
+    rect(d, px + 7, py, 2, 1, CORK)
+    rect(d, px + 7, py + 1, 2, 3, DEMIJOHN_GLASS)  # the neck
+    for dy, left, width in ((4, 5, 6), (5, 3, 10), (6, 2, 12), (7, 2, 12),
+                            (8, 2, 12), (9, 2, 12), (10, 2, 12),
+                            (11, 2, 12), (12, 2, 12), (13, 3, 10),
+                            (14, 4, 8)):
+        glass = dy < 8
+        rect(d, px + left, py + dy, width, 1,
+             DEMIJOHN_GLASS if glass else WICKER)
+        if not glass:  # the weave
+            for x in range(left + (dy % 2), left + width, 2):
+                rect(d, px + x, py + dy, 1, 1, WICKER_DARK)
+    rect(d, px + 4, py + 5, 1, 3, (130, 186, 130))  # the glass shines
+
+
+def paint_wine_rack(d, px, py):
+    """A wooden rack of wine bottles lying down, their bottoms out."""
+    rect(d, px, py + 1, TILE, 14, shade(BACKROOM_WOOD, -30))
+    rect(d, px, py + 1, TILE, 1, shade(BACKROOM_WOOD, 20))
+    rect(d, px, py + 14, TILE, 1, BACKROOM_WOOD)
+    for row, by in enumerate((3, 8)):
+        for column, bx in enumerate((1, 6, 11)):
+            glass = WINE_GLASS[(row + column) % len(WINE_GLASS)]
+            rect(d, px + bx, py + by, 4, 4, glass)
+            rect(d, px + bx + 1, py + by + 1, 1, 1, shade(glass, 60))
+        rect(d, px, py + by + 4, TILE, 1, BACKROOM_WOOD)  # the shelf
+
+
+def paint_liquor_crate(d, px, py):
+    """An open crate of spirits, the bottles' necks sticking out."""
+    for i, bx in enumerate((2, 6, 10)):
+        colour = LIQUORS[(i + 1) % len(LIQUORS)]
+        rect(d, px + bx, py + 3, 3, 6, colour)
+        rect(d, px + bx + 1, py + 1, 1, 2, colour)
+        rect(d, px + bx + 1, py, 1, 1, (170, 40, 40) if i == 1 else CORK)
+        rect(d, px + bx, py + 3, 1, 2, shade(colour, 50))
+    rect(d, px + 1, py + 7, 14, 8, BACKROOM_WOOD)
+    rect(d, px + 1, py + 7, 14, 2, shade(BACKROOM_WOOD, 28))
+    rect(d, px + 2, py + 11, 12, 1, shade(BACKROOM_WOOD, -24))
 
 
 def paint_backroom_crate(d, px, py):
@@ -1939,10 +2005,13 @@ def bar_backroom(atlas: Atlas, rng) -> dict:
         "K": paint_backroom_shelf,
         "B": paint_backroom_crate,
         "E": paint_backroom_door,
+        "G": paint_demijohn,
+        "R": paint_wine_rack,
+        "C": paint_liquor_crate,
     }
     # The floor goes under every glyph that is not wall or void; the door
     # covers its cell whole, the rest let it show.
-    floored = ".*8KB:E"
+    floored = ".*8KB:EGRC"
     rules = [
         rule("ground", floored, floor, [parity_key()]),
         rule("structures", "WI",

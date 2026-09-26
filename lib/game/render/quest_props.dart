@@ -97,11 +97,11 @@ final class BarServiceDoorComponent extends PositionComponent {
     if (!_closed) {
       return;
     }
-    _rect(canvas, 1, 0, 14, 32, const ui.Color(0xff181616));
-    _rect(canvas, 3, 2, 10, 29, const ui.Color(0xff483022));
-    _rect(canvas, 4, 3, 8, 2, const ui.Color(0xff6c4c32));
-    _rect(canvas, 4, 18, 8, 1, const ui.Color(0xff2c1e18));
-    _rect(canvas, 11, 23, 2, 2, const ui.Color(0xffbc9e52));
+    // One leaf, a little lower than the wall, whose top shows over it.
+    _rect(canvas, 1, 6, 14, 26, const ui.Color(0xff181616));
+    _rect(canvas, 3, 8, 10, 23, const ui.Color(0xff483022));
+    _rect(canvas, 4, 9, 8, 2, const ui.Color(0xff6c4c32));
+    _rect(canvas, 11, 21, 2, 2, const ui.Color(0xffbc9e52));
   }
 }
 

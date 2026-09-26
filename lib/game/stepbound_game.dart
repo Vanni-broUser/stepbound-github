@@ -507,7 +507,7 @@ final class StepboundGame extends FlameGame
       // On the closed leaf, until the key opens it.
       InteractGlintComponent(
         tile: barLockedDoorTile,
-        spot: const Offset(8, -4),
+        spot: const Offset(8, 8),
         active: () => !simulation.map.tileAt(barLockedDoorTile).isWalkable,
       ),
       // Like the bar's own door: nothing left to use once it is open.
