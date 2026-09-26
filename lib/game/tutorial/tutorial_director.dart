@@ -168,6 +168,12 @@ abstract interface class TutorialHost {
   /// Opens the book of the zombie types met so far.
   void openZombieBook();
 
+  /// Opens the figures of the adventure, city by city.
+  void openAdventureStats();
+
+  /// Opens the outfits to choose from, as the menu's page of them does.
+  void openWardrobe();
+
   /// Plays again every story scene seen so far.
   void replayMemories();
 

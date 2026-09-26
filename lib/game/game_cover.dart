@@ -47,15 +47,24 @@ final class ZombieBookCover extends GameCover {
   const ZombieBookCover();
 }
 
+/// The abacus and the calculator on Mario's desk aboard: the figures of
+/// the adventure, the same as at the end of a level, city by city.
+final class AdventureStatsCover extends GameCover {
+  const AdventureStatsCover();
+}
+
 /// Mario's cot on the train: the story scenes seen so far, played again.
 final class MemoriesCover extends GameCover {
   const MemoriesCover();
 }
 
 /// The menu the corner button opens, mid-game: back to the last save,
-/// the level from the start, or out to the main menu.
+/// the level from the start, or out to the main menu. With [wardrobe] it
+/// is only its page of outfits, opened from the wardrobe aboard.
 final class PauseCover extends GameCover {
-  const PauseCover();
+  const PauseCover({this.wardrobe = false});
+
+  final bool wardrobe;
 }
 
 /// The end of what is playable so far, reached at the way out of Termini.

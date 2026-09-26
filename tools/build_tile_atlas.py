@@ -2762,6 +2762,243 @@ def paint_train_luggage(d, rng, px, py):
          shade(TR_LUGGAGE, -28))
 
 
+# Mario's clothes, as he wears them: a red flannel shirt and jeans.
+TR_SHIRT = (156, 44, 40)
+TR_SHIRT_DARK = (104, 28, 28)
+TR_JEANS = (60, 86, 136)
+TR_JEANS_DARK = (40, 58, 96)
+# Luigi's: a white vest gone grey and olive shorts.
+TR_VEST = (226, 222, 206)
+TR_VEST_SHADE = (184, 178, 160)
+TR_SHORTS = (96, 106, 56)
+TR_SHORTS_DARK = (64, 72, 38)
+TR_CASE_BLUE = (48, 64, 100)
+TR_CASE_LINING = (206, 186, 150)
+TR_SOCK_BLUE = (70, 96, 150)
+
+
+# The clothes are drawn pixel by pixel from these: `o` the outline, then
+# the colours each one names in its palette; `.` is left alone.
+SHIRT = (
+    "......oo......",
+    "...oooooooo...",
+    "..orrrRRrrro..",
+    ".orrrrRRrrrro.",
+    "orrorrrRrrorro",
+    "oRRoRRRRRRoRRo",
+    "orrorrrRrrorro",
+    "oRRoRRRRRRoRRo",
+    "orrorrrRrrorro",
+    "oRRorrrRrroRRo",
+    "oooorrrRrroooo",
+    "...oRRRRRRo...",
+    "...oooooooo...",
+)
+JEANS = (
+    "....oo...",
+    "...oooo..",
+    "ooooooooo",
+    "oBBBBBBBo",
+    "obbbbbbbo",
+    "obbbobbbo",
+    "obcbobcbo",
+    "obcbobcbo",
+    "obbbobbbo",
+    "obcbobcbo",
+    "obbbobbbo",
+    "oBBBoBBBo",
+    "ooooooooo",
+)
+VEST = (
+    "...oo.oo...",
+    "...ow.wo...",
+    "..oow.woo..",
+    ".owwwowwwo.",
+    "owwwwwwwwwo",
+    "owwwwwswwwo",
+    "owswwwwwwwo",
+    "owwwwwwwswo",
+    "owwwswwwwwo",
+    "owwwwwwwwwo",
+    "osssssssss o".replace(" ", ""),
+    "ooooooooooo",
+)
+SHORTS = (
+    "ooooooooooo",
+    "odddddddddo",
+    "ogggggggggo",
+    "ogggsdgggso",
+    "ogggo.ogggo",
+    "ogggo.ogggo",
+    "odddo.odddo",
+    "ooooo.ooooo",
+)
+BRIEFS = (
+    "ooooooooo",
+    "osssssssso"[:9],
+    "owwwwwwwo",
+    ".owwwwwo.",
+    "..owwwo..",
+    "...ooo...",
+)
+BOXERS = (
+    "ooooooooo",
+    "osssssssso"[:9],
+    "obwbwbwbo",
+    "obwbwbwbo",
+    "obwbooobo"[:9],
+    "oooo.oooo",
+)
+SOCK = (
+    "oooo..",
+    "oxxo..",
+    "owwo..",
+    "owwo..",
+    "owwooo",
+    "owwwwo",
+    "oooooo",
+)
+
+
+def _pattern(d, x, y, rows, palette, flip=False):
+    """Draws `rows` with its top left corner at (x, y); `flip` mirrors it
+    top to bottom, a garment dropped the other way up."""
+    for dy, row in enumerate(reversed(rows) if flip else rows):
+        for dx, key in enumerate(row):
+            if key == ".":
+                continue
+            colour = TR_OUTLINE if key == "o" else palette[key]
+            rect(d, x + dx, y + dy, 1, 1, colour)
+
+
+def _shirt(d, x, y):
+    _pattern(d, x, y, SHIRT, {"r": TR_SHIRT, "R": TR_SHIRT_DARK})
+
+
+def _jeans(d, x, y):
+    _pattern(d, x, y, JEANS, {"b": TR_JEANS, "B": TR_JEANS_DARK,
+                              "c": shade(TR_JEANS, 26)})
+
+
+def _vest(d, x, y, flip=False):
+    _pattern(d, x, y, VEST, {"w": TR_VEST, "s": TR_VEST_SHADE}, flip)
+
+
+def _shorts(d, x, y, flip=False):
+    _pattern(d, x, y, SHORTS, {"g": TR_SHORTS, "d": TR_SHORTS_DARK,
+                               "s": shade(TR_SHORTS, 24)}, flip)
+
+
+def _pants(d, x, y, striped):
+    if striped:
+        _pattern(d, x, y, BOXERS, {"s": shade(TR_SOCK_BLUE, -30),
+                                   "b": TR_SOCK_BLUE, "w": TR_VEST})
+    else:
+        _pattern(d, x, y, BRIEFS, {"s": TR_VEST_SHADE, "w": TR_VEST})
+
+
+def _sock(d, x, y, band):
+    _pattern(d, x, y, SOCK, {"x": band, "w": TR_VEST_SHADE})
+
+
+def paint_train_wardrobe(d, px, py, width):
+    """Mario's wardrobe, three tiles long against the wall: a bare rail on
+    two uprights, and hung on it his clothes, the red flannel shirts and
+    the jeans he wears."""
+    w = width * TILE
+    for ux in (px + 1, px + w - 3):
+        rect(d, ux - 1, py + 1, 4, 14, TR_OUTLINE)
+        rect(d, ux, py + 2, 2, 12, TR_METAL)
+        rect(d, ux - 2, py + 13, 6, 3, TR_OUTLINE)  # its foot
+        rect(d, ux - 1, py + 14, 4, 1, TR_METAL_DARK)
+    rect(d, px + 1, py + 1, w - 2, 3, TR_OUTLINE)
+    rect(d, px + 2, py + 2, w - 4, 1, TR_METAL_LIGHT)  # the rail
+    if width == 1:
+        _shirt(d, px + 1, py + 2)
+        return
+    _shirt(d, px + 4, py + 2)
+    _jeans(d, px + 19, py + 2)
+    _shirt(d, px + 29, py + 2)
+
+
+def paint_train_suitcases(d, px, py, width):
+    """Mario's two suitcases against the wall: a brown leather one lying
+    flat, strapped shut, and beside it a blue hard case standing on its
+    wheels, its handle down."""
+    # the one lying flat, seen from above: lid, straps, the handle
+    rect(d, px + 1, py + 3, 15, 12, TR_OUTLINE)
+    rect(d, px + 2, py + 4, 13, 10, TR_LUGGAGE)
+    rect(d, px + 2, py + 4, 13, 1, shade(TR_LUGGAGE, 30))
+    rect(d, px + 2, py + 12, 13, 2, shade(TR_LUGGAGE, -24))  # its side
+    for sx in (px + 5, px + 11):
+        rect(d, sx, py + 4, 2, 10, shade(TR_LUGGAGE, -40))
+        rect(d, sx, py + 8, 2, 1, TR_SAFETY)  # the buckles
+    rect(d, px + 6, py + 14, 5, 2, TR_OUTLINE)  # the handle
+    if width == 1:
+        return
+    # the one standing, taller than it is wide, ribbed
+    x = px + TILE + 3
+    rect(d, x - 1, py, 12, 16, TR_OUTLINE)
+    rect(d, x, py + 1, 10, 13, TR_CASE_BLUE)
+    for rx in range(x + 2, x + 9, 3):
+        rect(d, rx, py + 3, 1, 10, shade(TR_CASE_BLUE, 26))
+    rect(d, x, py + 1, 10, 1, shade(TR_CASE_BLUE, 40))
+    rect(d, x + 3, py + 1, 4, 2, TR_METAL_LIGHT)  # the handle, pushed down
+    rect(d, x, py + 14, 3, 2, TR_METAL_DARK)  # the wheels
+    rect(d, x + 7, py + 14, 3, 2, TR_METAL_DARK)
+
+
+def paint_train_open_suitcase(d, px, py, width):
+    """One of Luigi's suitcases, left open on the floor: the lid thrown
+    back against the wall, the lining showing, and his clothes spilling
+    over the side."""
+    w = width * TILE
+    rect(d, px + 1, py, w - 2, 5, TR_OUTLINE)  # the lid, open
+    rect(d, px + 2, py + 1, w - 4, 3, shade(TR_LUGGAGE, -20))
+    rect(d, px + 3, py + 2, w - 6, 1, TR_CASE_LINING)
+    rect(d, px + 1, py + 5, w - 2, 10, TR_OUTLINE)  # the case
+    rect(d, px + 2, py + 6, w - 4, 8, TR_CASE_LINING)
+    rect(d, px + 2, py + 13, w - 4, 1, shade(TR_CASE_LINING, -40))
+    if width == 1:
+        _vest(d, px + 2, py + 3)
+        _sock(d, px + 9, py + 9, TR_LABEL_RED)
+        return
+    _vest(d, px + 2, py + 3)
+    _shorts(d, px + 12, py + 6)
+    _pants(d, px + 22, py + 5, striped=True)
+    _sock(d, px + 24, py + 9, TR_SOCK_BLUE)  # spilling over the side
+
+
+def paint_train_luigi_clothes(d, rng, px, py):
+    """Luigi's clothes, thrown on the floor where he took them off: his
+    vest, his shorts, or both in a heap."""
+    kind = rng.randrange(3)
+    flip = rng.random() < 0.5
+    if kind == 0:
+        _vest(d, px + rng.randrange(0, 5), py + rng.randrange(0, 4), flip)
+    elif kind == 1:
+        _shorts(d, px + rng.randrange(0, 5), py + rng.randrange(1, 8), flip)
+    else:
+        _vest(d, px, py, flip)
+        _shorts(d, px + 5, py + 8)
+
+
+def paint_train_underwear(d, rng, px, py):
+    """Underpants and socks about the floor, never in pairs where they
+    should be."""
+    kind = rng.randrange(3)
+    x, y = px + rng.randrange(0, 6), py + rng.randrange(1, 9)
+    if kind == 0:
+        _pants(d, x, y, striped=rng.random() < 0.5)
+    elif kind == 1:
+        _sock(d, px + rng.randrange(0, 4), py + rng.randrange(0, 3),
+              rng.choice((TR_LABEL_RED, TR_SOCK_BLUE)))
+        _sock(d, px + 9, py + 8, TR_LABEL_RED)
+    else:
+        _pants(d, px, py + 1, striped=False)
+        _sock(d, px + 10, py + 8, TR_SOCK_BLUE)
+
+
 def paint_train_control(d, rng, px, py):
     rect(d, px + 1, py + 2, 14, 12, TR_CONTROL)
     rect(d, px + 2, py + 3, 12, 4, TR_CONTROL_LIGHT)
@@ -2839,6 +3076,10 @@ EUROPE_BLACK_SEA = (
 EUROPE_BOUNDS = (-10.8, 35.0, 40.5, 71.8)  # west, south, east, north
 
 
+# Nordkapp, as longitude and latitude.
+NORTH_CAPE = (25.78, 71.17)
+
+
 def paint_europe(width, height):
     """The map itself, `width` by `height` pixels: land, sea and the coast
     inked round the land, nothing drawn on it.
@@ -2895,6 +3136,16 @@ def paint_train_map_table(sprite):
     rect(d, mx + 1, my + 1, mw, mh, shade(TR_WOOD, -50))
     rect(d, mx, my, mw, mh, TR_PAPER)
     sprite.paste(paint_europe(mw - 2, mh - 2), (mx + 1, my + 1))
+    # A red X by the North Cape, where the two of them mean to end up,
+    # drawn a little south of the tip so the coast still shows.
+    west, south, east, north = EUROPE_BOUNDS
+    cape_x = mx + 1 + round((NORTH_CAPE[0] - west) / (east - west)
+                            * (mw - 2))
+    cape_y = my + 1 + round((north - NORTH_CAPE[1]) / (north - south)
+                            * (mh - 2))
+    for i in range(-2, 3):
+        rect(d, cape_x + i, cape_y + 2 + i, 1, 1, TR_LABEL_RED)
+        rect(d, cape_x + i, cape_y + 2 - i, 1, 1, TR_LABEL_RED)
     # A pencil and a compass beside it.
     rect(d, 52, 6, 2, 12, TR_SAFETY)
     rect(d, 52, 18, 2, 2, TR_WOOD_LIGHT)
@@ -3118,6 +3369,52 @@ def paint_train_books(d, px, py, first):
         rect(d, sx, py + 2, 1, 9, shade(cover, 25))
 
 
+def _train_desk(d, px, py):
+    """The crate Mario uses for a desk, seen from above."""
+    rect(d, px, py + 3, TILE, 12, TR_CRATE_DARK)
+    rect(d, px, py + 3, TILE, 10, TR_CRATE)
+    rect(d, px, py + 7, TILE, 1, TR_CRATE_DARK)
+    rect(d, px, py + 11, TILE, 1, TR_CRATE_DARK)
+
+
+def paint_train_abacus(d, px, py):
+    """The left end of the desk: a wooden abacus, its beads in red and
+    cream on three wires, and beside it a grey pocket calculator with its
+    green display and rows of keys."""
+    _train_desk(d, px, py)
+    # the abacus
+    rect(d, px, py + 1, 9, 10, TR_OUTLINE)
+    rect(d, px + 1, py + 2, 7, 8, TR_WOOD_LIGHT)
+    rect(d, px + 2, py + 3, 5, 6, TR_CRATE_DARK)
+    for i, wire in enumerate((py + 4, py + 6, py + 8)):
+        rect(d, px + 2, wire, 5, 1, TR_METAL_LIGHT)
+        for b in range(2 + i % 2):
+            colour = TR_LABEL_RED if (b + i) % 2 else TR_LABEL_CREAM
+            rect(d, px + 2 + b + i % 2 * 2, wire, 1, 1, colour)
+    # the calculator
+    rect(d, px + 9, py + 4, 7, 10, TR_OUTLINE)
+    rect(d, px + 10, py + 5, 5, 8, TR_METAL)
+    rect(d, px + 10, py + 5, 5, 2, (120, 170, 110))  # the display
+    rect(d, px + 11, py + 6, 3, 1, (60, 90, 56))
+    for ky in (py + 8, py + 10, py + 12):
+        for kx in (px + 10, px + 12, px + 14):
+            rect(d, kx, ky, 1, 1, TR_METAL_LIGHT)
+
+
+def paint_train_mug(d, px, py):
+    """The right end of the desk: Mario's tin mug and a candle stub in a
+    puddle of its own wax."""
+    _train_desk(d, px, py)
+    rect(d, px + 2, py + 4, 6, 6, TR_OUTLINE)  # the mug, from above
+    rect(d, px + 3, py + 5, 4, 4, TR_METAL_LIGHT)
+    rect(d, px + 4, py + 6, 2, 2, (70, 44, 26))  # coffee
+    rect(d, px + 8, py + 6, 2, 2, TR_OUTLINE)  # its handle
+    rect(d, px + 10, py + 9, 5, 3, TR_LABEL_CREAM)  # wax
+    rect(d, px + 11, py + 6, 3, 5, TR_PILLOW)  # the candle
+    rect(d, px + 12, py + 4, 1, 2, TR_LAMP)  # its flame
+    rect(d, px + 12, py + 5, 1, 1, (240, 170, 60))
+
+
 def paint_train_food_table(d):
     """The narrow table the two of them eat at, three tiles long against
     the wall, seen from above: a white cloth with a red border, and on it
@@ -3324,7 +3621,9 @@ def train_interior(atlas: Atlas, rng) -> dict:
     from build_street_level import read_rows  # noqa: PLC0415 - the nose
 
     rows = read_rows(TR_ROWS)
-    floored = ".SLTCh*bBuofkEPlVaG"
+    # Not under Mario's desk (K, q, k): it stands on black, a dark edge
+    # above and below it.
+    floored = ".SLTCh*bBuofEPlVaGYROcm"
     floor = [
         atlas.bucket(lambda p=parity: cell(
             lambda d, gx, gy: paint_train_floor(d, rng, gx, gy), p, 0))
@@ -3379,6 +3678,25 @@ def train_interior(atlas: Atlas, rng) -> dict:
         [neighbour_key(-1, 0, "S"), neighbour_key(1, 0, "S")]))
     rules.append(rule("structures", "T", one(paint_train_table)))
     rules.append(rule("structures", "L", randomly(paint_train_luggage)))
+
+    # Mario's wardrobe and suitcases, Luigi's open ones: each painted
+    # whole and cut to the tile its place in the run asks for.
+    def cut(paint, glyph, width):
+        def tile(first, last):
+            if first and last:
+                return tile_of(lambda d: paint(d, 0, 0, 1))
+            index = 0 if first else (width - 1 if last else 1)
+            return tile_of(lambda d: paint(d, -index * TILE, 0, width))
+        return rule("structures", glyph,
+                    [atlas.bucket(lambda i=i: tile(not i & 1, not i & 2), 1)
+                     for i in range(4)],
+                    [neighbour_key(-1, 0, glyph), neighbour_key(1, 0, glyph)])
+
+    rules.append(cut(paint_train_wardrobe, "R", 3))
+    rules.append(cut(paint_train_suitcases, "Y", 2))
+    rules.append(cut(paint_train_open_suitcase, "O", 2))
+    rules.append(rule("structures", "c", randomly(paint_train_luigi_clothes)))
+    rules.append(rule("structures", "m", randomly(paint_train_underwear)))
     rules.append(rule("structures", "C", randomly(paint_train_control)))
     rules.append(rule("structures", "h", one(paint_train_driver_seat)))
     rules.append(rule("structures", "*", one(paint_train_lamp)))
@@ -3411,12 +3729,10 @@ def train_interior(atlas: Atlas, rng) -> dict:
     rules.append(rule("structures", "u", one(paint_train_bag)))
     rules.append(rule("structures", "o", randomly(paint_train_litter)))
     rules.append(rule("structures", "f", randomly(paint_train_papers)))
-    rules.append(rule(
-        "structures", "k",
-        [atlas.bucket(lambda f=first: tile_of(
-            lambda d: paint_train_books(d, 0, 0, f)), 1)
-         for first in (True, False)],
-        [neighbour_key(-1, 0, "k")]))
+    rules.append(rule("structures", "k", one(
+        lambda d, px, py: paint_train_books(d, px, py, True))))
+    rules.append(rule("structures", "K", one(paint_train_abacus)))
+    rules.append(rule("structures", "q", one(paint_train_mug)))
 
     table = Image.new("RGBA", tuple(n * TILE for n in TR_MAP_TABLE_TILES),
                       TRANSPARENT)

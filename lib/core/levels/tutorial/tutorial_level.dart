@@ -111,7 +111,10 @@ const Legend stationLegend = Legend(
 /// the map table can be seen over but not walked through, and so can the
 /// two cots, the bin bags, the books, Mario's ammunition crate, the table
 /// laid for eating and Luigi.
-const Legend trainLegend = Legend(walls: 'xWwIiV', obstacles: 'STLCPhbBuklaG');
+const Legend trainLegend = Legend(
+  walls: 'xWwIiV',
+  obstacles: 'STLCPhbBuklaGKqYRO',
+);
 
 /// Roma Termini (termini.dart) keeps to the far platform's glyphs, but
 /// its train's door `P` is open from the start: the train is Mario's own.
@@ -510,7 +513,7 @@ const String barDrunkZombieId = '${barDrunkZombiePrefix}0';
 
 /// Walking into the crossroads makes the tutorial zombie notice the player
 /// even if it is not looking that way.
-const GridRect tutorialZombieTrigger = GridRect(14, 33, 23, 39);
+const GridRect tutorialZombieTrigger = GridRect(13, 33, 23, 39);
 
 /// The forecourt in front of the barracks: reaching it makes Mario speak.
 const GridRect barracksForecourt = GridRect(13, 7, 19, 8);
@@ -760,6 +763,11 @@ final GridPoint trainMapStandTile = GridPoint(
 /// Which way Mario faces from [trainMapStandTile]: at the table.
 const Direction trainMapFacing = Direction.north;
 
+/// Which way Mario faces when the story puts him aboard at
+/// [trainMapStandTile]: away from the table, so a stray tap does not open
+/// the map again at once.
+const Direction trainArrivalFacing = Direction.south;
+
 /// The part of the map Mario looks at from [trainMapStandTile], where the
 /// glint shows once there is somewhere to go.
 final GridPoint trainMapPanelTile = trainMapStandTile.step(trainMapFacing);
@@ -794,8 +802,15 @@ const String trainPlaceName = 'Treno';
 /// Luigi, at home in his corner of the locomotive.
 final GridPoint trainLuigiTile = _train.tileOf('l');
 
-/// The crate of open books on Mario's side: the zombie types met so far.
+/// The open books on Mario's desk: the zombie types met so far.
 final List<GridPoint> trainBookTiles = _train.tilesOf('k');
+
+/// The abacus and the calculator at the left end of Mario's desk: the
+/// figures of the adventure, city by city.
+final List<GridPoint> trainStatsTiles = _train.tilesOf('K');
+
+/// Mario's wardrobe, a rail with his clothes on it: what to wear.
+final List<GridPoint> trainWardrobeTiles = _train.tilesOf('R');
 
 /// Mario's cot, where the memories come back.
 final List<GridPoint> trainCotTiles = _train.tilesOf('B');
@@ -1248,6 +1263,8 @@ WorldState createTutorialWorld({int seed = 20260920}) {
       stationTrackFireTile,
       trainLuigiTile,
       ...trainBookTiles,
+      ...trainStatsTiles,
+      ...trainWardrobeTiles,
       ...trainCotTiles,
       ...trainAmmoTiles,
     ],

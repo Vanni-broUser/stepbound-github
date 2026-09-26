@@ -25,6 +25,11 @@ final class MainMenu extends StatefulWidget {
   /// The city overrun: zombies chasing people through a burning street.
   static const String background = 'assets/story/menu_background.jpg';
 
+  /// The classic line at the foot of the first screen.
+  static const String disclaimer =
+      'Ogni riferimento a persone esistenti o a fatti realmente accaduti è '
+      'puramente casuale';
+
   final SaveRepository saves;
 
   /// Starts the story; the game will save in the given slot.
@@ -131,6 +136,24 @@ final class _MainMenuState extends State<MainMenu> {
                 ],
               ),
             ),
+            if (_page == _MenuPage.home)
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: IgnorePointer(
+                  child: Padding(
+                    padding: EdgeInsets.all(4 * unit),
+                    child: Text(
+                      MainMenu.disclaimer,
+                      key: const ValueKey<String>('menu-disclaimer'),
+                      textAlign: TextAlign.center,
+                      style: menuTextStyle(
+                        unit,
+                        5,
+                      ).copyWith(color: const Color(0xccd8ccbb)),
+                    ),
+                  ),
+                ),
+              ),
           ],
         );
       },
@@ -251,6 +274,21 @@ final class _MainMenuState extends State<MainMenu> {
   }
 }
 
+/// The pale letters of the menus, with a black shadow so they read over
+/// any picture: [size] in virtual pixels.
+TextStyle menuTextStyle(double unit, double size) => TextStyle(
+  color: menuTextColour,
+  fontFamily: 'monospace',
+  fontSize: size * unit,
+  decoration: TextDecoration.none,
+  shadows: <Shadow>[
+    Shadow(blurRadius: 3 * unit),
+    Shadow(offset: Offset(unit * 0.6, unit * 0.6)),
+  ],
+);
+
+const Color menuTextColour = Color(0xffe8dccb);
+
 final class MenuHeading extends StatelessWidget {
   const MenuHeading({required this.text, required this.unit, super.key});
 
@@ -261,14 +299,10 @@ final class MenuHeading extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: TextStyle(
-        color: BloodColors.bright,
-        fontFamily: 'monospace',
-        fontSize: 11 * unit,
-        fontWeight: FontWeight.bold,
-        letterSpacing: 1.5 * unit,
-        decoration: TextDecoration.none,
-      ),
+      style: menuTextStyle(
+        unit,
+        11,
+      ).copyWith(fontWeight: FontWeight.bold, letterSpacing: 1.5 * unit),
     );
   }
 }
@@ -384,7 +418,7 @@ final class _Credits extends StatelessWidget {
       padding: EdgeInsets.symmetric(vertical: 3 * unit),
       child: Column(
         children: <Widget>[
-          Text('MUSICA', style: style.copyWith(color: BloodColors.bright)),
+          Text('MUSICA', style: style.copyWith(fontWeight: FontWeight.bold)),
           for (final credit in musicCredits)
             Text(
               '"${credit.title}" - ${credit.author} - ${credit.licence}',

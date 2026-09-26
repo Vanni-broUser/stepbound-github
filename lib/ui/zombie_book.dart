@@ -5,7 +5,6 @@ import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
 import 'package:stepbound/game/zombie_lore.dart';
-import 'package:stepbound/ui/blood_decor.dart';
 import 'package:stepbound/ui/main_menu.dart';
 import 'package:stepbound/ui/story_intro.dart';
 
@@ -262,7 +261,7 @@ final class _ZombieBookState extends State<ZombieBook> {
                         known ? card.name.toUpperCase() : '???',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: BloodColors.bright,
+                          color: menuTextColour,
                           fontFamily: 'monospace',
                           fontSize: 9 * unit,
                           fontWeight: FontWeight.bold,

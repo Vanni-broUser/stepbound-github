@@ -394,7 +394,7 @@ void main() {
   test('stepping into the crossroads alerts the zombie at once', () {
     final world = createTutorialWorld();
     world.player.component<PositionComponent>().position = const GridPoint(
-      13,
+      12,
       35,
     );
     final events = const TurnScheduler().advance(
@@ -409,6 +409,29 @@ void main() {
       hasLength(1),
       reason: 'it steps towards the player on the turn it notices them',
     );
+  });
+
+  test('the top sidewalk, where it turns north, is part of the crossroads: '
+      'nobody slips up the road past the first zombie', () {
+    final world = createTutorialWorld();
+    world.player.component<PositionComponent>().position = const GridPoint(
+      12,
+      33,
+    );
+    final events = const TurnScheduler().advance(
+      world,
+      const MoveAction(Direction.east),
+    );
+    expect(events.whereType<AlertedEvent>().single.entityId, tutorialZombieId);
+    // Every tile a step north of the crossroads is reached from inside it.
+    for (var x = 0; x < 40; x++) {
+      final north = GridPoint(x, tutorialZombieTrigger.top - 1);
+      final south = GridPoint(x, tutorialZombieTrigger.top);
+      if (world.map.tileAt(north).isWalkable &&
+          world.map.tileAt(south).isWalkable) {
+        expect(tutorialZombieTrigger.contains(south), isTrue, reason: '$x');
+      }
+    }
   });
 
   group('doors', () {
@@ -2036,6 +2059,8 @@ void main() {
       final things = <GridPoint>[
         trainLuigiTile,
         ...trainBookTiles,
+        ...trainStatsTiles,
+        ...trainWardrobeTiles,
         ...trainCotTiles,
         ...trainAmmoTiles,
       ];
@@ -2051,25 +2076,20 @@ void main() {
           reason: '$thing can be stood next to',
         );
       }
-      // Mario above the aisle and Luigi below it, both at the back, walled
-      // off from the map table by the luggage.
+      // Mario above the aisle and Luigi below it, both at the back, behind
+      // the map table.
       final aisle = trainExitTile.y - 6;
-      final luggage = train
-          .tilesOf('L')
-          .where((tile) => tile.x > trainExitTile.x + 30);
-      final divider = luggage.map((tile) => tile.x).reduce(math.min);
+      final divider = trainMapTiles.map((tile) => tile.x).reduce(math.min);
       expect(trainLuigiTile.x, lessThan(divider));
       expect(trainLuigiTile.y, greaterThan(aisle));
       for (final tile in <GridPoint>[
         ...trainBookTiles,
+        ...trainWardrobeTiles,
         ...trainCotTiles,
         ...trainAmmoTiles,
       ]) {
         expect(tile.x, lessThan(divider));
         expect(tile.y, lessThan(aisle));
-      }
-      for (final map in trainMapTiles) {
-        expect(map.x, greaterThan(divider + 1));
       }
     });
 

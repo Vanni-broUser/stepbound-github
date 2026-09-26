@@ -7,14 +7,21 @@
 /// `S`, tables `T` and luggage `L` are obstacles, while the central aisle
 /// stays clear.
 ///
-/// The locomotive is where the two of them live. Its back half, walled off
-/// from the middle by two stacks of luggage, is split by the aisle: Mario
-/// above it, his cot `B` and a crate of open books `k` with more books and
-/// notes `f` all round, and beside the cot his weapons table `a`, with the
-/// shotgun, the pistol and the boxes of rounds: whenever he comes back to
-/// it with fewer than five rounds, he loads up to five; Luigi below, his
-/// cot `b` among bin bags `u` and empty bottles and cans `o` rolling on
-/// the floor, and Luigi himself `l`. In the middle stands the table with
+/// The locomotive is where the two of them live. Its back half is split
+/// by the aisle: Mario above it, his cot `B` and a crate for a desk three
+/// cells long: on its left end the abacus and the calculator `K` (the
+/// adventure's figures), in the middle `q` his mug and a candle, and on
+/// the right end the open books `k` (the zombie types met so far); more
+/// books and notes `f` all round, and beside the cot his weapons table
+/// `a`, with the shotgun, the pistol and the boxes of rounds: whenever he
+/// comes back to it with fewer than five rounds, he loads up to five.
+/// Along the wall past it his two suitcases `Y`, one lying flat and one
+/// standing, and his wardrobe `R`, a bare rail with his clothes hung on
+/// it: there he chooses what to wear. Luigi below, his cot `b` among bin
+/// bags `u` and empty bottles and cans `o` rolling on the floor, his
+/// suitcases `O` lying open and spilling clothes, more of his clothes `c`
+/// thrown about the floor with underpants and socks `m` (all walked
+/// over), and Luigi himself `l`. In the middle stands the table with
 /// the map of Europe spread over it `P`,
 /// and above it, against the wall on Mario's side, the narrow table they
 /// eat at `G`, laid with cured meats, cheese and bread: a bite there
@@ -25,16 +32,16 @@
 // train-interior-rows-start
 const List<String> trainInteriorRows = <String>[
   'xWWWWWWWWWWWWWWWWWWWWIIIWWWWWWWWWWWWWWWWWWWWIIIWWWWWWWWWWWWWWWWWWWWWWWxxxxxxx',
-  'xW..SS....SS....SS..WI.IW..SS....SS....SS..WI.IWBBB.aaaf..LL..GGG...CCVxxxxxx',
-  'xW..SS....SS....SS..WI.IW..SS....SS....SS..WI.IW...*..kk..LL..........CCVxxxx',
-  'xW....*........*....WI.IW....*........*....WI.IW.f.......fLL.......*...CCVxxx',
-  'xW..TT....LL....TT..WI.IW..TT....LL....TT..WI.IW....f.....LL..PPPP.....*CCVxx',
+  'xW..SS....SS....SS..WI.IW..SS....SS....SS..WI.IWBBB.aaafYYRRR.GGG...CCVxxxxxx',
+  'xW..SS....SS....SS..WI.IW..SS....SS....SS..WI.IW...*...Kqk............CCVxxxx',
+  'xW....*........*....WI.IW....*........*....WI.IW.f.......f.........*...CCVxxx',
+  'xW..TT....LL....TT..WI.IW..TT....LL....TT..WI.IW....f.........PPPP.....*CCVxx',
   'xW............................................................PPPP...h..CCVxx',
-  'xW..SS....SS....SS..WI.IW..SS....SS....SS..WI.IW..u....o..LL..PPPP...h..CCVxx',
-  'xW..SS....SS....SS..WI.IW..SS....SS....SS..WI.IWo.........LL...........*CCVxx',
-  'xW....*........*....WI.IW....*........*....WI.IW...*......LL...........CCVxxx',
-  'xW..SS....SS....SS..WI.IW..SS....SS....SS..WI.IW.o..l...u.LL..........CCVxxxx',
-  'xW..SS....SS....SS..WI.IW..SS....SS....SS..WI.IWbbb....o..LL........CCVxxxxxx',
+  'xW..SS....SS....SS..WI.IW..SS....SS....SS..WI.IW..u....om.....PPPP...h..CCVxx',
+  'xW..SS....SS....SS..WI.IW..SS....SS....SS..WI.IWoc...m...cc............*CCVxx',
+  'xW....*........*....WI.IW....*........*....WI.IW...*c..cm..O...........CCVxxx',
+  'xW..SS....SS....SS..WI.IW..SS....SS....SS..WI.IW.o..l.m.uccm..........CCVxxxx',
+  'xW..SS....SS....SS..WI.IW..SS....SS....SS..WI.IWbbbm...oc.OO........CCVxxxxxx',
   'xwwwwwwwEwwwwwwwwwwwwiiiwwwwwwwwwwwwwwwwwwwwiiiwwwwwwwwwwwwwwwwwwwwwwwxxxxxxx',
 ];
 // train-interior-rows-end

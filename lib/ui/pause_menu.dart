@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
-import 'package:stepbound/ui/blood_decor.dart';
 import 'package:stepbound/ui/main_menu.dart';
 
 enum _PausePage { home, outfits, resume, restart, quit }
@@ -63,8 +62,13 @@ final class PauseMenu extends StatefulWidget {
     required this.onClose,
     required this.onWearOutfit,
     this.restartsFromStory = true,
+    this.wardrobe = false,
     super.key,
   });
+
+  /// Opened from the wardrobe aboard: only the page of outfits, and its
+  /// back button goes straight back to the game.
+  final bool wardrobe;
 
   final Progress progress;
 
@@ -87,7 +91,9 @@ final class PauseMenu extends StatefulWidget {
 }
 
 final class _PauseMenuState extends State<PauseMenu> {
-  _PausePage _page = _PausePage.home;
+  late _PausePage _page = widget.wardrobe
+      ? _PausePage.outfits
+      : _PausePage.home;
   int _selectedOutfit = 0;
 
   void _open(_PausePage page) => setState(() => _page = page);
@@ -310,7 +316,7 @@ final class _PauseMenuState extends State<PauseMenu> {
                         unlocked ? outfit!.label.toUpperCase() : '???',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: BloodColors.bright,
+                          color: menuTextColour,
                           fontFamily: 'monospace',
                           fontSize: 9 * unit,
                           fontWeight: FontWeight.bold,
@@ -348,7 +354,9 @@ final class _PauseMenuState extends State<PauseMenu> {
             label: 'INDIETRO',
             unit: unit,
             compact: true,
-            onPressed: () => _open(_PausePage.home),
+            onPressed: widget.wardrobe
+                ? widget.onClose
+                : () => _open(_PausePage.home),
           ),
         ),
       ],

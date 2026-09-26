@@ -90,7 +90,7 @@ final class ScenarioBuilder {
   void aboardTrain() {
     world.player.component<PositionComponent>()
       ..position = trainMapStandTile
-      ..facing = trainMapFacing;
+      ..facing = trainArrivalFacing;
     _savedAt = trainPlaceName;
   }
 

@@ -485,10 +485,21 @@ final class StepboundGame extends FlameGame
         tile: stationTrainDoorTile,
         active: () => !simulation.map.tileAt(stationTrainDoorTile).isWalkable,
       ),
-      // Between the two open books of the crate.
+      // Over the open book on the desk.
       InteractGlintComponent(
         tile: trainBookTiles.first,
-        spot: const Offset(16, 6),
+        spot: const Offset(5, 6),
+        active: canInteract,
+      ),
+      // On the middle of the wardrobe rail.
+      InteractGlintComponent(
+        tile: trainWardrobeTiles[trainWardrobeTiles.length ~/ 2],
+        active: canInteract,
+      ),
+      // Over the calculator beside the abacus.
+      InteractGlintComponent(
+        tile: trainStatsTiles.first,
+        spot: const Offset(12, 7),
         active: canInteract,
       ),
       // On the middle of Mario's cot.
@@ -685,7 +696,7 @@ final class StepboundGame extends FlameGame
     // the next level with it, with Mario standing at the map.
     simulation.player.component<PositionComponent>()
       ..position = trainMapStandTile
-      ..facing = trainMapFacing;
+      ..facing = trainArrivalFacing;
     onTravelMapRequested?.call(snapshot(place: trainPlaceName));
   }
 
@@ -704,6 +715,16 @@ final class StepboundGame extends FlameGame
 
   @override
   void openZombieBook() => _cover(const ZombieBookCover());
+
+  @override
+  void openAdventureStats() => _cover(const AdventureStatsCover());
+
+  /// Called by the figures of the adventure once they are closed.
+  void closeAdventureStats() {
+    if (cover.value is AdventureStatsCover) {
+      cover.value = null;
+    }
+  }
 
   /// Called by the book once it is closed.
   void closeZombieBook() {
@@ -887,6 +908,9 @@ final class StepboundGame extends FlameGame
     }
     _cover(const PauseCover());
   }
+
+  @override
+  void openWardrobe() => _cover(const PauseCover(wardrobe: true));
 
   /// Closes it and gives Mario back to the player.
   void closeMenu() {

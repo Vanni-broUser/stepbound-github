@@ -53,7 +53,7 @@ void main() {
       ).player.component<PositionComponent>();
       if (save.place == trainPlaceName) {
         expect(mario.position, trainMapStandTile, reason: scenario.name);
-        expect(mario.facing, trainMapFacing, reason: scenario.name);
+        expect(mario.facing, trainArrivalFacing, reason: scenario.name);
         continue;
       }
       final fire = mario.position.step(mario.facing);
