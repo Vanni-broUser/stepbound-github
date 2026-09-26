@@ -23,6 +23,9 @@ final class MainMenu extends StatefulWidget {
   static const String logo = 'assets/story/logo.png';
 
   /// The city overrun: zombies chasing people through a burning street.
+  ///
+  /// The app draws it over the whole screen, bands included (see
+  /// [MenuBackdrop]); the menu itself stays on the 16:9 picture.
   static const String background = 'assets/story/menu_background.jpg';
 
   /// The classic line at the foot of the first screen.
@@ -115,7 +118,6 @@ final class _MainMenuState extends State<MainMenu> {
           key: const ValueKey<String>('main-menu'),
           fit: StackFit.expand,
           children: <Widget>[
-            Image.asset(MainMenu.background, fit: BoxFit.cover),
             Padding(
               padding: EdgeInsets.all(8 * unit),
               child: Column(
@@ -533,4 +535,19 @@ final class MenuParagraph extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The menu's picture over the whole screen, whatever its shape: it is cut
+/// at the edges rather than leaving bands beside it.
+final class MenuBackdrop extends StatelessWidget {
+  const MenuBackdrop({super.key});
+
+  @override
+  Widget build(BuildContext context) => Image.asset(
+    MainMenu.background,
+    key: const ValueKey<String>('menu-backdrop'),
+    fit: BoxFit.cover,
+    width: double.infinity,
+    height: double.infinity,
+  );
 }

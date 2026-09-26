@@ -213,7 +213,7 @@ def station_underpass(atlas: Atlas, rng) -> dict:
                           [neighbour_key(-1, 0, glyph),
                            neighbour_key(1, 0, glyph)]))
     rules += side_walls(atlas)
-    return {"void": "#060608", "voidGlyph": "x", "rules": rules,
+    return {"void": "#000000", "voidGlyph": "x", "rules": rules,
             "objects": []}
 
 
@@ -307,7 +307,7 @@ def airliner_cabin(atlas: Atlas, rng) -> dict:
         rules.append(rule("structures", glyph, [atlas.bucket(
             lambda s=steady: tile_of(
                 lambda d: airliner.cabin_lamp(d, 0, 0, s)), 1)]))
-    return {"void": "#060608", "voidGlyph": "x", "rules": rules,
+    return {"void": "#000000", "voidGlyph": "x", "rules": rules,
             "objects": []}
 
 
@@ -589,7 +589,7 @@ def bar_arcobaleno(atlas: Atlas, rng) -> dict:
     door = Image.new("RGBA", (TILE, TILE * 2), TRANSPARENT)
     paint_bar_locked_door(ImageDraw.Draw(door), 0, TILE)
     return {
-        "void": "#060608", "voidGlyph": "x", "rules": rules,
+        "void": "#000000", "voidGlyph": "x", "rules": rules,
         "objects": [
             {"glyph": "W", "image": "bar_back_wall.png",
              "tiles": list(BAR_WALL_TILES), "sprite": wall},
@@ -982,7 +982,7 @@ def duomo(atlas: Atlas, rng) -> dict:
                           [neighbour_key(1 if right else -1, 0, "x")]))
     # The door upstairs stands open: the cultist in front of it is what
     # keeps Mario out.
-    return {"void": "#060608", "voidGlyph": "x", "rules": rules,
+    return {"void": "#000000", "voidGlyph": "x", "rules": rules,
             "objects": [{"glyph": "U", "image": "duomo_nave_door.png",
                          "offsetY": -1, "sprite": stair_door(leaf=True)}]}
 
@@ -1263,7 +1263,7 @@ def duomo_upper(atlas: Atlas, rng) -> dict:
     paint_locked_door(ImageDraw.Draw(door), 0, TILE)
     # Once the key has opened it, the stairs to the second floor show.
     return {
-        "void": "#060608",
+        "void": "#000000",
         "voidGlyph": "x",
         "rules": rules,
         "objects": [{"glyph": "L", "image": "duomo_upper_door.png",
@@ -1422,7 +1422,7 @@ def duomo_second_floor(atlas: Atlas, rng) -> dict:
          for index in range(16)],
         [neighbour_key(-1, 0, "r"), neighbour_key(1, 0, "r"),
          neighbour_key(0, -1, "r"), neighbour_key(0, 1, "r")]))
-    return {"void": "#060608", "voidGlyph": "x", "rules": rules,
+    return {"void": "#000000", "voidGlyph": "x", "rules": rules,
             "objects": [{"glyph": "U", "image": "duomo_stair_arch.png",
                          "offsetY": -1, "sprite": stair_door()}]}
 
@@ -1539,7 +1539,7 @@ def duomo_tower(atlas: Atlas, rng) -> dict:
         rule("structures", "K", [atlas.bucket(
             lambda: tile_of(lambda d: paint_backroom_crate(d, 0, 0)), 1)]),
     ]
-    return {"void": "#060608", "voidGlyph": "x", "rules": rules,
+    return {"void": "#000000", "voidGlyph": "x", "rules": rules,
             "objects": [{"glyph": "U", "image": "duomo_stair_arch.png",
                          "offsetY": -1, "sprite": stair_door()}]}
 
@@ -1642,7 +1642,7 @@ def duomo_tower_roof(atlas: Atlas, rng) -> dict:
         rule("structures", ":", [atlas.bucket(lambda: tile_of(
             lambda d: airliner.roof_rubble(d, rng, 0, 0)))]),
     ]
-    return {"void": "#060608", "voidGlyph": "x", "rules": rules,
+    return {"void": "#000000", "voidGlyph": "x", "rules": rules,
             "objects": [duomo_tower_roof_view(rng)]}
 
 # ------------------------------------------- the view from the bell tower
@@ -2065,7 +2065,7 @@ def bar_backroom(atlas: Atlas, rng) -> dict:
             lambda d: paint_side_edge(d, 0, 0, r)), 1)
         rules.append(rule("foreground", floored, [[], edge],
                           [neighbour_key(1 if right else -1, 0, "x")]))
-    return {"void": "#060608", "voidGlyph": "x", "rules": rules,
+    return {"void": "#000000", "voidGlyph": "x", "rules": rules,
             "objects": []}
 
 
@@ -2397,7 +2397,7 @@ def station_far_side(atlas: Atlas, rng) -> dict:
         return sprite
 
     return {
-        "void": "#060608",
+        "void": "#000000",
         "voidGlyph": "x",
         "rules": rules,
         "objects": [
@@ -2687,7 +2687,7 @@ def barracks(atlas: Atlas, rng) -> dict:
     door = Image.new("RGBA", (TILE, TILE * 3), TRANSPARENT)
     paint_barracks_exit_door(ImageDraw.Draw(door), 0, TILE * 2)
     return {
-        "void": "#060608",
+        "void": "#000000",
         "voidGlyph": "x",
         "rules": rules,
         "objects": [{"glyph": "O", "image": "barracks_exit.png",
@@ -3867,7 +3867,7 @@ def train_interior(atlas: Atlas, rng) -> dict:
     paint_train_food_table(ImageDraw.Draw(food))
     nose, first = train_nose(Room(rows))
     return {
-        "void": "#060608",
+        "void": "#000000",
         "voidGlyph": "x",
         "rules": rules,
         "objects": [
@@ -4100,7 +4100,7 @@ def mall_floor(atlas: Atlas, name: str, rng) -> dict:
         mall.paint_exit(ImageDraw.Draw(door), 0, 2)
         objects.append({"glyph": "X", "image": "mall_ground_exit.png",
                         "offsetY": -2, "sprite": door})
-    return {"void": "#060608", "voidGlyph": "x", "rules": rules,
+    return {"void": "#000000", "voidGlyph": "x", "rules": rules,
             "objects": objects}
 
 
@@ -4409,7 +4409,7 @@ def church(atlas: Atlas, rng) -> dict:
                      TRANSPARENT)
     paint_church_apse(ImageDraw.Draw(apse), Block("W", *CH_APSE_TILES), rng)
     return {
-        "void": "#060608",
+        "void": "#000000",
         "voidGlyph": "x",
         "rules": rules,
         "objects": [{"glyph": "W", "image": "church_apse.png",
@@ -4612,7 +4612,7 @@ def station_hall(atlas: Atlas, rng) -> dict:
     burning = burning.crop((burning.width - STATION_BURNING_TILES[0] * TILE,
                             0, burning.width, burning.height))
     return {
-        "void": "#060608",
+        "void": "#000000",
         "voidGlyph": "x",
         "rules": rules,
         "objects": [
@@ -4759,7 +4759,7 @@ def airliner_roofs(atlas: Atlas, rng) -> dict:
     for glyph in "#D":
         rules.append(rule("structures", glyph,
                           [tail(glyph, i) for i in range(16)], tail_keys))
-    return {"void": "#060608", "voidGlyph": "x", "rules": rules,
+    return {"void": "#000000", "voidGlyph": "x", "rules": rules,
             "objects": []}
 
 

@@ -8,6 +8,7 @@ import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/input/touch_controls.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
+import 'package:stepbound/game/render/pixel_palette.dart';
 import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/game/tutorial/tutorial_director.dart';
 import 'package:stepbound/save/save_game.dart';
@@ -607,7 +608,7 @@ final class _StepboundAppState extends State<StepboundApp> {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xff111718),
+        scaffoldBackgroundColor: PixelPalette.screenBlack,
       ),
       // Browsers only start sound after a tap: the first one lets it play.
       home: Listener(
@@ -623,7 +624,7 @@ final class _StepboundAppState extends State<StepboundApp> {
   Widget _surface(StepboundGame? game) {
     return ColoredBox(
       key: const ValueKey<String>('stepbound-game-surface'),
-      color: const Color(0xff111718),
+      color: PixelPalette.screenBlack,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final scale = IntegerResolutionViewport.scaleFor(
@@ -640,7 +641,7 @@ final class _StepboundAppState extends State<StepboundApp> {
               ),
             );
           }
-          return Center(
+          final picture = Center(
             child: SizedBox(
               width: IntegerResolutionViewport.virtualWidth * scale,
               height: IntegerResolutionViewport.virtualHeight * scale,
@@ -676,6 +677,14 @@ final class _StepboundAppState extends State<StepboundApp> {
               },
             ),
           );
+          // The menu's picture spreads over the bands too.
+          if (_phase == _Phase.menu) {
+            return Stack(
+              fit: StackFit.expand,
+              children: <Widget>[const MenuBackdrop(), picture],
+            );
+          }
+          return picture;
         },
       ),
     );
