@@ -112,6 +112,7 @@ final class PlaceSpec {
     this.name,
     this.cardImage,
     this.torches = const <GridPoint>[],
+    this.lamps = const <GridPoint>[],
     this.darkness = defaultDarkness,
     this.art,
     this.level = LevelId.hometown,
@@ -136,6 +137,11 @@ final class PlaceSpec {
   /// and columns, so they are not glyphs of their own. The game draws
   /// their flames and they light the room like its lamps.
   final List<GridPoint> torches;
+
+  /// Ceiling lamps over something that has a glyph of its own -- a pool
+  /// table, a sign on the wall -- in the place's own tile coordinates:
+  /// they light the room like its `*`.
+  final List<GridPoint> lamps;
 
   /// How dark the room is between its lights, 0 to 1; only for indoor
   /// places that are not [lit].
@@ -231,6 +237,9 @@ final class Place {
           LightSpot(tile, flickers: true),
     if (indoor)
       for (final torch in torches) LightSpot(torch, torch: true),
+    if (indoor)
+      for (final lamp in spec.lamps)
+        LightSpot(GridPoint(origin.x + lamp.x, origin.y + lamp.y)),
   ];
 }
 

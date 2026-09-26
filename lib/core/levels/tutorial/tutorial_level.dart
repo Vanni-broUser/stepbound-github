@@ -74,7 +74,7 @@ const Legend churchLegend = Legend(walls: 'xWwIA', obstacles: 'TK');
 /// The Duomo and the Bar Arcobaleno's storeroom share the indoor masonry
 /// vocabulary, with their own furnishings as waist-high obstacles.
 const Legend duomoLegend = Legend(walls: 'xWwIA', obstacles: 'PTMKFVYG12p');
-const Legend barBackroomLegend = Legend(walls: 'xWwI', obstacles: 'KB');
+const Legend barBackroomLegend = Legend(walls: 'xWwI', obstacles: 'KBGRC');
 const Legend duomoUpperLegend = Legend(walls: 'xWwIL', obstacles: 'TCBKkFHnA');
 
 /// Don Angelo's floor (duomo_second_floor.dart): the crucifix `X` hangs on
@@ -196,6 +196,7 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     legend: barLegend,
     indoor: true,
     daylight: 'E',
+    lamps: barArcobalenoLamps,
   ),
   // Painted from its rows out of the tile atlas.
   PlaceSpec(
@@ -494,8 +495,11 @@ const String rooftopBurningZombiePrefix = 'rooftop-burning-';
 /// The first of them.
 const String rooftopBurningZombieId = '${rooftopBurningZombiePrefix}0';
 
-/// The drunk zombie `U` staggering about the Bar Arcobaleno.
-const String barDrunkZombieId = 'bar-drunk-0';
+/// The drunk zombies `U` staggering about the Bar Arcobaleno.
+const String barDrunkZombiePrefix = 'bar-drunk-';
+
+/// The first of them, in reading order of the rows.
+const String barDrunkZombieId = '${barDrunkZombiePrefix}0';
 
 /// Walking into the crossroads makes the tutorial zombie notice the player
 /// even if it is not looking that way.
@@ -1184,13 +1188,15 @@ WorldState createTutorialWorld({int seed = 20260920}) {
       ),
     );
   }
-  entities.add(
-    factory.zombie(
-      id: barDrunkZombieId,
-      kind: EntityKind.drunk,
-      position: _bar.tileOf('U'),
-    ),
-  );
+  for (final (index, tile) in _bar.tilesOf('U').indexed) {
+    entities.add(
+      factory.zombie(
+        id: '$barDrunkZombiePrefix$index',
+        kind: EntityKind.drunk,
+        position: tile,
+      ),
+    );
+  }
 
   return WorldState(
     map: TileMap(

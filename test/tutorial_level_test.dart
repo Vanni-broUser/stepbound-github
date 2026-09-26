@@ -144,6 +144,54 @@ void main() {
     }
   });
 
+  test('four drunks stagger about the Bar Arcobaleno, one by the service '
+      'door', () {
+    final world = createTutorialWorld();
+    final bar = place(PlaceId.barArcobaleno).bounds;
+    final drunks = world.entities.values
+        .where((entity) => entity.kind == EntityKind.drunk)
+        .toList();
+    expect(drunks, hasLength(4));
+    final tiles = <GridPoint>{
+      for (final drunk in drunks) drunk.component<PositionComponent>().position,
+    };
+    expect(tiles, hasLength(4));
+    expect(tiles.every(bar.contains), isTrue);
+    expect(tiles.every((tile) => world.map.tileAt(tile).isWalkable), isTrue);
+    expect(
+      tiles.any((tile) => tile.manhattanDistanceTo(barLockedDoorTile) <= 3),
+      isTrue,
+    );
+    expect(world.entities, contains(barDrunkZombieId));
+  });
+
+  test('three lamps light the sign of the bar and one each pool table', () {
+    final bar = place(PlaceId.barArcobaleno);
+    String glyphAt(GridPoint tile) =>
+        bar.rows[tile.y - bar.origin.y][tile.x - bar.origin.x];
+    final lit = <GridPoint>{for (final light in bar.lights) light.tile};
+    final onSign = lit.where(
+      (tile) => tile.y == bar.origin.y + 2 && glyphAt(tile) == 'W',
+    );
+    expect(onSign, hasLength(3));
+    final onTables = lit.where((tile) => glyphAt(tile) == 'P').toList();
+    expect(onTables, hasLength(2));
+    // One over each table: the two are not touching.
+    expect(onTables.first.manhattanDistanceTo(onTables.last), greaterThan(2));
+  });
+
+  test('the service door of the bar is in its back wall, used going north', () {
+    final world = createTutorialWorld();
+    final bar = place(PlaceId.barArcobaleno);
+    final above = barLockedDoorTile.step(Direction.north);
+    expect(bar.rows[above.y - bar.origin.y][above.x - bar.origin.x], 'W');
+    // Opened, the only way into it is from the floor below, going north.
+    world.map.setTile(barLockedDoorTile, const Tile(TileKind.floor));
+    expect(world.map.walkableNeighbors(barLockedDoorTile).toList(), <GridPoint>[
+      barLockedDoorTile.step(Direction.south),
+    ]);
+  });
+
   test('the player starts unarmed with no bullets', () {
     final ammo = createTutorialWorld().player.component<AmmoComponent>();
     expect(ammo.hasGun, isFalse);
