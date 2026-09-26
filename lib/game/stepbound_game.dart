@@ -26,6 +26,7 @@ import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/game/render/interact_glint_component.dart';
 import 'package:stepbound/game/render/mall_props.dart';
 import 'package:stepbound/game/render/npc_component.dart';
+import 'package:stepbound/game/render/offscreen_culled.dart';
 import 'package:stepbound/game/render/pickup_component.dart';
 import 'package:stepbound/game/render/pixel_palette.dart';
 import 'package:stepbound/game/render/place_layers.dart';
@@ -390,6 +391,7 @@ final class StepboundGame extends FlameGame
       focus: _characters[_focusId ?? '']?.position,
     );
     _places.cull(camera.visibleWorldRect);
+    _cullOffscreen();
     final shown = _placeShown;
     final scene = cover.value;
     final mix = soundscape.update(
@@ -1343,6 +1345,17 @@ final class StepboundGame extends FlameGame
       ((feet.y - 1) / tileSize).floor(),
     );
     return placeAt(tile) ?? place(PlaceId.street);
+  }
+
+  /// Stops drawing the fires, the torches and the burning ground the
+  /// camera cannot see.
+  void _cullOffscreen() {
+    final view = camera.visibleWorldRect;
+    for (final child in world.children) {
+      if (child is OffscreenCulled) {
+        child.onScreen = child.reach.overlaps(view);
+      }
+    }
   }
 
   void _syncPresentation() {

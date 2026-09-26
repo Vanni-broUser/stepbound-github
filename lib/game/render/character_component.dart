@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:stepbound/core/core.dart' hide PositionComponent;
 import 'package:stepbound/core/entities/components.dart' as simulation;
 import 'package:stepbound/game/progress.dart';
+import 'package:stepbound/game/render/asset_image.dart';
 import 'package:stepbound/game/render/pixel_palette.dart';
 
 enum CharacterAction { none, fire, hit, bite, death, pickup, rest }
@@ -75,8 +76,7 @@ final class CharacterComponent extends PositionComponent {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
-    final assets = manifest.listAssets();
+    final assets = await (_bundled ??= _listBundled());
     if (entity.kind == EntityKind.player) {
       for (final outfit in PlayerOutfit.values) {
         final stem = outfit.spriteStem;
@@ -118,22 +118,19 @@ final class CharacterComponent extends PositionComponent {
     _pickupAtlas = _outfitPickupAtlases[outfit];
   }
 
-  Future<ui.Image?> _loadImage(
-    Iterable<String> assets,
-    String assetPath,
-  ) async {
+  /// The assets in the bundle, read once for every character.
+  static Future<Set<String>>? _bundled;
+
+  static Future<Set<String>> _listBundled() async {
+    final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+    return manifest.listAssets().toSet();
+  }
+
+  Future<ui.Image?> _loadImage(Set<String> assets, String assetPath) async {
     if (!assets.contains(assetPath)) {
       return null;
     }
-    final data = await rootBundle.load(assetPath);
-    final bytes = data.buffer.asUint8List(
-      data.offsetInBytes,
-      data.lengthInBytes,
-    );
-    final codec = await ui.instantiateImageCodec(bytes);
-    final frame = await codec.getNextFrame();
-    codec.dispose();
-    final loaded = frame.image;
+    final loaded = await loadAssetImage(assetPath);
     if (loaded.width < 96 || loaded.height < 96) {
       return null;
     }

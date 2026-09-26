@@ -3,11 +3,12 @@ import 'dart:ui';
 
 import 'package:flame/components.dart';
 import 'package:stepbound/core/core.dart' hide PositionComponent;
+import 'package:stepbound/game/render/offscreen_culled.dart';
 
 /// Animated pixel-art fire: flickering tongues of flame, a pulsing glow,
 /// rising embers and a column of smoke drifting with the wind. The
 /// component's position is the centre of the flame's base.
-final class FireComponent extends PositionComponent {
+final class FireComponent extends PositionComponent with OffscreenCulled {
   FireComponent({
     required Vector2 base,
     required this.halfWidth,
@@ -107,6 +108,16 @@ final class FireComponent extends PositionComponent {
     final c = math.sin(t * 13.7 + phase * 1.3);
     return (0.5 + 0.25 * a + 0.15 * b + 0.1 * c).clamp(0.0, 1.0);
   }
+
+  /// Up to where the smoke and the sparks of a flare climb, and as wide
+  /// as the glow and the smoke's drift.
+  @override
+  Rect get reach => Rect.fromLTRB(
+    position.x - halfWidth * 4 - 30,
+    position.y - flameHeight * 4 - 60,
+    position.x + halfWidth * 4 + 30,
+    position.y + 4,
+  );
 
   @override
   void render(Canvas canvas) {
