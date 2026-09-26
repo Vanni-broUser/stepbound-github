@@ -30,17 +30,13 @@ The numbers decide how urgent the memory items below are.
 
 ## P1 — A save policy for the public demo
 
-`SaveGame.format` is at 30, and a save of any other format reads as an empty
-slot. That is fine while the game is not distributed; once the demo is out,
-an update installs over the old one, keeps its data, and every bump would
-wipe the players' progress.
+Once the demo is out, an update installs over the old one and keeps its
+data: `docs/save_policy.md` says which save formats a build must still load.
 
 - Keep the progress between levels (levels completed, zombies met, memories,
   outfits) apart from the state of the game in progress, so a format change
-  can drop the second without the first.
-- From the first public build on, bump the format only with a migration
-  from the previous one, and test it on a save written by the published
-  build.
+  can drop the second without the first, and the migration has less to
+  carry.
 - Decide whether the game should also save when the app goes to the
   background: today `AppLifecycleListener` in `lib/app.dart` only pauses
   audio and the clock, and only campfires and the end of a level write.
@@ -68,10 +64,10 @@ the zombie book actually draw, or decode them with `cacheWidth`. The scenes
 ## P2 — Split application and game orchestration
 
 `StepboundApp` combines application phases, persistence, audio lifecycle,
-restart behaviour and widget composition. `StepboundGame` combines input,
-tutorial hosting, event presentation, camera, audio, place transitions,
-rendering and save snapshots. They are also the most frequently changed source
-files in the current history (1465 and 976 lines at `1b0261a`), and
+restart behaviour and widget composition. `StepboundGame` combines tutorial
+hosting, event presentation, camera, audio, place transitions, rendering and
+save snapshots. They are also the most frequently changed source files
+in the current history (1465 and 976 lines at `1b0261a`), and
 `lib/game/input/touch_controls.dart` has since grown to 1488 lines, the
 largest file of the game.
 
@@ -81,7 +77,6 @@ management framework:
 - `AppFlowController` for menu, story, title and playing phases;
 - `GameSession` for creation, restoration and snapshots;
 - `WorldEventPresenter` for event-to-animation/audio routing;
-- `GameInputController` for keyboard, touch and held-direction repeat;
 - `PlaceTransitionController` for portals, location cards and camera hand-off;
 - the touch controls split into the pad, the action buttons and the HUD
   badges.

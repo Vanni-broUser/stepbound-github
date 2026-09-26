@@ -116,6 +116,11 @@ Future<void> _pumpBlackFade(WidgetTester tester) async {
   await tester.pump();
 }
 
+/// One step: an arrow pressed and let go at once.
+void _tap(StepboundGame game, Direction direction) => game.input
+  ..pressDirection(direction)
+  ..releaseDirection(direction);
+
 /// Only from inside `tester.runAsync`.
 Future<StepboundGame> _pumpReadyGame(
   WidgetTester tester, {
@@ -313,11 +318,9 @@ void main() {
       expect(map.tileAt(luigiTile).isWalkable, isFalse, reason: 'he is there');
 
       var gone = false;
-      game
-        ..sendLuigiAway(onFinished: () => gone = true)
-        ..pressDirection(Direction.east)
-        ..releaseDirection(Direction.east)
-        ..update(0.3);
+      game.sendLuigiAway(onFinished: () => gone = true);
+      _tap(game, Direction.east);
+      game.update(0.3);
       expect(mario.position, start, reason: 'not while Luigi is walking');
 
       for (var i = 0; i < 400 && !gone; i++) {
@@ -325,10 +328,8 @@ void main() {
       }
       expect(gone, isTrue);
       expect(map.tileAt(luigiTile).isWalkable, isTrue, reason: 'he has gone');
-      game
-        ..pressDirection(Direction.east)
-        ..releaseDirection(Direction.east)
-        ..update(0.3);
+      _tap(game, Direction.east);
+      game.update(0.3);
       expect(mario.position, start.step(Direction.east));
     });
   });
@@ -506,7 +507,7 @@ void main() {
         ..position = key.position.step(Direction.east)
         ..facing = Direction.west;
       Future<void> use() async {
-        game.pressInteract();
+        game.input.pressInteract();
         for (var i = 0; i < 60; i++) {
           game.update(1 / 20);
         }
@@ -865,7 +866,11 @@ void main() {
       var finger = await tester.startGesture(zone);
       await holdLongEnough();
       await finger.up();
-      expect(game.aiming.value, isFalse, reason: 'no shooting unlocked yet');
+      expect(
+        game.input.aiming.value,
+        isFalse,
+        reason: 'no shooting unlocked yet',
+      );
 
       game.unlock(HudElement.shoot);
       await tester.pump();
@@ -875,7 +880,7 @@ void main() {
       finger = await tester.startGesture(zone);
       await holdLongEnough();
       await finger.up();
-      expect(game.aiming.value, isFalse);
+      expect(game.input.aiming.value, isFalse);
       expect(
         game.presentation.lastEvents.whereType<DryFiredEvent>(),
         hasLength(1),
@@ -889,7 +894,7 @@ void main() {
       await finger.moveBy(const Offset(40, 0));
       await holdLongEnough();
       await finger.up();
-      expect(game.aiming.value, isFalse);
+      expect(game.input.aiming.value, isFalse);
 
       // Hold: the pistol comes up with a splash of blood. Dragging turns
       // Mario without firing, all the way round, and lifting fires.
@@ -899,7 +904,7 @@ void main() {
       final before = _splats(tester).lastOrNull;
       finger = await tester.startGesture(zone);
       await holdLongEnough();
-      expect(game.aiming.value, isTrue);
+      expect(game.input.aiming.value, isTrue);
       await tester.pump();
       final hold = _splats(tester).last;
       expect(hold, isNot(same(before)), reason: 'the hold');
@@ -908,12 +913,12 @@ void main() {
       await finger.moveBy(const Offset(40, 40));
       expect(facing.facing, Direction.east);
       expect(shots(), isEmpty, reason: 'nothing fired while held');
-      expect(game.aiming.value, isTrue);
+      expect(game.input.aiming.value, isTrue);
       await finger.up();
       await tester.pump();
       expect(_splats(tester).last, isNot(same(hold)), reason: 'the shot');
       expect(shots().single.direction, Direction.east);
-      expect(game.aiming.value, isFalse);
+      expect(game.input.aiming.value, isFalse);
       settle();
 
       // Dragged out and back into the middle ring: lifting fires nothing.
@@ -924,15 +929,15 @@ void main() {
       expect(facing.facing, Direction.west);
       await finger.moveBy(const Offset(36, -3));
       await finger.up();
-      expect(game.aiming.value, isFalse);
+      expect(game.input.aiming.value, isFalse);
       expect(mario.component<AmmoComponent>().loaded, loaded);
 
       // Held and lifted where it landed: the pistol goes down unfired.
       finger = await tester.startGesture(zone);
       await holdLongEnough();
-      expect(game.aiming.value, isTrue);
+      expect(game.input.aiming.value, isTrue);
       await finger.up();
-      expect(game.aiming.value, isFalse, reason: 'lifting lowers it');
+      expect(game.input.aiming.value, isFalse, reason: 'lifting lowers it');
       expect(mario.component<AmmoComponent>().loaded, loaded);
 
       // Right thumb aiming, left thumb dragging: he neither walks nor
@@ -947,18 +952,18 @@ void main() {
       settle();
       expect(mario.component<AmmoComponent>().loaded, loaded);
       expect(facing.position, standing);
-      expect(game.aiming.value, isTrue);
+      expect(game.input.aiming.value, isTrue);
       await finger.up();
       await left.up();
       settle();
 
       // The keyboard arrows still fire straight away.
       loaded = mario.component<AmmoComponent>().loaded;
-      game.pressShoot();
-      expect(game.aiming.value, isTrue);
-      game.pressDirection(Direction.east);
+      game.input.pressShoot();
+      expect(game.input.aiming.value, isTrue);
+      game.input.pressDirection(Direction.east);
       expect(shots().single.direction, Direction.east);
-      expect(game.aiming.value, isFalse);
+      expect(game.input.aiming.value, isFalse);
       expect(mario.component<AmmoComponent>().loaded, loaded - 1);
 
       // A few seconds on, the blood has dried off the glass.
@@ -1015,11 +1020,15 @@ void main() {
       // Held: the pistol comes up once the hold is long enough.
       key(space, down: true);
       play(0.2);
-      expect(game.aiming.value, isFalse, reason: 'not held long enough yet');
+      expect(
+        game.input.aiming.value,
+        isFalse,
+        reason: 'not held long enough yet',
+      );
       play(0.2);
-      expect(game.aiming.value, isTrue);
+      expect(game.input.aiming.value, isTrue);
       key(space, down: false);
-      expect(game.aiming.value, isTrue, reason: 'letting go keeps it up');
+      expect(game.input.aiming.value, isTrue, reason: 'letting go keeps it up');
 
       // An arrow fires that way.
       key(LogicalKeyboardKey.arrowUp, down: true);
@@ -1028,18 +1037,18 @@ void main() {
         Direction.north,
       );
       key(LogicalKeyboardKey.arrowUp, down: false);
-      expect(game.aiming.value, isFalse);
+      expect(game.input.aiming.value, isFalse);
       play(1);
 
       // Aiming, a quick tap lowers the pistol.
       key(space, down: true);
       play(0.4);
       key(space, down: false);
-      expect(game.aiming.value, isTrue);
+      expect(game.input.aiming.value, isTrue);
       key(space, down: true);
       play(0.1);
       key(space, down: false);
-      expect(game.aiming.value, isFalse);
+      expect(game.input.aiming.value, isFalse);
       expect(mario.component<AmmoComponent>().loaded, 1);
 
       // Not aiming, a quick tap interacts: here, resting at the fire.
@@ -1058,7 +1067,7 @@ void main() {
       key(space, down: true);
       play(0.1);
       key(space, down: false);
-      expect(game.aiming.value, isFalse);
+      expect(game.input.aiming.value, isFalse);
       play(3);
       await Future<void>.delayed(Duration.zero);
       expect((await saves.load(1))?.atCampfire, isTrue);
@@ -1146,7 +1155,7 @@ void main() {
       zombie.component<ActorComponent>().energy =
           zombie.component<ActorComponent>().tickCost - 1;
 
-      game.pressWait();
+      game.input.pressWait();
       await tester.pump(const Duration(milliseconds: 300));
       expect(player.component<HealthComponent>().current, 0);
 
@@ -1260,10 +1269,10 @@ void main() {
       final position = game.simulation.player.component<PositionComponent>()
         ..position = const GridPoint(16, 7)
         ..facing = Direction.north;
-      void stepNorth() => game
-        ..pressDirection(Direction.north)
-        ..releaseDirection(Direction.north)
-        ..update(0.3);
+      void stepNorth() {
+        _tap(game, Direction.north);
+        game.update(0.3);
+      }
 
       stepNorth();
       final inside = position.position;
@@ -1287,10 +1296,8 @@ void main() {
       game.simulation.player.component<PositionComponent>()
         ..position = const GridPoint(16, 7)
         ..facing = Direction.north;
-      game
-        ..pressDirection(Direction.north)
-        ..releaseDirection(Direction.north)
-        ..update(0.3);
+      _tap(game, Direction.north);
+      game.update(0.3);
       // The barracks are painted from the tile atlas: no picture to name.
       expect(game.drawnPlaces, <String>['tiles:barracks']);
     });
@@ -1491,10 +1498,8 @@ void main() {
       game.simulation.player.component<PositionComponent>()
         ..position = door.step(Direction.north)
         ..facing = Direction.south;
-      game
-        ..update(1)
-        ..pressDirection(Direction.south)
-        ..releaseDirection(Direction.south);
+      game.update(1);
+      _tap(game, Direction.south);
       for (var i = 0; i < 30; i++) {
         game.update(1 / 30);
       }
@@ -1533,9 +1538,7 @@ void main() {
         );
       }
 
-      game
-        ..pressDirection(Direction.south)
-        ..releaseDirection(Direction.south);
+      _tap(game, Direction.south);
       for (var i = 0; i < 30; i++) {
         game.update(1 / 30);
       }
@@ -1574,7 +1577,7 @@ void main() {
         ..facing = Direction.east;
       game
         ..unlock(HudElement.interact)
-        ..pressInteract();
+        ..input.pressInteract();
       for (var i = 0; i < 60; i++) {
         game.update(1 / 20);
       }
@@ -1598,7 +1601,7 @@ void main() {
       expect(game.inputLocked, isFalse);
       expect(find.byKey(const ValueKey<String>('touch-move')), findsOneWidget);
       game
-        ..pressDirection(Direction.west)
+        ..input.pressDirection(Direction.west)
         ..update(1 / 20);
       expect(
         game.simulation.player.component<PositionComponent>().position,
@@ -1632,7 +1635,7 @@ void main() {
         ..facing = Direction.north;
       game
         ..unlock(HudElement.interact)
-        ..pressInteract();
+        ..input.pressInteract();
       for (var i = 0; i < 60; i++) {
         game.update(1 / 20);
       }
@@ -1669,7 +1672,7 @@ void main() {
         ..position = camp.step(Direction.west)
         ..facing = Direction.east;
       Future<void> rest() async {
-        game.pressInteract();
+        game.input.pressInteract();
         for (var i = 0; i < 60; i++) {
           game.update(1 / 20);
         }
