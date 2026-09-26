@@ -488,6 +488,7 @@ final class StepboundGame extends FlameGame
       InteractGlintComponent(tile: rooftopGapTile, active: canInteract),
       InteractGlintComponent(tile: duomoTowerLookoutTile, active: canInteract),
       InteractGlintComponent(tile: shoppingStreetFireTile, active: canInteract),
+      InteractGlintComponent(tile: stationTrackFireTile, active: canInteract),
       // Between the two open books of the crate.
       InteractGlintComponent(
         tile: trainBookTiles.first,

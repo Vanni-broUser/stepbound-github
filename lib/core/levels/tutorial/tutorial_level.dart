@@ -94,11 +94,16 @@ const Legend duomoTowerLegend = Legend(walls: 'xWwIo', obstacles: '|KO');
 /// Mario looks over `>` and the lightning rod `n` can be seen over.
 const Legend duomoTowerRoofLegend = Legend(walls: 'x=', obstacles: '^>n');
 
-/// The three places of the station (station.dart): the railcar `M` and
-/// the rubble `#` shut the way like walls, the coach on its side `m`, the
-/// benches `T`, the ticket windows `K` and the canopy posts `n` can be
-/// seen over.
-const Legend stationLegend = Legend(walls: 'xWwMP#', obstacles: 'TKmn');
+/// The three places of the station (station.dart): the side walls `|`, the
+/// hijacked train's cars `m` and `C` and its overturned ones `V` and `H`,
+/// the railcar `M` and the rubble `#` shut the way like walls, the benches
+/// `T`, the ticket windows `K` and the canopy posts `n` can be seen over,
+/// and the gap by the burning car `?` is on fire.
+const Legend stationLegend = Legend(
+  walls: 'xWwMmCVHP#|',
+  obstacles: 'TKn',
+  fire: '?',
+);
 
 /// Inside the train the shell, the windscreen and the gangway partitions
 /// are walls. Seats, tables, luggage, the controls, the driver's seat and
@@ -575,9 +580,23 @@ List<FireSpot> _firesIn(Place place) {
 /// Fires burning on the first street.
 final List<FireSpot> streetFireSpots = _firesIn(_street);
 
-/// Fires of every outdoor place.
+/// The flames along the overturned car `H` burning at the west end of the
+/// station's tracks, one every two cells from its west end.
+final List<FireSpot> stationWreckFireSpots = () {
+  final car = _station.tilesOf('H');
+  final west = car.map((tile) => tile.x).reduce(math.min);
+  final east = car.map((tile) => tile.x).reduce(math.max);
+  final middle = car.map((tile) => tile.y).reduce(math.min) + 1;
+  return <FireSpot>[
+    for (var x = west; x < east; x += 2)
+      FireSpot(GridPoint(x, middle), FireKind.car),
+  ];
+}();
+
+/// Fires of every outdoor place, and those on the station's burning car.
 final List<FireSpot> outdoorFireSpots = <FireSpot>[
   for (final place in _streets) ..._firesIn(place),
+  ...stationWreckFireSpots,
 ];
 
 /// Where the carabinieri zombies come out in the barracks.
@@ -819,6 +838,13 @@ final GridPoint shoppingStreetFireTile = _mallNorthStreet
     .tilesOf('?')
     .reduce((a, b) => a.x > b.x ? a : b);
 
+/// The east end of the fire in the one gap between the station's burning
+/// car and the car still upright, on the platform side: the only way onto
+/// the tracks, and looking at it says what it would take.
+final GridPoint stationTrackFireTile = _station
+    .tilesOf('?')
+    .reduce((a, b) => a.y > b.y || (a.y == b.y && a.x > b.x) ? a : b);
+
 /// Doors [from] one place [to] another, tile by tile in order: stepping on
 /// a tile of [from] lands on the tile of [to] one step towards [facing].
 Map<GridPoint, Portal> _pairedDoors(
@@ -977,7 +1003,7 @@ Map<GridPoint, Portal> _portals() {
     ..._pairedDoors(
       _underpass.doorRow('D'),
       _station.doorRow('U'),
-      Direction.south,
+      Direction.north,
     ),
     ..._pairedDoors(
       _underpass.doorRow('U'),
@@ -1219,6 +1245,7 @@ WorldState createTutorialWorld({int seed = 20260920}) {
       rooftopGapTile,
       duomoTowerLookoutTile,
       shoppingStreetFireTile,
+      stationTrackFireTile,
       trainLuigiTile,
       ...trainBookTiles,
       ...trainCotTiles,
