@@ -104,7 +104,8 @@ final class StepboundGame extends FlameGame
 
   /// How long the space bar, or a finger on the right half of the screen,
   /// stays down before Mario raises the pistol. Let go sooner and it is a
-  /// tap: he interacts.
+  /// tap: he interacts. On the screen the pistol stays up only for as long
+  /// as that finger does.
   static const Duration holdToAim = Duration(milliseconds: 300);
 
   /// How long Mario stands still on the threshold of a building, so the
@@ -1196,6 +1197,14 @@ final class StepboundGame extends FlameGame
     _heldDirection = null;
     _holdElapsed = 0;
     aiming.value = true;
+  }
+
+  /// Turns the aimed pistol to [direction] without firing.
+  void aimToward(Direction direction) {
+    if (!_canAct || !aiming.value) {
+      return;
+    }
+    simulation.player.component<PositionComponent>().facing = direction;
   }
 
   /// Turns the aimed pistol to [direction] and fires at once.

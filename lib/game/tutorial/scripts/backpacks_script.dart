@@ -19,8 +19,8 @@ final class BackpacksScript extends TutorialScript {
   static const String duomoKeyFound =
       'Hai trovato la Chiave del Duomo vicino il cadavere di Don Angelo';
   static const String shootLesson =
-      'Tieni premuto a destra per mirare, poi scorri verso una direzione '
-      'per sparare. Tocca di nuovo a destra per abbassare la pistola';
+      'Tieni premuto a destra per mirare e trascina verso una direzione: '
+      'lascia per sparare. Lascia nel cerchio al centro per non sparare';
 
   /// "Non hai una pistola" only while the player really has none.
   static String ammoFound(int rounds, {required bool hasGun}) => hasGun

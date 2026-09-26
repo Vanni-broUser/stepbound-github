@@ -742,11 +742,14 @@ void main() {
     });
   });
 
-  testWidgets('holding the right aims, a swipe shoots that way and a tap '
-      'lowers the pistol', (tester) {
+  testWidgets('holding the right raises a stick that turns Mario, lifting '
+      'fires that way and lifting in the middle ring lowers the pistol', (
+    tester,
+  ) {
     return tester.runAsync(() async {
       final game = await _pumpReadyGame(tester);
       final mario = game.simulation.player;
+      final facing = mario.component<PositionComponent>();
       final zone = tester.getCenter(
         find.byKey(const ValueKey<String>('touch-act')),
       );
@@ -792,7 +795,8 @@ void main() {
       await finger.up();
       expect(game.aiming.value, isFalse);
 
-      // Hold, then swipe with the same finger: aimed and fired at once.
+      // Hold: the pistol comes up with a splash of blood. Dragging turns
+      // Mario without firing, all the way round, and lifting fires.
       await tester.pump();
       // Splats age by the wall clock here, so older ones may dry off in
       // between: count only the new ones on top.
@@ -804,67 +808,62 @@ void main() {
       final hold = _splats(tester).last;
       expect(hold, isNot(same(before)), reason: 'the hold');
       await finger.moveBy(const Offset(0, -40));
-      await tester.pump();
-      expect(_splats(tester).last, isNot(same(hold)), reason: 'the swipe');
-      expect(_splats(tester), contains(same(hold)));
-      expect(game.aiming.value, isFalse);
-      expect(shots().single.direction, Direction.north);
-      expect(mario.component<PositionComponent>().facing, Direction.north);
+      expect(facing.facing, Direction.north);
+      await finger.moveBy(const Offset(40, 40));
+      expect(facing.facing, Direction.east);
+      expect(shots(), isEmpty, reason: 'nothing fired while held');
+      expect(game.aiming.value, isTrue);
       await finger.up();
+      await tester.pump();
+      expect(_splats(tester).last, isNot(same(hold)), reason: 'the shot');
+      expect(shots().single.direction, Direction.east);
+      expect(game.aiming.value, isFalse);
       settle();
 
-      // Hold and lift: the pistol stays up, and a new swipe fires.
+      // Dragged out and back into the middle ring: lifting fires nothing.
+      var loaded = mario.component<AmmoComponent>().loaded;
       finger = await tester.startGesture(zone);
       await holdLongEnough();
-      await finger.up();
-      expect(game.aiming.value, isTrue, reason: 'lifting does not lower it');
-      finger = await tester.startGesture(zone);
       await finger.moveBy(const Offset(-40, 5));
+      expect(facing.facing, Direction.west);
+      await finger.moveBy(const Offset(36, -3));
       await finger.up();
-      expect(shots().single.direction, Direction.west);
       expect(game.aiming.value, isFalse);
-      settle();
+      expect(mario.component<AmmoComponent>().loaded, loaded);
 
-      // Right thumb holding the pistol up, left thumb swiping: it fires
-      // that way instead of walking.
-      mario.component<AmmoComponent>().loaded = 3;
-      final standing = mario.component<PositionComponent>().position;
+      // Held and lifted where it landed: the pistol goes down unfired.
       finger = await tester.startGesture(zone);
       await holdLongEnough();
       expect(game.aiming.value, isTrue);
+      await finger.up();
+      expect(game.aiming.value, isFalse, reason: 'lifting lowers it');
+      expect(mario.component<AmmoComponent>().loaded, loaded);
+
+      // Right thumb aiming, left thumb dragging: he neither walks nor
+      // fires, the left thumb has no say while the pistol is up.
+      final standing = facing.position;
+      finger = await tester.startGesture(zone);
+      await holdLongEnough();
       final left = await tester.startGesture(
         tester.getCenter(find.byKey(const ValueKey<String>('touch-move'))),
       );
       await left.moveBy(const Offset(0, 40));
-      expect(shots().single.direction, Direction.south);
-      expect(game.aiming.value, isFalse);
       settle();
-      expect(
-        mario.component<PositionComponent>().position,
-        standing,
-        reason: 'the swipe that fired does not walk him on',
-      );
-      await left.up();
+      expect(mario.component<AmmoComponent>().loaded, loaded);
+      expect(facing.position, standing);
+      expect(game.aiming.value, isTrue);
       await finger.up();
+      await left.up();
       settle();
 
-      // The keyboard arrows do the same.
+      // The keyboard arrows still fire straight away.
+      loaded = mario.component<AmmoComponent>().loaded;
       game.pressShoot();
       expect(game.aiming.value, isTrue);
       game.pressDirection(Direction.east);
       expect(shots().single.direction, Direction.east);
       expect(game.aiming.value, isFalse);
-      settle();
-
-      // Aiming, a tap lowers the pistol without firing.
-      finger = await tester.startGesture(zone);
-      await holdLongEnough();
-      await finger.up();
-      expect(game.aiming.value, isTrue);
-      final loaded = mario.component<AmmoComponent>().loaded;
-      await tester.tap(find.byKey(const ValueKey<String>('touch-act')));
-      expect(game.aiming.value, isFalse);
-      expect(mario.component<AmmoComponent>().loaded, loaded);
+      expect(mario.component<AmmoComponent>().loaded, loaded - 1);
 
       // A few seconds on, the blood has dried off the glass.
       await tester.pump();
