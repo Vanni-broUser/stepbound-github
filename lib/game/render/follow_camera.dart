@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flame/components.dart';
@@ -39,6 +40,31 @@ final class FollowCamera {
 
   final CameraComponent camera;
   Place? _place;
+
+  /// How many screen pixels a world pixel takes, before any pinch: the
+  /// same on both axes, so nothing is stretched.
+  double get screenScale {
+    final screen = camera.viewport.size;
+    if (screen.x <= 0 || screen.y <= 0) {
+      return 1;
+    }
+    final view = IntegerResolutionViewport.worldViewFor(screen.x, screen.y);
+    return math.min(screen.x / view.width, screen.y / view.height);
+  }
+
+  /// How much of the world the whole view shows, in pixels: the screen's
+  /// shape, about as much ground as the 16:9 view on any screen (see
+  /// [IntegerResolutionViewport.worldViewFor]).
+  Vector2 get _view {
+    final screen = camera.viewport.size;
+    if (screen.x <= 0 || screen.y <= 0) {
+      return Vector2(
+        IntegerResolutionViewport.virtualWidth,
+        IntegerResolutionViewport.virtualHeight,
+      );
+    }
+    return screen / screenScale;
+  }
 
   /// The view as it would be without zoom: its centre.
   Vector2 _centre = Vector2.zero();
@@ -140,8 +166,8 @@ final class FollowCamera {
 
   void _clamp(Place place) {
     final area = pixelRect(place.bounds);
-    const halfWidth = IntegerResolutionViewport.virtualWidth / 2;
-    const halfHeight = IntegerResolutionViewport.virtualHeight / 2;
+    final halfWidth = _view.x / 2;
+    final halfHeight = _view.y / 2;
     final x = area.width <= halfWidth * 2
         ? area.center.dx
         : _centre.x.clamp(area.left + halfWidth, area.right - halfWidth);
@@ -156,8 +182,8 @@ final class FollowCamera {
   /// in it.
   void _show(Vector2 player) {
     _player = player.clone();
-    const width = IntegerResolutionViewport.virtualWidth;
-    const height = IntegerResolutionViewport.virtualHeight;
+    final width = _view.x;
+    final height = _view.y;
     final shrink = 1 - 1 / _zoom;
     var x = _centre.x + (_anchor.dx - 0.5) * width * shrink;
     var y = _centre.y + (_anchor.dy - 0.5) * height * shrink;
@@ -177,7 +203,7 @@ final class FollowCamera {
       );
     }
     camera.viewfinder
-      ..zoom = _zoom
+      ..zoom = screenScale * _zoom
       ..position = Vector2(x, y);
   }
 

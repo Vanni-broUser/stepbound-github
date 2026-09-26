@@ -17,6 +17,7 @@ import 'package:stepbound/ui/blood_decor.dart';
 import 'package:stepbound/ui/blood_splat.dart';
 import 'package:stepbound/ui/game_cutscene.dart';
 import 'package:stepbound/ui/gameplay_dialogue.dart';
+import 'package:stepbound/ui/letterbox.dart';
 import 'package:stepbound/ui/level_complete.dart';
 import 'package:stepbound/ui/level_map.dart';
 import 'package:stepbound/ui/loading_art.dart';
@@ -420,22 +421,28 @@ final class _StepboundAppState extends State<StepboundApp> {
       onBlack: game.placeCardBlack,
       onFinished: game.dismissPlaceCard,
     ),
-    ZombieBookCover() => ZombieBook(
-      progress: game.progress,
-      onClose: game.closeZombieBook,
+    ZombieBookCover() => Letterbox(
+      color: ZombieBook.backdrop,
+      child: ZombieBook(progress: game.progress, onClose: game.closeZombieBook),
     ),
-    MemoriesCover() => StoryIntro(
-      key: const ValueKey<String>('train-memories-story'),
-      scenes: seenScenes(game.progress, game.progress.level),
-      // Each memory with the music it was lived with, the rest with the
-      // story's.
-      onScene: (scene) => _audio.playMusic(scene.music ?? Music.story),
-      onFinished: game.closeMemories,
-      onExit: game.closeMemories,
+    MemoriesCover() => Letterbox(
+      color: Colors.black,
+      child: StoryIntro(
+        key: const ValueKey<String>('train-memories-story'),
+        scenes: seenScenes(game.progress, game.progress.level),
+        // Each memory with the music it was lived with, the rest with the
+        // story's.
+        onScene: (scene) => _audio.playMusic(scene.music ?? Music.story),
+        onFinished: game.closeMemories,
+        onExit: game.closeMemories,
+      ),
     ),
-    EndOfDemoCover() => RomePlaceholder(
-      key: ObjectKey(cover),
-      onBack: game.closeEndOfDemo,
+    EndOfDemoCover() => Letterbox(
+      color: Colors.black,
+      child: RomePlaceholder(
+        key: ObjectKey(cover),
+        onBack: game.closeEndOfDemo,
+      ),
     ),
     PauseCover() => PauseMenu(
       progress: game.progress,
@@ -447,21 +454,24 @@ final class _StepboundAppState extends State<StepboundApp> {
       onClose: game.closeMenu,
       onWearOutfit: game.wearOutfit,
     ),
-    GameOverCover() => _GameOverOverlay(
-      resumePoint: _resumePoint,
-      restartsFromStory: _levelStart == null,
-      onResumeFromCamp: () {
-        _audio.stop(Sfx.gameOver);
-        unawaited(_resumeFromCamp());
-      },
-      onRestartLevel: () {
-        _audio.stop(Sfx.gameOver);
-        unawaited(_restartLevel());
-      },
-      onMenu: () {
-        _audio.stop(Sfx.gameOver);
-        _backToMenu();
-      },
+    GameOverCover() => Letterbox(
+      color: _GameOverOverlay.backdrop,
+      child: _GameOverOverlay(
+        resumePoint: _resumePoint,
+        restartsFromStory: _levelStart == null,
+        onResumeFromCamp: () {
+          _audio.stop(Sfx.gameOver);
+          unawaited(_resumeFromCamp());
+        },
+        onRestartLevel: () {
+          _audio.stop(Sfx.gameOver);
+          unawaited(_restartLevel());
+        },
+        onMenu: () {
+          _audio.stop(Sfx.gameOver);
+          _backToMenu();
+        },
+      ),
     ),
   };
 
@@ -712,9 +722,11 @@ final class _StepboundAppState extends State<StepboundApp> {
     );
   }
 
-  /// The game picture keeps its 16:9 in the middle of the screen, while the
-  /// controls and the dialogue box spread sideways into the bands a longer
-  /// phone leaves beside it. Every other cover stays on the picture.
+  /// The world fills the whole screen (see ScreenFillingViewport). The
+  /// controls and the dialogue box spread as wide as it, as tall as the
+  /// 16:9 picture; the pause menu stays on the picture, over the world, and
+  /// every other cover lays its picture out itself, with its backdrop
+  /// across the bands (see [Letterbox]).
   Widget _playing(StepboundGame game, Size picture) {
     Widget onPicture(Widget child) => Center(
       child: SizedBox.fromSize(size: picture, child: child),
@@ -724,11 +736,9 @@ final class _StepboundAppState extends State<StepboundApp> {
     return Stack(
       fit: StackFit.expand,
       children: <Widget>[
-        onPicture(
-          GameWidget<StepboundGame>(
-            key: const ValueKey<String>('stepbound-game'),
-            game: game,
-          ),
+        GameWidget<StepboundGame>(
+          key: const ValueKey<String>('stepbound-game'),
+          game: game,
         ),
         if (_phase == _Phase.dialogue) ...<Widget>[
           // Mario speaks once the game behind him is there, so no line goes
@@ -756,7 +766,8 @@ final class _StepboundAppState extends State<StepboundApp> {
               PromptCover() => screenWide(
                 SafeArea(child: _coverOf(game, cover)),
               ),
-              _ => onPicture(_coverOf(game, cover)),
+              PauseCover() => onPicture(_coverOf(game, cover)),
+              _ => _coverOf(game, cover),
             },
           ),
         // The loading picture instead of a black screen while the maps and
@@ -798,6 +809,9 @@ final class _GameOverOverlay extends StatefulWidget {
   final VoidCallback onResumeFromCamp;
   final VoidCallback onRestartLevel;
   final VoidCallback onMenu;
+
+  /// Dims the whole screen, the world still in view behind it.
+  static const Color backdrop = Color(0xc2180e0c);
 
   @override
   State<_GameOverOverlay> createState() => _GameOverOverlayState();
@@ -857,9 +871,8 @@ final class _GameOverOverlayState extends State<_GameOverOverlay> {
         final unit = constraints.maxHeight.isFinite
             ? constraints.maxHeight / IntegerResolutionViewport.virtualHeight
             : 1.0;
-        return ColoredBox(
+        return KeyedSubtree(
           key: const ValueKey<String>('game-over-overlay'),
-          color: const Color(0xc2180e0c),
           child: Center(
             child: SingleChildScrollView(
               child: Column(

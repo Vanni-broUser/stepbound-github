@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
+import 'package:stepbound/ui/letterbox.dart';
 import 'package:stepbound/ui/screen_caption.dart';
 
 /// Announces a new place on the way in: the game fades to black, the
@@ -140,18 +141,20 @@ final class _LocationCardState extends State<LocationCard>
       key: const ValueKey<String>('location-card'),
       behavior: HitTestBehavior.opaque,
       onTap: _skip,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final unit = constraints.maxHeight.isFinite
-              ? constraints.maxHeight / IntegerResolutionViewport.virtualHeight
-              : 1.0;
-          return FadeTransition(
-            opacity: _black,
-            child: ColoredBox(
-              color: Colors.black,
-              child: FadeTransition(
-                opacity: _picture,
-                child: Stack(
+      // The black covers the whole screen, the picture keeps its shape.
+      child: FadeTransition(
+        opacity: _black,
+        child: Letterbox(
+          color: Colors.black,
+          child: FadeTransition(
+            opacity: _picture,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final unit = constraints.maxHeight.isFinite
+                    ? constraints.maxHeight /
+                          IntegerResolutionViewport.virtualHeight
+                    : 1.0;
+                return Stack(
                   fit: StackFit.expand,
                   children: <Widget>[
                     Image.asset(widget.image, fit: BoxFit.cover),
@@ -161,11 +164,11 @@ final class _LocationCardState extends State<LocationCard>
                       unit: unit,
                     ),
                   ],
-                ),
-              ),
+                );
+              },
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }

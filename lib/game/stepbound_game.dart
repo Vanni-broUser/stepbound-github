@@ -22,7 +22,6 @@ import 'package:stepbound/game/render/debug_overlay.dart';
 import 'package:stepbound/game/render/fire_component.dart';
 import 'package:stepbound/game/render/flag_component.dart';
 import 'package:stepbound/game/render/follow_camera.dart';
-import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/game/render/interact_glint_component.dart';
 import 'package:stepbound/game/render/mall_props.dart';
 import 'package:stepbound/game/render/npc_component.dart';
@@ -75,16 +74,9 @@ final class StepboundGame extends FlameGame
        audio = audio ?? SilentAudio(),
        haptics = haptics ?? const GameplayHaptics(),
        hud = ValueNotifier<Set<HudElement>>(Set<HudElement>.of(unlocked)),
-       super(
-         camera: CameraComponent(
-           viewport: FixedResolutionViewport(
-             resolution: Vector2(
-               IntegerResolutionViewport.virtualWidth,
-               IntegerResolutionViewport.virtualHeight,
-             ),
-           ),
-         ),
-       ) {
+       // The world fills the whole screen; FollowCamera zooms it so every
+       // screen shows about as much of it.
+       super(camera: CameraComponent(viewport: MaxViewport())) {
     ammoLoaded = ValueNotifier<int>(
       simulation.player.component<AmmoComponent>().loaded,
     );
@@ -794,10 +786,7 @@ final class StepboundGame extends FlameGame
     _addWithoutWaiting(
       camera.viewport,
       ScreenFadeComponent(
-        size: Vector2(
-          IntegerResolutionViewport.virtualWidth,
-          IntegerResolutionViewport.virtualHeight,
-        ),
+        size: camera.viewport.size.clone(),
         fadeIn: entering
             ? ScreenFadeComponent.slowFadeIn
             : ScreenFadeComponent.defaultFadeIn,
@@ -1117,10 +1106,7 @@ final class StepboundGame extends FlameGame
     _addWithoutWaiting(
       camera.viewport,
       ScreenFadeComponent(
-        size: Vector2(
-          IntegerResolutionViewport.virtualWidth,
-          IntegerResolutionViewport.virtualHeight,
-        ),
+        size: camera.viewport.size.clone(),
         fadeIn: ScreenFadeComponent.slowFadeIn,
         onBlack: () {
           progress.unlockOutfit(PlayerOutfit.cultist);
