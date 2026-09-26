@@ -24,7 +24,8 @@ final class ZombieCard {
   final String description;
 }
 
-const String _unknownPortrait = 'assets/story/portrait_wanderer.png';
+const String _unknownPortrait =
+    'assets/characters/zombies/portraits/wanderer.png';
 
 /// Every card, known or not: first the types the game has, as
 /// [zombieLore] tells them, then the ones still to come, "???" until they

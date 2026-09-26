@@ -35,27 +35,27 @@ Keep the designs readable and non-gory. Archetypes should be distinguishable by 
 
 ## Current production assets
 
-The zombie atlases in `assets/sprites/` are original pixel art, converted to the runtime 96×96 contract with nearest-neighbor sampling and verified in the Flame build. The runtime files are:
+The zombie atlases in `assets/characters/zombies/sprites/` are original pixel art, converted to the runtime 96×96 contract with nearest-neighbor sampling and verified in the Flame build. The runtime files are:
 
-- `zombie_wanderer.png`
-- `zombie_sprinter.png`
-- `zombie_brute.png`
-- `zombie_blind.png`
-- `zombie_carabiniere.png`
-- `zombie_mutilated.png`
-- `zombie_burning.png`
-- `zombie_drunk.png`
+- `wanderer.png`
+- `sprinter.png`
+- `brute.png`
+- `blind.png`
+- `carabiniere.png`
+- `mutilated.png`
+- `burning.png`
+- `drunk.png`
 
-`assets/sprites/atlas_manifest.json` is the machine-readable contract used by the project.
+`assets/characters/atlas_manifest.json` is the machine-readable contract used by the project.
 
 ## Action sheets
 
 Combat animations share the same 96×96, 4-rows-by-6-columns grid and are listed under `actionSheets` in the manifest. Rows keep the south/west/east/north order; the east row mirrors the west row.
 
-- `protagonist_gun.png`: columns `aim_0..aim_2` (drawn-pistol stance held while aiming) and `fire_0..fire_2` (muzzle flash and recoil).
-- `zombie_<type>_hit.png`: three-frame flinch repeated to fill the row.
-- `zombie_<type>_bite.png`: wind-up, two lunge frames with an open maw, recovery.
-- `zombie_<type>_death.png`: six-frame collapse from flinch to prone.
+- `mario/sprites/base_gun.png`: columns `aim_0..aim_2` (drawn-pistol stance held while aiming) and `fire_0..fire_2` (muzzle flash and recoil).
+- `zombies/sprites/<type>_hit.png`: three-frame flinch repeated to fill the row.
+- `zombies/sprites/<type>_bite.png`: wind-up, two lunge frames with an open maw, recovery.
+- `zombies/sprites/<type>_death.png`: six-frame collapse from flinch to prone.
 
 The common sheets are produced by `tools/generate_action_sprites.py`; the carabiniere and special archetypes are derived by `tools/generate_carabiniere.py` and `tools/generate_special_zombies.py`. Run the scripts from the repository root with Python and Pillow.
 
@@ -65,7 +65,7 @@ Not everything drawn in the world is a character on the 96×96 grid. Props
 are their own sheets, outside `atlas_manifest.json`, each with its own
 contract, and the game draws them from a component of its own.
 
-- `crucified_zombie.png`: 128×40, four 32×40 frames in a row — `hang_0`,
+- `assets/characters/zombies/sprites/crucified.png`: 128×40, four 32×40 frames in a row — `hang_0`,
   `hang_1` (a breath lower), `twitch_0`, `twitch_1` (the fit). Two tiles
   wide and two and a half tall, it hangs on the back wall over the middle
   of the Duomo's altar once the mass is over. It follows the story frame

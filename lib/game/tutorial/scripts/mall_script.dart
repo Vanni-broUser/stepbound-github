@@ -27,19 +27,19 @@ final class MallScript extends TutorialScript {
   /// Luigi behind the shutter, then the zombies at Mario's back.
   static const List<CutsceneFrame> luigiScene = <CutsceneFrame>[
     CutsceneFrame(
-      image: 'assets/story/scene_luigi_trapped.jpg',
+      image: 'assets/story/scenes/luigi_trapped.jpg',
       speaker: luigi,
       text:
           'Mi chiamo Luigi. Sono rimasto bloccato qui per colpa del sistema '
           'antifurto',
     ),
     CutsceneFrame(
-      image: 'assets/story/scene_luigi_warning.jpg',
+      image: 'assets/story/scenes/luigi_warning.jpg',
       speaker: luigi,
       text: 'Attenzione! Dietro di te',
     ),
     CutsceneFrame(
-      image: 'assets/story/scene_mall_zombies.jpg',
+      image: 'assets/story/scenes/mall_zombies.jpg',
       speaker: 'Zombi',
       text: 'Aaaahhrg!',
     ),
@@ -48,17 +48,17 @@ final class MallScript extends TutorialScript {
   /// Luigi finishing off the horde, then his reunion with Mario.
   static const List<CutsceneFrame> reunionScene = <CutsceneFrame>[
     CutsceneFrame(
-      image: 'assets/story/scene_luigi_rescue.jpg',
+      image: 'assets/story/scenes/luigi_rescue.jpg',
       speaker: luigi,
       text: "Ce l'hai fatta, ragazzo! Adesso me la vedo io con questi qui",
     ),
     CutsceneFrame(
-      image: 'assets/story/scene_mario_luigi_reunion.jpg',
+      image: 'assets/story/scenes/mario_luigi_reunion.jpg',
       speaker: 'Mario Rossi',
       text: "Sono felice di vedere che c'è qualcun altro vivo e vegeto",
     ),
     CutsceneFrame(
-      image: 'assets/story/scene_mario_luigi_reunion.jpg',
+      image: 'assets/story/scenes/mario_luigi_reunion.jpg',
       speaker: luigi,
       text:
           'A chi lo dici! Finalmente qualcuno che non prova a mangiarmi il '

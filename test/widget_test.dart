@@ -2042,7 +2042,7 @@ void main() {
 
   testWidgets('a story line over a picture already seen comes up with the '
       'tap that turns to it', (tester) async {
-    const same = 'assets/story/scene_mario_luigi_reunion.jpg';
+    const same = 'assets/story/scenes/mario_luigi_reunion.jpg';
     var finished = false;
     await tester.pumpWidget(
       Directionality(
@@ -2051,7 +2051,7 @@ void main() {
           scenes: const <StoryScene>[
             StoryScene(image: same, text: 'Prima'),
             StoryScene(image: same, text: 'Seconda'),
-            StoryScene(image: 'assets/story/scene_harbour.jpg', text: 'Terza'),
+            StoryScene(image: 'assets/story/scenes/harbour.jpg', text: 'Terza'),
           ],
           onFinished: () => finished = true,
         ),

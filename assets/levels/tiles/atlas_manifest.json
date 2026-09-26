@@ -9,7 +9,7 @@
     "overhead"
   ],
   "palette": "assets/palette.gpl",
-  "atlas": "assets/tiles/atlas.png",
+  "atlas": "assets/levels/tiles/atlas.png",
   "columns": 64,
   "places": {
     "airlinerCabin": {
@@ -541,17 +541,17 @@
       "objects": [
         {
           "glyph": "W",
-          "image": "bar_back_wall.png",
+          "image": "hometown/bar_back_wall.png",
           "tiles": [20, 2]
         },
         {
           "glyph": "J",
-          "image": "bar_jukebox.png",
+          "image": "hometown/bar_jukebox.png",
           "offsetY": -1
         },
         {
           "glyph": "D",
-          "image": "bar_service_door.png",
+          "image": "hometown/bar_service_door.png",
           "offsetY": -1
         }
       ]
@@ -847,7 +847,7 @@
       "objects": [
         {
           "glyph": "O",
-          "image": "barracks_exit.png",
+          "image": "hometown/barracks_exit.png",
           "offsetY": -2
         }
       ]
@@ -1031,7 +1031,7 @@
       "objects": [
         {
           "glyph": "W",
-          "image": "church_apse.png",
+          "image": "hometown/church_apse.png",
           "tiles": [22, 2]
         }
       ]
@@ -1540,7 +1540,7 @@
       "objects": [
         {
           "glyph": "U",
-          "image": "duomo_nave_door.png",
+          "image": "rome/duomo_nave_door.png",
           "offsetY": -1
         }
       ]
@@ -1751,12 +1751,12 @@
       "objects": [
         {
           "glyph": "U",
-          "image": "duomo_stair_arch.png",
+          "image": "rome/duomo_stair_arch.png",
           "offsetY": -1
         },
         {
           "glyph": "O",
-          "image": "duomo_bell.png",
+          "image": "rome/duomo_bell.png",
           "tiles": [2, 2]
         }
       ]
@@ -1985,7 +1985,7 @@
       "objects": [
         {
           "glyph": "U",
-          "image": "duomo_stair_arch.png",
+          "image": "rome/duomo_stair_arch.png",
           "offsetY": -1
         }
       ]
@@ -2196,7 +2196,7 @@
       "objects": [
         {
           "glyph": "U",
-          "image": "duomo_stair_arch.png",
+          "image": "rome/duomo_stair_arch.png",
           "offsetY": -1
         }
       ]
@@ -2255,7 +2255,7 @@
       "objects": [
         {
           "at": [0, 0],
-          "image": "duomo_tower_view.png",
+          "image": "rome/duomo_tower_view.png",
           "under": [
             "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
             "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
@@ -2572,9 +2572,9 @@
       "objects": [
         {
           "glyph": "L",
-          "image": "duomo_upper_door.png",
+          "image": "rome/duomo_upper_door.png",
           "offsetY": -1,
-          "whenOpen": "duomo_upper_door_open.png"
+          "whenOpen": "rome/duomo_upper_door_open.png"
         }
       ]
     },
@@ -4071,7 +4071,7 @@
       ],
       "objects": [
         {
-          "image": "harbour_shop_123_7.png",
+          "image": "hometown/harbour_shop_123_7.png",
           "at": [123, 7],
           "under": [
             "HHHHH",
@@ -4081,7 +4081,7 @@
           ]
         },
         {
-          "image": "harbour_duomo.png",
+          "image": "hometown/harbour_duomo.png",
           "at": [67, 2],
           "underAt": [67, 2],
           "under": [
@@ -4099,7 +4099,7 @@
           ]
         },
         {
-          "image": "harbour_church.png",
+          "image": "hometown/harbour_church.png",
           "at": [24, 0],
           "underAt": [24, 0],
           "under": [
@@ -4112,7 +4112,7 @@
           ]
         },
         {
-          "image": "harbour_hull.png",
+          "image": "hometown/harbour_hull.png",
           "at": [4, 15],
           "underAt": [4, 15],
           "under": [
@@ -4125,7 +4125,7 @@
           ]
         },
         {
-          "image": "harbour_gantry.png",
+          "image": "hometown/harbour_gantry.png",
           "at": [14, 13],
           "underAt": [14, 13],
           "under": [
@@ -4136,7 +4136,7 @@
           ]
         },
         {
-          "image": "harbour_moored_boat.png",
+          "image": "hometown/harbour_moored_boat.png",
           "at": [111, 50],
           "underAt": [111, 50],
           "under": [
@@ -4622,7 +4622,7 @@
       "objects": [
         {
           "at": [5, 3],
-          "image": "mallFirst_shops_5_3.png",
+          "image": "hometown/mallFirst_shops_5_3.png",
           "under": [
             "WWWWWW",
             "WWWWWW"
@@ -4630,7 +4630,7 @@
         },
         {
           "at": [18, 3],
-          "image": "mallFirst_shops_18_3.png",
+          "image": "hometown/mallFirst_shops_18_3.png",
           "under": [
             "WWWWWWWWW",
             "WWWWWWWWW"
@@ -4638,13 +4638,13 @@
         },
         {
           "glyph": "S",
-          "image": "mall_first_grocery_sign.png",
+          "image": "hometown/mall_first_grocery_sign.png",
           "tiles": [5, 1],
           "offsetY": -1
         },
         {
           "at": [28, 3],
-          "image": "mall_first_service_wall.png",
+          "image": "hometown/mall_first_service_wall.png",
           "under": [
             "WWWWWWW",
             "WWWWQWW"
@@ -4862,7 +4862,7 @@
       "objects": [
         {
           "at": [1, 1],
-          "image": "mallGround_shops_1_1.png",
+          "image": "hometown/mallGround_shops_1_1.png",
           "under": [
             "WWWWWWWWWWWWWWWWWWWWWWWWWWW",
             "WWWWWWWWWWWWWWWWWWWWWWWWWWW"
@@ -4870,7 +4870,7 @@
         },
         {
           "at": [4, 15],
-          "image": "mallGround_shops_4_15.png",
+          "image": "hometown/mallGround_shops_4_15.png",
           "under": [
             "WWWWWWWWWWWWWWWWWW",
             "WWWWWWWWWWWWWWWWWW"
@@ -4878,7 +4878,7 @@
         },
         {
           "at": [25, 15],
-          "image": "mallGround_shops_25_15.png",
+          "image": "hometown/mallGround_shops_25_15.png",
           "under": [
             "WWWWWW",
             "WWWWWW"
@@ -4886,7 +4886,7 @@
         },
         {
           "glyph": "X",
-          "image": "mall_ground_exit.png",
+          "image": "hometown/mall_ground_exit.png",
           "offsetY": -2
         }
       ]
@@ -6439,7 +6439,7 @@
       ],
       "objects": [
         {
-          "image": "mallNorthStreet_shop_4_3.png",
+          "image": "hometown/mallNorthStreet_shop_4_3.png",
           "at": [4, 3],
           "under": [
             "HHHHH",
@@ -6448,7 +6448,7 @@
           ]
         },
         {
-          "image": "mallNorthStreet_shop_11_3.png",
+          "image": "hometown/mallNorthStreet_shop_11_3.png",
           "at": [11, 3],
           "under": [
             "HHHH",
@@ -6457,7 +6457,7 @@
           ]
         },
         {
-          "image": "mallNorthStreet_shop_17_3.png",
+          "image": "hometown/mallNorthStreet_shop_17_3.png",
           "at": [17, 3],
           "under": [
             "HHHHHH",
@@ -6466,7 +6466,7 @@
           ]
         },
         {
-          "image": "mallNorthStreet_shop_26_3.png",
+          "image": "hometown/mallNorthStreet_shop_26_3.png",
           "at": [26, 3],
           "under": [
             "HHHHHH",
@@ -6475,7 +6475,7 @@
           ]
         },
         {
-          "image": "mallNorthStreet_shop_34_3.png",
+          "image": "hometown/mallNorthStreet_shop_34_3.png",
           "at": [34, 3],
           "under": [
             "HHHHH",
@@ -6484,7 +6484,7 @@
           ]
         },
         {
-          "image": "mallNorthStreet_shop_41_3.png",
+          "image": "hometown/mallNorthStreet_shop_41_3.png",
           "at": [41, 3],
           "under": [
             "HHHHH",
@@ -6493,7 +6493,7 @@
           ]
         },
         {
-          "image": "mallNorthStreet_station.png",
+          "image": "hometown/mallNorthStreet_station.png",
           "at": [56, 0],
           "underAt": [56, 0],
           "under": [
@@ -6506,7 +6506,7 @@
           ]
         },
         {
-          "image": "mallNorthStreet_airliner.png",
+          "image": "hometown/mallNorthStreet_airliner.png",
           "at": [44, 14],
           "underAt": [44, 14],
           "under": [
@@ -7976,7 +7976,7 @@
       ],
       "objects": [
         {
-          "image": "northDistrict_shop_63_30.png",
+          "image": "hometown/northDistrict_shop_63_30.png",
           "at": [63, 30],
           "under": [
             "HHHHHH",
@@ -7985,7 +7985,7 @@
           ]
         },
         {
-          "image": "northDistrict_shop_70_30.png",
+          "image": "hometown/northDistrict_shop_70_30.png",
           "at": [70, 30],
           "under": [
             "HHHHH",
@@ -7994,7 +7994,7 @@
           ]
         },
         {
-          "image": "northDistrict_shop_38_27.png",
+          "image": "hometown/northDistrict_shop_38_27.png",
           "at": [38, 27],
           "under": [
             "HHHHHHH",
@@ -8003,7 +8003,7 @@
           ]
         },
         {
-          "image": "northDistrict_hypermarket.png",
+          "image": "hometown/northDistrict_hypermarket.png",
           "at": [36, 1],
           "underAt": [36, 2],
           "under": [
@@ -8018,7 +8018,7 @@
           ]
         },
         {
-          "image": "northDistrict_hospital.png",
+          "image": "hometown/northDistrict_hospital.png",
           "at": [2, 16],
           "underAt": [2, 16],
           "under": [
@@ -8033,7 +8033,7 @@
           ]
         },
         {
-          "image": "northDistrict_fountain.png",
+          "image": "hometown/northDistrict_fountain.png",
           "at": [46, 34],
           "underAt": [46, 34],
           "under": [
@@ -8360,27 +8360,27 @@
       "objects": [
         {
           "glyph": "H",
-          "image": "station_hall_burning.png",
+          "image": "hometown/station_hall_burning.png",
           "tiles": [4, 3]
         },
         {
           "glyph": "C",
-          "image": "station_hall_upright.png",
+          "image": "hometown/station_hall_upright.png",
           "tiles": [17, 3]
         },
         {
           "glyph": "M",
-          "image": "station_hall_railcar.png",
+          "image": "hometown/station_hall_railcar.png",
           "tiles": [16, 3]
         },
         {
           "glyph": "m",
-          "image": "station_hall_coach.png",
+          "image": "hometown/station_hall_coach.png",
           "tiles": [19, 3]
         },
         {
           "glyph": "V",
-          "image": "station_hall_overturned.png",
+          "image": "hometown/station_hall_overturned.png",
           "tiles": [3, 12]
         }
       ]
@@ -8570,18 +8570,18 @@
       "objects": [
         {
           "glyph": "M",
-          "image": "station_railcar.png",
+          "image": "hometown/station_railcar.png",
           "tiles": [34, 3],
-          "whenOpen": "station_railcar_open.png"
+          "whenOpen": "hometown/station_railcar_open.png"
         },
         {
           "glyph": "l",
-          "image": "station_sign_etta.png",
+          "image": "hometown/station_sign_etta.png",
           "tiles": [8, 1]
         },
         {
           "glyph": "r",
-          "image": "station_sign_molf.png",
+          "image": "hometown/station_sign_molf.png",
           "tiles": [8, 1]
         }
       ]
@@ -10139,7 +10139,7 @@
       ],
       "objects": [
         {
-          "image": "street_barracks.png",
+          "image": "hometown/street_barracks.png",
           "at": [11, 3],
           "underAt": [11, 3],
           "under": [
@@ -10432,22 +10432,22 @@
       "objects": [
         {
           "glyph": "P",
-          "image": "train_map_table.png",
+          "image": "train/train_map_table.png",
           "tiles": [4, 3]
         },
         {
           "glyph": "a",
-          "image": "train_weapons_table.png",
+          "image": "train/train_weapons_table.png",
           "tiles": [3, 1]
         },
         {
           "glyph": "G",
-          "image": "train_food_table.png",
+          "image": "train/train_food_table.png",
           "tiles": [3, 1]
         },
         {
           "at": [69, 0],
-          "image": "train_nose.png",
+          "image": "train/train_nose.png",
           "under": [
             "Wxxxxxxx",
             "CVxxxxxx",
@@ -10650,18 +10650,18 @@
       "objects": [
         {
           "glyph": "M",
-          "image": "termini_railcar.png",
+          "image": "rome/termini_railcar.png",
           "tiles": [42, 3],
-          "whenOpen": "termini_railcar_open.png"
+          "whenOpen": "rome/termini_railcar_open.png"
         },
         {
           "glyph": "Q",
-          "image": "termini_sign_wall.png",
+          "image": "rome/termini_sign_wall.png",
           "tiles": [10, 2]
         },
         {
           "glyph": "o",
-          "image": "termini_sign_platform.png",
+          "image": "rome/termini_sign_platform.png",
           "offsetY": -1
         }
       ]

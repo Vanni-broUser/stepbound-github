@@ -8,7 +8,7 @@ baked from those rows by one of eleven bakers. Nothing in `flutter test` or
 this script was the gate that noticed.
 
 No place has a baked picture any more: the game paints every one of them
-at runtime from its rows, out of the tile atlas (assets/tiles). What is
+at runtime from its rows, out of the tile atlas (assets/levels/tiles). What is
 left to keep current is the atlas itself -- the tiles and the objects the
 painters make -- and that is what this runs.
 

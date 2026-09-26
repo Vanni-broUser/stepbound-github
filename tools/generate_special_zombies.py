@@ -24,7 +24,7 @@ from PIL import Image
 CELL_W = 16
 CELL_H = 24
 ROWS = ("south", "west", "east", "north")
-SPRITES = Path("assets/sprites")
+SPRITES = Path("assets/characters/zombies/sprites")
 TRANSPARENT = (0, 0, 0, 0)
 
 OUTLINE = (16, 12, 12, 255)
@@ -295,7 +295,7 @@ def cultist(frame: Image.Image, row: int, column: int, suffix: str) -> Image.Ima
     return ensure_frame_contract(output)
 
 
-def build(kind: str, transform, *, source_stem: str = "zombie_wanderer") -> None:
+def build(kind: str, transform, *, source_stem: str = "wanderer") -> None:
     source_names = {
         "": f"{source_stem}.png",
         "_hit": f"{source_stem}_hit.png",
@@ -310,9 +310,9 @@ def build(kind: str, transform, *, source_stem: str = "zombie_wanderer") -> None
             for column, frame in enumerate(row_frames):
                 output_row.append(transform(frame, row, column, suffix))
             output_rows.append(output_row)
-        filename = f"zombie_{kind}{suffix}.png"
+        filename = f"{kind}{suffix}.png"
         sheet(output_rows).save(SPRITES / filename)
-        print(f"wrote assets/sprites/{filename}")
+        print(f"wrote assets/characters/zombies/sprites/{filename}")
 
 
 def main() -> None:
@@ -328,7 +328,7 @@ def main() -> None:
         lambda frame, row, column, suffix: burning(frame, row, column, suffix),
     )
     build("drunk", lambda frame, row, column, _suffix: drunk(frame, row, column))
-    build("cultist", cultist, source_stem="zombie_brute")
+    build("cultist", cultist, source_stem="brute")
 
 
 if __name__ == "__main__":

@@ -18,7 +18,8 @@ final class DialogueLine {
   /// A hint or narration: no name over the box and no portrait.
   const DialogueLine.tutorial(this.text) : speaker = null, portrait = null;
 
-  static const String marioPortrait = 'assets/story/portrait_mario.png';
+  static const String marioPortrait =
+      'assets/characters/mario/portraits/base.png';
 
   /// Shown over the text only when a person is talking.
   final String? speaker;

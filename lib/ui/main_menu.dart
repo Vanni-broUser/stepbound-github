@@ -20,13 +20,13 @@ final class MainMenu extends StatefulWidget {
     super.key,
   });
 
-  static const String logo = 'assets/story/logo.png';
+  static const String logo = 'assets/story/ui/logo.png';
 
   /// The city overrun: zombies chasing people through a burning street.
   ///
   /// The app draws it over the whole screen, bands included (see
   /// [MenuBackdrop]); the menu itself stays on the 16:9 picture.
-  static const String background = 'assets/story/menu_background.jpg';
+  static const String background = 'assets/story/ui/menu_background.jpg';
 
   /// The classic line at the foot of the first screen.
   static const String disclaimer =

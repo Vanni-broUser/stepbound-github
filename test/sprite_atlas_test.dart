@@ -20,21 +20,25 @@ void main() {
   }
 
   Future<ui.Image> loadSheet(String name) =>
-      loadAsset('assets/sprites/$name.png');
+      loadAsset('assets/characters/$name.png');
 
   test('production sprite atlases match the 4x6 runtime contract', () async {
     const names = <String>[
-      'protagonist',
-      'protagonist_cultist',
-      'zombie_wanderer',
-      'zombie_sprinter',
-      'zombie_brute',
-      'zombie_blind',
-      'zombie_carabiniere',
-      'zombie_mutilated',
-      'zombie_burning',
-      'zombie_drunk',
-      'zombie_cultist',
+      'mario/sprites/base',
+      'mario/sprites/cultist',
+      'mario/sprites/roma',
+      'mario/sprites/lazio',
+      'zombies/sprites/wanderer',
+      'zombies/sprites/sprinter',
+      'zombies/sprites/brute',
+      'zombies/sprites/blind',
+      'zombies/sprites/carabiniere',
+      'zombies/sprites/mutilated',
+      'zombies/sprites/burning',
+      'zombies/sprites/drunk',
+      'zombies/sprites/cultist',
+      'npcs/sprites/maranza_roma',
+      'npcs/sprites/maranza_lazio',
     ];
     for (final name in names) {
       final image = await loadSheet(name);
@@ -68,8 +72,9 @@ void main() {
           final frameName = '$name row $row column $column';
           expect(minX, greaterThanOrEqualTo(1), reason: frameName);
           expect(maxX, lessThanOrEqualTo(14), reason: frameName);
-          final runtimeOffset = name == 'protagonist_cultist' ? 2 : 0;
-          if (name == 'protagonist_cultist') {
+          final cultistOutfit = name == 'mario/sprites/cultist';
+          final runtimeOffset = cultistOutfit ? 2 : 0;
+          if (cultistOutfit) {
             expect(
               maxY + runtimeOffset,
               inInclusiveRange(22, 23),
@@ -87,13 +92,39 @@ void main() {
 
   test('zombie portraits match the story portrait contract', () async {
     for (final name in <String>[
-      'sprinter',
-      'mutilated',
-      'burning',
-      'drunk',
-      'zombie_cultist',
+      'assets/characters/zombies/portraits/sprinter.png',
+      'assets/characters/zombies/portraits/mutilated.png',
+      'assets/characters/zombies/portraits/burning.png',
+      'assets/characters/zombies/portraits/drunk.png',
+      'assets/characters/zombies/portraits/cultist.png',
     ]) {
-      final image = await loadAsset('assets/story/portrait_$name.png');
+      final image = await loadAsset(name);
+      expect(image.width, 1048, reason: name);
+      expect(image.height, 1501, reason: name);
+      final rgba = await pixelsOf(image);
+      var hasTransparentPixel = false;
+      var hasOpaquePixel = false;
+      for (var index = 3; index < rgba.length; index += 4) {
+        hasTransparentPixel |= rgba[index] == 0;
+        hasOpaquePixel |= rgba[index] == 255;
+        if (hasTransparentPixel && hasOpaquePixel) {
+          break;
+        }
+      }
+      expect(hasTransparentPixel, isTrue, reason: '$name needs alpha');
+      expect(hasOpaquePixel, isTrue, reason: '$name needs visible pixels');
+      image.dispose();
+    }
+  });
+
+  test('new portraits match the story portrait contract', () async {
+    for (final name in <String>[
+      'assets/characters/npcs/portraits/maranza_roma.png',
+      'assets/characters/npcs/portraits/maranza_lazio.png',
+      'assets/characters/mario/portraits/roma.png',
+      'assets/characters/mario/portraits/lazio.png',
+    ]) {
+      final image = await loadAsset(name);
       expect(image.width, 1048, reason: name);
       expect(image.height, 1501, reason: name);
       final rgba = await pixelsOf(image);
@@ -116,7 +147,7 @@ void main() {
     'action sheets follow the manifest contract on the shared grid',
     () async {
       final manifestJson = await rootBundle.loadString(
-        'assets/sprites/atlas_manifest.json',
+        'assets/characters/atlas_manifest.json',
       );
       final manifest = jsonDecode(manifestJson) as Map<String, Object?>;
       final sheets = (manifest['actionSheets']! as List<Object?>)

@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """Build Mario's action sheets from his real idle frames.
 
-The walk/idle atlas (assets/sprites/protagonist.png) is hand-detailed pixel
+The walk/idle atlas (assets/characters/mario/sprites/base.png) is hand-detailed pixel
 art; action frames drawn from scratch looked blocky next to it. This script
 starts from the idle frames themselves and only adds what each action needs,
 so every frame shares the same head, jacket, backpack and proportions:
 
-  protagonist_gun.png     aim_0 (raising), aim_1/aim_2 (hold, breathing),
+  base_gun.png            aim_0 (raising), aim_1/aim_2 (hold, breathing),
                           fire_0 (flash + recoil), fire_1 (fading flash),
                           fire_2 (smoke)
-  protagonist_pickup.png  pick_0 bend, pick_1 crouch, pick_2 reach,
+  base_pickup.png         pick_0 bend, pick_1 crouch, pick_2 reach,
                           pick_3 grab, pick_4 rise with the bag, pick_5 stand
   backpack.png            16x16 backpack lying on the ground
 
-Rows: south, west, east, north (see assets/sprites/atlas_manifest.json).
+Rows: south, west, east, north (see assets/characters/atlas_manifest.json).
 Run from the repository root:  python tools/generate_protagonist_actions.py
 """
 from __future__ import annotations
@@ -24,7 +24,8 @@ from collections import Counter
 from PIL import Image
 
 W, H = 16, 24
-SPRITES = os.path.join("assets", "sprites")
+SPRITES = os.path.join("assets", "characters", "mario", "sprites")
+OBJECTS = os.path.join("assets", "objects")
 ROWS = ("south", "west", "east", "north")
 
 OUTLINE = (14, 10, 12, 255)
@@ -38,7 +39,7 @@ SMOKE = (150, 150, 150, 170)
 
 
 def load_idle() -> dict[str, list[Image.Image]]:
-    sheet = Image.open(os.path.join(SPRITES, "protagonist.png")).convert("RGBA")
+    sheet = Image.open(os.path.join(SPRITES, "base.png")).convert("RGBA")
     return {
         name: [sheet.crop((c * W, r * H, c * W + W, r * H + H)) for c in (0, 1)]
         for r, name in enumerate(ROWS)
@@ -363,13 +364,14 @@ def main() -> None:
     if missing:
         raise SystemExit(f"could not find colours: {missing}")
     sheet([gun_frames(idle, pal, d) for d in ROWS]).save(
-        os.path.join(SPRITES, "protagonist_gun.png")
+        os.path.join(SPRITES, "base_gun.png")
     )
     sheet([pickup_frames(idle, pal, d) for d in ROWS]).save(
-        os.path.join(SPRITES, "protagonist_pickup.png")
+        os.path.join(SPRITES, "base_pickup.png")
     )
-    backpack(pal).save(os.path.join(SPRITES, "backpack.png"))
-    print("wrote protagonist_gun.png, protagonist_pickup.png, backpack.png")
+    os.makedirs(OBJECTS, exist_ok=True)
+    backpack(pal).save(os.path.join(OBJECTS, "backpack.png"))
+    print("wrote base_gun.png, base_pickup.png and assets/objects/backpack.png")
 
 
 if __name__ == "__main__":

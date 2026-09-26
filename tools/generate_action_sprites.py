@@ -3,12 +3,12 @@
 
 Produces 96x96 transparent PNGs laid out on the shared 4x6 grid
 (rows: south, west, east, north; columns: action frames) matching
-assets/sprites/atlas_manifest.json.
+assets/characters/atlas_manifest.json.
 
 Sheets:
-  zombie_<type>_hit.png          damage flinch, 4 directions
-  zombie_<type>_bite.png         lunge + bite, 4 directions
-  zombie_<type>_death.png        collapse to prone, 4 directions
+  <type>_hit.png          damage flinch, 4 directions
+  <type>_bite.png         lunge + bite, 4 directions
+  <type>_death.png        collapse to prone, 4 directions
 
 Run from the repository root:  python tools/generate_action_sprites.py
 """
@@ -594,7 +594,10 @@ def zombie_sheet(spec: CharacterSpec, action: str) -> Image.Image:
 
 def main() -> None:
     out_dir = os.path.abspath(
-        os.path.join(os.path.dirname(__file__), "..", "assets", "sprites")
+        os.path.join(
+            os.path.dirname(__file__),
+            "..", "assets", "characters", "zombies", "sprites",
+        )
     )
     os.makedirs(out_dir, exist_ok=True)
 
@@ -604,12 +607,12 @@ def main() -> None:
     for zombie_type in ZOMBIE_TYPES:
         spec = ZOMBIE_SPECS[zombie_type]
         for action in ("hit", "bite", "death"):
-            outputs[f"zombie_{zombie_type}_{action}.png"] = zombie_sheet(spec, action)
+            outputs[f"{zombie_type}_{action}.png"] = zombie_sheet(spec, action)
 
     for filename, sheet in outputs.items():
         path = os.path.join(out_dir, filename)
         sheet.save(path)
-        print(f"wrote assets/sprites/{filename}")
+        print(f"wrote assets/characters/zombies/sprites/{filename}")
 
 
 if __name__ == "__main__":

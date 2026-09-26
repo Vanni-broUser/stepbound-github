@@ -82,26 +82,35 @@ final class CharacterComponent extends PositionComponent {
         final stem = outfit.spriteStem;
         _outfitAtlases[outfit] = await _loadImage(
           assets,
-          'assets/sprites/$stem.png',
+          'assets/characters/mario/sprites/$stem.png',
         );
         _outfitGunAtlases[outfit] = await _loadImage(
           assets,
-          'assets/sprites/${stem}_gun.png',
+          'assets/characters/mario/sprites/${stem}_gun.png',
         );
         _outfitPickupAtlases[outfit] = await _loadImage(
           assets,
-          'assets/sprites/${stem}_pickup.png',
+          'assets/characters/mario/sprites/${stem}_pickup.png',
         );
       }
       wearOutfit(playerOutfit);
     } else {
       final name = _atlasName(entity.kind);
-      _atlas = await _loadImage(assets, 'assets/sprites/$name.png');
-      _hitAtlas = await _loadImage(assets, 'assets/sprites/${name}_hit.png');
-      _biteAtlas = await _loadImage(assets, 'assets/sprites/${name}_bite.png');
+      _atlas = await _loadImage(
+        assets,
+        'assets/characters/zombies/sprites/$name.png',
+      );
+      _hitAtlas = await _loadImage(
+        assets,
+        'assets/characters/zombies/sprites/${name}_hit.png',
+      );
+      _biteAtlas = await _loadImage(
+        assets,
+        'assets/characters/zombies/sprites/${name}_bite.png',
+      );
       _deathAtlas = await _loadImage(
         assets,
-        'assets/sprites/${name}_death.png',
+        'assets/characters/zombies/sprites/${name}_death.png',
       );
     }
   }
@@ -472,15 +481,15 @@ final class CharacterComponent extends PositionComponent {
       };
 
   String _atlasName(EntityKind kind) => switch (kind) {
-    EntityKind.player => 'protagonist',
-    EntityKind.wanderer => 'zombie_wanderer',
-    EntityKind.sprinter => 'zombie_sprinter',
-    EntityKind.brute => 'zombie_brute',
-    EntityKind.blind => 'zombie_blind',
-    EntityKind.carabiniere => 'zombie_carabiniere',
-    EntityKind.mutilated => 'zombie_mutilated',
-    EntityKind.burning => 'zombie_burning',
-    EntityKind.drunk => 'zombie_drunk',
-    EntityKind.cultist => 'zombie_cultist',
+    EntityKind.player => 'base',
+    EntityKind.wanderer => 'wanderer',
+    EntityKind.sprinter => 'sprinter',
+    EntityKind.brute => 'brute',
+    EntityKind.blind => 'blind',
+    EntityKind.carabiniere => 'carabiniere',
+    EntityKind.mutilated => 'mutilated',
+    EntityKind.burning => 'burning',
+    EntityKind.drunk => 'drunk',
+    EntityKind.cultist => 'cultist',
   };
 }

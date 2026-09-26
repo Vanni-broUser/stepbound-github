@@ -1186,7 +1186,7 @@ final class _EpiscopalRingBadge extends StatelessWidget {
             ),
             child: Center(
               child: Image.asset(
-                'assets/sprites/episcopal_ring.png',
+                'assets/objects/episcopal_ring.png',
                 width: 28,
                 height: 28,
                 filterQuality: FilterQuality.none,

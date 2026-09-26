@@ -1,7 +1,7 @@
 # Pipeline dei livelli: cosa resta
 
 Ogni posto del gioco e dipinto a runtime dalle sue righe ASCII, con l'atlas
-di `assets/tiles` generato da `tools/build_tile_atlas.py` (interni) e
+di `assets/levels/tiles` generato da `tools/build_tile_atlas.py` (interni) e
 `tools/tile_atlas_city.py` (citta). Restano da fare:
 
 ## Verifica sul dispositivo minimo

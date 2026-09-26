@@ -17,13 +17,13 @@ extension PlayerOutfitAssets on PlayerOutfit {
   };
 
   String get portrait => switch (this) {
-    PlayerOutfit.base => 'assets/story/portrait_mario.png',
-    PlayerOutfit.cultist => 'assets/story/portrait_mario_cultist.png',
+    PlayerOutfit.base => 'assets/characters/mario/portraits/base.png',
+    PlayerOutfit.cultist => 'assets/characters/mario/portraits/cultist.png',
   };
 
   String get spriteStem => switch (this) {
-    PlayerOutfit.base => 'protagonist',
-    PlayerOutfit.cultist => 'protagonist_cultist',
+    PlayerOutfit.base => 'base',
+    PlayerOutfit.cultist => 'cultist',
   };
 }
 

@@ -16,10 +16,10 @@ final class LevelMap extends StatefulWidget {
     super.key,
   });
 
-  static const String mapImage = 'assets/story/level_map_europe.jpg';
-  static const String hometownImage = 'assets/story/scene_harbour.jpg';
-  static const String romeImage = 'assets/story/level_rome.jpg';
-  static const String northCapeImage = 'assets/story/level_north_cape.jpg';
+  static const String mapImage = 'assets/story/maps/europe.jpg';
+  static const String hometownImage = 'assets/story/scenes/harbour.jpg';
+  static const String romeImage = 'assets/story/maps/rome.jpg';
+  static const String northCapeImage = 'assets/story/maps/north_cape.jpg';
 
   final VoidCallback onStartHometown;
   final VoidCallback onStartRome;

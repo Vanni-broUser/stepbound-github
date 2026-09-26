@@ -14,16 +14,17 @@ final class PriestScript extends TutorialScript {
   PriestScript(super.director);
 
   static const String priest = 'Don Angelo Dannato';
-  static const String priestPortrait = 'assets/story/portrait_priest.png';
-  static const String gateScene = 'assets/story/scene_priest_gate.jpg';
-  static const String seafrontScene = 'assets/story/scene_mario_seafront.jpg';
-  static const String dealSceneImage = 'assets/story/scene_priest_deal.jpg';
+  static const String priestPortrait =
+      'assets/characters/npcs/portraits/priest.png';
+  static const String gateScene = 'assets/story/scenes/priest_gate.jpg';
+  static const String seafrontScene = 'assets/story/scenes/mario_seafront.jpg';
+  static const String dealSceneImage = 'assets/story/scenes/priest_deal.jpg';
   static const String welcomeSceneImage =
-      'assets/story/scene_priest_welcome.jpg';
+      'assets/story/scenes/priest_welcome.jpg';
   static const String communitySceneImage =
-      'assets/story/scene_priest_community.jpg';
+      'assets/story/scenes/priest_community.jpg';
   static const String barKeySceneImage =
-      'assets/story/scene_priest_bar_key.jpg';
+      'assets/story/scenes/priest_bar_key.jpg';
 
   static const String clearThemOut =
       'Sbarazzati di questi zombi così potremmo parlare meglio';
