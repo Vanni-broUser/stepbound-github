@@ -23,12 +23,14 @@
           exit 1
         fi
       done
-      echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/release-keystore.jks
+      # storeFile is resolved from android/app (android/app/build.gradle.kts),
+      # key.properties is read from android/.
+      echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/app/release-keystore.jks
       printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=release-keystore.jks\n' \
         "$ANDROID_STORE_PASSWORD" "$ANDROID_KEY_PASSWORD" "$ANDROID_KEY_ALIAS" \
         > android/key.properties
   after_script:
-    - rm -f android/release-keystore.jks android/key.properties
+    - rm -f android/app/release-keystore.jks android/key.properties
 
 # For the store.
 build_android_signed:
