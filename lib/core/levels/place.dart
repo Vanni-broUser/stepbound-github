@@ -31,6 +31,10 @@ enum PlaceId {
   barBackroom,
   duomoUpper,
   romeTermini,
+  duomoSecondFloor,
+  duomoTower,
+  duomoBells,
+  duomoTowerRoof,
 }
 
 /// The levels of the game, one city each. The train Mario and Luigi live

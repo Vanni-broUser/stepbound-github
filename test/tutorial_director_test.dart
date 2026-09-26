@@ -508,6 +508,13 @@ void main() {
     expect(host.shown, hasLength(2));
   });
 
+  test('from the top of the Duomo tower the other tower is a grappling '
+      'hook away, as the roofs past the airliner are', () {
+    director.onEvents(<WorldEvent>[LookedOutEvent(at: duomoTowerLookoutTile)]);
+    settle();
+    expect(host.shown.single.single.text, RooftopsScript.gapLesson);
+  });
+
   test('a look anywhere else is no business of the rooftops script', () {
     director.onEvents(<WorldEvent>[const LookedOutEvent(at: GridPoint(0, 0))]);
     settle();

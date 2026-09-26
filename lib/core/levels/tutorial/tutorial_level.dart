@@ -16,6 +16,9 @@ import 'package:stepbound/core/levels/tutorial/bar_backroom.dart';
 import 'package:stepbound/core/levels/tutorial/barracks.dart';
 import 'package:stepbound/core/levels/tutorial/church.dart';
 import 'package:stepbound/core/levels/tutorial/duomo.dart';
+import 'package:stepbound/core/levels/tutorial/duomo_second_floor.dart';
+import 'package:stepbound/core/levels/tutorial/duomo_tower.dart';
+import 'package:stepbound/core/levels/tutorial/duomo_tower_roof.dart';
 import 'package:stepbound/core/levels/tutorial/duomo_upper.dart';
 import 'package:stepbound/core/levels/tutorial/harbour.dart';
 import 'package:stepbound/core/levels/tutorial/mall.dart';
@@ -34,6 +37,9 @@ export 'package:stepbound/core/levels/tutorial/bar_backroom.dart';
 export 'package:stepbound/core/levels/tutorial/barracks.dart';
 export 'package:stepbound/core/levels/tutorial/church.dart';
 export 'package:stepbound/core/levels/tutorial/duomo.dart';
+export 'package:stepbound/core/levels/tutorial/duomo_second_floor.dart';
+export 'package:stepbound/core/levels/tutorial/duomo_tower.dart';
+export 'package:stepbound/core/levels/tutorial/duomo_tower_roof.dart';
 export 'package:stepbound/core/levels/tutorial/duomo_upper.dart';
 export 'package:stepbound/core/levels/tutorial/harbour.dart';
 export 'package:stepbound/core/levels/tutorial/mall.dart';
@@ -67,9 +73,26 @@ const Legend churchLegend = Legend(walls: 'xWwIA', obstacles: 'TK');
 
 /// The Duomo and the Bar Arcobaleno's storeroom share the indoor masonry
 /// vocabulary, with their own furnishings as waist-high obstacles.
-const Legend duomoLegend = Legend(walls: 'xWwIA', obstacles: 'PTSU12p');
+const Legend duomoLegend = Legend(walls: 'xWwIA', obstacles: 'PTMKFVYG12p');
 const Legend barBackroomLegend = Legend(walls: 'xWwI', obstacles: 'KB');
-const Legend duomoUpperLegend = Legend(walls: 'xWwIL', obstacles: 'TCBK');
+const Legend duomoUpperLegend = Legend(walls: 'xWwIL', obstacles: 'TCBKkFHnA');
+
+/// Don Angelo's floor (duomo_second_floor.dart): the crucifix `X` hangs on
+/// the wall and the windows `o` are in it; the bookcase, the kneeler, the
+/// wardrobe, the bed, the desk, its chair and the statues are furniture.
+const Legend duomoSecondFloorLegend = Legend(
+  walls: 'xWwIXo',
+  obstacles: 'QNKBTCS',
+);
+
+/// The bell tower (duomo_tower.dart): the arrow slits `o` are in the wall,
+/// the railings `|`, the crates `K` and the bell `O` stand in the room.
+const Legend duomoTowerLegend = Legend(walls: 'xWwIo', obstacles: '|KO');
+
+/// The top of the tower (duomo_tower_roof.dart): the drop `x` and the nave
+/// roof far below `=` are walls, while the parapet `^`, the stretch of it
+/// Mario looks over `>` and the lightning rod `n` can be seen over.
+const Legend duomoTowerRoofLegend = Legend(walls: 'x=', obstacles: '^>n');
 
 /// The three places of the station (station.dart): the railcar `M` and
 /// the rubble `#` shut the way like walls, the coach on its side `m`, the
@@ -269,6 +292,40 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     art: PlaceId.stationFarSide,
     level: LevelId.rome,
   ),
+  // Painted from its rows out of the tile atlas.
+  PlaceSpec(
+    id: PlaceId.duomoSecondFloor,
+    rows: duomoSecondFloorRows,
+    legend: duomoSecondFloorLegend,
+    indoor: true,
+    daylight: 'o',
+    darkness: 0.7,
+  ),
+  // Painted from its rows out of the tile atlas.
+  PlaceSpec(
+    id: PlaceId.duomoTower,
+    rows: duomoTowerRows,
+    legend: duomoTowerLegend,
+    indoor: true,
+    daylight: 'o',
+    darkness: 0.75,
+  ),
+  // Painted from its rows out of the tile atlas.
+  PlaceSpec(
+    id: PlaceId.duomoBells,
+    rows: duomoBellsRows,
+    legend: duomoTowerLegend,
+    indoor: true,
+    // The bell chamber is open to the wind on the east side.
+    daylight: 'o',
+    darkness: 0.6,
+  ),
+  // Open to the sky. Painted from its rows out of the tile atlas.
+  PlaceSpec(
+    id: PlaceId.duomoTowerRoof,
+    rows: duomoTowerRoofRows,
+    legend: duomoTowerRoofLegend,
+  ),
 ]);
 
 final Map<PlaceId, Place> _placesById = <PlaceId, Place>{
@@ -306,6 +363,10 @@ final Place _duomo = place(PlaceId.duomo);
 final Place _barBackroom = place(PlaceId.barBackroom);
 final Place _duomoUpper = place(PlaceId.duomoUpper);
 final Place _termini = place(PlaceId.romeTermini);
+final Place _duomoSecond = place(PlaceId.duomoSecondFloor);
+final Place _duomoTower = place(PlaceId.duomoTower);
+final Place _duomoBells = place(PlaceId.duomoBells);
+final Place _duomoRoof = place(PlaceId.duomoTowerRoof);
 
 /// The four places [outdoorLegend] describes, the ones tools/
 /// build_street_level.py bakes: what walks the streets, what burns in them
@@ -341,17 +402,36 @@ const String cultistRobePickupId = 'cultist-robe';
 final GridPoint barLockedDoorTile = _bar.tileOf('D');
 final GridPoint barBackroomDoorTile = _barBackroom.tileOf('E');
 
-/// People and the blocked stair inside the Duomo.
+/// People and the guarded door upstairs inside the Duomo: the door
+/// [duomoStairEntryTile] is in the back wall, straight behind the cultist
+/// who stands in front of it.
 final GridPoint duomoPriestTile = _duomo.tileOf('p');
 final GridPoint duomoStairCultistTile = _duomo.tileOf('1');
 final GridPoint duomoWelcomingCultistTile = _duomo.tileOf('2');
 final GridPoint duomoStairCultistMovedTile = _duomo.tileOf('3');
-final GridPoint duomoStairEntryTile = duomoStairCultistTile.step(
-  Direction.north,
-);
+final GridPoint duomoStairEntryTile = _duomo.tileOf('U');
 final GridPoint duomoUpperStairTile = _duomoUpper.tileOf('D');
 final GridPoint duomoUpperLockedDoorTile = _duomoUpper.tileOf('L');
 final GridPoint duomoUpperRobeTile = _duomoUpper.tileOf('R');
+
+/// The way up from the door the key opens to the top of the bell tower:
+/// on each floor the stairs `D` Mario comes up by and the doorway `U` he
+/// goes on up through, and on the roof the hatch he comes out of.
+final GridPoint duomoSecondFloorStairTile = _duomoSecond.tileOf('D');
+final GridPoint duomoSecondFloorUpTile = _duomoSecond.tileOf('U');
+final GridPoint duomoTowerStairTile = _duomoTower.tileOf('D');
+final GridPoint duomoTowerUpTile = _duomoTower.tileOf('U');
+final GridPoint duomoBellsStairTile = _duomoBells.tileOf('D');
+final GridPoint duomoBellsUpTile = _duomoBells.tileOf('U');
+final GridPoint duomoRoofHatchTile = _duomoRoof.tileOf('D');
+
+/// The stretch of the tower's parapet that faces the other tower: looking
+/// over it tells Mario what it would take to get across.
+final GridPoint duomoTowerLookoutTile = _duomoRoof.tileOf('>');
+
+/// The backpack on the roof of the other tower, seen and out of reach.
+final GridPoint duomoFarTowerBackpackTile = _duomoRoof.tileOf('9');
+const String duomoFarTowerBackpackId = 'backpack-duomo-tower';
 
 /// What the mass leaves behind in the nave, once the community has eaten
 /// of the crucified zombie and turned on Don Angelo: the four mutated
@@ -762,6 +842,11 @@ Map<GridPoint, Portal> _pairedDoors(
 /// - its locked service door into the storeroom;
 /// - the open portal of San Nicola, deep in the old town;
 /// - the Duomo's open portal behind its story-gated churchyard;
+/// - inside it, the guarded door up to the first floor, the locked door on
+///   up to the second, and on up the bell tower's two flights to the hatch
+///   out onto its roof (every door and flight is in the back wall of the
+///   floor it leaves and lands Mario on the step above the stairs in the
+///   front wall of the next; the hatch is in the roof's floor);
 /// - the station's two doorways, each into its own corner of the booking
 ///   hall, and the two flights of the underpass that join the far end of
 ///   that hall to the far platform (every flight climbs into the back wall
@@ -865,6 +950,15 @@ Map<GridPoint, Portal> _portals() {
       <GridPoint>[duomoStairEntryTile],
       Direction.south,
     ),
+    for (final (below, above) in <(GridPoint, GridPoint)>[
+      (duomoUpperLockedDoorTile, duomoSecondFloorStairTile),
+      (duomoSecondFloorUpTile, duomoTowerStairTile),
+      (duomoTowerUpTile, duomoBellsStairTile),
+      (duomoBellsUpTile, duomoRoofHatchTile),
+    ]) ...<GridPoint, Portal>{
+      ..._pairedDoors(<GridPoint>[below], <GridPoint>[above], Direction.north),
+      ..._pairedDoors(<GridPoint>[above], <GridPoint>[below], Direction.south),
+    },
     ..._pairedDoors(stationWestDoor, _station.doorRow('E'), Direction.north),
     ..._pairedDoors(_station.doorRow('E'), stationWestDoor, Direction.south),
     ..._pairedDoors(stationEastDoor, _station.doorRow('O'), Direction.north),
@@ -1010,6 +1104,12 @@ WorldState createTutorialWorld({int seed = 20260920}) {
       duomoKey: true,
       active: false,
     ),
+    // On the roof of the other tower: seen from this one, never reached.
+    Pickup(
+      id: duomoFarTowerBackpackId,
+      position: duomoFarTowerBackpackTile,
+      ammo: 2,
+    ),
     Pickup(
       id: stationBackpackId,
       position: _station.tileOf('9'),
@@ -1109,6 +1209,7 @@ WorldState createTutorialWorld({int seed = 20260920}) {
     travelMaps: trainMapTiles,
     lookouts: <GridPoint>[
       rooftopGapTile,
+      duomoTowerLookoutTile,
       shoppingStreetFireTile,
       trainLuigiTile,
       ...trainBookTiles,
@@ -1229,13 +1330,16 @@ Entity createMallZombie(String id, GridPoint position) {
 }
 
 /// One of the mutated cultists of the Duomo, raised where the mass left
-/// him: he looks east, down the aisle Mario has to come along.
+/// him: he looks out of the aisle, away from Don Angelo's body -- east at
+/// the east end of the pews, west at the west end.
 Entity createDuomoCultist(String id, GridPoint position) {
   return EntityFactory(BalanceConfig.standard()).zombie(
     id: id,
     kind: EntityKind.cultist,
     position: position,
-    facing: Direction.east,
+    facing: position.x < duomoPriestCorpseTile.x
+        ? Direction.west
+        : Direction.east,
   );
 }
 
