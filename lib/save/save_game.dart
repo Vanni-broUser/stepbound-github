@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/progress.dart';
+import 'package:stepbound/save/published_save.dart';
 
 /// Everything needed to resume a game from a campfire.
 final class SaveGame {
@@ -63,30 +64,42 @@ final class SaveGame {
   }
 
   /// What [encoded], as a slot stores it, holds: nothing, a save that can
-  /// be played, or a damaged one. It never throws. A save of another
-  /// [format] reads as empty, like no save at all: old saves are dropped,
-  /// never migrated. [check] is asked whether a save that reads well can
-  /// really be played (see [checkRestorable]); whatever it throws makes the
-  /// save a damaged one.
-  static SaveRead decode(String? encoded, {SaveCheck? check}) {
+  /// be played, or a damaged one. It never throws. A save of the last
+  /// public build, [published], is migrated; one of any other [format]
+  /// reads as empty, like no save at all. [check] is asked whether a save
+  /// that reads well can really be played (see [checkRestorable]); whatever
+  /// it throws makes the save a damaged one.
+  static SaveRead decode(
+    String? encoded, {
+    SaveCheck? check,
+    PublishedSaves published = const PublishedSaves(),
+  }) {
     if (encoded == null) {
       return const EmptySave();
     }
-    final Object? json;
+    final Object? decoded;
     try {
-      json = jsonDecode(encoded);
+      decoded = jsonDecode(encoded);
     } on FormatException {
       return const DamagedSave('not JSON');
     }
-    if (json is! Map<String, Object?>) {
+    if (decoded is! Map<String, Object?>) {
       return const DamagedSave('not a JSON object');
     }
+    var json = decoded;
     final version = json['format'];
     if (version is! int) {
       return const DamagedSave('no format');
     }
     if (version != format) {
-      return const EmptySave();
+      if (version != published.format) {
+        return const EmptySave();
+      }
+      try {
+        json = <String, Object?>{...published.migrate(json), 'format': format};
+      } on Object catch (error) {
+        return DamagedSave('cannot be migrated from format $version: $error');
+      }
     }
     final SaveGame save;
     try {
@@ -102,8 +115,9 @@ final class SaveGame {
     return LoadedSave(save);
   }
 
-  /// A save of any other format reads as an empty slot. Bump it whenever
-  /// what a save holds changes: old saves are dropped, never migrated.
+  /// Bump it whenever what a save holds changes. Saves of the formats in
+  /// between public builds are dropped, never migrated; those of the last
+  /// public build are, see `docs/save_policy.md`.
   static const int format = 31;
 
   /// 1 to [SaveRepository.slotCount].
