@@ -1562,8 +1562,8 @@ void main() {
       expect(saved.place, trainPlaceName);
       expect(saved.atCampfire, isTrue);
       expect(
-        (game.cover.value! as PromptCover).lines.map((line) => line.text),
-        <String>[StepboundGame.mealLine, StepboundGame.savedLine],
+        (game.cover.value! as PromptCover).lines.single.text,
+        StepboundGame.savedLine,
       );
       // It saves like a fire, but is not one of the fires to find.
       expect(game.progress.litCampfires, isNot(contains(trainPlaceName)));

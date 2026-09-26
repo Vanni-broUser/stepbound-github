@@ -859,9 +859,6 @@ final class StepboundGame extends FlameGame
   static const String saveFailedLine =
       'Salvataggio non riuscito. Riposati di nuovo accanto al fuoco per '
       'riprovare';
-  static const String mealLine =
-      'Pane, salame e un pezzo di formaggio. Per un momento sembra tutto '
-      'normale';
   static const String mealSaveFailedLine =
       'Salvataggio non riuscito. Torna al tavolo per riprovare';
 
@@ -879,7 +876,6 @@ final class StepboundGame extends FlameGame
       saved = false;
     }
     showPrompt(<TutorialLine>[
-      if (_atTable) const TutorialLine(mealLine),
       TutorialLine(
         saved
             ? savedLine
