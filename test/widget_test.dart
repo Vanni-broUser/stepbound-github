@@ -1354,6 +1354,7 @@ void main() {
         // What the scripts answer when interacted with.
         barLockedDoorTile,
         duomoUpperLockedDoorTile,
+        stationTrainDoorTile,
       ]) {
         expect(glinted(tile), isTrue, reason: 'nothing glints near $tile');
       }

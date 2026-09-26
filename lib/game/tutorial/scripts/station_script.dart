@@ -18,6 +18,7 @@ final class StationScript extends TutorialScript {
   static const String planScene = 'assets/story/scene_station_plan.jpg';
   static const String northCapeScene =
       'assets/story/scene_station_north_cape.jpg';
+  static const String lockedDoorLine = 'La porta è chiusa';
 
   /// Luigi leaning out of the cab of the one train still in one piece.
   static const List<CutsceneFrame> reunionScene = <CutsceneFrame>[
@@ -66,6 +67,12 @@ final class StationScript extends TutorialScript {
   /// and only if Luigi was rescued from the hypermarket first.
   @override
   void onEvent(WorldEvent event) {
+    if (event case NoInteractionEvent(:final at)
+        when at == stationTrainDoorTile &&
+            !progress.memories.contains(StoryMemory.luigiRescued)) {
+      say(TutorialPrompt(const <TutorialLine>[TutorialLine(lockedDoorLine)]));
+      return;
+    }
     if (!progress.memories.contains(StoryMemory.luigiRescued)) {
       return;
     }

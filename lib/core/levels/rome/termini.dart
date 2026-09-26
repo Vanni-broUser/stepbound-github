@@ -3,7 +3,7 @@
 import 'package:stepbound/core/grid/grid_point.dart';
 
 /// Roma Termini, where the train from Molfetta pulls in: the first place
-/// of the Rome level. It is painted with the art of Molfetta's far
+/// of the Rome level. It is painted with the rules of Molfetta's far
 /// platform (station.dart), so it keeps to its glyphs: `x` darkness, `W`
 /// the back wall, `,` ballast, `-` the rails, `M` the train, `P` its
 /// passenger door, `=` the platform, `T` a bench, `n` a canopy post,

@@ -1211,6 +1211,13 @@ void main() {
       settle();
     }
 
+    test('before Luigi is rescued, the passenger door says it is locked', () {
+      director.onEvents(<WorldEvent>[NoInteractionEvent(stationTrainDoorTile)]);
+      settle();
+      expect(host.shown.single.single.text, StationScript.lockedDoorLine);
+      expect(StationScript.lockedDoorLine, 'La porta è chiusa');
+    });
+
     test('after Luigi is rescued, his meeting waits for the first step', () {
       progress.remember(StoryMemory.luigiRescued);
       world.player.component<PositionComponent>().position = onTheFarPlatform();
