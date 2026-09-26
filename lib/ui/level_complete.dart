@@ -91,7 +91,7 @@ final class LevelComplete extends StatelessWidget {
                       Expanded(
                         child: _column(unit, <(String, String, String)>[
                           (
-                            'TIPI DI ZOMBI CONOSCIUTI',
+                            'ZOMBI CONOSCIUTI',
                             '${stats.knownZombieKinds} / '
                                 '${stats.totalZombieKinds}',
                             'zombie-kind-stat',

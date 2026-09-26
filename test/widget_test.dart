@@ -2068,6 +2068,8 @@ void main() {
       );
       expect(find.text('ZAINI TROVATI'), findsOneWidget);
       expect(find.text('RICORDI VISSUTI'), findsOneWidget);
+      expect(find.text('ZOMBI CONOSCIUTI'), findsOneWidget);
+      expect(find.text('TIPI DI ZOMBI CONOSCIUTI'), findsNothing);
       String stat(String key) => tester
           .widgetList<Text>(
             find.descendant(
