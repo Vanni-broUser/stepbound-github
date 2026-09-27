@@ -1,5 +1,7 @@
 // The ASCII maps are one row per line, however wide the place is.
 
+import 'package:stepbound/core/grid/grid_point.dart';
+
 /// Inside the airliner that came down on the crossroads behind the
 /// hypermarket (see mall_north_street.dart, where its body lies across the
 /// junction). Drawn as a room on a dark background like the barracks, and
@@ -41,16 +43,25 @@ const List<String> airlinerCabinRows = <String>[
   'xWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWx',
   'xI...TTT..TTT9.TTT.::.TTT..TTT..TTT..b.Z:.Ix',
   'xI.:.TTT..TTT..TTT.::.TTT..TTT..TTT.......Ix',
-  'xI.K.TTT..TTT..TrT.::.TTT.MTTT..TTT......:Ix',
+  'xI.K.TTT*.TTT..TrT.::.TTT.MTTT..TTT.*....:Ix',
   'xI.....b....Z.........:.....M....b........Ix',
   'xI..*.......:*........*:.......*........*.Ix',
-  'xI*K.TTTM.TrT..TTT.::.TTT..rrr..TTT.......Ix',
+  'xI*K.TTTM.TrT..TTT.::.TTT.*rrr..TTT.......Ix',
   'xIM:.TTT..TTT..TTT.::.TTT..TTT..TTT...+...Ix',
   'xI...TTT..TTT..TTT.::.TTT..TTT..TTT..K.K..Ix',
   'xwwEEwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwOOwwwwwx',
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
 ];
 // airliner-cabin-rows-end
+
+/// Emergency lights hung over what has a glyph of its own: two over the
+/// loose panelling of the cross aisle, where the floor buckled, and one
+/// over the seats amidships.
+const List<GridPoint> airlinerCabinLamps = <GridPoint>[
+  GridPoint(19, 3),
+  GridPoint(20, 8),
+  GridPoint(27, 3),
+];
 
 /// The roofs the tail came to rest in, out of the tail break `D` at the
 /// top of the map, torn in the underside of the tail: it is the cabin's `O`,
