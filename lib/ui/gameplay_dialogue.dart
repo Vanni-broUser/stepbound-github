@@ -2,8 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:stepbound/game/audio/sound.dart';
+import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/ui/audio_scope.dart';
 import 'package:stepbound/ui/blood_splat.dart';
+import 'package:stepbound/ui/control_demo.dart';
 import 'package:stepbound/ui/story_intro.dart';
 
 /// One line spoken over the gameplay view, with the speaker's portrait
@@ -13,10 +15,13 @@ final class DialogueLine {
     required this.text,
     this.speaker = 'Mario Rossi',
     this.portrait = marioPortrait,
+    this.demo,
   });
 
   /// A hint or narration: no name over the box and no portrait.
-  const DialogueLine.tutorial(this.text) : speaker = null, portrait = null;
+  const DialogueLine.tutorial(this.text, {this.demo})
+    : speaker = null,
+      portrait = null;
 
   static const String marioPortrait =
       'assets/characters/mario/portraits/base.png';
@@ -25,6 +30,10 @@ final class DialogueLine {
   final String? speaker;
   final String? portrait;
   final String text;
+
+  /// The gesture played on a small screen beside the box, over and over,
+  /// while the line is up.
+  final ControlDemo? demo;
 }
 
 const List<DialogueLine> tutorialOpening = <DialogueLine>[
@@ -35,6 +44,7 @@ const List<DialogueLine> tutorialOpening = <DialogueLine>[
   ),
   DialogueLine.tutorial(
     'Trascina il dito sulla parte sinistra dello schermo per muoverti',
+    demo: ControlDemo.move,
   ),
 ];
 
@@ -54,6 +64,11 @@ final class GameplayDialogue extends StatefulWidget {
   /// those taps eat the first lines before they can be read. Tests that
   /// only tap through the lines set it to zero.
   static Duration settleTime = defaultSettleTime;
+
+  /// Where the panel of a line's gesture stands, and how tall it is, as
+  /// shares of the view's height: over the box, out of the corner badges.
+  static const double demoTop = 0.16;
+  static const double demoHeight = 0.48;
 
   final List<DialogueLine> lines;
   final VoidCallback onFinished;
@@ -130,7 +145,8 @@ final class _GameplayDialogueState extends State<GameplayDialogue> {
         label: 'Tocca per continuare',
         child: LayoutBuilder(
           builder: (context, constraints) {
-            return Align(
+            final demo = line.demo;
+            final box = Align(
               alignment: Alignment.bottomCenter,
               child: StoryTextBox(
                 speaker: line.speaker,
@@ -148,6 +164,27 @@ final class _GameplayDialogueState extends State<GameplayDialogue> {
                         ),
                       ),
               ),
+            );
+            if (demo == null) {
+              return box;
+            }
+            final height = constraints.maxHeight * GameplayDialogue.demoHeight;
+            return Stack(
+              children: <Widget>[
+                Positioned(
+                  left: ControlDemoView.standsRight(demo) ? null : 16,
+                  right: ControlDemoView.standsRight(demo) ? 16 : null,
+                  top: constraints.maxHeight * GameplayDialogue.demoTop,
+                  height: height,
+                  // Keyed by the gesture: lines that show the same one keep
+                  // it playing on without starting over.
+                  child: ControlDemoView(
+                    key: ValueKey<ControlDemo>(demo),
+                    demo: demo,
+                  ),
+                ),
+                box,
+              ],
             );
           },
         ),

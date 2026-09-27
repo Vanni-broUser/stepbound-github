@@ -38,33 +38,59 @@ export 'package:stepbound/game/story/scripts/zombie_sightings_script.dart';
 /// A line shown in the dialogue box over the gameplay.
 final class StoryLine {
   /// A hint or system message: no name over the box.
-  const StoryLine(this.text, {this.speaker, this.portrait});
+  const StoryLine(this.text, {this.speaker, this.portrait, this.demo});
 
   /// A line spoken by Mario, with his portrait over the box.
   const StoryLine.mario(this.text)
     : speaker = 'Mario Rossi',
-      portrait = 'assets/characters/mario/portraits/base.png';
+      portrait = 'assets/characters/mario/portraits/base.png',
+      demo = null;
 
   /// A line spoken by Luigi, with his portrait over the box.
   const StoryLine.luigi(this.text)
     : speaker = 'Luigi Rovaga',
-      portrait = 'assets/characters/npcs/portraits/luigi.png';
+      portrait = 'assets/characters/npcs/portraits/luigi.png',
+      demo = null;
 
   /// A line spoken by the priest of the Duomo, with his portrait over the
   /// box.
   const StoryLine.priest(this.text)
     : speaker = PriestScript.priest,
-      portrait = 'assets/characters/npcs/portraits/priest.png';
+      portrait = 'assets/characters/npcs/portraits/priest.png',
+      demo = null;
 
   /// A member of Don Angelo's community inside the Duomo.
   const StoryLine.cultist(this.text)
     : speaker = DuomoScript.cultist,
-      portrait = DuomoScript.cultistPortrait;
+      portrait = DuomoScript.cultistPortrait,
+      demo = null;
 
   /// Set only when a person is talking.
   final String? speaker;
   final String text;
   final String? portrait;
+
+  /// The gesture played beside the box while the line explains it.
+  final ControlDemo? demo;
+}
+
+/// A gesture the tutorial plays over and over on a small screen beside the
+/// text box, while a line explains it.
+enum ControlDemo {
+  /// Holding on the right half raises the pistol, dragging aims and lifting
+  /// fires: once each way, up, right, down and left.
+  shoot,
+
+  /// The pistol comes up with its splash, the finger stays in the ring in
+  /// the middle a moment and lifts there: nothing is fired.
+  cancelShot,
+
+  /// A thumb on the left half drags the stick one way and holds it there
+  /// to walk: up, right, down and left in turn.
+  move,
+
+  /// Quick taps here and there on the right half, each leaving its splat.
+  interact,
 }
 
 /// One full-screen picture of a story scene played during the game: the
@@ -280,13 +306,17 @@ final class StoryDirector {
   /// [ZombieLore]): the type is known from now on, and the book lists it;
   /// the camera frames the zombie with Mario while its lesson is shown with
   /// its portrait, and goes back to Mario alone once it is dismissed.
-  void introduceZombie(Entity zombie) {
+  /// [then] is said after the lesson, the zombie still framed.
+  void introduceZombie(
+    Entity zombie, {
+    List<StoryLine> then = const <StoryLine>[],
+  }) {
     final lore = zombieLore[zombie.kind]!;
     progress.meet(zombie.kind);
     host.focusOn(zombie.id);
     queue(
       StoryPrompt(
-        <StoryLine>[StoryLine(lore.lesson, portrait: lore.portrait)],
+        <StoryLine>[StoryLine(lore.lesson, portrait: lore.portrait), ...then],
         delay: focusDelay,
         onDismissed: () => host.focusOn(null),
       ),

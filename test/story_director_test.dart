@@ -644,14 +644,14 @@ void main() {
     expect(host.shown, isEmpty, reason: 'the balloon shows first');
     expect(host.focus, tutorialZombieId);
     settle();
-    expect(
-      host.shown.single.single.text,
+    final lines = host.shown.single;
+    expect(lines.map((line) => line.text), <String>[
       zombieLore[EntityKind.wanderer]!.lesson,
-    );
-    expect(
-      host.shown.single.single.portrait,
-      zombieLore[EntityKind.wanderer]!.portrait,
-    );
+      StreetScript.zombieSpotted,
+    ]);
+    expect(lines.first.portrait, zombieLore[EntityKind.wanderer]!.portrait);
+    expect(lines.last.speaker, 'Mario Rossi', reason: 'he says it himself');
+    expect(lines.last.portrait, isNotNull);
     host.dismiss();
     expect(host.focus, isNull);
   });
@@ -806,6 +806,11 @@ void main() {
       BackpacksScript.backpackLesson,
       BackpacksScript.interactLesson,
     ]);
+    expect(
+      host.shown.last.last.demo,
+      ControlDemo.interact,
+      reason: 'taps are played beside the line about them',
+    );
     expect(host.unlocked, isEmpty, reason: 'unlocked when the text closes');
     host.dismiss();
     expect(host.unlocked, <HudElement>{HudElement.interact});
@@ -851,7 +856,15 @@ void main() {
     settle();
     expect(host.shown.last.map((line) => line.text), <String>[
       BackpacksScript.gunFound,
-      BackpacksScript.shootLesson,
+      BackpacksScript.aimLesson,
+      BackpacksScript.fireLesson,
+      BackpacksScript.cancelLesson,
+    ]);
+    expect(host.shown.last.map((line) => line.demo), <ControlDemo?>[
+      null,
+      ControlDemo.shoot,
+      ControlDemo.shoot,
+      ControlDemo.cancelShot,
     ]);
     expect(host.unlocked, isNot(contains(HudElement.shoot)));
     host.dismiss();

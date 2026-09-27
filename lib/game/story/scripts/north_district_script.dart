@@ -32,7 +32,11 @@ final class NorthDistrictScript extends StoryScript {
       StoryPrompt(
         <StoryLine>[
           const StoryLine(campLesson),
-          if (needsInteract) const StoryLine(BackpacksScript.interactLesson),
+          if (needsInteract)
+            const StoryLine(
+              BackpacksScript.interactLesson,
+              demo: ControlDemo.interact,
+            ),
         ],
         delay: StoryDirector.reactionDelay,
         onDismissed: () => host.unlock(HudElement.interact),

@@ -23,9 +23,14 @@ final class BackpacksScript extends StoryScript {
       "Tocca l'icona della molotov per prenderla in mano, poi tieni premuto "
       'a destra e trascina per scegliere dove lanciarla: brucia tutto in un '
       "quadrato 3x3. Tocca di nuovo l'icona per tornare alla pistola";
-  static const String shootLesson =
-      'Tieni premuto a destra per mirare e trascina verso una direzione: '
-      'lascia per sparare. Lascia nel cerchio al centro per non sparare';
+  static const String aimLesson =
+      'Tieni premuto sulla parte destra dello schermo per iniziare a mirare';
+  static const String fireLesson =
+      'Mentre tieni premuto trascina verso una direzione, appena alzi il '
+      'dito parte il colpo';
+  static const String cancelLesson =
+      'Puoi annullare il colpo di pistola senza consumare proiettili alzando '
+      'il dito mentre sei nel punto centrale';
 
   /// "Non hai una pistola" only while the player really has none.
   static String ammoFound(int rounds, {required bool hasGun}) => hasGun
@@ -111,7 +116,12 @@ final class BackpacksScript extends StoryScript {
     }
     if (gun) {
       return StoryPrompt(
-        const <StoryLine>[StoryLine(gunFound), StoryLine(shootLesson)],
+        const <StoryLine>[
+          StoryLine(gunFound),
+          StoryLine(aimLesson, demo: ControlDemo.shoot),
+          StoryLine(fireLesson, demo: ControlDemo.shoot),
+          StoryLine(cancelLesson, demo: ControlDemo.cancelShot),
+        ],
         delay: StoryDirector.pickupDelay,
         onDismissed: () => host.unlock(HudElement.shoot),
       );
@@ -138,7 +148,10 @@ final class BackpacksScript extends StoryScript {
     _lessonGiven = true;
     say(
       StoryPrompt(
-        const <StoryLine>[StoryLine(backpackLesson), StoryLine(interactLesson)],
+        const <StoryLine>[
+          StoryLine(backpackLesson),
+          StoryLine(interactLesson, demo: ControlDemo.interact),
+        ],
         delay: StoryDirector.reactionDelay,
         onDismissed: () => host.unlock(HudElement.interact),
       ),
