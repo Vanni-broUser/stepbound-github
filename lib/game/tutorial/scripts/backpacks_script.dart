@@ -18,9 +18,14 @@ final class BackpacksScript extends TutorialScript {
   static const String ringFound = 'Hai trovato un anello episcopale';
   static const String duomoKeyFound =
       'Hai trovato la Chiave del Duomo vicino il cadavere di Don Angelo';
-  static const String shootLesson =
-      'Tieni premuto a destra per mirare e trascina verso una direzione: '
-      'lascia per sparare. Lascia nel cerchio al centro per non sparare';
+  static const String aimLesson =
+      'Tieni premuto sulla parte destra dello schermo per iniziare a mirare';
+  static const String fireLesson =
+      'Mentre tieni premuto trascina verso una direzione, appena alzi il '
+      'dito parte il colpo';
+  static const String cancelLesson =
+      'Puoi annullare il colpo di pistola senza consumare proiettili alzando '
+      'il dito mentre sei nel punto centrale';
 
   /// "Non hai una pistola" only while the player really has none.
   static String ammoFound(int rounds, {required bool hasGun}) => hasGun
@@ -89,7 +94,12 @@ final class BackpacksScript extends TutorialScript {
     }
     if (gun) {
       return TutorialPrompt(
-        const <TutorialLine>[TutorialLine(gunFound), TutorialLine(shootLesson)],
+        const <TutorialLine>[
+          TutorialLine(gunFound),
+          TutorialLine(aimLesson, demo: ControlDemo.shoot),
+          TutorialLine(fireLesson, demo: ControlDemo.shoot),
+          TutorialLine(cancelLesson),
+        ],
         delay: TutorialDirector.pickupDelay,
         onDismissed: () => host.unlock(HudElement.shoot),
       );

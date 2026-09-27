@@ -37,33 +37,48 @@ export 'package:stepbound/game/tutorial/scripts/zombie_sightings_script.dart';
 /// A line shown in the dialogue box over the gameplay.
 final class TutorialLine {
   /// A hint or system message: no name over the box.
-  const TutorialLine(this.text, {this.speaker, this.portrait});
+  const TutorialLine(this.text, {this.speaker, this.portrait, this.demo});
 
   /// A line spoken by Mario, with his portrait over the box.
   const TutorialLine.mario(this.text)
     : speaker = 'Mario Rossi',
-      portrait = 'assets/characters/mario/portraits/base.png';
+      portrait = 'assets/characters/mario/portraits/base.png',
+      demo = null;
 
   /// A line spoken by Luigi, with his portrait over the box.
   const TutorialLine.luigi(this.text)
     : speaker = 'Luigi Rovaga',
-      portrait = 'assets/characters/npcs/portraits/luigi.png';
+      portrait = 'assets/characters/npcs/portraits/luigi.png',
+      demo = null;
 
   /// A line spoken by the priest of the Duomo, with his portrait over the
   /// box.
   const TutorialLine.priest(this.text)
     : speaker = PriestScript.priest,
-      portrait = 'assets/characters/npcs/portraits/priest.png';
+      portrait = 'assets/characters/npcs/portraits/priest.png',
+      demo = null;
 
   /// A member of Don Angelo's community inside the Duomo.
   const TutorialLine.cultist(this.text)
     : speaker = DuomoScript.cultist,
-      portrait = DuomoScript.cultistPortrait;
+      portrait = DuomoScript.cultistPortrait,
+      demo = null;
 
   /// Set only when a person is talking.
   final String? speaker;
   final String text;
   final String? portrait;
+
+  /// The gesture played beside the box while the line explains it.
+  final ControlDemo? demo;
+}
+
+/// A gesture the tutorial plays over and over on a small screen beside the
+/// text box, while a line explains it.
+enum ControlDemo {
+  /// Holding on the right half raises the pistol, dragging aims and lifting
+  /// fires: once each way, up, right, down and left.
+  shoot,
 }
 
 /// One full-screen picture of a story scene played during the game: the

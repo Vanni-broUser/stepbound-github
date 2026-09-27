@@ -406,6 +406,7 @@ final class _StepboundAppState extends State<StepboundApp> {
             portrait: line.speaker == 'Mario Rossi'
                 ? game.progress.activeOutfit.portrait
                 : line.portrait,
+            demo: line.demo,
           ),
       ],
       onFinished: game.dismissPrompt,

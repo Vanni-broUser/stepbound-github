@@ -838,7 +838,15 @@ void main() {
     settle();
     expect(host.shown.last.map((line) => line.text), <String>[
       BackpacksScript.gunFound,
-      BackpacksScript.shootLesson,
+      BackpacksScript.aimLesson,
+      BackpacksScript.fireLesson,
+      BackpacksScript.cancelLesson,
+    ]);
+    expect(host.shown.last.map((line) => line.demo), <ControlDemo?>[
+      null,
+      ControlDemo.shoot,
+      ControlDemo.shoot,
+      null,
     ]);
     expect(host.unlocked, isNot(contains(HudElement.shoot)));
     host.dismiss();

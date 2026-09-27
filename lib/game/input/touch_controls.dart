@@ -383,7 +383,7 @@ final class _MoveZoneState extends State<MoveZone> {
         onPointerUp: _up,
         onPointerCancel: _up,
         child: CustomPaint(
-          painter: _StickPainter(centre: _centre, thumb: _thumb, seed: _seed),
+          painter: StickPainter(centre: _centre, thumb: _thumb, seed: _seed),
           child: const SizedBox.expand(),
         ),
       ),
@@ -625,7 +625,7 @@ final class _ActionZoneState extends State<ActionZone> {
           valueListenable: _game.input.aiming,
           builder: (context, aiming, _) => CustomPaint(
             painter: aiming && _touch == _Touch.aiming
-                ? _StickPainter(
+                ? StickPainter(
                     centre: _centre,
                     thumb: _thumb,
                     seed: _seed,
@@ -647,8 +647,8 @@ final class _ActionZoneState extends State<ActionZone> {
 /// brighter and a pale ring of [cancelRadius] marks the middle: it lights
 /// up, with the pistol greyed on the drop, while the finger rests inside
 /// it, where lifting it fires nothing.
-final class _StickPainter extends CustomPainter {
-  const _StickPainter({
+final class StickPainter extends CustomPainter {
+  const StickPainter({
     required this.centre,
     required this.thumb,
     required this.seed,
@@ -805,7 +805,7 @@ final class _StickPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_StickPainter oldDelegate) =>
+  bool shouldRepaint(StickPainter oldDelegate) =>
       oldDelegate.centre != centre ||
       oldDelegate.thumb != thumb ||
       oldDelegate.seed != seed ||
