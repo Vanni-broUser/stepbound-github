@@ -93,9 +93,11 @@ flutter build apk --debug
 
 Every build target also accepts `--dart-define=VANNI_DEPLOY=1`. Such a build
 recreates slot 4 at every launch with Molfetta completed, every Molfetta
-memory, ten rounds and the molotov; slots 1–3 and the normal new-game flow
-remain available. GitLab passes the `VANNI_DEPLOY` CI variable to every build
-job, and GitHub Actions does the same with the repository Actions variable.
+memory, ten rounds and the molotov, and unlocks the ghost, vampire,
+jack-o'-lantern and zombie outfits for wardrobe testing; slots 1–3 and the
+normal new-game flow remain available. GitLab passes the `VANNI_DEPLOY` CI
+variable to every build job, and GitHub Actions does the same with the
+repository Actions variable.
 
 GitLab CI runs formatting, static analysis, and tests with Flutter 3.44.2. Signed release builds belong on a protected local runner; signing secrets must never be committed.
 

@@ -1,4 +1,6 @@
+import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/test_scenarios.dart';
+import 'package:stepbound/save/outfit_unlocks.dart';
 import 'package:stepbound/save/save_game.dart';
 
 /// Whether this build should always offer the current end-of-Molfetta test
@@ -12,4 +14,12 @@ const int vanniDeploySlot = SaveRepository.slotCount;
 Future<void> installVanniDeploySave(SaveRepository saves) async {
   await saves.clear(vanniDeploySlot);
   await saves.save(vanniDeployScenario.save(vanniDeploySlot));
+}
+
+/// Makes every campaign skin immediately testable in a VANNI_DEPLOY build.
+/// Normal builds still obtain these outfits exclusively through their links.
+Future<void> installVanniDeployOutfits(OutfitUnlockRepository outfits) async {
+  for (final outfit in halloweenOutfits) {
+    await outfits.unlock(outfit);
+  }
 }

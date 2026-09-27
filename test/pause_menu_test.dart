@@ -16,14 +16,20 @@ void main() {
     WidgetTester tester, {
     ResumePoint? resumePoint = ResumePoint.campfire,
     bool cultistFound = true,
+    bool duomoCompleted = true,
     bool wardrobe = false,
+    Iterable<PlayerOutfit> linkedOutfits = const <PlayerOutfit>[],
   }) async {
     resumes = 0;
     restarts = 0;
     quits = 0;
     closes = 0;
     progress = Progress(
-      unlockedOutfits: <PlayerOutfit>[if (cultistFound) PlayerOutfit.cultist],
+      memories: <StoryMemory>[if (duomoCompleted) StoryMemory.priestMassacre],
+      unlockedOutfits: <PlayerOutfit>[
+        if (cultistFound) PlayerOutfit.cultist,
+        ...linkedOutfits,
+      ],
     );
     outfitsWorn = <PlayerOutfit>[];
     tester.view.physicalSize = const Size(768, 432);
@@ -91,9 +97,21 @@ void main() {
   testWidgets('before the first outfit is found, no outfit button', (
     tester,
   ) async {
-    await pumpMenu(tester, cultistFound: false);
+    await pumpMenu(tester, cultistFound: false, duomoCompleted: false);
     expect(find.text('CAMBIA ABBIGLIAMENTO'), findsNothing);
     expect(find.text('RIPRENDI DAL FALÒ'), findsOneWidget);
+  });
+
+  testWidgets('a linked skin does not expose clothes before the Duomo', (
+    tester,
+  ) async {
+    await pumpMenu(
+      tester,
+      cultistFound: false,
+      duomoCompleted: false,
+      linkedOutfits: const <PlayerOutfit>[PlayerOutfit.ghost],
+    );
+    expect(find.text('CAMBIA ABBIGLIAMENTO'), findsNothing);
   });
 
   testWidgets('the way back to the game sits apart from the choices', (
@@ -155,6 +173,22 @@ void main() {
     expect(find.text('TORNA AL GIOCO'), findsNothing);
   });
 
+  testWidgets('the train wardrobe can wear a linked skin before the Duomo', (
+    tester,
+  ) async {
+    await pumpMenu(
+      tester,
+      wardrobe: true,
+      cultistFound: false,
+      linkedOutfits: const <PlayerOutfit>[PlayerOutfit.ghost],
+    );
+    final ghostSlot = PlayerOutfit.values.indexOf(PlayerOutfit.ghost);
+    await tap(tester, 'pause-outfit-$ghostSlot');
+    expect(find.text('FANTASMA'), findsWidgets);
+    await tap(tester, 'pause-outfit-wear');
+    expect(outfitsWorn, <PlayerOutfit>[PlayerOutfit.ghost]);
+  });
+
   testWidgets('the outfits still to come are "???" and cannot be worn', (
     tester,
   ) async {
@@ -172,6 +206,54 @@ void main() {
     await tap(tester, 'pause-outfit-wear');
     expect(outfitsWorn, isEmpty);
     expect(find.text('???'), findsWidgets);
+  });
+
+  testWidgets('the Halloween catalogue exposes every seasonal skin', (
+    tester,
+  ) async {
+    progress = Progress(
+      memories: const <StoryMemory>[StoryMemory.priestMassacre],
+      unlockedOutfits: const <PlayerOutfit>[
+        PlayerOutfit.cultist,
+        ...halloweenOutfits,
+      ],
+    );
+    outfitsWorn = <PlayerOutfit>[];
+    tester.view.physicalSize = const Size(768, 432);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PauseMenu(
+          progress: progress,
+          resumePoint: ResumePoint.campfire,
+          onResumeFromCamp: () {},
+          onRestartLevel: () {},
+          onMainMenu: () {},
+          onClose: () {},
+          onWearOutfit: (outfit) {
+            outfitsWorn.add(outfit);
+            progress.wearOutfit(outfit);
+          },
+        ),
+      ),
+    );
+
+    await tap(tester, 'pause-outfits');
+    for (final outfit in halloweenOutfits) {
+      final slot = PlayerOutfit.values.indexOf(outfit);
+      await tap(tester, 'pause-outfit-$slot');
+      expect(find.text(outfit.label.toUpperCase()), findsWidgets);
+      final portrait = tester.widget<PortraitImage>(
+        find.byKey(ValueKey<String>('pause-outfit-portrait-$slot')),
+      );
+      expect(portrait.asset, outfit.portrait);
+    }
+
+    final zombieSlot = PlayerOutfit.values.indexOf(PlayerOutfit.zombie);
+    await tap(tester, 'pause-outfit-$zombieSlot');
+    await tap(tester, 'pause-outfit-wear');
+    expect(outfitsWorn, <PlayerOutfit>[PlayerOutfit.zombie]);
   });
 
   for (final (choice, name, count) in <(String, String, int Function())>[

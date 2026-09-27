@@ -21,6 +21,7 @@ final class GameSession {
     required this.audio,
     required this.onLevelCompleted,
     required this.onTravelMapRequested,
+    this.linkedOutfits = const <PlayerOutfit>{},
   });
 
   /// What a save made by starting the level over is called in the slots.
@@ -37,6 +38,10 @@ final class GameSession {
 
   /// Leaves gameplay directly for the destination map from the train.
   final void Function(GameSnapshot snapshot) onTravelMapRequested;
+
+  /// Device-wide outfits obtained through campaign links. The app keeps
+  /// this set live so links received while playing also affect later games.
+  final Set<PlayerOutfit> linkedOutfits;
 
   /// The slot this game saves into at campfires and on the train.
   int slot = 1;
@@ -359,6 +364,7 @@ final class GameSession {
     Map<String, Object?>? storyState,
     Set<HudElement> unlocked = const <HudElement>{},
   }) {
+    progress.unlockedOutfits.addAll(linkedOutfits);
     late final StepboundGame game;
     return game = StepboundGame(
       world: world,

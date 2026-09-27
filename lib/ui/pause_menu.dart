@@ -166,8 +166,9 @@ final class _PauseMenuState extends State<PauseMenu> {
           compact: true,
           onPressed: () => _open(_PausePage.resume),
         ),
-      // Offered once there is something besides the base clothes to wear.
-      if (widget.progress.unlockedOutfits.length > 1)
+      // Leaving the Duomo after the massacre is when the story introduces
+      // changing clothes. Finding the robe or a linked skin is not enough.
+      if (widget.progress.hasExperienced(StoryMemory.priestMassacre))
         MenuButton(
           key: const ValueKey<String>('pause-outfits'),
           label: 'CAMBIA ABBIGLIAMENTO',

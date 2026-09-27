@@ -26,6 +26,10 @@ void main() {
     const names = <String>[
       'mario/sprites/base',
       'mario/sprites/cultist',
+      'mario/sprites/ghost',
+      'mario/sprites/vampire',
+      'mario/sprites/jack_o_lantern',
+      'mario/sprites/zombie',
       'mario/sprites/roma',
       'mario/sprites/lazio',
       'zombies/sprites/wanderer',
@@ -123,6 +127,10 @@ void main() {
       'assets/characters/npcs/portraits/maranza_lazio.png',
       'assets/characters/mario/portraits/roma.png',
       'assets/characters/mario/portraits/lazio.png',
+      'assets/characters/mario/portraits/ghost.png',
+      'assets/characters/mario/portraits/vampire.png',
+      'assets/characters/mario/portraits/jack_o_lantern.png',
+      'assets/characters/mario/portraits/zombie.png',
     ]) {
       final image = await loadAsset(name);
       expect(image.width, 1048, reason: name);
@@ -139,6 +147,41 @@ void main() {
       }
       expect(hasTransparentPixel, isTrue, reason: '$name needs alpha');
       expect(hasOpaquePixel, isTrue, reason: '$name needs visible pixels');
+      image.dispose();
+    }
+  });
+
+  test('Halloween art has no stray pure-white pixels', () async {
+    const outfits = <String>['ghost', 'vampire', 'jack_o_lantern', 'zombie'];
+    final paths = <String>[
+      for (final outfit in outfits)
+        'assets/characters/mario/portraits/$outfit.png',
+      for (final outfit in outfits)
+        for (final suffix in <String>['', '_gun', '_pickup', '_throwable'])
+          'assets/characters/mario/sprites/$outfit$suffix.png',
+    ];
+    for (final path in paths) {
+      final image = await loadAsset(path);
+      final rgba = await pixelsOf(image);
+      var pureWhite = 0;
+      var partialAlpha = 0;
+      for (var index = 0; index < rgba.length; index += 4) {
+        if (rgba[index + 3] != 0 && rgba[index + 3] != 255) {
+          partialAlpha += 1;
+        }
+        if (rgba[index + 3] > 0 &&
+            rgba[index] == 255 &&
+            rgba[index + 1] == 255 &&
+            rgba[index + 2] == 255) {
+          pureWhite += 1;
+        }
+      }
+      expect(pureWhite, 0, reason: path);
+      expect(
+        partialAlpha,
+        0,
+        reason: '$path needs hard pixel-art edges without a pale alpha halo',
+      );
       image.dispose();
     }
   });

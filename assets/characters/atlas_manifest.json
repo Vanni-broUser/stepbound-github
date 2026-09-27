@@ -19,6 +19,10 @@
   "files": [
     "mario/sprites/base.png",
     "mario/sprites/cultist.png",
+    "mario/sprites/ghost.png",
+    "mario/sprites/vampire.png",
+    "mario/sprites/jack_o_lantern.png",
+    "mario/sprites/zombie.png",
     "mario/sprites/roma.png",
     "mario/sprites/lazio.png",
     "zombies/sprites/wanderer.png",
@@ -107,6 +111,182 @@
     },
     {
       "file": "mario/sprites/cultist_throwable.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "throw_0",
+        "throw_1",
+        "throw_2"
+      ],
+      "actions": [
+        "aim_throwable",
+        "throw"
+      ]
+    },
+    {
+      "file": "mario/sprites/ghost_gun.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "fire_0",
+        "fire_1",
+        "fire_2"
+      ],
+      "actions": [
+        "aim",
+        "fire"
+      ]
+    },
+    {
+      "file": "mario/sprites/ghost_pickup.png",
+      "columns": [
+        "pick_0",
+        "pick_1",
+        "pick_2",
+        "pick_3",
+        "pick_4",
+        "pick_5"
+      ],
+      "actions": [
+        "pickup"
+      ]
+    },
+    {
+      "file": "mario/sprites/ghost_throwable.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "throw_0",
+        "throw_1",
+        "throw_2"
+      ],
+      "actions": [
+        "aim_throwable",
+        "throw"
+      ]
+    },
+    {
+      "file": "mario/sprites/vampire_gun.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "fire_0",
+        "fire_1",
+        "fire_2"
+      ],
+      "actions": [
+        "aim",
+        "fire"
+      ]
+    },
+    {
+      "file": "mario/sprites/vampire_pickup.png",
+      "columns": [
+        "pick_0",
+        "pick_1",
+        "pick_2",
+        "pick_3",
+        "pick_4",
+        "pick_5"
+      ],
+      "actions": [
+        "pickup"
+      ]
+    },
+    {
+      "file": "mario/sprites/vampire_throwable.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "throw_0",
+        "throw_1",
+        "throw_2"
+      ],
+      "actions": [
+        "aim_throwable",
+        "throw"
+      ]
+    },
+    {
+      "file": "mario/sprites/jack_o_lantern_gun.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "fire_0",
+        "fire_1",
+        "fire_2"
+      ],
+      "actions": [
+        "aim",
+        "fire"
+      ]
+    },
+    {
+      "file": "mario/sprites/jack_o_lantern_pickup.png",
+      "columns": [
+        "pick_0",
+        "pick_1",
+        "pick_2",
+        "pick_3",
+        "pick_4",
+        "pick_5"
+      ],
+      "actions": [
+        "pickup"
+      ]
+    },
+    {
+      "file": "mario/sprites/jack_o_lantern_throwable.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "throw_0",
+        "throw_1",
+        "throw_2"
+      ],
+      "actions": [
+        "aim_throwable",
+        "throw"
+      ]
+    },
+    {
+      "file": "mario/sprites/zombie_gun.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "fire_0",
+        "fire_1",
+        "fire_2"
+      ],
+      "actions": [
+        "aim",
+        "fire"
+      ]
+    },
+    {
+      "file": "mario/sprites/zombie_pickup.png",
+      "columns": [
+        "pick_0",
+        "pick_1",
+        "pick_2",
+        "pick_3",
+        "pick_4",
+        "pick_5"
+      ],
+      "actions": [
+        "pickup"
+      ]
+    },
+    {
+      "file": "mario/sprites/zombie_throwable.png",
       "columns": [
         "aim_0",
         "aim_1",

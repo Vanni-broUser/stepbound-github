@@ -22,6 +22,21 @@ The result should feel compact, colorful, and immediately legible at native reso
 
 The protagonist uses a rust-red jacket, desaturated blue trousers, pale boots, dark hair, and an olive backpack. The silhouette must remain distinct from every enemy.
 
+The wardrobe also includes four Halloween skins, all preserving Mario's
+backpack and stable foot anchor:
+
+- Ghost: an off-white sheet with dark eye holes, exposed hands and the
+  backpack worn over the sheet.
+- Vampire: charcoal medieval clothes, burgundy waistcoat, black cape with
+  red lining and two small upper fangs.
+- Jack-o'-lantern: moss-green medieval traveller clothes and a carved pumpkin
+  helmet.
+- Zombie: unmistakable olive-green skin and worn, patched versions of Mario's
+  red top and blue trousers, kept readable and non-gory.
+
+Their walk, gun and pickup sheets are generated from the production Mario
+atlases by `tools/generate_halloween_skins.py`.
+
 Every zombie has unmistakably green exposed skin. Use a sickly olive or yellow-green base, forest-green shadow, and a pale yellow-green highlight. At 16×24, a zombie must never be mistaken for a living human.
 
 Archetype cues:
