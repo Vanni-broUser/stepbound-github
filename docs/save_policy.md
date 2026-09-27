@@ -64,10 +64,22 @@ migrazione può restare com'è; il test lo conferma.
 
 I salvataggi congelati vengono dagli scenari di prova, non da un telefono:
 coprono i punti della storia che gli scenari coprono. Il controllo
-(`checkRestorable`) ricostruisce il mondo e i progressi, non lo stato degli
-script della storia (vedi la voce P3 sui salvataggi nel backlog). Prima di
+(`checkRestorable`) ricostruisce il mondo, i progressi e lo stato degli
+script della storia, come fa il gioco all'avvio; non gioca. Prima di
 pubblicare una build che migra, conviene comunque caricare a mano un
 salvataggio vero della build precedente.
+
+## Cosa una migrazione tiene
+
+Il JSON di un salvataggio tiene il progresso tra i livelli (`progress`:
+zombi conosciuti, memorie, vestiti, passi, falò accesi) in un oggetto suo,
+separato dalla partita in corso (`world`, `story`, `hud`, `levelStart`).
+Quando un cambiamento di formato non può portare avanti la partita in
+corso, la migrazione tiene `progress` e sostituisce il resto con l'inizio
+del livello, com'è quando il livello ricomincia: il giocatore perde il
+punto in cui era, non ciò che ha scoperto. Non serve tenere i due pezzi in
+chiavi diverse dello storage per questo: una scrittura sola resta più
+sicura di due.
 
 ## Il salvataggio sospeso
 

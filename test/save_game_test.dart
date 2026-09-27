@@ -306,6 +306,25 @@ void main() {
       expect(SaveGame.decode(jsonEncode(tiles)), isA<LoadedSave>());
     });
 
+    test('a story flag of the wrong type is damaged, not a crash at the '
+        'start of the game', () {
+      for (final story in <Map<String, Object?>>[
+        <String, Object?>{
+          'street': <String, Object?>{'zombieLesson': 'yes'},
+        },
+        <String, Object?>{'duomo': 'ringDelivered'},
+      ]) {
+        final json = save().toJson()..['story'] = story;
+        expect(
+          SaveGame.decode(jsonEncode(json), check: checkRestorable),
+          isA<DamagedSave>(),
+          reason: '$story',
+        );
+        // The save's own fields alone look fine: only the check sees it.
+        expect(SaveGame.decode(jsonEncode(json)), isA<LoadedSave>());
+      }
+    });
+
     test('a world with its entities missing is damaged', () {
       final json = save().toJson()
         ..['world'] = <String, Object?>{'mapChanges': <Object?>[]};

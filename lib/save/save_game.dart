@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/progress.dart';
+import 'package:stepbound/game/story/silent_story_host.dart';
+import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/save/published_save.dart';
 
 /// Everything needed to resume a game from a campfire.
@@ -244,16 +246,27 @@ final class _Fields {
 /// them, so that a slot the menu shows as a save is one that loads.
 typedef SaveCheck = void Function(SaveGame save);
 
-/// The [SaveCheck] of the game: the world and the progress rebuild. What
-/// they throw (a missing field, a zombie type or a tile kind the game does
-/// not know) marks the save as damaged.
+/// The [SaveCheck] of the game: the world, the progress and the story's
+/// scripts rebuild, as they do when the game starts. What they throw (a
+/// missing field, a zombie type or a tile kind the game does not know, a
+/// script's flag of the wrong type) marks the save as damaged.
 void checkRestorable(SaveGame save) {
-  restoreGameWorld(save.world);
-  Progress.fromJson(save.progress);
+  _checkGame(save.world, save.story, save.progress);
   if (save.levelStart case final start?) {
-    restoreGameWorld(start.world);
-    Progress.fromJson(start.progress);
+    _checkGame(start.world, start.story, start.progress);
   }
+}
+
+void _checkGame(
+  Map<String, Object?> world,
+  Map<String, Object?> story,
+  Map<String, Object?> progress,
+) {
+  StoryDirector(
+    world: restoreGameWorld(world),
+    host: const SilentStoryHost(),
+    progress: Progress.fromJson(progress),
+  ).restore(story);
 }
 
 /// What a slot holds, read back.

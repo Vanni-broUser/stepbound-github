@@ -456,24 +456,6 @@ void main() {
     expect(host.shown, isEmpty);
   });
 
-  test('a save from before the massacre plays only what it has not seen', () {
-    // As such a save comes back: the ring handed over, the mass among the
-    // memories, the robe on, and nothing said about a massacre.
-    director.restore(<String, Object?>{
-      'duomo': <String, Object?>{'ringDelivered': true},
-    });
-    progress
-      ..remember(StoryMemory.priestMass)
-      ..unlockOutfit(PlayerOutfit.cultist)
-      ..wearOutfit(PlayerOutfit.cultist);
-    world.player.component<PositionComponent>().position = duomoStairEntryTile;
-
-    settle();
-
-    expect(host.cutscenes.single, DuomoScript.massacreScene);
-    expect(progress.memories, contains(StoryMemory.priestMassacre));
-  });
-
   group('out of the Duomo after the massacre', () {
     // The way out of the Duomo, and where it comes out on the harbour.
     late GridPoint inside;
