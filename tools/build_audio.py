@@ -138,6 +138,26 @@ SFX = [
     ("sfx/dialogue.mp3", "ui", "Audio/switch2.ogg", None, -14, None),
 ]
 
+# One-shots mixed from several sounds: (output, peak dBFS, layers), each
+# layer (source, start, end, delay s, gain dB, extra filter) as in SFX.
+LAYERED = [
+    # A bottle shattering, then the petrol catching with a roar.
+    ("sfx/molotov_1.mp3", -2, [
+        ("impact", IMPACT + "impactGlass_heavy_001.ogg", None, 0.0, 0,
+         None),
+        ("fireplace", 12.0, 13.8, 0.06, 14,
+         "bass=g=10:f=90,lowpass=f=3200,afade=t=in:d=0.12,"
+         "afade=t=out:st=0.5:d=1.3"),
+    ]),
+    ("sfx/molotov_2.mp3", -2, [
+        ("impact", IMPACT + "impactGlass_heavy_004.ogg", None, 0.0, 0,
+         None),
+        ("fireplace", 22.0, 23.8, 0.06, 17,
+         "bass=g=10:f=90,lowpass=f=3200,afade=t=in:d=0.12,"
+         "afade=t=out:st=0.5:d=1.3"),
+    ]),
+]
+
 
 def fetch(name: str) -> str:
     url = SOURCES[name][0]
@@ -218,6 +238,30 @@ def bake_one_shot(output, source, start, end, peak, extra):
            out_path(output))
 
 
+def bake_layered(output, peak, layers):
+    inputs, chains, labels = [], [], []
+    for index, (source, start, end, delay, gain, extra) in enumerate(layers):
+        path = fetch(source)
+        if isinstance(start, str):
+            path, start = os.path.join(path, source, start), 0.0
+        trim = f"atrim={start}" + (f":{end}" if end is not None else "")
+        chain = f"{trim},asetpts=PTS-STARTPTS,aformat=channel_layouts=mono"
+        if extra:
+            chain += "," + extra
+        chain += f",volume={gain}dB,adelay={int(delay * 1000)}"
+        inputs += ["-i", path]
+        chains.append(f"[{index}:a]{chain}[l{index}]")
+        labels.append(f"[l{index}]")
+    mix = (";".join(chains) + ";" + "".join(labels) +
+           f"amix=inputs={len(layers)}:duration=longest:normalize=0")
+    probe = ffmpeg(*inputs, "-filter_complex", mix + ",volumedetect",
+                   "-f", "null", "-")
+    loudest = float(re.search(r"max_volume: (-?[\d.]+) dB", probe).group(1))
+    ffmpeg(*inputs, "-filter_complex",
+           mix + f",volume={peak - loudest:.2f}dB[out]", "-map", "[out]",
+           *encode_args(stereo=False), out_path(output))
+
+
 def main() -> None:
     for output, source, start, end, fade, lufs in MUSIC:
         bake_loop(output, source, start, end, fade, lufs)
@@ -227,6 +271,9 @@ def main() -> None:
         print(output)
     for output, source, start, end, peak, extra in SFX:
         bake_one_shot(output, source, start, end, peak, extra)
+        print(output)
+    for output, peak, layers in LAYERED:
+        bake_layered(output, peak, layers)
         print(output)
 
 
