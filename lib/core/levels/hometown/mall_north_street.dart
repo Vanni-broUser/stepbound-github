@@ -12,7 +12,7 @@
 /// What is closed, and by what. West, both streets stop at the map edge:
 /// the four-lane road behind a wrecked-car pile-up from house front to
 /// house front, wrecks in every lane and one more shunted up on each
-/// pavement, the shopping street, past the campfire, behind a pile-up of
+/// pavement, the shopping street, past a backpack, behind a pile-up of
 /// its own with a gap in the middle lane: no car there, only the fuel it
 /// spilt, burning `?` across the lane and under the wreck beside it, which
 /// has set the two cars either side of the gap alight too. It looks like
@@ -36,7 +36,9 @@
 /// gate, and the trees, benches and playground stand in the lawns between
 /// them. Rubbish has been heaped in the south-west corner of the car park
 /// and out over the pavement there, deep enough to climb over at its edges
-/// and not at its heart.
+/// and not at its heart. The campfire `S` burns on the first parking bay
+/// immediately beside the rubbish; the backpack `8` at the old campfire
+/// site on the shopping street holds two rounds.
 ///
 /// At the top of the map, where the shopping street opens into its
 /// forecourt, stands the station: a low provincial building of the kind
@@ -65,7 +67,7 @@ const List<String> mallNorthStreetRows = <String>[
   'CC/===================F============:=============/=====TPPPPPPP:PPPPPPPBBB',
   '.XX.........CC...........:........................Z....=PPPPPCCPPPPPCCPBBB',
   '???---------------------------------------------..Z....=PPPPPPPPPPPPPPPBBB',
-  '?XX....S..........:...........UU..................Z....=PPPPPPPPUUPPPPPBBB',
+  '?XX....8..........:...........UU..................Z....=PPPPPPPPUUPPPPPBBB',
   'CC======:=========================================TVVVV=PPPNPPPPPPPPPNPBBB',
   'BBBBBBBBBBBBBBBB^^^^^^^^^^<^^^^^^^^^^^BBBBBBBBBBBB=....=BBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBBBBBggggggggggPgggggggggggBBBBBBBBBBBB=....=BBBBBBBBBBBBBBBBBB',
@@ -90,7 +92,7 @@ const List<String> mallNorthStreetRows = <String>[
   'BB::LLLLLLLLLLLLLLLLLLLLBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BB;;::LLLLLLLLLwLLLLLLLLBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BB;;;::LLLLLLLLLLLLLLLLLBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  'BB;;;;:::LLLLLLLLLLLLLLLBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BB;;;;:::SLLLLLLLLLLLLLLBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BB;;;:::================BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBBjBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',

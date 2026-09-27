@@ -158,7 +158,7 @@
       "rules": [
         {
           "layer": "ground",
-          "glyphs": ".:b&TnY",
+          "glyphs": ".:b&TnY9",
           "keys": [
             {
               "kind": "firstRow",
@@ -3191,7 +3191,7 @@
         },
         {
           "layer": "structures",
-          "glyphs": "!&(*,-.5:=ACDFNPRSTUVXZbcdhilnostvwxz|~",
+          "glyphs": "!&(*,-.567:=ACDFNPRSTUVXZbcdhilnostvwxz|~",
           "keys": [
             {
               "kind": "neighbour",
@@ -5594,7 +5594,7 @@
         },
         {
           "layer": "structures",
-          "glyphs": "()+-./:;<=?ACFLNPSTUVXZ[^_gjnprvw|",
+          "glyphs": "()+-./8:;<=?ACFLNPSTUVXZ[^_gjnprvw|",
           "keys": [
             {
               "kind": "neighbour",
@@ -5756,7 +5756,7 @@
         },
         {
           "layer": "structures",
-          "glyphs": "()-./:;<=?ACFLNPSTUVXZ^gjnprvw|",
+          "glyphs": "()-./8:;<=?ACFLNPSTUVXZ^gjnprvw|",
           "keys": [
             {
               "kind": "any",

@@ -46,7 +46,7 @@ const List<String> northDistrictRows = <String>[
   'BBPPPPPwPPPwPwPPPP===w=r==w============PPq:qPPPPPPPPPPPPPP===F=========================BBB',
   'BB...................w.w..d............PQqPPPPOOOOOPPP:PPPP.....CC...............:...UUBBB',
   'BB-.-.-.-.-.-.-.-.-.w.:.w.-r-.-.-.-.-.-qPPdPPwOOOOOPPPPPPPP.-.-.-.-:-.-.-.-.-.-.-.-.S.-BBB',
-  'BB....................w..w....XX.......PPdPPPPOOOOOPPPPPPPP..........XX.d..............BBB',
+  'BB....................w..w....XX.......PPdPPPPOOOOOPPPPPPPP..........CC.d..............BBB',
   'BB=================w====w==============PPPPPPPOOOOOwPPPPPP=====================F=======BBB',
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=PPPPPPPOOOOOPPPPPPP=BBBBBBBBBBBBBBBBeBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=PPPPPPPPPPPPPPDPPPP=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',

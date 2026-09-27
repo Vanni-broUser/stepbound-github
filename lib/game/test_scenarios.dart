@@ -207,18 +207,18 @@ final List<TestScenario> testScenarios = <TestScenario>[
   }),
   TestScenario('Porto, Don Angelo al cancello', (story) {
     _armed(story);
-    story.restNearest(priestTile);
+    story.restAt(harbourRoadCampfireTile);
   }),
   TestScenario("Porto, in cerca dell'incenso", (story) {
     _incenseErrand(story);
-    story.restNearest(churchPortalTile);
+    story.restAt(harbourRoadCampfireTile);
   }),
   TestScenario("Porto, ritorno con l'incenso", (story) {
     _incenseErrand(story);
     story
       ..collect(incenseBackpackId)
       ..unlock(HudElement.incense)
-      ..restNearest(priestTile);
+      ..restAt(harbourRoadCampfireTile);
   }),
   TestScenario('Bar Arcobaleno, con la chiave', (story) {
     _welcomed(story);

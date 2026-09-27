@@ -65,7 +65,7 @@ void main() {
     );
   });
 
-  test('past the campfire behind the mall a lane has no car, only fire, '
+  test('past the backpack behind the mall a lane has no car, only fire, '
       'and looking at it says what it would take', () {
     final world = createGameWorld();
     final street = place(PlaceId.mallNorthStreet);
@@ -75,7 +75,8 @@ void main() {
       expect(world.map.tileAt(tile).kind, TileKind.fire);
       expect(world.map.tileAt(tile).blocksSight, isFalse);
     }
-    // Across a lane of the shopping street, west of its campfire, and the
+    // Across a lane of the shopping street, west of the parking campfire,
+    // and the
     // cars either side of that lane caught fire from it.
     final camp = world.campfires.firstWhere(street.bounds.contains);
     expect(fire.every((tile) => tile.x < camp.x), isTrue);
@@ -105,6 +106,50 @@ void main() {
       shoppingStreetFireTile,
     );
     expect(world.map.tileAt(shoppingStreetFireTile).kind, TileKind.fire);
+  });
+
+  test('the mall-north fire moves beside the rubbish and leaves a two-round '
+      'backpack at its old site', () {
+    final world = createGameWorld();
+    final street = place(PlaceId.mallNorthStreet);
+    final backpack = world.pickups[mallNorthBackpackId]!;
+
+    expect(backpack.position, mallNorthBackpackTile);
+    expect(backpack.ammo, mallNorthBackpackAmmo);
+    expect(backpack.gun, isFalse);
+    expect(world.campfires, isNot(contains(backpack.position)));
+    expect(
+      GridPoint(
+        backpack.position.x - street.origin.x,
+        backpack.position.y - street.origin.y,
+      ),
+      const GridPoint(7, 9),
+      reason: 'the backpack occupies the previous campfire site',
+    );
+
+    expect(campfireNames[mallNorthCampfireTile], 'Zona nord');
+    expect(world.campfires.where(street.bounds.contains), <GridPoint>[
+      mallNorthCampfireTile,
+    ]);
+    final localCamp = GridPoint(
+      mallNorthCampfireTile.x - street.origin.x,
+      mallNorthCampfireTile.y - street.origin.y,
+    );
+    expect(mallNorthStreetRows[localCamp.y][localCamp.x], 'S');
+    expect(
+      Direction.values.any((direction) {
+        final neighbour = localCamp.step(direction);
+        if (neighbour.x < 0 ||
+            neighbour.y < 0 ||
+            neighbour.y >= mallNorthStreetRows.length ||
+            neighbour.x >= mallNorthStreetRows[neighbour.y].length) {
+          return false;
+        }
+        return ':;'.contains(mallNorthStreetRows[neighbour.y][neighbour.x]);
+      }),
+      isTrue,
+      reason: 'the fire is on a parking bay immediately beside the rubbish',
+    );
   });
 
   test('the block behind the mall walks as a circuit, never to the edge', () {
@@ -142,6 +187,26 @@ void main() {
         reason: 'nothing walkable touches the edge of the map',
       );
     }
+  });
+
+  test('only the campfire burns beyond the barracks back exit', () {
+    final north = place(PlaceId.northDistrict);
+    final nearbyFires = hometownFireSpots.where(
+      (spot) => spot.tile.manhattanDistanceTo(northDistrictBackExitTile) <= 8,
+    );
+
+    expect(nearbyFires, isEmpty);
+    expect(northDistrictRows[36].substring(69, 71), 'CC');
+    expect(northDistrictRows[37][79], 'F');
+    expect(
+      hometownFireSpots.map((spot) => spot.tile),
+      isNot(contains(extinguishedNorthDistrictBinTile)),
+    );
+    expect(
+      north.tileOf('S').manhattanDistanceTo(northDistrictBackExitTile),
+      greaterThan(8),
+      reason: 'the real camp remains further along the closed street',
+    );
   });
 
   test('four drunks stagger about the Bar Arcobaleno, one by the service '
@@ -846,10 +911,10 @@ void main() {
       );
     });
 
-    test('a rowboat moored at the second pier holds four rounds', () {
+    test('a rowboat moored at the second pier holds two rounds', () {
       final world = createGameWorld();
       final boat = world.pickups[boatBackpackId]!;
-      expect(boat.ammo, 4);
+      expect(boat.ammo, 2);
       expect(boat.gun, isFalse);
       expect(harbour.bounds.contains(boat.position), isTrue);
       final deck = <GridPoint>[
@@ -864,6 +929,71 @@ void main() {
         isTrue,
         reason: 'the boat is alongside the end of the pier',
       );
+    });
+
+    test('two-round backpacks replace the shipyard fire and wait at the '
+        'rightmost old-town dead end', () {
+      final world = createGameWorld();
+      final shipyard = world.pickups[shipyardBackpackId]!;
+      final oldTown = world.pickups[oldTownBackpackId]!;
+
+      expect(shipyard.position, shipyardBackpackTile);
+      expect(shipyard.ammo, 2);
+      expect(oldTown.position, oldTownBackpackTile);
+      expect(oldTown.ammo, 2);
+      expect(world.campfires, isNot(contains(shipyardBackpackTile)));
+
+      final localOldTown = GridPoint(
+        oldTown.position.x - harbour.origin.x,
+        oldTown.position.y - harbour.origin.y,
+      );
+      expect(
+        harbourRows[localOldTown.y - 1][localOldTown.x],
+        'H',
+        reason: 'the backpack is at the shut northern end of the alley',
+      );
+      expect(harbourRows[localOldTown.y + 1][localOldTown.x], 'P');
+    });
+
+    test('one fire is gated on the Duomo sagrato and one waits at the '
+        'south-east end of the harbour road', () {
+      final world = createGameWorld();
+      expect(campfireNames[duomoCampfireTile], 'Sagrato del Duomo');
+      expect(campfireNames[harbourRoadCampfireTile], 'Fine del porto');
+      expect(
+        world.campfires.where(harbour.bounds.contains),
+        unorderedEquals(<GridPoint>[
+          duomoCampfireTile,
+          harbourRoadCampfireTile,
+        ]),
+      );
+
+      Map<GridPoint, int> fromOutside() => world.map.floodFillDistances(
+        priestGateTiles[1].step(Direction.south),
+        maxDistance: harbour.width * harbour.height,
+      );
+      bool reachesDuomoFire(Map<GridPoint, int> reached) =>
+          Direction.values.map(duomoCampfireTile.step).any(reached.containsKey);
+      expect(
+        reachesDuomoFire(fromOutside()),
+        isFalse,
+        reason: 'the closed gate keeps the first fire out of reach',
+      );
+      for (final tile in priestGateTiles) {
+        world.map.setTile(tile, const Tile(TileKind.floor));
+      }
+      expect(
+        reachesDuomoFire(fromOutside()),
+        isTrue,
+        reason: 'delivering the incense opens the way to the fire',
+      );
+
+      final localRoad = GridPoint(
+        harbourRoadCampfireTile.x - harbour.origin.x,
+        harbourRoadCampfireTile.y - harbour.origin.y,
+      );
+      expect(localRoad.x, greaterThan(harbour.width - 10));
+      expect(localRoad.y, greaterThan(harbour.height - 10));
     });
 
     test('the seafront road runs on west past the Duomo until the shipyard '
@@ -2507,6 +2637,34 @@ void main() {
       expect(back, airlinerTailBreak.first.step(Direction.north));
     });
 
+    test('a backpack with two rounds waits in the south-east corner of '
+        'the first roof after the airliner', () {
+      final world = createGameWorld();
+      final backpack = world.pickups[rooftopBackpackId]!;
+      expect(backpack.ammo, rooftopBackpackAmmo);
+      expect(backpack.position, rooftopBackpackTile);
+      expect(roofs.bounds.contains(backpack.position), isTrue);
+      expect(
+        backpack.position.x,
+        greaterThan((roofs.bounds.left + roofs.bounds.right) ~/ 2),
+      );
+      expect(
+        backpack.position.y,
+        greaterThan((roofs.bounds.top + roofs.bounds.bottom) ~/ 2),
+      );
+
+      final reached = from(
+        world,
+        airlinerRoofBreak.first.step(Direction.south),
+        roofs,
+      );
+      expect(
+        Direction.values.map(backpack.position.step).any(reached.containsKey),
+        isTrue,
+        reason: 'Mario can stand beside it to collect it',
+      );
+    });
+
     test('the roofs end at the gap, which can only be looked at', () {
       final world = createGameWorld();
       final reached = from(
@@ -2632,14 +2790,14 @@ void main() {
           'pile-up under the park',
     );
     // And two on the overturned car burning at the station.
-    expect(count(all, FireKind.car), 14 + stationWreckFireSpots.length);
+    expect(count(all, FireKind.car), 13 + stationWreckFireSpots.length);
     expect(stationWreckFireSpots, hasLength(2));
-    expect(count(all, FireKind.bin), 10);
+    expect(count(all, FireKind.bin), 9);
     expect(count(all, FireKind.window), 14);
-    expect(count(all, FireKind.campfire), 3);
+    expect(count(all, FireKind.campfire), 4);
     // One camp in the north district, one in the dead end the wrecks
-    // leave at the west end of the shopping street behind the mall, one in
-    // the shipyard at the harbour.
+    // leave at the west end of the shopping street behind the mall, and
+    // two at the harbour: the Duomo sagrato and the south-east road end.
     expect(
       all
           .where((spot) => spot.kind == FireKind.campfire)
@@ -2942,7 +3100,7 @@ void main() {
       ),
     );
     expect(hometown, contains(EntityKind.cultist));
-    expect(levelCampfires(LevelId.hometown), hasLength(3));
+    expect(levelCampfires(LevelId.hometown), hasLength(4));
     expect(levelCampfires(LevelId.rome), isEmpty);
   });
 

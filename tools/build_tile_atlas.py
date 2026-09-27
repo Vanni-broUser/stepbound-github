@@ -4692,7 +4692,7 @@ def airliner_roofs(atlas: Atlas, rng) -> dict:
                  for k, v in shown.items()}
         return Neighbourhood(glyph, lambda x, y: cells.get((x, y), "."), at)
 
-    decked = ".:b&TnY"
+    decked = ".:b&TnY9"
     # Bits, in key order: the row is no lower than the step, and the row
     # is odd. Without the first (index 0 and 2) the terrace is the lower.
     rules = [rule(
