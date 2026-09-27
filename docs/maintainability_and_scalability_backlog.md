@@ -23,10 +23,11 @@ Android Go phone with 2 GB of RAM.
   game's load time and the last area's over the game.
 - Measure the time from "Continua" to the first frame of play, the time an
   area takes to compose, and the frame rate in the city and in the Duomo.
-- Measure the frame rate indoors first: `LightingComponent` composes a
-  full-room `saveLayer` every frame and cuts a `dstOut` circle per ring
-  per lamp into it, up to a hundred circles a frame on the hypermarket's
-  ground floor (32 lamps). Nothing in the simulation comes close: a turn
+- Confirm the frame rate indoors: `LightingComponent` now draws the
+  darkness with its steady lamps from an image composed once, and cuts
+  only the flickering lamps, the torches and Mario's halo live, each in
+  a layer no bigger than its pool. It was designed for the Go phone's
+  GPU, not measured on it. Nothing in the simulation comes close: a turn
   with every zombie hunting costs 0.06 ms on the development machine.
 - Compare the places on screen with the previous version (see
   `docs/level_pipeline.md`).
@@ -44,21 +45,18 @@ data: `docs/save_policy.md` says which save formats a build must still load.
   outfits) apart from the state of the game in progress, so a format change
   can drop the second without the first, and the migration has less to
   carry.
-- Decide whether the game should also save when the app goes to the
-  background: today `AppLifecycleListener` in `lib/app.dart` only pauses
-  audio and the clock, and only campfires and the end of a level write.
-  Android kills background apps freely on cheap phones, and everything since
-  the last campfire is lost. If checkpoints are the design, say so in the
-  game.
+- The game put down (`docs/save_policy.md`, "Il salvataggio sospeso") is
+  written whenever the app leaves the front or the player leaves for the
+  menu, never in the middle of a story line or a scene: if a script ever
+  holds Mario for long without a prompt up, that stretch goes unsaved.
 
 ## P2 — What is left of loading the places by area
 
-- An area is composed on the UI isolate as Mario walks into it (into the
-  harbour, during its card): measure the hitch on the minimum phone, and
-  spread the work over frames or behind a fade if it shows. The harbour
-  alone is an image of 2304×992 (8.7 MB) plus its front layer of the same
-  size; the harbour area holds about 28 MB of place images, the town
-  about 29 MB.
+- An area's places are composed one at a time as Mario walks into it
+  (`PlaceLayers`), so a frame carries at most one picture; whether the
+  harbour's, 2304×992 (8.7 MB) plus a front layer of the same size, is
+  still a hitch on the minimum phone is for the P1 figures to say. The
+  harbour area holds about 28 MB of place images, the town about 29 MB.
 - New areas as the levels grow: a place's `area` decides what is loaded
   with it, so a big new district wants an area of its own.
 - The simulation grid is still whole: 1902×62, 117,924 `Tile` objects
@@ -143,21 +141,6 @@ replaced, and failed writes never leave the game stuck. Two corners remain:
 - The save written aboard the train when the level ends is logged when it
   fails, but the results screen does not say so; the next campfire writes it.
 
-## P3 — Place images outlive the game
-
-`TilePlaceComponent.release()` is only called when Mario leaves an area,
-not when the game is taken down (starting over at a campfire, game over,
-back to the menu): the images of the last area go with the garbage
-collector, and the static cache `_built` keeps them through the menu too.
-Tens of megabytes held longer than needed on a 2 GB phone.
-
-- Release a place's images in `TilePlaceComponent.onRemove`.
-- Let the P1 figures say whether the cache should also be emptied when
-  the game ends.
-- `StepboundGame` has no teardown of its own either: no `onRemove`, and
-  its eleven `ValueNotifier`s are never disposed. Harmless on its own,
-  but every return to the menu adds to what the images already keep.
-
 ## P3 — Smaller portrait files
 
 The seventeen portraits are decoded at the height they are drawn
@@ -213,8 +196,9 @@ complexity until the benchmark asks.
 
 - `TurnScheduler.advance` walks every entity twice per tick. Keep active sets
   per place or spatial sector when that starts to show.
-- Every level is in Flame's world from the start, not only the area Mario
-  is in: 81 characters, 42 fires, 44 pieces of burning ground, 12 torches
-  and 17 backpacks, some 200 components whose `update` runs every frame.
-  Their drawing is culled; the ticking grows with every level added.
+- The characters of every level are in Flame's world from the start, 81
+  components ticking every frame, unlike the fires, torches, backpacks and
+  burning ground, which come and go with their places. Worth scoping
+  them too only with a much larger cast: they move, and the scripts
+  raise them, wherever Mario is.
 - Cached paths or shared flow fields: not needed at these numbers.
