@@ -478,7 +478,7 @@ final class StepboundGame extends FlameGame
               MolotovBlastComponent(
                 origin: origin,
                 target: target,
-                onLanded: () => audio.play(Sfx.gunshot),
+                onLanded: () => audio.play(Sfx.molotov),
               ),
             ),
           );

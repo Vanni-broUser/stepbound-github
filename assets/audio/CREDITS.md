@@ -25,6 +25,8 @@ they are on the main menu's CREDITI page (`musicCredits` in
 - `sfx/zombie_alert_*.mp3`: "Zombie Moans", OpenGameArt.org
 - `sfx/zombie_hurt_*.mp3`, `sfx/zombie_death.mp3`: "Undead Moans", OpenGameArt.org
 - `sfx/zombie_bite.mp3`: "Hungry Ghoul", OpenGameArt.org
+- `sfx/molotov_*.mp3`: "Impact Sounds" (glass), Kenney.nl, mixed with
+  "Fireplace Sound Loop", OpenGameArt.org
 - `sfx/step_*.mp3`, `sfx/hit_flesh.mp3`, `sfx/player_*.mp3`: "Impact Sounds", Kenney.nl
 - `sfx/dry_fire.mp3`, `sfx/pickup*.mp3`, `sfx/door.mp3`, `sfx/rest.mp3`: "RPG Audio", Kenney.nl
 - `sfx/ui_click.mp3`, `sfx/dialogue.mp3`: "UI Audio", Kenney.nl

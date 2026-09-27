@@ -47,6 +47,9 @@ enum Sfx {
     voices: 4,
   ),
   gunshot(<String>['sfx/gunshot.mp3']),
+
+  /// A bottle shattering and the petrol catching.
+  molotov(<String>['sfx/molotov_1.mp3', 'sfx/molotov_2.mp3']),
   dryFire(<String>['sfx/dry_fire.mp3'], volume: 0.8),
   pickup(<String>['sfx/pickup.mp3'], volume: 0.8),
   pickupGun(<String>['sfx/pickup_gun.mp3'], volume: 0.9),
