@@ -1,7 +1,7 @@
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/game/story/story_director.dart';
 
 /// The Duomo on the harbour: walking up the alley to the churchyard gate
 /// gets Mario hailed by Don Angelo, who wants the two zombies at his gate
@@ -10,7 +10,7 @@ import 'package:stepbound/game/tutorial/tutorial_director.dart';
 /// censer's worth of incense. Bringing it back to a clear gate earns Mario
 /// his welcome inside; coming back while zombies crowd the entrance makes
 /// Don Angelo repeat his warning.
-final class PriestScript extends TutorialScript {
+final class PriestScript extends StoryScript {
   PriestScript(super.director);
 
   static const String priest = 'Don Angelo Dannato';
@@ -222,8 +222,8 @@ final class PriestScript extends TutorialScript {
   /// the controls come back once Mario has heard him out.
   void _askToClearTheGate() {
     say(
-      TutorialPrompt(const <TutorialLine>[
-        TutorialLine.priest(clearThemOut),
+      StoryPrompt(const <StoryLine>[
+        StoryLine.priest(clearThemOut),
       ], onDismissed: () => _clearAsked = true),
     );
   }
@@ -231,10 +231,10 @@ final class PriestScript extends TutorialScript {
   /// Back in the open world again, the errand itself.
   void _askForIncense() {
     say(
-      TutorialPrompt(const <TutorialLine>[
-        TutorialLine.priest(incenseLine),
-        TutorialLine.mario(whereLine),
-        TutorialLine.priest(everyTwoStreetsLine),
+      StoryPrompt(const <StoryLine>[
+        StoryLine.priest(incenseLine),
+        StoryLine.mario(whereLine),
+        StoryLine.priest(everyTwoStreetsLine),
       ], onDismissed: () => _errandGiven = true),
     );
   }
@@ -246,7 +246,7 @@ final class PriestScript extends TutorialScript {
     host
       ..removeHud(HudElement.incense)
       ..unlock(HudElement.barKey)
-      ..openDuomo();
+      ..hometown.openDuomo();
   }
 
   @override

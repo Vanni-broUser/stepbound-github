@@ -74,7 +74,7 @@ final class WorldState {
   }
 
   /// A world from [toJson]. A [map] given here is used instead of the one
-  /// in [json], which a save may leave out (see `saveTutorialWorld`).
+  /// in [json], which a save may leave out (see `saveGameWorld`).
   factory WorldState.fromJson(Map<String, Object?> json, {TileMap? map}) {
     final encodedEntities = json['entities']! as List<Object?>;
     final encodedNoises = json['pendingNoises']! as List<Object?>;
@@ -192,7 +192,7 @@ final class WorldState {
 
   Entity get player => _entities[playerId]!;
 
-  /// Adds [entity], or replaces whoever already had its id: the tutorial
+  /// Adds [entity], or replaces whoever already had its id: the story
   /// raises zombies in the middle of a game.
   void addEntity(Entity entity) {
     final previous = _entities[entity.id];

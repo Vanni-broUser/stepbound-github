@@ -1,11 +1,11 @@
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/game/story/story_director.dart';
 
 /// Conversations inside the Duomo. All of them are triggered by facing the
 /// person and using the interaction button, and therefore carry a portrait.
-final class DuomoScript extends TutorialScript {
+final class DuomoScript extends StoryScript {
   DuomoScript(super.director);
 
   static const String cultist = 'Cultista';
@@ -153,10 +153,10 @@ final class DuomoScript extends TutorialScript {
     // The robe lies in a backpack, like everything Mario picks up.
     if (event case PickedUpEvent(cultistRobe: true)) {
       say(
-        TutorialPrompt(
-          const <TutorialLine>[TutorialLine(robeFoundLine)],
-          delay: TutorialDirector.pickupDelay,
-          onDismissed: host.collectCultistRobe,
+        StoryPrompt(
+          const <StoryLine>[StoryLine(robeFoundLine)],
+          delay: StoryDirector.pickupDelay,
+          onDismissed: host.hometown.collectCultistRobe,
         ),
       );
       return;
@@ -173,18 +173,19 @@ final class DuomoScript extends TutorialScript {
           ? null
           : switch (at) {
               _ when !_ringDelivered && at == duomoStairCultistTile =>
-                const TutorialLine.cultist(stairBlockedLine),
+                const StoryLine.cultist(stairBlockedLine),
               _ when _ringDelivered && at == duomoStairCultistMovedTile =>
-                const TutorialLine.cultist(welcomeLine),
-              _ when at == duomoWelcomingCultistTile =>
-                const TutorialLine.cultist(welcomeLine),
-              _ when at == duomoPriestTile => TutorialLine.priest(
+                const StoryLine.cultist(welcomeLine),
+              _ when at == duomoWelcomingCultistTile => const StoryLine.cultist(
+                welcomeLine,
+              ),
+              _ when at == duomoPriestTile => StoryLine.priest(
                 _ringDelivered ? initiationReminderLine : ringReminderLine,
               ),
               _ => null,
             };
       if (line != null) {
-        say(TutorialPrompt(<TutorialLine>[line]));
+        say(StoryPrompt(<StoryLine>[line]));
       }
     }
   }
@@ -199,10 +200,10 @@ final class DuomoScript extends TutorialScript {
     if (host.isUnlocked(HudElement.duomoKey)) {
       world.map.setTile(at, const Tile(TileKind.floor));
       host.removeHud(HudElement.duomoKey);
-      say(TutorialPrompt(const <TutorialLine>[TutorialLine(keyUsedLine)]));
+      say(StoryPrompt(const <StoryLine>[StoryLine(keyUsedLine)]));
       return;
     }
-    say(TutorialPrompt(const <TutorialLine>[TutorialLine(lockedDoorLine)]));
+    say(StoryPrompt(const <StoryLine>[StoryLine(lockedDoorLine)]));
   }
 
   @override
@@ -250,7 +251,7 @@ final class DuomoScript extends TutorialScript {
     host.playCutscene(
       massSeen ? massacreScene : massSequence,
       music: Music.sacred,
-      onBlack: host.startDuomoMassacre,
+      onBlack: host.hometown.startDuomoMassacre,
     );
   }
 
@@ -271,9 +272,9 @@ final class DuomoScript extends TutorialScript {
     }
     host.wearOutfit(PlayerOutfit.base);
     say(
-      TutorialPrompt(const <TutorialLine>[
-        TutorialLine(outfitChangedLine),
-        TutorialLine(outfitMenuLine),
+      StoryPrompt(const <StoryLine>[
+        StoryLine(outfitChangedLine),
+        StoryLine(outfitMenuLine),
       ], delay: outfitLessonDelay),
     );
   }
@@ -281,7 +282,7 @@ final class DuomoScript extends TutorialScript {
   void _finishInitiation() {
     host
       ..removeHud(HudElement.episcopalRing)
-      ..openDuomoUpper();
+      ..hometown.openDuomoUpper();
   }
 
   @override

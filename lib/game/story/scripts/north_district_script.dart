@@ -1,11 +1,11 @@
 import 'package:stepbound/core/core.dart';
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/game/story/story_director.dart';
 
 /// The north district: the first camp in sight teaches resting (with the
 /// interact button, if the player never picked up a backpack). The first
 /// sprinter on screen, the one in the hypermarket's car park, is left to
 /// [ZombieSightingsScript], like every type introduced on sight.
-final class NorthDistrictScript extends TutorialScript {
+final class NorthDistrictScript extends StoryScript {
   NorthDistrictScript(super.director);
 
   static const String campLesson =
@@ -29,12 +29,12 @@ final class NorthDistrictScript extends TutorialScript {
     _campLessonGiven = true;
     final needsInteract = !host.isUnlocked(HudElement.interact);
     say(
-      TutorialPrompt(
-        <TutorialLine>[
-          const TutorialLine(campLesson),
-          if (needsInteract) const TutorialLine(BackpacksScript.interactLesson),
+      StoryPrompt(
+        <StoryLine>[
+          const StoryLine(campLesson),
+          if (needsInteract) const StoryLine(BackpacksScript.interactLesson),
         ],
-        delay: TutorialDirector.reactionDelay,
+        delay: StoryDirector.reactionDelay,
         onDismissed: () => host.unlock(HudElement.interact),
       ),
     );

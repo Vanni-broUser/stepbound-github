@@ -39,7 +39,7 @@ void main() {
 
   test('from the door the key opens, Mario climbs floor after floor to the '
       'top of the tower, and comes back down the same way', () {
-    final world = createTutorialWorld();
+    final world = createGameWorld();
     world.map.setTile(duomoUpperLockedDoorTile, const Tile(TileKind.floor));
 
     final climb = <(PlaceId, GridPoint, GridPoint)>[
@@ -69,7 +69,7 @@ void main() {
   });
 
   test('every way up is a doorway in the back wall, walled either side', () {
-    final world = createTutorialWorld();
+    final world = createGameWorld();
     for (final door in <GridPoint>[
       duomoSecondFloorUpTile,
       duomoTowerUpTile,
@@ -138,7 +138,7 @@ void main() {
 
   test('from the parapet facing the other tower Mario measures the gap '
       'for a grappling hook', () {
-    final world = createTutorialWorld();
+    final world = createGameWorld();
     expect(world.lookouts, contains(duomoTowerLookoutTile));
     expect(world.map.tileAt(duomoTowerLookoutTile).isWalkable, isFalse);
     world.player.component<PositionComponent>()
@@ -149,7 +149,7 @@ void main() {
   });
 
   test('the backpack on the other tower is seen and never reached', () {
-    final world = createTutorialWorld();
+    final world = createGameWorld();
     final backpack = world.pickups[duomoFarTowerBackpackId]!;
     expect(backpack.active, isTrue);
     expect(roof.bounds.contains(backpack.position), isTrue);

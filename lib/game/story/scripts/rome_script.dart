@@ -1,16 +1,16 @@
 import 'package:stepbound/core/core.dart';
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/game/story/story_director.dart';
 
 /// The start of the Rome level. As soon as the city has loaded, before
 /// Mario can move, Luigi says why they stop here. The stairs out of
 /// Termini are as far as the game goes for now: they say so, and Mario is
 /// back on the platform, facing it, once that is tapped away.
-final class RomeScript extends TutorialScript {
+final class RomeScript extends StoryScript {
   RomeScript(super.director);
 
-  static const List<TutorialLine> arrivalLines = <TutorialLine>[
-    TutorialLine.luigi('Come si suol dire: tutte le strade passano a Roma'),
-    TutorialLine.luigi(
+  static const List<StoryLine> arrivalLines = <StoryLine>[
+    StoryLine.luigi('Come si suol dire: tutte le strade passano a Roma'),
+    StoryLine.luigi(
       'Facciamo una piccola fermata qui, io cerco un po’ di carburante in '
       'giro e tu vai a trovare delle provviste, ce ne serviranno parecchie '
       'per arrivare alla nostra meta',
@@ -32,7 +32,7 @@ final class RomeScript extends TutorialScript {
     }
     _welcomed = true;
     host.stopWalking();
-    say(TutorialPrompt(arrivalLines, delay: arrivalDelay, holdsInput: true));
+    say(StoryPrompt(arrivalLines, delay: arrivalDelay, holdsInput: true));
   }
 
   @override

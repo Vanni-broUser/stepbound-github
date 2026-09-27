@@ -1,10 +1,10 @@
 import 'package:stepbound/core/core.dart';
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/game/story/story_director.dart';
 
 /// The locked service door in the Bar Arcobaleno. Before Don Angelo gives
 /// Mario its key it explains what is missing; afterwards one interaction
 /// unlocks the way into the storeroom, consumes the key and says so.
-final class BarScript extends TutorialScript {
+final class BarScript extends StoryScript {
   BarScript(super.director);
 
   static const String lockedDoorLine =
@@ -23,10 +23,10 @@ final class BarScript extends TutorialScript {
       if (host.isUnlocked(HudElement.barKey)) {
         world.map.setTile(at, const Tile(TileKind.floor));
         host.removeHud(HudElement.barKey);
-        say(TutorialPrompt(const <TutorialLine>[TutorialLine(keyUsedLine)]));
+        say(StoryPrompt(const <StoryLine>[StoryLine(keyUsedLine)]));
         return;
       }
-      say(TutorialPrompt(const <TutorialLine>[TutorialLine(lockedDoorLine)]));
+      say(StoryPrompt(const <StoryLine>[StoryLine(lockedDoorLine)]));
     }
   }
 

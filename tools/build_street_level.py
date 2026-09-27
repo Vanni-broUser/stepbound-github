@@ -14,6 +14,7 @@ on top.
 """
 from __future__ import annotations
 
+import glob
 import math
 import os
 import re
@@ -21,7 +22,7 @@ import re
 from PIL import Image, ImageDraw
 
 TILE = 16
-LEVELS_DIR = os.path.join("lib", "core", "levels", "tutorial")
+LEVELS_DIR = os.path.join("lib", "core", "levels")
 
 ROAD_GLYPHS = set(".-|ZVc")
 WALK_GLYPHS = set("=")
@@ -189,9 +190,9 @@ def paint_text(d, x, y, text, colour, missing=(), scale=1, tilted=()):
 
 def read_rows(marker: str = "level-rows") -> list[str]:
     """The ASCII rows between `// <marker>-start` and `// <marker>-end`, in
-    whichever place file of lib/core/levels/tutorial holds them."""
-    for name in sorted(os.listdir(LEVELS_DIR)):
-        with open(os.path.join(LEVELS_DIR, name), encoding="utf-8") as source:
+    whichever place file under lib/core/levels holds them."""
+    for path in sorted(glob.glob(os.path.join(LEVELS_DIR, "**", "*.dart"), recursive=True)):
+        with open(path, encoding="utf-8") as source:
             text = source.read()
         if f"// {marker}-start" in text:
             block = text.split(f"// {marker}-start", 1)[1].split(f"// {marker}-end", 1)[0]

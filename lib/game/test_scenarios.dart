@@ -1,6 +1,6 @@
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/progress.dart';
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/save/save_game.dart';
 
 /// A point of the story to jump straight to while testing. It is not part
@@ -27,7 +27,7 @@ final class TestScenario {
 /// Puts a fresh level in a given state: what has been played, what Mario
 /// carries and where he stands.
 final class ScenarioBuilder {
-  final WorldState world = createTutorialWorld();
+  final WorldState world = createGameWorld();
   final Progress progress = Progress.newGame();
   final Map<String, Map<String, Object?>> _scripts =
       <String, Map<String, Object?>>{};
@@ -169,8 +169,8 @@ final class ScenarioBuilder {
       slot: slot,
       savedAt: DateTime.now(),
       place: place,
-      world: saveTutorialWorld(world),
-      tutorial: _scripts,
+      world: saveGameWorld(world),
+      story: _scripts,
       progress: progress.toJson(),
       hud: <String>[for (final element in _hud) element.name],
     );

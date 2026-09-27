@@ -21,7 +21,7 @@ import 'package:stepbound/game/render/place_layers.dart';
 import 'package:stepbound/game/render/tile_place_component.dart';
 import 'package:stepbound/game/render/torch_component.dart';
 import 'package:stepbound/game/stepbound_game.dart';
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/save/save_game.dart';
 import 'package:stepbound/ui/black_fade.dart';
 import 'package:stepbound/ui/blood_decor.dart';
@@ -318,7 +318,7 @@ void main() {
       expect(map.tileAt(luigiTile).isWalkable, isFalse, reason: 'he is there');
 
       var gone = false;
-      game.sendLuigiAway(onFinished: () => gone = true);
+      game.hometown.sendLuigiAway(onFinished: () => gone = true);
       _tap(game, Direction.east);
       game.update(0.3);
       expect(mario.position, start, reason: 'not while Luigi is walking');
@@ -344,11 +344,11 @@ void main() {
       expect(free(duomoStairCultistTile), isFalse);
       expect(free(duomoStairCultistMovedTile), isTrue, reason: 'nobody yet');
 
-      game.openDuomo();
+      game.hometown.openDuomo();
       expect(free(priestTile), isTrue, reason: 'he has gone inside');
       expect(free(duomoPriestTile), isFalse);
 
-      game.openDuomoUpper();
+      game.hometown.openDuomoUpper();
       expect(free(duomoStairCultistTile), isTrue, reason: 'he stepped aside');
       expect(free(duomoStairCultistMovedTile), isFalse, reason: 'to here');
     });
@@ -356,7 +356,7 @@ void main() {
 
   test('everything Mario picks up lies in a backpack, so the end of the '
       'level counts all of it', () {
-    final world = createTutorialWorld();
+    final world = createGameWorld();
     final pickups = world.pickups.values;
     expect(
       pickups.where((pickup) => pickup.episcopalRing).single.id,
@@ -383,7 +383,7 @@ void main() {
       expect(key.active, isFalse);
       expect(map.tileAt(duomoPriestCorpseTile).isWalkable, isTrue);
 
-      game.startDuomoMassacre();
+      game.hometown.startDuomoMassacre();
       await tester.pump();
 
       final cultists = game.simulation.entities.values
@@ -419,7 +419,7 @@ void main() {
       }
 
       // Playing it again changes nothing: a load calls it a second time.
-      game.startDuomoMassacre();
+      game.hometown.startDuomoMassacre();
       await tester.pump();
       expect(
         game.simulation.entities.values.where(
@@ -440,7 +440,7 @@ void main() {
       expect(onTheCross(), isEmpty, reason: 'nothing there before the mass');
 
       game.progress.meet(EntityKind.cultist);
-      game.startDuomoMassacre();
+      game.hometown.startDuomoMassacre();
       // Its sheet is loaded before it is mounted, like every sprite.
       await game.ready();
       await tester.pump();
@@ -499,9 +499,8 @@ void main() {
       // Their own lesson is not what is being tested here: met already, it
       // does not queue itself in front of the lines that are.
       game.progress.meet(EntityKind.cultist);
-      game
-        ..startDuomoMassacre()
-        ..unlock(HudElement.interact);
+      game.hometown.startDuomoMassacre();
+      game.unlock(HudElement.interact);
       final key = game.simulation.pickups[duomoKeyPickupId]!;
       final mario = game.simulation.player.component<PositionComponent>()
         ..position = key.position.step(Direction.east)
@@ -553,7 +552,7 @@ void main() {
       final game = await _pumpReadyGame(tester);
       expect(game.progress.activeOutfit, PlayerOutfit.base);
 
-      game.collectCultistRobe();
+      game.hometown.collectCultistRobe();
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 200));
 
@@ -561,8 +560,8 @@ void main() {
       expect(game.progress.activeOutfit, PlayerOutfit.cultist);
 
       await tester.pump(const Duration(seconds: 2));
-      game.showPrompt(const <TutorialLine>[
-        TutorialLine.mario('La tunica mi sta bene.'),
+      game.showPrompt(const <StoryLine>[
+        StoryLine.mario('La tunica mi sta bene.'),
       ]);
       await tester.pump();
       final portrait = tester.widget<Image>(
@@ -1052,7 +1051,7 @@ void main() {
       expect(mario.component<AmmoComponent>().loaded, 1);
 
       // Not aiming, a quick tap interacts: here, resting at the fire.
-      game.tutorial.restore(const <String, Object?>{
+      game.story.restore(const <String, Object?>{
         'north': <String, Object?>{'campLesson': true},
         'backpacks': <String, Object?>{'lesson': true},
         'street': <String, Object?>{'zombieLesson': true},
@@ -1080,7 +1079,7 @@ void main() {
     return tester.runAsync(() async {
       final saves = MemorySaveRepository();
       final game = await _pumpReadyGame(tester, saves: saves);
-      game.tutorial.restore(const <String, Object?>{
+      game.story.restore(const <String, Object?>{
         'north': <String, Object?>{'campLesson': true},
         'backpacks': <String, Object?>{'lesson': true},
         'street': <String, Object?>{'zombieLesson': true},
@@ -1203,8 +1202,8 @@ void main() {
           slot: 1,
           savedAt: DateTime(2026),
           place: 'Dietro la caserma',
-          world: saveTutorialWorld(createTutorialWorld()),
-          tutorial: const <String, Object?>{},
+          world: saveGameWorld(createGameWorld()),
+          story: const <String, Object?>{},
           progress: Progress.newGame().toJson(),
           hud: const <String>['interact'],
         ),
@@ -1348,7 +1347,7 @@ void main() {
   testWidgets('only the area Mario is in, and one door past it, is in memory; '
       'the rest comes and goes with him', (tester) {
     return tester.runAsync(() async {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final game = StepboundGame(world: world, progress: Progress());
       await tester.pumpWidget(GameWidget<StepboundGame>(game: game));
       final state = tester.state<GameWidgetState<StepboundGame>>(
@@ -1358,7 +1357,7 @@ void main() {
       await game.ready();
 
       Set<PlaceId> areaOf(AreaId area) => <PlaceId>{
-        for (final place in tutorialPlaces)
+        for (final place in gamePlaces)
           if (place.area == area) place.id,
       };
 
@@ -1394,12 +1393,12 @@ void main() {
   });
 
   test('the train parked at Termini keeps Termini loaded, not Molfetta', () {
-    final world = createTutorialWorld();
+    final world = createGameWorld();
     parkTrain(world, LevelId.rome);
     expect(
       PlaceLayers.kept(
         place(PlaceId.trainInterior),
-        tutorialPlaces,
+        gamePlaces,
         world.portals,
       ).map((place) => place.id),
       unorderedEquals(<PlaceId>[PlaceId.trainInterior, PlaceId.romeTermini]),
@@ -1407,7 +1406,7 @@ void main() {
     expect(
       PlaceLayers.kept(
         place(PlaceId.romeTermini),
-        tutorialPlaces,
+        gamePlaces,
         world.portals,
       ).map((place) => place.id),
       unorderedEquals(<PlaceId>[PlaceId.romeTermini, PlaceId.trainInterior]),
@@ -1418,7 +1417,7 @@ void main() {
     tester,
   ) {
     return tester.runAsync(() async {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       world.player.component<PositionComponent>().position = GridPoint(
         (stationPlatform.left + stationPlatform.right) ~/ 2,
         stationPlatform.bottom,
@@ -1528,7 +1527,7 @@ void main() {
         ..facing = Direction.south;
       game.update(1);
       final north = place(PlaceId.northDistrict).bounds;
-      final harbour = tutorialPlaces.firstWhere(
+      final harbour = gamePlaces.firstWhere(
         (region) => region.name == harbourName,
       );
       bool cameraIn(GridRect bounds) {
@@ -1564,7 +1563,7 @@ void main() {
       final saves = MemorySaveRepository();
       final game = await _pumpReadyGame(tester, saves: saves);
       // Teleported to the camp: its lessons count as given already.
-      game.tutorial.restore(const <String, Object?>{
+      game.story.restore(const <String, Object?>{
         'north': <String, Object?>{'campLesson': true},
         'backpacks': <String, Object?>{'lesson': true},
         'street': <String, Object?>{'zombieLesson': true},
@@ -1660,7 +1659,7 @@ void main() {
     return tester.runAsync(() async {
       final saves = MemorySaveRepository();
       final game = await _pumpReadyGame(tester, saves: saves);
-      game.tutorial.restore(const <String, Object?>{
+      game.story.restore(const <String, Object?>{
         'north': <String, Object?>{'campLesson': true},
         'backpacks': <String, Object?>{'lesson': true},
         'street': <String, Object?>{'zombieLesson': true},
@@ -1739,8 +1738,8 @@ void main() {
       slot: slot,
       savedAt: DateTime(2026, 9, 21, 17, 5),
       place: place,
-      world: saveTutorialWorld(createTutorialWorld()),
-      tutorial: const <String, Object?>{},
+      world: saveGameWorld(createGameWorld()),
+      story: const <String, Object?>{},
       progress: Progress.newGame().toJson(),
       hud: const <String>[],
     );
@@ -1785,7 +1784,7 @@ void main() {
 
   testWidgets('a saved slot is resumed straight into the game', (tester) async {
     final saves = MemorySaveRepository();
-    final world = createTutorialWorld();
+    final world = createGameWorld();
     world.player.component<PositionComponent>().position = const GridPoint(
       16,
       20,
@@ -1795,8 +1794,8 @@ void main() {
         slot: 3,
         savedAt: DateTime(2026, 9, 21, 17, 5),
         place: 'Dietro la caserma',
-        world: saveTutorialWorld(world),
-        tutorial: const <String, Object?>{
+        world: saveGameWorld(world),
+        story: const <String, Object?>{
           'street': <String, Object?>{'zombieLesson': true},
         },
         progress: Progress(
@@ -1844,8 +1843,8 @@ void main() {
         slot: 1,
         savedAt: DateTime(2026),
         place: 'Dietro la caserma',
-        world: saveTutorialWorld(createTutorialWorld()),
-        tutorial: const <String, Object?>{},
+        world: saveGameWorld(createGameWorld()),
+        story: const <String, Object?>{},
         progress: Progress.newGame().toJson(),
         hud: const <String>[],
       ),
@@ -1869,15 +1868,15 @@ void main() {
       'and plays the story from the first picture', (tester) {
     return tester.runAsync(() async {
       final saves = MemorySaveRepository();
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       world.player.component<AmmoComponent>().loaded = 5;
       await saves.save(
         SaveGame(
           slot: 1,
           savedAt: DateTime(2026),
           place: 'Dietro la caserma',
-          world: saveTutorialWorld(world),
-          tutorial: const <String, Object?>{
+          world: saveGameWorld(world),
+          story: const <String, Object?>{
             'street': <String, Object?>{'zombieLesson': true},
           },
           progress: Progress(
@@ -1935,7 +1934,7 @@ void main() {
         isFalse,
         reason: 'there is no fire to go back to at the start of a level',
       );
-      expect(saved.tutorial, isEmpty);
+      expect(saved.story, isEmpty);
       final progress = Progress.fromJson(saved.progress);
       expect(progress.knownZombies, isEmpty, reason: 'it had met a wanderer');
       expect(progress.memories, Progress.newGame().memories);
@@ -1945,11 +1944,11 @@ void main() {
         greaterThanOrEqualTo(const Duration(hours: 2, minutes: 30)),
         reason: 'the hours played are the one thing starting over keeps',
       );
-      final restored = restoreTutorialWorld(saved.world);
+      final restored = restoreGameWorld(saved.world);
       expect(restored.player.component<AmmoComponent>().loaded, 0);
       expect(
         restored.player.component<PositionComponent>().position,
-        createTutorialWorld().player.component<PositionComponent>().position,
+        createGameWorld().player.component<PositionComponent>().position,
       );
     });
   });
@@ -1963,8 +1962,8 @@ void main() {
           slot: 1,
           savedAt: DateTime(2026),
           place: 'Dietro la caserma',
-          world: saveTutorialWorld(createTutorialWorld()),
-          tutorial: const <String, Object?>{},
+          world: saveGameWorld(createGameWorld()),
+          story: const <String, Object?>{},
           progress: Progress.newGame().toJson(),
           hud: const <String>[],
         ),
@@ -2004,8 +2003,8 @@ void main() {
         slot: 1,
         savedAt: DateTime(2026),
         place: 'Dietro la caserma',
-        world: saveTutorialWorld(createTutorialWorld()),
-        tutorial: const <String, Object?>{},
+        world: saveGameWorld(createGameWorld()),
+        story: const <String, Object?>{},
         progress: Progress.newGame().toJson(),
         hud: const <String>['interact', 'ammo', 'shoot'],
       ),
@@ -2027,7 +2026,7 @@ void main() {
       expect(find.byKey(ValueKey<String>(key)), findsOneWidget);
     }
 
-    game.showPrompt(const <TutorialLine>[TutorialLine('Un messaggio')]);
+    game.showPrompt(const <StoryLine>[StoryLine('Un messaggio')]);
     await tester.pump();
     for (final key in controls) {
       expect(find.byKey(ValueKey<String>(key)), findsNothing, reason: key);
@@ -2088,9 +2087,9 @@ void main() {
       // else; the pause is what this test is about, so it starts here.
       final game = await _pumpReadyGame(tester);
       GameplayDialogue.settleTime = GameplayDialogue.defaultSettleTime;
-      final lines = <TutorialLine>[
-        const TutorialLine('Prima battuta'),
-        const TutorialLine('Seconda battuta'),
+      final lines = <StoryLine>[
+        const StoryLine('Prima battuta'),
+        const StoryLine('Seconda battuta'),
       ];
       game.showPrompt(lines);
       await tester.pump();
@@ -2213,7 +2212,7 @@ void main() {
 
       // Before Mario can move, what the train carries between levels.
       await _waitForGame(tester);
-      expect(returned.tutorial.holdsInput, isTrue);
+      expect(returned.story.holdsInput, isTrue);
       for (var i = 0; i < 30 && !returned.isPromptVisible; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
@@ -2291,7 +2290,7 @@ void main() {
       expect(saved.levelStart, isNotNull);
 
       // Luigi speaks as soon as the city has loaded, before Mario can go.
-      expect(rome.tutorial.holdsInput, isTrue);
+      expect(rome.story.holdsInput, isTrue);
       for (var i = 0; i < 30 && !rome.isPromptVisible; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
@@ -2308,7 +2307,7 @@ void main() {
       }
 
       // Then, after Luigi, what the train carries between levels.
-      expect(rome.tutorial.holdsInput, isTrue);
+      expect(rome.story.holdsInput, isTrue);
       for (var i = 0; i < 30 && !rome.isPromptVisible; i++) {
         await tester.pump(const Duration(milliseconds: 100));
       }
@@ -2332,15 +2331,15 @@ void main() {
   testWidgets('a game loaded from the train offers the train back', (tester) {
     return tester.runAsync(() async {
       final saves = MemorySaveRepository();
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       world.player.component<PositionComponent>().position = trainMapStandTile;
       await saves.save(
         SaveGame(
           slot: 1,
           savedAt: DateTime(2026),
           place: 'Treno',
-          world: saveTutorialWorld(world),
-          tutorial: const <String, Object?>{},
+          world: saveGameWorld(world),
+          story: const <String, Object?>{},
           progress: Progress.newGame().toJson(),
           hud: const <String>['interact'],
         ),
@@ -2397,8 +2396,8 @@ void main() {
         slot: 1,
         savedAt: DateTime(2026),
         place: 'Dietro la caserma',
-        world: saveTutorialWorld(createTutorialWorld()),
-        tutorial: const <String, Object?>{},
+        world: saveGameWorld(createGameWorld()),
+        story: const <String, Object?>{},
         progress: Progress.newGame().toJson(),
         hud: const <String>['interact', 'ammo', 'shoot'],
       ),
@@ -2449,8 +2448,8 @@ void main() {
           slot: 1,
           savedAt: DateTime(2026),
           place: 'Dietro la caserma',
-          world: saveTutorialWorld(createTutorialWorld()),
-          tutorial: const <String, Object?>{},
+          world: saveGameWorld(createGameWorld()),
+          story: const <String, Object?>{},
           progress: Progress.newGame().toJson(),
           hud: const <String>['interact', 'ammo', 'shoot'],
         ),
@@ -2502,7 +2501,7 @@ void main() {
       tester,
     ) async {
       final game = await loadOnThePhone(tester);
-      game.showPrompt(const <TutorialLine>[TutorialLine('Una battuta')]);
+      game.showPrompt(const <StoryLine>[StoryLine('Una battuta')]);
       await tester.pump();
 
       final box = rectOf(tester, 'story-text');

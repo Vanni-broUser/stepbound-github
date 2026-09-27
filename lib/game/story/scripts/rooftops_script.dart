@@ -1,12 +1,12 @@
 import 'package:stepbound/core/core.dart';
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/game/story/story_director.dart';
 
 /// The roofs the airliner's tail came down in, and the top of the Duomo's
 /// bell tower. The lower terrace ends at a parapet with the next block just
 /// across the gap, the tower faces its twin across the nave, and looking
 /// over is the only thing Mario can do about either for now: the gap is
 /// measured for him, and he can come back and look again.
-final class RooftopsScript extends TutorialScript {
+final class RooftopsScript extends StoryScript {
   RooftopsScript(super.director);
 
   static const String gapLesson =
@@ -21,7 +21,7 @@ final class RooftopsScript extends TutorialScript {
         (event.at != rooftopGapTile && event.at != duomoTowerLookoutTile)) {
       return;
     }
-    say(TutorialPrompt(const <TutorialLine>[TutorialLine(gapLesson)]));
+    say(StoryPrompt(const <StoryLine>[StoryLine(gapLesson)]));
   }
 
   @override

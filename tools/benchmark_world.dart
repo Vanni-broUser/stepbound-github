@@ -1,6 +1,6 @@
 // Deterministic scaling benchmark for the simulation.
 //
-// Two measurements, both on the real tutorial map:
+// Two measurements, both on the real game map:
 //
 //   turns  the cost of a turn with 100, 500 and 1,000 entities spread over
 //          the walkable tiles, everybody pointed at the player every turn
@@ -80,12 +80,12 @@ void _rearm(WorldState world) {
   }
 }
 
-/// The tutorial world topped up to [population] entities, spread evenly
+/// The game world topped up to [population] entities, spread evenly
 /// over the walkable tiles so the crowd has room to walk: packed shoulder
 /// to shoulder every path query dies on the first step and measures
 /// nothing.
 WorldState _populate(int population) {
-  final world = createTutorialWorld();
+  final world = createGameWorld();
   final factory = EntityFactory(BalanceConfig.standard());
   final taken = world.occupiedPoints();
   final tiles = _walkableTiles(world.map);
@@ -126,7 +126,7 @@ WorldState _populate(int population) {
 // ----------------------------------------------------------------- paths
 
 void _benchmarkPaths() {
-  final world = createTutorialWorld();
+  final world = createGameWorld();
   final map = world.map;
   const cap = ZombieAi.pathfindingRange;
   const unreachable = 1 << 30;

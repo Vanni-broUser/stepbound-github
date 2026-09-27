@@ -67,7 +67,7 @@ void main() {
 
   test('past the campfire behind the mall a lane has no car, only fire, '
       'and looking at it says what it would take', () {
-    final world = createTutorialWorld();
+    final world = createGameWorld();
     final street = place(PlaceId.mallNorthStreet);
     final fire = street.tilesOf('?');
     expect(fire, isNotEmpty);
@@ -108,7 +108,7 @@ void main() {
   });
 
   test('the block behind the mall walks as a circuit, never to the edge', () {
-    final world = createTutorialWorld();
+    final world = createGameWorld();
     final street = place(PlaceId.mallNorthStreet);
     final reached = world.map.floodFillDistances(
       mallNorthStreetEntry,
@@ -146,7 +146,7 @@ void main() {
 
   test('four drunks stagger about the Bar Arcobaleno, one by the service '
       'door', () {
-    final world = createTutorialWorld();
+    final world = createGameWorld();
     final bar = place(PlaceId.barArcobaleno).bounds;
     final drunks = world.entities.values
         .where((entity) => entity.kind == EntityKind.drunk)
@@ -181,7 +181,7 @@ void main() {
   });
 
   test('the service door of the bar is in its back wall, used going north', () {
-    final world = createTutorialWorld();
+    final world = createGameWorld();
     final bar = place(PlaceId.barArcobaleno);
     final above = barLockedDoorTile.step(Direction.north);
     expect(bar.rows[above.y - bar.origin.y][above.x - bar.origin.x], 'W');
@@ -193,27 +193,27 @@ void main() {
   });
 
   test('the player starts unarmed with no bullets', () {
-    final ammo = createTutorialWorld().player.component<AmmoComponent>();
+    final ammo = createGameWorld().player.component<AmmoComponent>();
     expect(ammo.hasGun, isFalse);
     expect(ammo.loaded, 0);
   });
 
   test('bullets pile up with no magazine to cap them', () {
-    final ammo = createTutorialWorld().player.component<AmmoComponent>()
+    final ammo = createGameWorld().player.component<AmmoComponent>()
       ..add(4)
       ..add(5);
     expect(ammo.loaded, 9, reason: 'nothing is left in a reserve');
   });
 
   test('the crossroads opens north and east but not south', () {
-    final map = createTutorialWorld().map;
+    final map = createGameWorld().map;
     expect(map.tileAt(const GridPoint(16, 20)).isWalkable, isTrue);
     expect(map.tileAt(const GridPoint(30, 36)).isWalkable, isTrue);
     expect(map.tileAt(const GridPoint(16, 40)).isWalkable, isFalse);
   });
 
   test('the streets end against buildings, the north one at the barracks', () {
-    final map = createTutorialWorld().map;
+    final map = createGameWorld().map;
     expect(map.tileAt(const GridPoint(3, 36)).isWalkable, isFalse);
     expect(map.tileAt(const GridPoint(40, 36)).isWalkable, isFalse);
     expect(map.tileAt(const GridPoint(15, 6)).isWalkable, isFalse);
@@ -221,7 +221,7 @@ void main() {
   });
 
   test('no cultist zombie stands in the level: the mass raises them', () {
-    final cultists = createTutorialWorld().entities.values.where(
+    final cultists = createGameWorld().entities.values.where(
       (entity) => entity.kind == EntityKind.cultist,
     );
 
@@ -242,7 +242,7 @@ void main() {
       .toList();
 
   test('the only zombie on the street waits east of the crossroads', () {
-    final world = createTutorialWorld();
+    final world = createGameWorld();
     final zombies = zombiesIn(world, place(PlaceId.street));
     expect(zombies, hasLength(1));
     expect(zombies.single.id, tutorialZombieId);
@@ -257,7 +257,7 @@ void main() {
           place(PlaceId.northDistrict).origin.x];
 
   test('two zombies wander by the fountain in the north district square', () {
-    final world = createTutorialWorld();
+    final world = createGameWorld();
     final byFountain = zombiesIn(world, place(PlaceId.northDistrict)).where((
       zombie,
     ) {
@@ -271,7 +271,7 @@ void main() {
 
   test('hordes of wanderers and carabinieri block the way to the '
       'hospital', () {
-    final world = createTutorialWorld();
+    final world = createGameWorld();
     // The square, in the north district's own tiles.
     final square = GridRect(
       place(PlaceId.northDistrict).origin.x + 38,
@@ -316,7 +316,7 @@ void main() {
   });
 
   test('zombies are beyond the simulation radius of the other places', () {
-    final world = createTutorialWorld();
+    final world = createGameWorld();
     final spots = <GridPoint>[
       for (final entity in world.entities.values)
         if (entity.kind != EntityKind.player)
@@ -325,7 +325,7 @@ void main() {
       ...mallHordeSpawns,
     ];
     for (final spot in spots) {
-      for (final region in tutorialPlaces) {
+      for (final region in gamePlaces) {
         final bounds = region.bounds;
         if (bounds.contains(spot)) {
           continue;
@@ -348,7 +348,7 @@ void main() {
 
   test('backpacks: ammo on the street and by the accident, pistol in the '
       'barracks', () {
-    final pickups = createTutorialWorld().pickups;
+    final pickups = createGameWorld().pickups;
     expect(pickups[ammoBackpackId]!.active, isTrue);
     expect(pickups[ammoBackpackId]!.ammo, 4);
     expect(pickups[accidentBackpackId]!.active, isTrue);
@@ -360,7 +360,7 @@ void main() {
   });
 
   test('interacting with a backpack collects its content', () {
-    final world = createTutorialWorld();
+    final world = createGameWorld();
     final backpack = world.pickups[ammoBackpackId]!;
     world.player.component<PositionComponent>()
       ..position = backpack.position.step(Direction.south)
@@ -384,7 +384,7 @@ void main() {
   });
 
   test('without the pistol the player cannot shoot', () {
-    final world = createTutorialWorld();
+    final world = createGameWorld();
     world.player.component<AmmoComponent>().loaded = 2;
     final events = const TurnScheduler().advance(world, const ShootAction());
     expect(events.whereType<DryFiredEvent>(), hasLength(1));
@@ -392,7 +392,7 @@ void main() {
   });
 
   test('stepping into the crossroads alerts the zombie at once', () {
-    final world = createTutorialWorld();
+    final world = createGameWorld();
     world.player.component<PositionComponent>().position = const GridPoint(
       12,
       35,
@@ -413,7 +413,7 @@ void main() {
 
   test('the top sidewalk, where it turns north, is part of the crossroads: '
       'nobody slips up the road past the first zombie', () {
-    final world = createTutorialWorld();
+    final world = createGameWorld();
     world.player.component<PositionComponent>().position = const GridPoint(
       12,
       33,
@@ -449,7 +449,7 @@ void main() {
         place(PlaceId.barracks).bounds.contains(tile);
 
     test('the front door leads inside the barracks and back out', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final inDoor = walk(world, const GridPoint(16, 7), Direction.north);
       expect(inside(inDoor), isTrue);
       final outDoor = walk(world, inDoor, Direction.south);
@@ -457,7 +457,7 @@ void main() {
     });
 
     test('the back door opens on the street of the north district', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final backDoor = world.portals.keys.firstWhere(
         (tile) =>
             inside(tile) && tile.y == place(PlaceId.barracks).origin.y + 2,
@@ -470,8 +470,8 @@ void main() {
     });
 
     test('the south road of the square goes down to the harbour and back', () {
-      final world = createTutorialWorld();
-      final harbour = tutorialPlaces.firstWhere(
+      final world = createGameWorld();
+      final harbour = gamePlaces.firstWhere(
         (region) => region.name == harbourName,
       );
       expect(harbour.cardImage, harbourCardImage);
@@ -495,7 +495,7 @@ void main() {
 
   test('a sprinter prowls the middle of the car park, the backpack is '
       'further west', () {
-    final world = createTutorialWorld();
+    final world = createGameWorld();
     final sprinters = zombiesIn(
       world,
       place(PlaceId.northDistrict),
@@ -535,10 +535,10 @@ void main() {
     }
 
     test('its open entrance leads to the ground floor and back', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final door = northTile('m');
       final inside = walk(world, door.step(Direction.south), Direction.north);
-      final ground = tutorialPlaces.firstWhere(
+      final ground = gamePlaces.firstWhere(
         (region) => region.bounds == place(PlaceId.mallGround).bounds,
       );
       expect(ground.indoor, isTrue);
@@ -574,7 +574,7 @@ void main() {
     });
 
     test('the stairs join the two floors', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final lowerStep = mallGroundRows.lastIndexWhere(
         (row) => row.contains('U'),
       );
@@ -623,12 +623,12 @@ void main() {
     }
 
     test('Luigi walks a clear path from his shop down to the stairs', () {
-      expectWalkableStraightPath(createTutorialWorld(), luigiExitPath);
+      expectWalkableStraightPath(createGameWorld(), luigiExitPath);
     });
 
     test('the hall and upper shops join on the west, with central stairs '
         'below and the fire exit in the second area', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final ground = place(PlaceId.mallGround);
       final entrance = ground.doorRow('E').first;
       final stairs = ground.doorRow('U');
@@ -703,7 +703,7 @@ void main() {
     });
 
     test('two wanderers wait by the north exit on the ground floor', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final ground = place(PlaceId.mallGround);
       final zombies = world.entities.values
           .where((entity) => entity.id.startsWith(mallGroundZombiePrefix))
@@ -721,7 +721,7 @@ void main() {
     });
 
     test('the panel beyond the gate lifts the shutter in front of Luigi', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final bars = luigiBars;
       final luigi = luigiTile;
       expect(luigi.y, lessThan(bars.top));
@@ -750,7 +750,7 @@ void main() {
 
     test('a backpack with two rounds waits at the far corner of the car '
         'park', () {
-      final backpack = createTutorialWorld().pickups[parkingBackpackId]!;
+      final backpack = createGameWorld().pickups[parkingBackpackId]!;
       expect(backpack.ammo, 2);
       expect(backpack.active, isTrue);
       final row = northDistrictRows[backpack.position.y];
@@ -769,7 +769,7 @@ void main() {
 
     test('the promenade ends at the parapet over the sea, round the corner '
         'too, but for the two piers', () {
-      final map = createTutorialWorld().map;
+      final map = createGameWorld().map;
       final parapet = harbourRows.indexWhere((row) => row.startsWith('R'));
       final corner = harbourRows[parapet].lastIndexOf('R');
       for (var x = 0; x <= corner; x++) {
@@ -793,7 +793,7 @@ void main() {
 
     test('an alley climbs north off the seafront road, then turns east to '
         'the Bar Arcobaleno, which you can walk into and out of', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final door = harbourRows.indexWhere((row) => row.contains('h'));
       final doorX = harbourRows[door].indexOf('h');
       final road = harbourRows.indexWhere((row) => row.contains('-'));
@@ -847,7 +847,7 @@ void main() {
     });
 
     test('a rowboat moored at the second pier holds four rounds', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final boat = world.pickups[boatBackpackId]!;
       expect(boat.ammo, 4);
       expect(boat.gun, isFalse);
@@ -879,7 +879,7 @@ void main() {
         lessThan(west),
         reason: 'the road goes further west than the church itself',
       );
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       for (var x = wall + 1; x < west; x++) {
         expect(
           world.map.tileAt(at(x, road)).isWalkable,
@@ -911,7 +911,7 @@ void main() {
 
     test('the alleys of the old town climb off the seafront road and cross '
         'one another, with the church and the fountain among them', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final duomoRow = harbourRows.indexWhere((row) => row.contains('W'));
       final duomoX = harbourRows[duomoRow].indexOf('W');
       List<GridPoint> tilesOf(String wanted) => <GridPoint>[
@@ -968,7 +968,7 @@ void main() {
 
     test('the Duomo stands back from the road: a two-cell alley climbs to '
         'its gate, then opens into the T of the sagrato', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final gate = harbourRows.indexWhere((row) => row.contains('x'));
       final alley = harbourRows[gate].indexOf('x');
       final alleyWidth = priestGateFront.right - priestGateFront.left + 1;
@@ -1024,7 +1024,7 @@ void main() {
 
     test('the gate shuts the alley, Don Angelo behind it and two wanderers '
         'before it', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       for (var x = priestGateFront.left; x <= priestGateFront.right; x++) {
         final gate = GridPoint(x, priestGateFront.top - 1);
         expect(world.map.tileAt(gate).isWalkable, isFalse);
@@ -1048,7 +1048,7 @@ void main() {
 
     test('Don Angelo hails Mario from anywhere on the seafront road in '
         'front of the alley', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final gate = harbourRows.indexWhere((row) => row.contains('x'));
       final road = <GridPoint>[
         for (var y = gate + 3; y < harbourRows.length; y++)
@@ -1103,7 +1103,7 @@ void main() {
           reason: 'in pairs either side of the altar middle',
         );
       }
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       for (final torch in torches) {
         expect(
           world.map.tileAt(torch).isWalkable,
@@ -1184,7 +1184,7 @@ void main() {
 
     test('the door upstairs is reached only through the tile in front of '
         'it, whoever stands there', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final door = duomoStairEntryTile;
       for (final side in <Direction>[
         Direction.north,
@@ -1212,7 +1212,7 @@ void main() {
     test(
       'the open portal is initially reachable only after opening the gate',
       () {
-        final world = createTutorialWorld();
+        final world = createGameWorld();
         expect(world.map.tileAt(duomoPortalTile).isWalkable, isTrue);
         expect(world.portals[duomoPortalTile], isNotNull);
         expect(
@@ -1247,7 +1247,7 @@ void main() {
 
     test('the upper floor contains a dining hall and communal dormitory', () {
       final upper = place(PlaceId.duomoUpper);
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       expect(upper.indoor, isTrue);
       expect(upper.tilesOf('T'), hasLength(greaterThanOrEqualTo(20)));
       expect(upper.tilesOf('C'), hasLength(greaterThanOrEqualTo(20)));
@@ -1302,7 +1302,7 @@ void main() {
     });
 
     test('the guarded door opens onto the upper floor and returns', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final upper = place(PlaceId.duomoUpper);
       expect(world.map.tileAt(duomoStairEntryTile).isWalkable, isTrue);
       expect(world.map.tileAt(duomoStairCultistTile).isWalkable, isFalse);
@@ -1349,7 +1349,7 @@ void main() {
     test(
       'the bar storeroom contains the episcopal ring and returns to the bar',
       () {
-        final world = createTutorialWorld();
+        final world = createGameWorld();
         final backroom = place(PlaceId.barBackroom);
         final ring = world.pickups[episcopalRingPickupId]!;
         expect(backroom.bounds.contains(ring.position), isTrue);
@@ -1398,7 +1398,7 @@ void main() {
 
     test('the four cultists close both ends of the aisle, looking out of '
         'it', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final wall = duomoCultistSpawns.toSet();
       expect(wall, hasLength(4));
       // Two pairs, each two deep: the aisle is two tiles tall, so each pair
@@ -1428,7 +1428,7 @@ void main() {
     });
 
     test('the key of the upper floor waits, hidden, beside the body', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final key = world.pickups[duomoKeyPickupId]!;
 
       expect(key.duomoKey, isTrue);
@@ -1450,7 +1450,7 @@ void main() {
 
     test('their two pairs shut the aisle off at both ends: the key is only '
         'reached past one of them', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       // The Duomo as the mass leaves it: the stair open behind Mario, the
       // body in the aisle, the backpack beside it and the four of them
       // across it.
@@ -1523,7 +1523,7 @@ void main() {
     final church = place(PlaceId.church);
 
     test('its portal stands open on the church square and goes both ways', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       // The portal is a hole in the bottom row of the church's own block,
       // with the paving of its little square under it.
       expect(
@@ -1569,7 +1569,7 @@ void main() {
         church.lights.any(
           (light) =>
               light.tile ==
-              createTutorialWorld().pickups[incenseBackpackId]!.position,
+              createGameWorld().pickups[incenseBackpackId]!.position,
         ),
         isTrue,
       );
@@ -1577,7 +1577,7 @@ void main() {
 
     test('the backpack by the east wall holds the incense, and nothing '
         'else in the game does', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final backpack = world.pickups[incenseBackpackId]!;
       expect(church.bounds.contains(backpack.position), isTrue);
       expect(backpack.ammo, 0);
@@ -1624,7 +1624,7 @@ void main() {
 
     test('the two doorways land in two corners of the hall with no way '
         'between them', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final west = world.portals[stationWestDoor.first]!.to;
       final east = world.portals[stationEastDoor.first]!.to;
       expect(station.bounds.contains(west), isTrue);
@@ -1652,7 +1652,7 @@ void main() {
 
     test('the west doorway reaches the platform, the train shuts it, and '
         'the two rounds are at the dead end', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final reached = from(
         world,
         world.portals[stationWestDoor.first]!.to,
@@ -1722,7 +1722,7 @@ void main() {
 
     test('the only way onto the tracks is the gap on fire by the burning '
         'car, and looking at it is all Mario can do', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final platform = from(
         world,
         world.portals[stationWestDoor.first]!.to,
@@ -1749,7 +1749,7 @@ void main() {
       expect(world.lookouts, contains(stationTrackFireTile));
       final stand = stationTrackFireTile.step(Direction.south);
       expect(platform.containsKey(stand), isTrue);
-      final fresh = createTutorialWorld();
+      final fresh = createGameWorld();
       fresh.player.component<PositionComponent>()
         ..position = stand
         ..facing = Direction.north;
@@ -1820,7 +1820,7 @@ void main() {
     });
 
     test('no wanderer waits right in front of a doorway', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       for (final door in <GridPoint>[
         world.portals[stationWestDoor.first]!.to,
         world.portals[stationEastDoor.first]!.to,
@@ -1836,7 +1836,7 @@ void main() {
 
     test('the east doorway reaches the stairs, and the underpass comes up '
         'on the far platform', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final reached = from(
         world,
         world.portals[stationEastDoor.first]!.to,
@@ -1914,7 +1914,7 @@ void main() {
 
     test('the east hall opens onto its platform through a four-cell gap, '
         'with only a little rubble left', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final reached = from(
         world,
         world.portals[stationEastDoor.first]!.to,
@@ -1947,7 +1947,7 @@ void main() {
     });
 
     test('the far platform is one clear walk in front of the whole train', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final reached = from(world, farSide.doorRow('D').first, farSide);
       final train = farSide.tilesOf('M');
       expect(train, isNotEmpty);
@@ -1997,7 +1997,7 @@ void main() {
 
     test('the passenger door is closed by default and leads through two '
         'coaches to the locomotive when opened', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final train = place(PlaceId.trainInterior);
       expect(
         world.map.tileAt(stationTrainDoorTile).isWalkable,
@@ -2041,8 +2041,8 @@ void main() {
       expect(train.indoor, isTrue, reason: 'it still sounds like a room');
       expect(train.lit, isTrue);
       expect(
-        tutorialPlaces.where((place) => place.lit).map((place) => place.id),
-        <PlaceId>[PlaceId.trainInterior, PlaceId.duomoUpper],
+        gamePlaces.where((place) => place.lit).map((place) => place.id),
+        unorderedEquals(<PlaceId>[PlaceId.trainInterior, PlaceId.duomoUpper]),
         reason:
             'every other room stays in the dark but the upper floor of '
             'the Duomo, where the community lives',
@@ -2052,7 +2052,7 @@ void main() {
     test('behind the engine Luigi, the books, the cot and the ammunition '
         'crate can each be walked '
         'up to and looked at, apart from each other', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final train = place(PlaceId.trainInterior);
       final reached = from(world, trainExitTile.step(Direction.north), train);
       expect(reached.containsKey(trainMapStandTile), isTrue);
@@ -2094,7 +2094,7 @@ void main() {
     });
 
     test('two wanderers wait in the booking hall and one in the church', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final indoors = world.entities.values
           .where((entity) => entity.id.startsWith(indoorZombiePrefix))
           .toList();
@@ -2117,7 +2117,7 @@ void main() {
     });
 
     test('two wanderers roam the station underpass', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final zombies = world.entities.values
           .where((entity) => entity.id.startsWith(stationUnderpassZombiePrefix))
           .toList();
@@ -2179,7 +2179,7 @@ void main() {
 
     test('it lies across the crossroads, wings where the street sees '
         'them', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final body = street.tilesOf('_');
       final wings = street.tilesOf('+');
       expect(body, isNotEmpty);
@@ -2226,7 +2226,7 @@ void main() {
     });
 
     test('the tear in its belly leads into the cabin and back out', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       expect(airlinerTear, hasLength(2), reason: 'as wide as the aisle');
       final inside = travel(world, airlinerTear.first, Direction.north);
       expect(cabin.bounds.contains(inside), isTrue);
@@ -2243,7 +2243,7 @@ void main() {
     });
 
     test('the cabin walks from the tear to the tail break', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final reached = from(
         world,
         airlinerCabinTear.first.step(Direction.north),
@@ -2261,7 +2261,7 @@ void main() {
     });
 
     test('two wanderers are left in the cabin', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final zombies = world.entities.values
           .where((entity) => entity.id.startsWith(airlinerZombiePrefix))
           .toList();
@@ -2319,7 +2319,7 @@ void main() {
           .singleWhere((tile) => tile.y == cabin.origin.y + 5);
 
       test('lie in the cabin, many of them, facing the aisle', () {
-        final world = createTutorialWorld();
+        final world = createGameWorld();
         final zombies = world.entities.values
             .where((entity) => entity.id.startsWith(airlinerMutilatedPrefix))
             .toList();
@@ -2339,7 +2339,7 @@ void main() {
 
       test('the one lying across the aisle is passed over the broken '
           'seats, and only there', () {
-        final world = createTutorialWorld();
+        final world = createGameWorld();
         expect(mutilatedTiles(world), contains(guard));
         final exit = airlinerTailBreak.first.step(Direction.north);
         final reached = walk(world, bitesAllowed: false);
@@ -2352,7 +2352,7 @@ void main() {
       });
 
       test('the first one lies under a light, in sight of the tear', () {
-        final world = createTutorialWorld();
+        final world = createGameWorld();
         final start = airlinerCabinTear.first.step(Direction.north);
         final first = mutilatedTiles(world).reduce(
           (a, b) => a.manhattanDistanceTo(start) <= b.manhattanDistanceTo(start)
@@ -2369,7 +2369,7 @@ void main() {
       });
 
       test('none lies in front of the tail break', () {
-        final world = createTutorialWorld();
+        final world = createGameWorld();
         for (final door in airlinerTailBreak) {
           expect(
             mutilatedTiles(world),
@@ -2379,7 +2379,7 @@ void main() {
       });
 
       test('he can be shot from a distance, without a bite', () {
-        final world = createTutorialWorld();
+        final world = createGameWorld();
         final reached = walk(world, bitesAllowed: false, except: guard);
         final inLine = <GridPoint>[
           for (var x = guard.x - 2; x > cabin.bounds.left; x--)
@@ -2398,7 +2398,7 @@ void main() {
 
       test('all the others can be walked round without a bite, and so can '
           'the flight bag with the rounds be reached', () {
-        final world = createTutorialWorld();
+        final world = createGameWorld();
         final reached = walk(world, bitesAllowed: false, except: guard);
         final bag = world.pickups[airlinerBackpackId]!;
         expect(bag.ammo, greaterThanOrEqualTo(1));
@@ -2420,7 +2420,7 @@ void main() {
           world.entities[rooftopBurningZombieId]!;
 
       test('two stand on the upper terrace, out of the corner on fire', () {
-        final world = createTutorialWorld();
+        final world = createGameWorld();
         final zombies = world.entities.values
             .where((entity) => entity.id.startsWith(rooftopBurningZombiePrefix))
             .toList();
@@ -2450,7 +2450,7 @@ void main() {
 
       test('going after Mario it leaves a trail of fire nobody crosses, and '
           'the way back to the tail stays open', () {
-        final world = createTutorialWorld();
+        final world = createGameWorld();
         final zombie = burning(world);
         final start = zombie.component<PositionComponent>().position;
         world.player.component<PositionComponent>()
@@ -2483,12 +2483,11 @@ void main() {
       });
 
       test('the tiles it set alight are still burning after a save', () {
-        final world = createTutorialWorld();
+        final world = createGameWorld();
         final tile = roofs.tilesOf('Y').first.step(Direction.east);
         world.map.setTile(tile, const Tile(TileKind.fire));
-        final restored = restoreTutorialWorld(
-          jsonDecode(jsonEncode(saveTutorialWorld(world)))
-              as Map<String, Object?>,
+        final restored = restoreGameWorld(
+          jsonDecode(jsonEncode(saveGameWorld(world))) as Map<String, Object?>,
         );
         expect(restored.map.tileAt(tile).kind, TileKind.fire);
         for (final corner in roofs.tilesOf('&')) {
@@ -2498,7 +2497,7 @@ void main() {
     });
 
     test('the tail break comes out on the roofs, and goes back in', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final roof = travel(world, airlinerTailBreak.first, Direction.south);
       expect(roofs.bounds.contains(roof), isTrue);
       expect(roof, airlinerRoofBreak.first.step(Direction.south));
@@ -2509,7 +2508,7 @@ void main() {
     });
 
     test('the roofs end at the gap, which can only be looked at', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final reached = from(
         world,
         airlinerRoofBreak.first.step(Direction.south),
@@ -2536,7 +2535,7 @@ void main() {
     });
 
     test('looking at the gap says what it would take to cross it', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       world.player.component<PositionComponent>()
         ..position = rooftopGapTile.step(Direction.north)
         ..facing = Direction.south;
@@ -2557,7 +2556,7 @@ void main() {
   });
 
   test('a carabiniere zombie patrols the park behind the mall', () {
-    final world = createTutorialWorld();
+    final world = createGameWorld();
     final park = place(PlaceId.mallNorthStreet);
     final carabinieri = world.entities.values.where(
       (entity) =>
@@ -2574,14 +2573,14 @@ void main() {
       isNotEmpty,
     );
     expect(carabiniereSpawns, hasLength(2));
-    final world = createTutorialWorld();
+    final world = createGameWorld();
     for (final spawn in carabiniereSpawns) {
       expect(world.map.tileAt(spawn).isWalkable, isTrue);
     }
   });
 
   test('the carabiniere in the middle steps south into the lamp light', () {
-    final world = createTutorialWorld();
+    final world = createGameWorld();
     // Mario a few steps past the front door, where the carabinieri come out.
     world.player.component<PositionComponent>().position = GridPoint(
       place(PlaceId.barracks).origin.x + 10,
@@ -2655,7 +2654,7 @@ void main() {
   });
 
   test('the camp burns at the closed east end of the north street', () {
-    final world = createTutorialWorld();
+    final world = createGameWorld();
     final camp = world.campfires.firstWhere(
       place(PlaceId.northDistrict).bounds.contains,
     );
@@ -2671,11 +2670,11 @@ void main() {
   test('the flagpole stands on the barracks forecourt', () {
     final pole = flagpoleTile;
     expect(barracksForecourt.contains(pole), isTrue);
-    expect(createTutorialWorld().map.tileAt(pole).isWalkable, isFalse);
+    expect(createGameWorld().map.tileAt(pole).isWalkable, isFalse);
   });
 
   test('resting at the camp beyond the barracks asks the game to save', () {
-    final world = createTutorialWorld();
+    final world = createGameWorld();
     final camp = world.campfires.firstWhere(
       place(PlaceId.northDistrict).bounds.contains,
     );
@@ -2693,16 +2692,16 @@ void main() {
         jsonDecode(jsonEncode(json)) as Map<String, Object?>;
 
     test('store what changed, not the whole map: a few kilobytes', () {
-      final world = createTutorialWorld();
-      final save = jsonEncode(saveTutorialWorld(world));
+      final world = createGameWorld();
+      final save = jsonEncode(saveGameWorld(world));
       expect(save.length, lessThan(40 * 1024));
-      expect(saveTutorialWorld(world).containsKey('map'), isFalse);
-      expect(saveTutorialWorld(world)['mapChanges'], isEmpty);
+      expect(saveGameWorld(world).containsKey('map'), isFalse);
+      expect(saveGameWorld(world)['mapChanges'], isEmpty);
     });
 
     test('zombies killed or moved, backpacks collected, the lifted shutter '
         'and Mario all survive a save and a load', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final zombies = world.entities.values
           .where((entity) => entity.kind != EntityKind.player)
           .toList();
@@ -2727,12 +2726,12 @@ void main() {
       final shutter = GridPoint(luigiBars.left, luigiBars.top);
       expect(world.map.tileAt(shutter).isWalkable, isTrue);
 
-      final save = throughStorage(saveTutorialWorld(world));
+      final save = throughStorage(saveGameWorld(world));
       expect(
         save['mapChanges'],
         hasLength(luigiBars.right - luigiBars.left + 1),
       );
-      final restored = restoreTutorialWorld(save);
+      final restored = restoreGameWorld(save);
 
       expect(restored.entities[killed.id]!.isAlive, isFalse);
       expect(
@@ -2756,24 +2755,24 @@ void main() {
     });
 
     test('an older save gains backpacks added by the current level', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       world.pickups[ammoBackpackId]!
         ..active = false
         ..collected = true;
-      final oldSave = throughStorage(saveTutorialWorld(world));
+      final oldSave = throughStorage(saveGameWorld(world));
       (oldSave['pickups']! as List<Object?>).removeWhere(
         (encoded) =>
             (encoded! as Map<String, Object?>)['id'] == incenseBackpackId,
       );
 
-      final restored = restoreTutorialWorld(oldSave);
+      final restored = restoreGameWorld(oldSave);
 
       expect(restored.pickups[incenseBackpackId], isNotNull);
       expect(restored.pickups[incenseBackpackId]!.active, isTrue);
       expect(restored.pickups[incenseBackpackId]!.collected, isFalse);
       expect(
         restored.pickups[incenseBackpackId]!.position,
-        createTutorialWorld().pickups[incenseBackpackId]!.position,
+        createGameWorld().pickups[incenseBackpackId]!.position,
       );
       expect(
         restored.pickups[ammoBackpackId]!.collected,
@@ -2783,7 +2782,7 @@ void main() {
     });
 
     test('an older save gains zombies added by the current level', () {
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       world.entities[tutorialZombieId]!.component<HealthComponent>().current =
           0;
       final park = place(PlaceId.mallNorthStreet);
@@ -2798,13 +2797,13 @@ void main() {
             entity.id,
       };
       expect(addedIds, hasLength(5));
-      final oldSave = throughStorage(saveTutorialWorld(world));
+      final oldSave = throughStorage(saveGameWorld(world));
       (oldSave['entities']! as List<Object?>).removeWhere(
         (encoded) =>
             addedIds.contains((encoded! as Map<String, Object?>)['id']),
       );
 
-      final restored = restoreTutorialWorld(oldSave);
+      final restored = restoreGameWorld(oldSave);
 
       for (final id in addedIds) {
         expect(restored.entities[id], isNotNull, reason: id);
@@ -2831,10 +2830,10 @@ void main() {
           const InteractAction(),
         );
         expect(events.whereType<CampfireUsedEvent>().single.at, camp);
-        return throughStorage(saveTutorialWorld(world));
+        return throughStorage(saveGameWorld(world));
       }
 
-      final world = createTutorialWorld();
+      final world = createGameWorld();
       final first = campIn(world, PlaceId.northDistrict);
       final second = campIn(world, PlaceId.mallNorthStreet);
       expect(campfireNames[first], 'Dietro la caserma');
@@ -2850,7 +2849,7 @@ void main() {
       );
       zombie.component<HealthComponent>().current = 0;
       world.player.component<AmmoComponent>().loaded = 3;
-      final loaded = restoreTutorialWorld(rest(world, first));
+      final loaded = restoreGameWorld(rest(world, first));
       expect(loaded.entities[zombie.id]!.isAlive, isFalse);
       expect(
         loaded.player.component<PositionComponent>().position,
@@ -2858,7 +2857,7 @@ void main() {
       );
 
       // Then rest at the new one, and load that save in turn.
-      final again = restoreTutorialWorld(rest(loaded, second));
+      final again = restoreGameWorld(rest(loaded, second));
       expect(again.campfires, contains(second));
       expect(
         again.entities[zombie.id]!.isAlive,
@@ -2875,7 +2874,7 @@ void main() {
   });
 
   test('the whole world survives a save and a load', () {
-    final world = createTutorialWorld();
+    final world = createGameWorld();
     world.pickups[ammoBackpackId]!
       ..active = false
       ..collected = true;
@@ -2891,7 +2890,7 @@ void main() {
 
   test('the train door opens onto the station of the level it stands in, '
       'and Termini leads nowhere but back aboard', () {
-    final world = createTutorialWorld();
+    final world = createGameWorld();
     expect(
       world.portals[trainExitTile]!.to,
       stationTrainDoorTile.step(Direction.south),
@@ -2929,7 +2928,7 @@ void main() {
     final hometown = levelZombieKinds(LevelId.hometown);
     final rome = levelZombieKinds(LevelId.rome);
     expect(rome, hasLength(terminiZombieSpots.length));
-    final atStart = createTutorialWorld().entities.values
+    final atStart = createGameWorld().entities.values
         .where((entity) => entity.kind != EntityKind.player)
         .length;
     expect(
@@ -2949,7 +2948,7 @@ void main() {
 
   test('the wanderers of Termini stand on its platforms, and its stairs are '
       'walkable', () {
-    final world = createTutorialWorld();
+    final world = createGameWorld();
     final termini = place(PlaceId.romeTermini);
     final zombies = world.entities.values
         .where((entity) => entity.id.startsWith(terminiZombiePrefix))

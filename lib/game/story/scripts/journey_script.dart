@@ -1,18 +1,18 @@
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/game/story/story_director.dart';
 
 /// The first journey from the Europe map, to Rome or back home: once the
 /// train has arrived, before Mario can move, what he takes with him from
 /// one level to the next. In Rome it comes after Luigi's welcome, which
 /// [RomeScript] queues first.
-final class JourneyScript extends TutorialScript {
+final class JourneyScript extends StoryScript {
   JourneyScript(super.director);
 
-  static const List<TutorialLine> carryLines = <TutorialLine>[
-    TutorialLine(
+  static const List<StoryLine> carryLines = <StoryLine>[
+    StoryLine(
       'Le munizioni e gli oggetti consumabili, come i proiettili o le '
       "molotov, non possono essere portati tra un livello e l'altro",
     ),
-    TutorialLine(
+    StoryLine(
       'Gli oggetti non consumabili invece, come la pistola o il rampino, '
       'possono essere portati tra i vari livelli',
     ),
@@ -31,13 +31,13 @@ final class JourneyScript extends TutorialScript {
     _taught = true;
     host.stopWalking();
     say(
-      TutorialPrompt(
+      StoryPrompt(
         carryLines,
         // Alone, it leaves the loading picture time to fade; after Luigi,
         // only a breath between his lines and these.
         delay: director.isIdle
             ? RomeScript.arrivalDelay
-            : TutorialDirector.reactionDelay,
+            : StoryDirector.reactionDelay,
         holdsInput: true,
       ),
     );

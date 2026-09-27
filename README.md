@@ -95,8 +95,8 @@ GitLab CI runs formatting, static analysis, and tests with Flutter 3.44.2. Signe
 
 ## Architecture
 
-- `lib/core`: pure Dart grid, entities, actions, systems, scheduler, events, serialization, and seeded RNG
-- `lib/game`: Flame presentation, camera, render layers, turn interpolation, and debug tools; input adapters live under `lib/game/input`
+- `lib/core`: pure Dart grid, entities, actions, systems, scheduler, events, serialization, and seeded RNG; each level has its own module under `lib/core/levels` (`hometown/`, `train/`, `rome/`), joined on one grid by `game_world.dart`
+- `lib/game`: Flame presentation, camera, render layers, turn interpolation, and debug tools; input adapters live under `lib/game/input`, and what each level puts on the stage (its people, props and glints) under `lib/game/levels`
 - `lib/input`, `lib/data`: empty, kept for input adapters and a runtime data loader that do not exist yet
 - `lib/save`: persistence adapters
 - `lib/ui`: Flutter interface

@@ -65,6 +65,6 @@ migrazione può restare com'è; il test lo conferma.
 I salvataggi congelati vengono dagli scenari di prova, non da un telefono:
 coprono i punti della storia che gli scenari coprono. Il controllo
 (`checkRestorable`) ricostruisce il mondo e i progressi, non lo stato degli
-script del tutorial (vedi la voce P3 sui salvataggi nel backlog). Prima di
+script della storia (vedi la voce P3 sui salvataggi nel backlog). Prima di
 pubblicare una build che migra, conviene comunque caricare a mano un
 salvataggio vero della build precedente.
