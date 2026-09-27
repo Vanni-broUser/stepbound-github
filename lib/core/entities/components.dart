@@ -77,12 +77,13 @@ final class HealthComponent extends EntityComponent {
 }
 
 final class AmmoComponent extends EntityComponent {
-  AmmoComponent({required this.loaded, this.hasGun = true});
+  AmmoComponent({required this.loaded, this.hasGun = true, this.molotovs = 0});
 
   factory AmmoComponent.fromJson(Map<String, Object?> json) {
     return AmmoComponent(
       loaded: json['loaded']! as int,
       hasGun: json['hasGun'] as bool? ?? true,
+      molotovs: json['molotovs']! as int,
     );
   }
 
@@ -92,6 +93,10 @@ final class AmmoComponent extends EntityComponent {
 
   /// Bullets can be carried before the pistol is found.
   bool hasGun;
+
+  /// Bottles of spirits with a rag in the neck, ready to be lit and
+  /// thrown: each one bursts into flames over a 3x3 square.
+  int molotovs;
 
   void add(int rounds) => loaded += rounds;
 
@@ -103,6 +108,7 @@ final class AmmoComponent extends EntityComponent {
     'type': type,
     'loaded': loaded,
     'hasGun': hasGun,
+    'molotovs': molotovs,
   };
 }
 

@@ -360,6 +360,11 @@ const String boatBackpackId = 'backpack-boat';
 /// Angelo asked for.
 const String incenseBackpackId = 'backpack-incense';
 const String episcopalRingPickupId = 'episcopal-ring';
+
+/// The backpack with a molotov in the park behind the hypermarket, and
+/// how many it holds.
+const String molotovBackpackId = 'molotov-backpack';
+const int molotovBackpackCount = 1;
 const String cultistRobePickupId = 'cultist-robe';
 
 /// The service door in the top-right corner of the Bar Arcobaleno. It is
@@ -631,6 +636,14 @@ final GridPoint mallExitTile = _mallGround.tileOf('X');
 /// Where the fire exit lands: its own doorway, in the back wall of the
 /// hypermarket behind the car park.
 final GridPoint mallNorthStreetEntry = _mallNorthStreet.tileOf('j');
+
+/// On the park's path, a few steps in front of the carabiniere standing
+/// on it (zombies start looking west): to reach the molotov, Mario walks
+/// up to him.
+final GridPoint molotovBackpackTile = (() {
+  final carabiniere = _mallNorthStreet.tileOf('r');
+  return GridPoint(carabiniere.x - 4, carabiniere.y);
+})();
 
 /// The portal of San Nicola, standing open on the church's little square.
 final GridPoint churchPortalTile = _harbour.tileOf('(');
@@ -924,6 +937,11 @@ LevelContents hometownContents(EntityFactory factory) {
       id: episcopalRingPickupId,
       position: _barBackroom.tileOf('8'),
       episcopalRing: true,
+    ),
+    Pickup(
+      id: molotovBackpackId,
+      position: molotovBackpackTile,
+      molotovs: molotovBackpackCount,
     ),
     Pickup(
       id: cultistRobePickupId,

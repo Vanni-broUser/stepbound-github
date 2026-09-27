@@ -9,11 +9,15 @@ final class AimLineComponent extends Component {
   AimLineComponent({
     required this.simulation,
     required this.aiming,
+    this.hidden,
     this.tileSize = 16,
   }) : super(priority: 30);
 
   final WorldState simulation;
   final ValueListenable<bool> aiming;
+
+  /// True while what is aimed is not the pistol: a molotov draws its own.
+  final bool Function()? hidden;
   final double tileSize;
   final Paint _paint = Paint()
     ..color = PixelPalette.blood
@@ -22,7 +26,9 @@ final class AimLineComponent extends Component {
 
   @override
   void render(Canvas canvas) {
-    if (!aiming.value || !simulation.player.isAlive) {
+    if (!aiming.value ||
+        (hidden?.call() ?? false) ||
+        !simulation.player.isAlive) {
       return;
     }
 

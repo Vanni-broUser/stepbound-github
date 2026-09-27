@@ -33,6 +33,7 @@ final class TouchControls extends StatelessWidget {
     HudElement.barKey => _BarKeyBadge(game: game),
     HudElement.episcopalRing => _EpiscopalRingBadge(game: game),
     HudElement.duomoKey => _DuomoKeyBadge(game: game),
+    HudElement.molotov => _MolotovBadge(game: game),
     HudElement.interact || HudElement.shoot => null,
   };
 
@@ -73,7 +74,8 @@ final class TouchControls extends StatelessWidget {
                       unlocked.contains(HudElement.incense) ||
                       unlocked.contains(HudElement.barKey) ||
                       unlocked.contains(HudElement.episcopalRing) ||
-                      unlocked.contains(HudElement.duomoKey))
+                      unlocked.contains(HudElement.duomoKey) ||
+                      unlocked.contains(HudElement.molotov))
                     Positioned(
                       left: 0,
                       top: 0,
@@ -507,7 +509,7 @@ final class _ActionZoneState extends State<ActionZone> {
       _touch = _Touch.aiming;
     } else {
       _touch = _Touch.pending;
-      if (_game.isUnlocked(HudElement.shoot)) {
+      if (_game.input.canAim) {
         _hold = Timer(ActionZone.holdToAim, _raisePistol);
       }
     }
@@ -564,6 +566,15 @@ final class _ActionZoneState extends State<ActionZone> {
           return;
         }
         final direction = directionOf(delta, current: _aim);
+        if (_game.input.throwing) {
+          // The square follows the stick: its way, and how far out it is
+          // between the ring and the reach.
+          _aim = direction;
+          const span = ActionZone.reach - ActionZone.cancelRadius;
+          final pull = (delta.distance - ActionZone.cancelRadius) / span;
+          _game.input.aimThrow(delta / delta.distance * pull);
+          return;
+        }
         if (direction != _aim) {
           _aim = direction;
           _game.input.aimToward(direction);
@@ -590,7 +601,11 @@ final class _ActionZoneState extends State<ActionZone> {
         final aim = _aim;
         final centre = _centre;
         if (lifted && aim != null && centre != null && !_inCancelRing) {
-          _game.input.shootToward(aim);
+          if (_game.input.throwing) {
+            _game.input.throwMolotov();
+          } else {
+            _game.input.shootToward(aim);
+          }
           _splat(centre, SplatKind.swipe, direction: _delta);
         } else {
           _splat(event.localPosition, SplatKind.tap);
@@ -613,7 +628,7 @@ final class _ActionZoneState extends State<ActionZone> {
     return Semantics(
       label:
           'Tocca per interagire, tieni premuto e trascina per mirare, '
-          'lascia per sparare',
+          'lascia per sparare o lanciare',
       child: Listener(
         key: const ValueKey<String>('touch-act'),
         behavior: HitTestBehavior.opaque,
@@ -1057,6 +1072,167 @@ final class _IncenseBadge extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The molotovs Mario carries, counted like the bullets. A tap puts one
+/// in his hand in place of the pistol, and another puts it back: the
+/// badge in hand is lit, and aiming then picks where it lands.
+final class _MolotovBadge extends StatelessWidget {
+  const _MolotovBadge({required this.game});
+
+  static const double size = 44;
+  static const double spill = _AmmoBadge.spill;
+  final StepboundGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<int>(
+      valueListenable: game.molotovs,
+      builder: (context, count, _) => ValueListenableBuilder<Weapon>(
+        valueListenable: game.input.weapon,
+        builder: (context, weapon, _) {
+          final inHand = weapon == Weapon.molotov;
+          Widget frame = BloodOverlay(
+            painter: const BloodPainter(
+              band: 3,
+              cornerRadius: 8,
+              drips: <BloodDrip>[BloodDrip(0.34, 9, 3), BloodDrip(0.7, 12, 4)],
+            ),
+            child: Container(
+              key: const ValueKey<String>('hud-molotov'),
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                color: inHand
+                    ? const Color(0xcc4a1a0c)
+                    : const Color(0xcc241a1a),
+                border: Border.all(
+                  color: inHand ? const Color(0xffffa53a) : BloodColors.fresh,
+                  width: 2,
+                ),
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: <BoxShadow>[
+                  const BoxShadow(
+                    color: Color(0x99000000),
+                    offset: Offset(2, 2),
+                  ),
+                  if (inHand)
+                    const BoxShadow(color: Color(0x88ff7a1c), blurRadius: 10),
+                ],
+              ),
+              child: const Align(
+                alignment: Alignment(-0.2, -0.2),
+                child: CustomPaint(size: Size(24, 32), painter: _MolotovIcon()),
+              ),
+            ),
+          );
+          if (count == 0) {
+            frame = ColorFiltered(
+              colorFilter: _AmmoBadge._greyed,
+              child: frame,
+            );
+          }
+          return Semantics(
+            button: true,
+            enabled: count > 0,
+            selected: inHand,
+            label: inHand
+                ? 'Molotov in mano: $count'
+                : 'Molotov: $count, tocca per prenderne una',
+            child: GestureDetector(
+              onTap: count > 0 || inHand
+                  ? () {
+                      AudioScope.of(context).play(Sfx.uiClick);
+                      game.input.toggleWeapon();
+                    }
+                  : null,
+              child: Padding(
+                padding: const EdgeInsets.only(right: spill, bottom: spill),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: <Widget>[
+                    frame,
+                    Positioned(
+                      right: -spill,
+                      bottom: -spill,
+                      child: Opacity(
+                        opacity: count > 0 ? 1 : 0.6,
+                        child: _BloodCount(
+                          key: const ValueKey<String>('hud-molotov-count'),
+                          text: '×$count',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// A bottle of spirits with a rag stuffed in its neck, the rag alight.
+/// Pixel art on a 12x16 grid.
+final class _MolotovIcon extends CustomPainter {
+  const _MolotovIcon();
+
+  static const List<String> _pixels = <String>[
+    '.....yo.....',
+    '....oyyo....',
+    '....oyro....',
+    '.....rr.....',
+    '.....cc.....',
+    '.....cC.....',
+    '.....gG.....',
+    '.....gG.....',
+    '....gggG....',
+    '...ggLggG...',
+    '...gLlggG...',
+    '...gLgggG...',
+    '...gLlggG...',
+    '...gggggG...',
+    '...gggggG...',
+    '....dddd....',
+  ];
+
+  static const Map<String, Color> _colors = <String, Color>{
+    'y': Color(0xffffd23f),
+    'o': Color(0xffff8a1c),
+    'r': Color(0xffd6341c),
+    'c': Color(0xffd9c9a3),
+    'C': Color(0xffa8987a),
+    'g': Color(0xff4f8a3c),
+    'G': Color(0xff2f5a26),
+    'L': Color(0xff9fd07a),
+    'l': Color(0xffe0a03a),
+    'd': Color(0xff1f3a1a),
+  };
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cell = size.width / _pixels.first.length;
+    final paint = Paint()..isAntiAlias = false;
+    for (var y = 0; y < _pixels.length; y++) {
+      final row = _pixels[y];
+      for (var x = 0; x < row.length; x++) {
+        final color = _colors[row[x]];
+        if (color == null) {
+          continue;
+        }
+        paint.color = color;
+        canvas.drawRect(
+          Rect.fromLTWH(x * cell, y * cell, cell + 0.1, cell + 0.1),
+          paint,
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(_MolotovIcon oldDelegate) => false;
 }
 
 /// The key Don Angelo gives Mario for the Bar Arcobaleno service door.

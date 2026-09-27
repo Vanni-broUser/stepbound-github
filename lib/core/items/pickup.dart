@@ -9,6 +9,7 @@ final class Pickup {
     required this.id,
     required this.position,
     this.ammo = 0,
+    this.molotovs = 0,
     this.gun = false,
     this.incense = false,
     this.episcopalRing = false,
@@ -23,6 +24,7 @@ final class Pickup {
       id: json['id']! as String,
       position: GridPoint.fromJson(json['position']! as Map<String, Object?>),
       ammo: json['ammo']! as int,
+      molotovs: json['molotovs'] as int? ?? 0,
       gun: json['gun']! as bool,
       incense: json['incense']! as bool,
       episcopalRing: json['episcopalRing']! as bool,
@@ -36,6 +38,9 @@ final class Pickup {
   final String id;
   final GridPoint position;
   final int ammo;
+
+  /// Molotov cocktails, ready to throw.
+  final int molotovs;
   final bool gun;
 
   /// The censer's worth of incense Don Angelo asked for: there is one
@@ -61,6 +66,8 @@ final class Pickup {
     'id': id,
     'position': position.toJson(),
     'ammo': ammo,
+    // Only in the one backpack that has any: saves stay small.
+    if (molotovs > 0) 'molotovs': molotovs,
     'gun': gun,
     'incense': incense,
     'episcopalRing': episcopalRing,

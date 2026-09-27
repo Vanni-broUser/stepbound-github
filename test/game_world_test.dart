@@ -2694,7 +2694,7 @@ void main() {
     test('store what changed, not the whole map: a few kilobytes', () {
       final world = createGameWorld();
       final save = jsonEncode(saveGameWorld(world));
-      expect(save.length, lessThan(40 * 1024));
+      expect(save.length, lessThan(48 * 1024));
       expect(saveGameWorld(world).containsKey('map'), isFalse);
       expect(saveGameWorld(world)['mapChanges'], isEmpty);
     });
