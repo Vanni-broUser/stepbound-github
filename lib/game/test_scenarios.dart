@@ -181,6 +181,39 @@ final class ScenarioBuilder {
 /// Each one builds on the ones before it, and is saved where a player
 /// would have saved on the way: at the fire nearest the place it is
 /// about, or aboard the train once the level is over.
+final TestScenario vanniDeployScenario = TestScenario(
+  'Treno, dopo la fine del livello',
+  (story) {
+    _luigiFree(story);
+    _afterTheMass(story);
+
+    // A useful end-of-Molfetta save: the ammunition really comes from
+    // backpacks in the level, and the molotov has been found too.
+    <String>[
+      ammoBackpackId,
+      accidentBackpackId,
+      parkingBackpackId,
+      stationBackpackId,
+    ].forEach(story.collect);
+    story
+      ..collect(molotovBackpackId)
+      ..unlock(HudElement.molotov)
+      ..remember(StoryMemory.luigiAtStation)
+      ..script('station', <String, Object?>{'reunion': true})
+      ..aboardTrain();
+    story.world.player.component<AmmoComponent>()
+      ..loaded = 10
+      ..molotovs = molotovBackpackCount;
+
+    // Keep this scenario complete when another Molfetta memory is added.
+    for (final memory in StoryMemory.values) {
+      if (memory.level == LevelId.hometown) {
+        story.remember(memory);
+      }
+    }
+  },
+);
+
 final List<TestScenario> testScenarios = <TestScenario>[
   TestScenario('Quartiere nord, armato', (story) {
     _armed(story);
@@ -198,13 +231,7 @@ final List<TestScenario> testScenarios = <TestScenario>[
     _luigiFree(story);
     story.restNearest(stationWestDoor.first);
   }),
-  TestScenario('Treno, dopo la fine del livello', (story) {
-    _luigiFree(story);
-    story
-      ..remember(StoryMemory.luigiAtStation)
-      ..script('station', <String, Object?>{'reunion': true})
-      ..aboardTrain();
-  }),
+  vanniDeployScenario,
   TestScenario('Porto, Don Angelo al cancello', (story) {
     _armed(story);
     story.restAt(harbourRoadCampfireTile);

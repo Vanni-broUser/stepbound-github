@@ -86,6 +86,25 @@ void main() {
     expect(() => nowhere.save(_slot), throwsStateError);
   });
 
+  test('the VANNI_DEPLOY save completes Molfetta with test supplies', () {
+    final save = vanniDeployScenario.save(_slot);
+    final world = restoreGameWorld(save.world);
+    final ammo = world.player.component<AmmoComponent>();
+    final progress = Progress.fromJson(save.progress);
+
+    expect(save.place, trainPlaceName);
+    expect(ammo.loaded, 10);
+    expect(ammo.molotovs, molotovBackpackCount);
+    expect(save.hud, contains(HudElement.molotov.name));
+    expect(world.pickups[molotovBackpackId]!.collected, isTrue);
+    expect(
+      progress.memories.where((memory) => memory.level == LevelId.hometown),
+      containsAll(
+        StoryMemory.values.where((memory) => memory.level == LevelId.hometown),
+      ),
+    );
+  });
+
   testWidgets('each scenario loads into a game that runs, with the story '
       'where it says', (tester) {
     return tester.runAsync(() async {
