@@ -18,7 +18,7 @@ final class MainMenu extends StatefulWidget {
     required this.saves,
     required this.onNewGame,
     required this.onLoad,
-    this.unlockedOutfit,
+    this.linkNotice,
     super.key,
   });
 
@@ -37,8 +37,8 @@ final class MainMenu extends StatefulWidget {
 
   final SaveRepository saves;
 
-  /// The skin just obtained by opening a campaign link.
-  final PlayerOutfit? unlockedOutfit;
+  /// What the gift link the app was just opened with did.
+  final LinkNotice? linkNotice;
 
   /// Starts the story; the game will save in the given slot.
   final void Function(int slot) onNewGame;
@@ -55,6 +55,16 @@ final class _MainMenuState extends State<MainMenu> {
     const EmptySave(),
   );
 
+  /// The skins given to each slot by gift links: see
+  /// [SaveRepository.loadGifts].
+  List<Set<PlayerOutfit>> _gifts = List<Set<PlayerOutfit>>.filled(
+    SaveRepository.slotCount,
+    const <PlayerOutfit>{},
+  );
+
+  /// Whether the player has put the [MainMenu.linkNotice] away.
+  bool _noticeClosed = false;
+
   /// Slot waiting for the "overwrite?" answer.
   int? _confirming;
 
@@ -66,8 +76,17 @@ final class _MainMenuState extends State<MainMenu> {
 
   Future<void> _refresh() async {
     final slots = await widget.saves.all();
+    if (!mounted) {
+      return;
+    }
+    setState(() => _slots = slots);
+    // Only a label: the slots need not wait for it.
+    final gifts = <Set<PlayerOutfit>>[
+      for (var slot = 1; slot <= SaveRepository.slotCount; slot++)
+        await widget.saves.loadGifts(slot),
+    ];
     if (mounted) {
-      setState(() => _slots = slots);
+      setState(() => _gifts = gifts);
     }
   }
 
@@ -164,6 +183,12 @@ final class _MainMenuState extends State<MainMenu> {
                   ),
                 ),
               ),
+            if (widget.linkNotice case final notice? when !_noticeClosed)
+              _LinkNoticePanel(
+                notice: notice,
+                unit: unit,
+                onClose: () => setState(() => _noticeClosed = true),
+              ),
           ],
         );
       },
@@ -174,34 +199,6 @@ final class _MainMenuState extends State<MainMenu> {
     final hasSaves = _slots.any((slot) => slot is LoadedSave);
     final buttons = switch (_page) {
       _MenuPage.home => <Widget>[
-        if (widget.unlockedOutfit case final outfit?)
-          MenuPanel(
-            key: const ValueKey<String>('skin-unlock-notice'),
-            unit: unit,
-            width: MenuButton.fullWidth,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Text(
-                  'Hai ottenuto la skin ${outfit.label}',
-                  key: const ValueKey<String>('skin-unlock-title'),
-                  textAlign: TextAlign.center,
-                  style: menuTextStyle(
-                    unit,
-                    8,
-                  ).copyWith(fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 3 * unit),
-                MenuParagraph(
-                  'Quando avrai sbloccato nella trama la possibilità di '
-                  'cambiare abbigliamento troverai anche questa nuova opzione',
-                  key: const ValueKey<String>('skin-unlock-explanation'),
-                  unit: unit,
-                  center: true,
-                ),
-              ],
-            ),
-          ),
         MenuButton(
           key: const ValueKey<String>('menu-new-game'),
           label: 'NUOVA PARTITA',
@@ -298,7 +295,7 @@ final class _MainMenuState extends State<MainMenu> {
       );
     }
     final save = _slots[slot - 1].game;
-    return MenuButton(
+    final button = MenuButton(
       key: ValueKey<String>('menu-slot-$slot'),
       label: _slotLabel(slot),
       unit: unit,
@@ -308,6 +305,166 @@ final class _MainMenuState extends State<MainMenu> {
         _ when save != null => () => widget.onLoad(save),
         _ => null,
       },
+    );
+    if (_gifts[slot - 1].isEmpty) {
+      return button;
+    }
+    // Pinned across the top right corner, like a label stuck on a parcel.
+    return Stack(
+      clipBehavior: Clip.none,
+      children: <Widget>[
+        button,
+        Positioned(
+          top: -4 * unit,
+          right: -5 * unit,
+          child: IgnorePointer(
+            child: GiftTag(
+              key: ValueKey<String>('menu-slot-$slot-gift'),
+              unit: unit,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// What opening a gift link did, as the main menu tells it.
+sealed class LinkNotice {
+  const LinkNotice();
+}
+
+/// The link gave [outfit] to the four slots.
+final class SkinGiftNotice extends LinkNotice {
+  const SkinGiftNotice(this.outfit);
+
+  final PlayerOutfit outfit;
+}
+
+/// The link had expired, or was not one the game made: nothing given.
+final class InvalidLinkNotice extends LinkNotice {
+  const InvalidLinkNotice();
+}
+
+/// A [LinkNotice] over the dimmed menu until put away: the skin given,
+/// with Mario wearing it, or the link that gave nothing.
+final class _LinkNoticePanel extends StatelessWidget {
+  const _LinkNoticePanel({
+    required this.notice,
+    required this.unit,
+    required this.onClose,
+  });
+
+  final LinkNotice notice;
+  final double unit;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final content = switch (notice) {
+      SkinGiftNotice(:final outfit) => <Widget>[
+        BloodyTitle('REGALO', fontSize: 15 * unit),
+        Text(
+          'Skin ${outfit.label}',
+          key: const ValueKey<String>('skin-gift-name'),
+          textAlign: TextAlign.center,
+          style: menuTextStyle(unit, 9).copyWith(fontWeight: FontWeight.bold),
+        ),
+        SizedBox(height: 3 * unit),
+        Image.asset(
+          outfit.portrait,
+          key: const ValueKey<String>('skin-gift-portrait'),
+          height: 96 * unit,
+          fit: BoxFit.contain,
+        ),
+      ],
+      InvalidLinkNotice() => <Widget>[
+        BloodyTitle('LINK SCADUTO', fontSize: 15 * unit),
+        BloodyTitle('O NON VALIDO', fontSize: 15 * unit),
+      ],
+    };
+    return ColoredBox(
+      key: ValueKey<String>(
+        notice is SkinGiftNotice ? 'skin-gift-notice' : 'skin-link-invalid',
+      ),
+      color: const Color(0xc4000000),
+      child: Center(
+        child: MenuPanel(
+          unit: unit,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ...content,
+              SizedBox(height: 5 * unit),
+              MenuButton(
+                key: const ValueKey<String>('skin-link-close'),
+                label: 'OK',
+                unit: unit,
+                compact: true,
+                width: MenuButton.halfWidth,
+                onPressed: onClose,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "REGALO" on a slot that holds gifts, written in blood on a scrap of
+/// label, tilted, with a couple of drips running off it.
+final class GiftTag extends StatelessWidget {
+  const GiftTag({required this.unit, super.key});
+
+  final double unit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Transform.rotate(
+      angle: 0.14,
+      child: BloodOverlay(
+        painter: BloodPainter(
+          band: 1.2 * unit,
+          cornerRadius: 1.5 * unit,
+          drips: <BloodDrip>[
+            BloodDrip(0.2, 2.6 * unit, 1.4 * unit),
+            BloodDrip(0.72, 3.2 * unit, 1.6 * unit),
+          ],
+          // Dripped off the label onto the slot below.
+          drops: <BloodDrop>[
+            BloodDrop(0.3, 1.3, 0.9 * unit),
+            BloodDrop(0.78, 1.5, 1.1 * unit),
+          ],
+          color: BloodColors.bright,
+        ),
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: 4 * unit,
+            vertical: 1.5 * unit,
+          ),
+          decoration: BoxDecoration(
+            color: const Color(0xffe8dccb),
+            border: Border.all(color: BloodColors.fresh, width: 1.2 * unit),
+            borderRadius: BorderRadius.circular(1.5 * unit),
+            boxShadow: <BoxShadow>[
+              BoxShadow(color: const Color(0x99000000), blurRadius: 2 * unit),
+            ],
+          ),
+          child: Text(
+            'REGALO',
+            style: TextStyle(
+              color: BloodColors.fresh,
+              fontFamily: 'monospace',
+              fontSize: 7 * unit,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.2 * unit,
+              height: 1.1,
+              decoration: TextDecoration.none,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
