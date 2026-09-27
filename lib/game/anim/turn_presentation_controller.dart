@@ -26,34 +26,39 @@ final class TurnPresentationController {
   final TurnScheduler scheduler;
   final double turnDuration;
   final int maximumBufferedActions;
-  final Queue<PlayerAction> _buffer = Queue<PlayerAction>();
+  final Queue<(PlayerAction, double)> _buffer = Queue<(PlayerAction, double)>();
   final Map<String, MovementTrack> _movements = <String, MovementTrack>{};
   List<WorldEvent> _lastEvents = const <WorldEvent>[];
   double _elapsed = 0;
   bool _isAnimating = false;
   int _turnCount = 0;
 
+  /// How long the turn animating now lasts.
+  late double _duration = turnDuration;
+
   bool get isAnimating => _isAnimating;
   int get bufferedActionCount => _buffer.length;
   int get turnCount => _turnCount;
-  double get progress =>
-      _isAnimating ? (_elapsed / turnDuration).clamp(0, 1) : 1;
+  double get progress => _isAnimating ? (_elapsed / _duration).clamp(0, 1) : 1;
   List<WorldEvent> get lastEvents => List<WorldEvent>.unmodifiable(_lastEvents);
 
-  void submit(PlayerAction action) {
+  /// Plays [action] now, or after the turns queued before it, over
+  /// [duration] seconds ([turnDuration] if not given).
+  void submit(PlayerAction action, {double? duration}) {
+    final turn = (action, duration ?? turnDuration);
     if (_isAnimating) {
       if (_buffer.length < maximumBufferedActions) {
-        _buffer.addLast(action);
+        _buffer.addLast(turn);
       }
       return;
     }
-    _start(action);
+    _start(turn);
   }
 
   void update(double dt) {
     var remaining = dt;
     while (_isAnimating && remaining > 0) {
-      final untilComplete = turnDuration - _elapsed;
+      final untilComplete = _duration - _elapsed;
       if (remaining < untilComplete) {
         _elapsed += remaining;
         return;
@@ -86,7 +91,9 @@ final class TurnPresentationController {
 
   void clearBuffer() => _buffer.clear();
 
-  void _start(PlayerAction action) {
+  void _start((PlayerAction, double) turn) {
+    final (action, duration) = turn;
+    _duration = duration;
     _lastEvents = scheduler.advance(world, action);
     _turnCount += 1;
     _movements
