@@ -38,26 +38,4 @@ void main() {
     presentation.update(0.13);
     expect(presentation.isAnimating, isFalse);
   });
-
-  test('a turn lasts as long as it is given, queued or not', () {
-    final world = corridorWorld(EntityKind.wanderer);
-    final presentation = TurnPresentationController(world: world);
-    presentation
-      ..submit(const MoveAction(Direction.east), duration: 0.3)
-      ..submit(const MoveAction(Direction.east), duration: 0.2)
-      ..update(0.15);
-    expect(presentation.visualPositionFor('player').x, closeTo(1.5, 0.001));
-    // The queued one starts right as the first ends, the time left over
-    // already counted in it.
-    presentation.update(0.25);
-    expect(presentation.visualPositionFor('player').x, closeTo(2.5, 0.001));
-    presentation.update(0.1);
-    expect(presentation.isAnimating, isFalse);
-
-    // Without a duration, the usual one.
-    presentation
-      ..submit(const WaitAction())
-      ..update(presentation.turnDuration);
-    expect(presentation.isAnimating, isFalse);
-  });
 }

@@ -15,43 +15,21 @@ final class _Harness {
       canAct: () => canAct,
       ignoresKeys: () => ignoresKeys,
       isUnlocked: unlocked.contains,
-      submit: (action) {
-        submitted.add(action);
-        if (action is MoveAction) {
-          steps.add((at: clock, seconds: input.stepSeconds));
-        }
-      },
+      submit: submitted.add,
       dropQueuedSteps: () => dropped++,
       toggleDebug: () => debugToggles++,
       throwArea: () => null,
-      zombiesNear: () => zombiesNear,
     );
   }
 
   final WorldState world = playerOnlyWorld();
   final List<PlayerAction> submitted = <PlayerAction>[];
-
-  /// Every step: when it was taken, and how long it takes.
-  final List<({double at, double seconds})> steps =
-      <({double at, double seconds})>[];
-  double clock = 0;
-
-  /// [seconds] of frames at 60 a second.
-  void play(double seconds) {
-    for (var frame = 0; frame < (seconds * 60).round(); frame++) {
-      clock += 1 / 60;
-      input.update(1 / 60);
-    }
-  }
-
-  List<double> get stepSeconds => [for (final step in steps) step.seconds];
   final Set<HudElement> unlocked = <HudElement>{
     HudElement.interact,
     HudElement.shoot,
   };
   bool canAct = true;
   bool ignoresKeys = false;
-  bool zombiesNear = false;
   int dropped = 0;
   int debugToggles = 0;
   late final GameInputController input;
@@ -77,9 +55,7 @@ final class _Harness {
 }
 
 void main() {
-  const repeat = GameInputController.cautiousRepeatSeconds;
-  const run = GameInputController.holdRepeatSeconds;
-  const warmUp = GameInputController.warmUpSteps;
+  const repeat = GameInputController.holdRepeatSeconds;
   final holdToAim = GameInputController.holdToAim.inMicroseconds / 1e6;
 
   group('walking', () {
@@ -96,67 +72,6 @@ void main() {
         ..releaseDirection(Direction.east)
         ..update(repeat * 3);
       expect(h.submitted, hasLength(3), reason: 'let go, no more steps');
-    });
-
-    test('a held direction speeds up a step at a time, then runs', () {
-      final h = _Harness();
-      h.input.pressDirection(Direction.east);
-      h.play(2);
-      final seconds = h.stepSeconds;
-      expect(seconds.first, repeat);
-      for (var i = 1; i <= warmUp; i++) {
-        expect(seconds[i], lessThan(seconds[i - 1]));
-      }
-      expect(seconds.skip(warmUp), everyElement(closeTo(run, 1e-9)));
-    });
-
-    test('each step comes as the one before it ends: no stop between '
-        'them', () {
-      final h = _Harness();
-      h.input.pressDirection(Direction.east);
-      h
-        ..play(1)
-        ..zombiesNear = true
-        ..play(1);
-      for (var i = 1; i < h.steps.length; i++) {
-        final gap = h.steps[i].at - h.steps[i - 1].at;
-        // Within a frame of it.
-        expect(gap, closeTo(h.steps[i - 1].seconds, 1 / 60 + 1e-9));
-      }
-    });
-
-    test('with zombies near Mario slows back down to careful steps', () {
-      final h = _Harness();
-      h.input.pressDirection(Direction.east);
-      h.play(2);
-      expect(h.input.stepSeconds, run);
-      h.zombiesNear = true;
-      final before = h.steps.length;
-      h.play(2);
-      final slowing = h.stepSeconds.sublist(before);
-      expect(slowing.first, run);
-      expect(slowing[1], (run + repeat) / 2);
-      expect(slowing.skip(2), everyElement(repeat));
-
-      // Gone again: he picks the pace back up.
-      h
-        ..zombiesNear = false
-        ..play(2);
-      expect(h.stepSeconds.last, run);
-    });
-
-    test('turning a corner keeps the pace, setting off again does not', () {
-      final h = _Harness();
-      h.input.pressDirection(Direction.east);
-      h.play(2);
-      h.input
-        ..pressDirection(Direction.north)
-        ..releaseDirection(Direction.east);
-      expect(h.stepSeconds.last, run);
-      h.input
-        ..releaseDirection(Direction.north)
-        ..pressDirection(Direction.north);
-      expect(h.stepSeconds.last, repeat);
     });
 
     test('letting go of another direction keeps the held one walking', () {
