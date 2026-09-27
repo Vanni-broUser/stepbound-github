@@ -354,8 +354,18 @@ abstract interface class SaveRepository {
   /// the campfire instead.
   Future<void> clearSuspended(int slot);
 
-  /// Empties [slot], backup and game put down included.
+  /// Empties [slot], backup and game put down included. Its gifts stay:
+  /// see [loadGifts].
   Future<void> clear(int slot);
+
+  /// The skins given to [slot] by gift links: the game saved there has
+  /// them, or the one started there next if it was empty. A game started
+  /// over one that is saved there drops them (see `GameSession.startNew`).
+  Future<Set<PlayerOutfit>> loadGifts(int slot);
+
+  /// Replaces the gifts of [slot]. Throws a [SaveWriteException] when it
+  /// cannot.
+  Future<void> saveGifts(int slot, Set<PlayerOutfit> gifts);
 
   /// Story sequences watched on [slot], even when the attempt that showed
   /// them ended before a campfire or the train saved the game.
@@ -379,6 +389,7 @@ abstract base class StoredSaveRepository implements SaveRepository {
   static String backupKey(int slot) => 'stepbound.save.$slot.previous';
   static String suspendedKey(int slot) => 'stepbound.save.$slot.suspended';
   static String storyHistoryKey(int slot) => 'stepbound.story-history.$slot';
+  static String giftsKey(int slot) => 'stepbound.gifts.$slot';
 
   @protected
   Future<String?> readValue(String key);
@@ -507,6 +518,40 @@ abstract base class StoredSaveRepository implements SaveRepository {
       );
     } on Object catch (error) {
       debugPrint('story history: could not write slot $slot ($error)');
+    }
+  }
+
+  @override
+  Future<Set<PlayerOutfit>> loadGifts(int slot) async {
+    try {
+      final encoded = await readValue(giftsKey(slot));
+      if (encoded == null) {
+        return <PlayerOutfit>{};
+      }
+      final names = (jsonDecode(encoded) as List<Object?>).cast<String>();
+      return <PlayerOutfit>{
+        for (final outfit in PlayerOutfit.values)
+          if (names.contains(outfit.name)) outfit,
+      };
+    } on Object catch (error) {
+      debugPrint('gifts: slot $slot is unreadable ($error)');
+      return <PlayerOutfit>{};
+    }
+  }
+
+  @override
+  Future<void> saveGifts(int slot, Set<PlayerOutfit> gifts) async {
+    try {
+      if (gifts.isEmpty) {
+        await removeValue(giftsKey(slot));
+      } else {
+        await writeValue(
+          giftsKey(slot),
+          jsonEncode(<String>[for (final outfit in gifts) outfit.name]),
+        );
+      }
+    } on Object catch (error) {
+      throw SaveWriteException(slot, error);
     }
   }
 

@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/progress.dart';
-import 'package:stepbound/save/outfit_unlocks.dart';
 import 'package:stepbound/save/save_game.dart';
 import 'package:stepbound/save/vanni_deploy.dart';
 
@@ -28,11 +27,15 @@ void main() {
     );
   });
 
-  test('install exposes every Halloween skin in the test build', () async {
-    final outfits = MemoryOutfitUnlockRepository();
+  test('install gives every Halloween skin to the test slot', () async {
+    final saves = MemorySaveRepository();
 
-    await installVanniDeployOutfits(outfits);
+    await installVanniDeploySave(saves);
+    await installVanniDeployGifts(saves);
 
-    expect(await outfits.load(), unorderedEquals(halloweenOutfits));
+    expect(
+      await saves.loadGifts(vanniDeploySlot),
+      unorderedEquals(halloweenOutfits),
+    );
   });
 }

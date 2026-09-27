@@ -11,8 +11,8 @@ import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/game/render/pixel_palette.dart';
 import 'package:stepbound/game/stepbound_game.dart';
-import 'package:stepbound/save/outfit_unlocks.dart';
 import 'package:stepbound/save/save_game.dart';
+import 'package:stepbound/save/skin_links.dart';
 import 'package:stepbound/ui/audio_scope.dart';
 import 'package:stepbound/ui/black_fade.dart';
 import 'package:stepbound/ui/blood_decor.dart';
@@ -49,21 +49,21 @@ enum _Phase {
 final class StepboundApp extends StatefulWidget {
   const StepboundApp({
     this.saves,
-    this.outfitUnlocks,
     this.skinLinks = const Stream<Uri>.empty(),
     this.audio,
+    this.clock = DateTime.now,
     super.key,
   });
 
   /// Where the four save slots live; the device storage when null.
   final SaveRepository? saves;
 
-  /// Device-wide outfits obtained through campaign links. In-memory when
-  /// omitted; production supplies the preferences-backed repository.
-  final OutfitUnlockRepository? outfitUnlocks;
-
-  /// Cold- and warm-start links delivered by the platform.
+  /// Gift links (see `lib/save/skin_links.dart`) the app was opened with,
+  /// cold or warm, as the platform delivers them.
   final Stream<Uri> skinLinks;
+
+  /// What time it is, to tell whether a gift link has expired.
+  final DateTime Function() clock;
 
   /// The sound of the game; silent when null.
   final GameAudio? audio;
@@ -75,8 +75,6 @@ final class StepboundApp extends StatefulWidget {
 final class _StepboundAppState extends State<StepboundApp> {
   late final SaveRepository _saves =
       widget.saves ?? PreferencesSaveRepository();
-  late final OutfitUnlockRepository _outfitUnlocks =
-      widget.outfitUnlocks ?? MemoryOutfitUnlockRepository();
   late final GameAudio _audio = widget.audio ?? SilentAudio();
 
   /// The game being played, in its slot: what is saved and restored, and
@@ -86,17 +84,20 @@ final class _StepboundAppState extends State<StepboundApp> {
     audio: _audio,
     onLevelCompleted: _completeLevel,
     onTravelMapRequested: _travelFromTrain,
-    linkedOutfits: _linkedOutfits,
   );
 
   /// Silences the game whenever it is not the app in front.
   late final AppLifecycleListener _lifecycle;
-  late final Future<void> _outfitUnlocksReady;
   StreamSubscription<Uri>? _skinLinkSubscription;
+
+  /// One link at a time: two gifts written at once would each keep only
+  /// their own skin.
   Future<void> _skinLinkHandling = Future<void>.value();
-  final Set<PlayerOutfit> _linkedOutfits = <PlayerOutfit>{};
-  PlayerOutfit? _unlockNotice;
-  int _unlockNoticeRevision = 0;
+
+  /// What the gift link just opened did, told on the main menu until a
+  /// game starts.
+  LinkNotice? _linkNotice;
+  int _linkNoticeRevision = 0;
   StepboundGame? _game;
   _Phase _phase = _Phase.menu;
   GameSnapshot? _completedSnapshot;
@@ -108,7 +109,6 @@ final class _StepboundAppState extends State<StepboundApp> {
   @override
   void initState() {
     super.initState();
-    _outfitUnlocksReady = _loadOutfitUnlocks();
     _skinLinkSubscription = widget.skinLinks.listen((uri) {
       _skinLinkHandling = _skinLinkHandling.then((_) => _handleSkinLink(uri));
     }, onError: (Object error) => debugPrint('skin links: $error'));
@@ -121,28 +121,36 @@ final class _StepboundAppState extends State<StepboundApp> {
     _audio.playMusic(Music.menu);
   }
 
-  Future<void> _loadOutfitUnlocks() async {
-    _linkedOutfits.addAll(await _outfitUnlocks.load());
-  }
-
+  /// A gift link gives its skin to all four slots, whatever they hold,
+  /// and the game being played gets it at once; the menu then says so.
+  /// An expired or broken one gives nothing, and the menu says that.
   Future<void> _handleSkinLink(Uri uri) async {
-    final outfit = outfitFromUnlockLink(uri);
-    if (outfit == null) {
+    if (!isSkinLink(uri)) {
       return;
     }
-    await _outfitUnlocksReady;
-    try {
-      await _outfitUnlocks.unlock(outfit);
-    } on Object catch (error) {
-      // It remains available for this run even if device storage is full.
-      debugPrint('outfit unlocks: could not store ${outfit.name} ($error)');
+    final link = readSkinLink(uri);
+    final LinkNotice notice;
+    if (link == null || link.expiredAt(widget.clock())) {
+      notice = const InvalidLinkNotice();
+    } else {
+      final outfit = link.outfit;
+      for (var slot = 1; slot <= SaveRepository.slotCount; slot++) {
+        try {
+          await _saves.saveGifts(slot, {
+            ...await _saves.loadGifts(slot),
+            outfit,
+          });
+        } on Object catch (error) {
+          debugPrint('gifts: could not give ${outfit.name} to $slot ($error)');
+        }
+      }
+      _session.gifts.add(outfit);
+      _game?.progress.unlockOutfit(outfit);
+      notice = SkinGiftNotice(outfit);
     }
-    _linkedOutfits.add(outfit);
-    if (!mounted) {
-      return;
+    if (mounted) {
+      _backToMenu(linkNotice: notice);
     }
-    _game?.progress.unlockOutfit(outfit);
-    _backToMenu(unlockedOutfit: outfit);
   }
 
   void _onLifecycle(AppLifecycleState state) {
@@ -202,7 +210,6 @@ final class _StepboundAppState extends State<StepboundApp> {
   }
 
   Future<void> _newGame(int slot) async {
-    await _outfitUnlocksReady;
     await _session.startNew(slot);
     if (!mounted) {
       return;
@@ -210,20 +217,19 @@ final class _StepboundAppState extends State<StepboundApp> {
     _playStoryAudio();
     setState(() {
       _completedSnapshot = null;
-      _unlockNotice = null;
+      _linkNotice = null;
       _phase = _Phase.story;
     });
   }
 
   Future<void> _loadGame(SaveGame save) async {
-    await _outfitUnlocksReady;
     final game = await _session.load(save);
     if (!mounted) {
       return;
     }
     _loadingFadesIn = false;
     setState(() {
-      _unlockNotice = null;
+      _linkNotice = null;
       _game = game;
       _phase = _Phase.playing;
     });
@@ -477,7 +483,7 @@ final class _StepboundAppState extends State<StepboundApp> {
   /// menu is put down like one sent to the background: the slot offers it
   /// again as it was. The pictures of its places, kept for a game
   /// started over at once, go: the menu can stay open a long while.
-  void _backToMenu({PlayerOutfit? unlockedOutfit}) {
+  void _backToMenu({LinkNotice? linkNotice}) {
     unawaited(_suspend());
     _audio
       ..silenceAmbience()
@@ -486,9 +492,9 @@ final class _StepboundAppState extends State<StepboundApp> {
     setState(() {
       _game = null;
       _completedSnapshot = null;
-      _unlockNotice = unlockedOutfit;
-      if (unlockedOutfit != null) {
-        _unlockNoticeRevision += 1;
+      _linkNotice = linkNotice;
+      if (linkNotice != null) {
+        _linkNoticeRevision += 1;
       }
       _phase = _Phase.menu;
     });
@@ -541,9 +547,9 @@ final class _StepboundAppState extends State<StepboundApp> {
               height: IntegerResolutionViewport.virtualHeight * scale,
               child: switch (_phase) {
                 _Phase.menu => MainMenu(
-                  key: ValueKey<int>(_unlockNoticeRevision),
+                  key: ValueKey<int>(_linkNoticeRevision),
                   saves: _saves,
-                  unlockedOutfit: _unlockNotice,
+                  linkNotice: _linkNotice,
                   onNewGame: (slot) => unawaited(_newGame(slot)),
                   onLoad: (save) => unawaited(_loadGame(save)),
                 ),

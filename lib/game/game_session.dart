@@ -21,7 +21,6 @@ final class GameSession {
     required this.audio,
     required this.onLevelCompleted,
     required this.onTravelMapRequested,
-    this.linkedOutfits = const <PlayerOutfit>{},
   });
 
   /// What a save made by starting the level over is called in the slots.
@@ -39,10 +38,6 @@ final class GameSession {
   /// Leaves gameplay directly for the destination map from the train.
   final void Function(GameSnapshot snapshot) onTravelMapRequested;
 
-  /// Device-wide outfits obtained through campaign links. The app keeps
-  /// this set live so links received while playing also affect later games.
-  final Set<PlayerOutfit> linkedOutfits;
-
   /// The slot this game saves into at campfires and on the train.
   int slot = 1;
 
@@ -58,6 +53,10 @@ final class GameSession {
   /// The story scenes watched on this slot, campfire or not: they can be
   /// skipped from then on.
   final Set<StoryMemory> storyHistory = <StoryMemory>{};
+
+  /// The skins given to this slot by gift links (see
+  /// [SaveRepository.loadGifts]): every game made here can wear them.
+  final Set<PlayerOutfit> gifts = <PlayerOutfit>{};
   Future<void> _storyHistoryWrite = Future<void>.value();
 
   /// What this game had been played for when it was loaded or started, and
@@ -94,9 +93,21 @@ final class GameSession {
       ? ResumePoint.train
       : ResumePoint.campfire;
 
-  /// A new game in [newSlot], whatever it held.
+  /// A new game in [newSlot], whatever it held. The slot's gifts were
+  /// for the game saved there: they go with it. An empty slot's are for
+  /// the game started in it, this one.
   Future<void> startNew(int newSlot) async {
     await _storyHistoryWrite;
+    gifts.clear();
+    if (await saves.read(newSlot) is EmptySave) {
+      gifts.addAll(await saves.loadGifts(newSlot));
+    } else {
+      try {
+        await saves.saveGifts(newSlot, const <PlayerOutfit>{});
+      } on Object catch (error) {
+        debugPrint('save: could not drop the gifts of slot $newSlot ($error)');
+      }
+    }
     try {
       await saves.clear(newSlot);
     } on Object catch (error) {
@@ -128,6 +139,9 @@ final class GameSession {
   Future<StepboundGame> load(SaveGame save) async {
     final history = await saves.loadStoryHistory(save.slot);
     final checkpoint = await saves.load(save.slot) ?? save;
+    gifts
+      ..clear()
+      ..addAll(await saves.loadGifts(save.slot));
     final progress = Progress.fromJson(save.progress);
     storyHistory
       ..clear()
@@ -364,7 +378,7 @@ final class GameSession {
     Map<String, Object?>? storyState,
     Set<HudElement> unlocked = const <HudElement>{},
   }) {
-    progress.unlockedOutfits.addAll(linkedOutfits);
+    progress.unlockedOutfits.addAll(gifts);
     late final StepboundGame game;
     return game = StepboundGame(
       world: world,
