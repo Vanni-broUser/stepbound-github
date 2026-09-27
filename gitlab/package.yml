@@ -61,7 +61,7 @@
   # and load times over the game (lib/ui/diagnostics_overlay.dart).
   script:
     - status=0
-    - flutter build "$ANDROID_PACKAGE" --release --build-number="$CI_PIPELINE_IID" --dart-define=STEPBOUND_DIAGNOSTICS="${STEPBOUND_DIAGNOSTICS:-false}" || status=$?
+    - flutter build "$ANDROID_PACKAGE" --release --build-number="$CI_PIPELINE_IID" --dart-define=STEPBOUND_DIAGNOSTICS="${STEPBOUND_DIAGNOSTICS:-false}" --dart-define=VANNI_DEPLOY="${VANNI_DEPLOY:-0}" || status=$?
     - sh gitlab/android_sdk_cache.sh save
     - exit "$status"
   after_script:
@@ -121,7 +121,7 @@ build_ios_signed:
       allow_failure: true
     - when: never
   script:
-    - flutter build ipa --release --build-number="$CI_PIPELINE_IID"
+    - flutter build ipa --release --build-number="$CI_PIPELINE_IID" --dart-define=VANNI_DEPLOY="${VANNI_DEPLOY:-0}"
   artifacts:
     name: "stepbound-ipa-$CI_COMMIT_SHORT_SHA"
     paths:

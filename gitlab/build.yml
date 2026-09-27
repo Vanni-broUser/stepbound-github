@@ -5,7 +5,7 @@ build_android_debug:
     - when: manual
       allow_failure: true
   script:
-    - flutter build apk --debug --build-number="$CI_PIPELINE_IID"
+    - flutter build apk --debug --build-number="$CI_PIPELINE_IID" --dart-define=VANNI_DEPLOY="${VANNI_DEPLOY:-0}"
   artifacts:
     name: "stepbound-debug-apk-$CI_COMMIT_SHORT_SHA"
     paths:
