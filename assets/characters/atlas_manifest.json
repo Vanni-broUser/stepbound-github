@@ -62,6 +62,21 @@
       ]
     },
     {
+      "file": "mario/sprites/base_throwable.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "throw_0",
+        "throw_1",
+        "throw_2"
+      ],
+      "actions": [
+        "aim_throwable",
+        "throw"
+      ]
+    },
+    {
       "file": "mario/sprites/cultist_gun.png",
       "columns": [
         "aim_0",
@@ -88,6 +103,21 @@
       ],
       "actions": [
         "pickup"
+      ]
+    },
+    {
+      "file": "mario/sprites/cultist_throwable.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "throw_0",
+        "throw_1",
+        "throw_2"
+      ],
+      "actions": [
+        "aim_throwable",
+        "throw"
       ]
     },
     {
