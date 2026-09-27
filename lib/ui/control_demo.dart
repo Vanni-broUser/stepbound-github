@@ -21,6 +21,10 @@ final class ControlDemoView extends StatefulWidget {
   /// down to fit: big enough for the sticks at their real size.
   static const Size screen = Size(360, 203);
 
+  /// Whether the panel of [demo] stands on the right of the view, over the
+  /// half its taps are about, rather than on the left.
+  static bool standsRight(ControlDemo demo) => demo == ControlDemo.interact;
+
   @override
   State<ControlDemoView> createState() => _ControlDemoViewState();
 }
@@ -140,6 +144,7 @@ abstract base class _Script {
     ControlDemo.shoot => const _ShootScript(),
     ControlDemo.cancelShot => const _CancelShotScript(),
     ControlDemo.move => const _MoveScript(),
+    ControlDemo.interact => const _InteractScript(),
   };
 
   double get cycle;
@@ -323,6 +328,61 @@ final class _MoveScript extends _Script {
   /// Walking leaves no blood on the glass.
   @override
   List<_Beat> beatsOf(int round) => const <_Beat>[];
+}
+
+/// A tap somewhere on the right half every round, each in another spot,
+/// each leaving its splat.
+final class _InteractScript extends _Script {
+  const _InteractScript();
+
+  static const double _approach = 0.15;
+  static const double _lift = 0.3;
+  static const double _gone = 0.5;
+
+  /// Where the taps land, as shares of the right half.
+  static const List<Offset> _spots = <Offset>[
+    Offset(0.35, 0.3),
+    Offset(0.7, 0.62),
+    Offset(0.28, 0.72),
+    Offset(0.62, 0.25),
+    Offset(0.5, 0.5),
+    Offset(0.78, 0.4),
+  ];
+
+  @override
+  double get cycle => 0.75;
+
+  @override
+  bool get rightHalf => true;
+
+  Offset _spot(int round) {
+    final spot = _spots[round % _spots.length];
+    final half = ControlDemoView.screen.width / 2;
+    return Offset(
+      half + spot.dx * half,
+      spot.dy * ControlDemoView.screen.height,
+    );
+  }
+
+  @override
+  _Pose poseAt(int round, double t) {
+    final at = _spot(round);
+    if (t < _approach) {
+      return _Pose(finger: at, fingerAlpha: t / _approach);
+    }
+    if (t < _lift) {
+      return _Pose(finger: at, pressed: true);
+    }
+    if (t < _gone) {
+      return _Pose(finger: at, fingerAlpha: 1 - (t - _lift) / (_gone - _lift));
+    }
+    return _Pose.none;
+  }
+
+  @override
+  List<_Beat> beatsOf(int round) => <_Beat>[
+    _Beat(_lift, SplatKind.tap, _spot(round)),
+  ];
 }
 
 /// The splats of the rounds still on screen, made once each.

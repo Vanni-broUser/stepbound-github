@@ -128,7 +128,7 @@ final class BackpacksScript extends TutorialScript {
       TutorialPrompt(
         const <TutorialLine>[
           TutorialLine(backpackLesson),
-          TutorialLine(interactLesson),
+          TutorialLine(interactLesson, demo: ControlDemo.interact),
         ],
         delay: TutorialDirector.reactionDelay,
         onDismissed: () => host.unlock(HudElement.interact),

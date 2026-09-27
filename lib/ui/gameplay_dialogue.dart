@@ -172,7 +172,8 @@ final class _GameplayDialogueState extends State<GameplayDialogue> {
             return Stack(
               children: <Widget>[
                 Positioned(
-                  left: 16,
+                  left: ControlDemoView.standsRight(demo) ? null : 16,
+                  right: ControlDemoView.standsRight(demo) ? 16 : null,
                   top: constraints.maxHeight * GameplayDialogue.demoTop,
                   height: height,
                   // Keyed by the gesture: lines that show the same one keep

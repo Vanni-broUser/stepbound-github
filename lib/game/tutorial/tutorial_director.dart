@@ -87,6 +87,9 @@ enum ControlDemo {
   /// A thumb on the left half drags the stick one way and holds it there
   /// to walk: up, right, down and left in turn.
   move,
+
+  /// Quick taps here and there on the right half, each leaving its splat.
+  interact,
 }
 
 /// One full-screen picture of a story scene played during the game: the

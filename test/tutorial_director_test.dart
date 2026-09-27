@@ -793,6 +793,11 @@ void main() {
       BackpacksScript.backpackLesson,
       BackpacksScript.interactLesson,
     ]);
+    expect(
+      host.shown.last.last.demo,
+      ControlDemo.interact,
+      reason: 'taps are played beside the line about them',
+    );
     expect(host.unlocked, isEmpty, reason: 'unlocked when the text closes');
     host.dismiss();
     expect(host.unlocked, <HudElement>{HudElement.interact});

@@ -32,7 +32,11 @@ final class NorthDistrictScript extends TutorialScript {
       TutorialPrompt(
         <TutorialLine>[
           const TutorialLine(campLesson),
-          if (needsInteract) const TutorialLine(BackpacksScript.interactLesson),
+          if (needsInteract)
+            const TutorialLine(
+              BackpacksScript.interactLesson,
+              demo: ControlDemo.interact,
+            ),
         ],
         delay: TutorialDirector.reactionDelay,
         onDismissed: () => host.unlock(HudElement.interact),
