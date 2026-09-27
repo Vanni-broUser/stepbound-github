@@ -346,7 +346,7 @@ final class InvalidLinkNotice extends LinkNotice {
   const InvalidLinkNotice();
 }
 
-/// A [LinkNotice] over the dimmed menu until put away: the skin given,
+/// A [LinkNotice] over the menu until put away: the skin given,
 /// with Mario wearing it, or the link that gave nothing.
 final class _LinkNoticePanel extends StatelessWidget {
   const _LinkNoticePanel({
@@ -387,10 +387,12 @@ final class _LinkNoticePanel extends StatelessWidget {
       key: ValueKey<String>(
         notice is SkinGiftNotice ? 'skin-gift-notice' : 'skin-link-invalid',
       ),
-      color: const Color(0xc4000000),
+      // Clear, but it still keeps taps off the menu underneath.
+      color: const Color(0x00000000),
       child: Center(
         child: MenuPanel(
           unit: unit,
+          opaque: true,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
@@ -677,6 +679,7 @@ final class MenuPanel extends StatelessWidget {
     required this.unit,
     required this.child,
     this.width,
+    this.opaque = false,
     super.key,
   });
 
@@ -686,13 +689,16 @@ final class MenuPanel extends StatelessWidget {
   /// In virtual pixels; as wide as it can be when null.
   final double? width;
 
+  /// Whether nothing behind shows through it.
+  final bool opaque;
+
   @override
   Widget build(BuildContext context) {
     return Container(
       width: width == null ? null : width! * unit,
       padding: EdgeInsets.all(6 * unit),
       decoration: BoxDecoration(
-        color: const Color(0xe6140c0c),
+        color: Color(opaque ? 0xff140c0c : 0xe6140c0c),
         border: Border.all(color: BloodColors.fresh, width: 1.5 * unit),
         borderRadius: BorderRadius.circular(4 * unit),
       ),
