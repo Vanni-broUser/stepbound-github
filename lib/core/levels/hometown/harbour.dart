@@ -19,21 +19,25 @@
 /// The road ends at the shipyard: its wall `%` closes it head on and the
 /// way in is round the side, off the promenade. Inside, a hull `*` sits up
 /// on the stocks under the gantry crane `i`, and the slipway `l` runs down
-/// into the water. In the yard, by the hull, the workmen left a campfire
-/// `S`: rest there to save.
+/// into the water. In the yard, by the hull, the workmen left a backpack
+/// `6` with two rounds.
 ///
 /// The Duomo `W` stands well back from the seafront road, hidden behind a
 /// row of palazzi: an alley two cells deep climbs off the sidewalk and
 /// opens, past the churchyard gate `x`, into the T of the sagrato `P`, wide
 /// enough for the whole front of the church and its two bell towers. Don
-/// Angelo `s` waits behind the gate, two zombies `t` outside it.
+/// Angelo `s` waits behind the gate, two zombies `t` outside it. A campfire
+/// `S` burns on the sagrato, unreachable until the incense opens the gate.
 ///
 /// To the east a narrow alley climbs north off the seafront road, then
 /// turns east to the Bar Arcobaleno, whose door `h` leads inside. The road
 /// carries on east as far as the bar, then turns south along the sea: the
 /// promenade and its parapet turn the corner with it, and two wooden piers
 /// `l` reach west over the water. A rowboat `o` is moored at the end of the
-/// second one, a backpack `5` with four rounds on board.
+/// second one, a backpack `5` with two rounds on board. Another campfire
+/// `S` waits at the dead end of the harbour road in the south-east corner.
+/// A second backpack `7`, also with two rounds, lies at the northern end of
+/// the rightmost blind alley in the old town.
 // harbour-rows-start
 const List<String> harbourRows = <String>[
   'BBBBBBBBBBBBBBBBBBBBBBHH#######BBBBBBBBBHHBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
@@ -42,7 +46,7 @@ const List<String> harbourRows = <String>[
   'BBBBBBBBBBBBBBBBBBBBBBPP#######BBBBBBBBBPPBBBBBBBBBBBBBBBBBBBBBBBBBWWWWWWWWWWWWWWWBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBBBBBBBBBBBPP#######HHHHHHHHHPPBBBBBBBBBBBBBBBBBBBHHBBBBWWWWWWWWWWWWWWWBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBBBBBBBBBBBPP###(###HHHHHHHHHPPBBBBBBBBBBBBBBBBBBBHHBBBBWWWWWWWWWWWWWWWBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  'BBBBBBBBBBBBBBBBBBBBBBPPPPPPPPPPPPPPPPPPPPBBBBBBBBBBBBBBBBBBBPPBBBBWWWWWWWWWWWWWWWBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBBBBBBBBBBBPPPPPPPPPPPPPPPPPPPPBBBBBBBBBBBBBBBBBBB7PBBBBWWWWWWWWWWWWWWWBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBBBBBBBBBBBPPPPPPPPPPPPPP:PPPPPBBBBBBBBBBBBBBBBBBBPPBBBBWWWWWWWWWWWWWWWBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBHHHHHHHHHHHHHHHHHHHHHBBBBBBBBB',
   'BBBBBBBBBBBBBBBBBBBBBBPPP:PPPPPPPBBBBBBBPwHHHHHHHHHHHHHHHHHHHPPBBBBWWWWWWWWWWWWWWWBBBBB=:.|..=BBBBBBBBBBBBBBBBBBBBHHHHHHHHHHHHHHHHHHHHHBBBBBBBBB',
   'BBBBBBBBBBBBBBBBBBBBBBPPBBBBBBBPPHHHHHHHPPHHHHHHHHHHHHHHHHHHHPPBBBBWWWWWWWWWWWWWWWBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBHHHHHHHHHHHHHHHHHHHHHBBBBBBBBB',
@@ -50,7 +54,7 @@ const List<String> harbourRows = <String>[
   '%%%%%%%%%%%%%%%%%%BBBBPPBBBBBBBPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPBBBBWWWWWWWWWWWWWWWBBBBB=..|.v=BBBBBBBBBBBBBBBBBBBBPPPPPPPPPPPhPPPPPPPPPBBBBBBBBB',
   '%%%%%%%%%%%%%%%%%%BBBBPPHHHHHHHPPBBBBBBBPPPP&P!!P&PPPPBBBBBBBBBBBBBWWWWWWWWWWWWWWWBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBPPPPP:PPPPPPPPPPPPwPPBBBBBBBBB',
   '%,,,,,,,,,,,,,iii%BBBBPPHHHHHHHPPHHHHHHHPPPP&:!!P&PPPPBBBBBBBBBBBBBPPPPPPPPPPPPPPPBBBBB=.w|..=BBBBBBBBBBBBBBBBBBBBPPBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  '%,,,,,,,,,,,,,iii%BBBBPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPBBBBBBBBBBBBBPPAPPPPPPPPPAPPBBBBB=..|d.=BBBBBBBBBBBBBBBBBBBBPdBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  '%,,,,,,,,,,,,,iii%BBBBPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPBBBBBBBBBBBBBPPAPPPPSPPPPAPPBBBBB=..|d.=BBBBBBBBBBBBBBBBBBBBPdBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   '%,,,*********,iii%BBBBPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPBBBBBBBBBBBBBPPPPPPPsPPPPPPPHHHHH=..|..=HHHHHHHHHHHHHHHHHHHHPPHHHHHHHHHHHHHHHHHHHHHHHHBBBB',
   '%,,,*********,iii%BBBBPPBBBBBBB:PBBBBBBBPPBBBBBBBBBBPwBBBBBBBBBBBBBBBBBBBxxxBBBBBBHHHHH=..|..=HHHHHHHHHHHHHHHHHHHHPPHHHfHHHHHHHHHHHHHHHHHHHHBBBB',
   '%,,,*********,,,,%HHHHP:HHHHHHHPPHHHHHHHPPHHHHHHHHHHPPHHHHHHHHHHHHHHHHHHHtPtHHHHHHHHHHH=..|..=HHHHHHHHHHHfHHHHHHHHPPHHHHHHHHHHHHHHHHHHHHHfHHBBBB',
@@ -60,7 +64,7 @@ const List<String> harbourRows = <String>[
   '%,,,,,,,,,,,,,:,,%=...........w.............................w.....................:....Z.....Z.............................................=BBBB',
   '%,:,,,,,w,,,,,,,,%=-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.Z.-.-.Z.-d-.-.-.-.-.-.-z-.-.-.-.-.-.-.-.-.-.-.-..c..=BBBB',
   '%,,,,,,,,,,,,,,,,%=........................UU.....................UU...................Z.....Z.........w...................................=BBBB',
-  '%,,,,,,,,:,,,S,,,%=..............................:........................d............Z.....Z....XX....................................|..=BBBB',
+  '%,,,,,,,,:,,,6,,,%=..............................:........................d............Z.....Z....XX....................................|..=BBBB',
   '%,,,,,,,,,,,,,,,,%===================================================================F=====:==================================F=======..|..=BBBB',
   '%,,:,,,,,,,,:,,,,,PPPNPPPPPPPPPPPNPPPPPPPPPPPNPPPPPPPPPPPPPPPPPPPPNPPPPPPPPPNPPPwPPPP:PPPPPPPPPPNPPPPPPPPPNPPPPPPPPPPPPPPPPPNPPPPPPPP=..|..=BBBB',
   '%,,,,,,,,,,,,,,,,,PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPnnPPPPPPPPPPPPPPPPPDPPPPPwPPPPnnPPPPPPPPdPPPPPPPPPPPPPPPnnPPPPP=..|..=BBBB',
@@ -94,7 +98,7 @@ const List<String> harbourRows = <String>[
   '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~RPP=..|..=BBBB',
   '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~RPP=..|..=BBBB',
   '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bb~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~RPP=..|..=BBBB',
-  '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~RPP=..|..=BBBB',
+  '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~RPP=..S..=BBBB',
   '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~BBB=======BBBB',
   '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~BBBBBBBBBBBBBB',
   '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~BBBBBBBBBBBBBB',

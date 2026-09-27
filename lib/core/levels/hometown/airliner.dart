@@ -61,7 +61,8 @@ const List<String> airlinerCabinRows = <String>[
 /// low parapet `^` broken in two places, with chimney stacks `T` and
 /// aerial masts `n` standing about them and slate and gravel `:` thrown
 /// over both by the crash. The tail `#` lies along the top of the map with
-/// the break `D` torn in its side.
+/// the break `D` torn in its side. A backpack `9` with two rounds waits in
+/// the south-east corner of the lower terrace.
 ///
 /// The lower terrace ends, south, at the parapet along the street front.
 /// There the roof of the next block stands just across the gap, two
@@ -83,8 +84,8 @@ const List<String> airlinerCabinRows = <String>[
 /// the tail sits in and `#` the tail itself, all walls; `T`, `n`, `k`,
 /// `^` and `>` obstacles you can see over; `.` the roof deck, `%` the next
 /// roof's, `:` slate and gravel (noisy), `;` the next roof's gravel, `b`
-/// blood, `&` the roof on fire, `Y` a burning zombie, `D` the tail break,
-/// `S` the next roof's stairs down.
+/// blood, `&` the roof on fire, `Y` a burning zombie, `9` the backpack,
+/// `D` the tail break, `S` the next roof's stairs down.
 // airliner-roof-rows-start
 const List<String> airlinerRoofRows = <String>[
   'xxxxxxxxxxx########xxxxxxxxxxx',
@@ -100,7 +101,7 @@ const List<String> airlinerRoofRows = <String>[
   'xW...T.....b.........:..T...Wx',
   'xW......:........n..........Wx',
   'xW..:..........:........:...Wx',
-  'xW.......................:..Wx',
+  'xW.......................:.9Wx',
   'xW^^^^^^^^^^^^^>^^^^^^^^^^^^Wx',
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',

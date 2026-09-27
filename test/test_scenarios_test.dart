@@ -67,14 +67,16 @@ void main() {
 
   test('the fire is the one nearest on foot, not across the grid', () {
     String savedAt(String name) => _named(name).save(_slot).place;
-    String fireIn(PlaceId id) => campfireNames.entries
+    String onlyFireIn(PlaceId id) => campfireNames.entries
         .singleWhere((fire) => placeAt(fire.key)?.id == id)
         .value;
-    expect(savedAt('Porto, Don Angelo al cancello'), fireIn(PlaceId.harbour));
-    expect(savedAt("Duomo, con l'anello"), fireIn(PlaceId.harbour));
+    expect(savedAt('Porto, Don Angelo al cancello'), 'Fine del porto');
+    expect(savedAt("Porto, in cerca dell'incenso"), 'Fine del porto');
+    expect(savedAt("Porto, ritorno con l'incenso"), 'Fine del porto');
+    expect(savedAt("Duomo, con l'anello"), 'Sagrato del Duomo');
     expect(
       savedAt('Luigi liberato, verso la stazione'),
-      fireIn(PlaceId.mallNorthStreet),
+      onlyFireIn(PlaceId.mallNorthStreet),
     );
     expect(savedAt('Treno, dopo la fine del livello'), trainPlaceName);
   });

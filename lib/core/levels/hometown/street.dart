@@ -48,8 +48,10 @@
 /// - `@` player, `w` wanderer.
 /// - Backpacks: `1` four rounds, there from the start; `2` two rounds by the
 ///   accident, waiting there from the start (the zombie guards it); `4` two
-///   rounds at the far corner of the hypermarket's car park; `5` four
-///   rounds on the rowboat moored at the harbour's second pier.
+///   rounds at the far corner of the hypermarket's car park; `5` two rounds
+///   on the rowboat moored at the harbour's second pier; `6` two rounds in
+///   the shipyard; `7` two rounds at the rightmost old-town dead end; `8`
+///   two rounds where the campfire used to stand north of the mall.
 // level-rows-start
 const List<String> streetLevelRows = <String>[
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',

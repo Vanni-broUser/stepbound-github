@@ -355,6 +355,19 @@ const String parkingBackpackId = 'backpack-parking';
 const String accidentBackpackId = 'backpack-accident';
 const String gunBackpackId = 'backpack-gun';
 const String boatBackpackId = 'backpack-boat';
+const String shipyardBackpackId = 'backpack-shipyard';
+const String oldTownBackpackId = 'backpack-old-town';
+const String mallNorthBackpackId = 'backpack-mall-north';
+
+/// The two new harbour backpacks, named separately so saves keep tracking
+/// each one even though both hold the same two rounds.
+final GridPoint shipyardBackpackTile = _harbour.tileOf('6');
+final GridPoint oldTownBackpackTile = _harbour.tileOf('7');
+
+/// The backpack at the old campfire site on the shopping street north of
+/// the mall, and the two rounds inside it.
+const int mallNorthBackpackAmmo = 2;
+final GridPoint mallNorthBackpackTile = _mallNorthStreet.tileOf('8');
 
 /// The backpack `9` against the east wall of San Nicola: the incense Don
 /// Angelo asked for.
@@ -458,6 +471,12 @@ const String airlinerBackpackId = 'backpack-airliner';
 /// How many rounds it holds.
 const int airlinerBackpackAmmo = 2;
 
+/// The backpack in the south-east corner of the first roof after the
+/// airliner, and the two rounds it holds.
+const String rooftopBackpackId = 'backpack-airliner-roof';
+const int rooftopBackpackAmmo = 2;
+final GridPoint rooftopBackpackTile = _airlinerRoofs.tileOf('9');
+
 /// The zombies on fire `Y` that walked out of the burning corner of the
 /// roofs past the airliner, `rooftop-burning-<n>`.
 const String rooftopBurningZombiePrefix = 'rooftop-burning-';
@@ -478,13 +497,19 @@ const GridRect tutorialZombieTrigger = GridRect(13, 33, 23, 39);
 /// The forecourt in front of the barracks: reaching it makes Mario speak.
 const GridRect barracksForecourt = GridRect(13, 7, 19, 8);
 
-/// Camps where the player can save, and what a save there is called. The
-/// glyph is `S` everywhere, so the place it burns in gives it its name;
-/// each of them has one.
+/// The two harbour fires, in row order: first on the gated Duomo sagrato,
+/// then at the south-east end of the harbour road.
+final GridPoint duomoCampfireTile = _harbour.tilesOf('S').first;
+final GridPoint harbourRoadCampfireTile = _harbour.tilesOf('S').last;
+
+/// The north-zone campfire, now beside the rubbish in the car park.
+final GridPoint mallNorthCampfireTile = _mallNorthStreet.tileOf('S');
+
+/// Camps in places that still have one each, and what a save there is
+/// called. The harbour has two explicitly named fires below.
 const Map<PlaceId, String> _campNames = <PlaceId, String>{
   PlaceId.northDistrict: 'Dietro la caserma',
   PlaceId.mallNorthStreet: 'Zona nord',
-  PlaceId.harbour: 'Cantiere navale',
 };
 
 /// Molfetta's campfires, by tile, with the name shown in the save slots.
@@ -493,6 +518,8 @@ final Map<GridPoint, String> hometownCampfireNames = <GridPoint, String>{
     for (final (point, glyph) in place.glyphs)
       if (glyph == 'S' && _campNames.containsKey(place.id))
         point: _campNames[place.id]!,
+  duomoCampfireTile: 'Sagrato del Duomo',
+  harbourRoadCampfireTile: 'Fine del porto',
 };
 
 /// The flagpole planted on the forecourt, where the tricolour flies.
@@ -515,8 +542,21 @@ final List<FireSpot> stationWreckFireSpots = () {
 }();
 
 /// Fires of every outdoor place, and those on the station's burning car.
+final GridPoint northDistrictBackExitTile = _north.tileOf('e');
+final GridPoint extinguishedNorthDistrictBinTile = _north
+    .tilesOf('F')
+    .reduce(
+      (nearest, candidate) =>
+          candidate.manhattanDistanceTo(northDistrictBackExitTile) <
+              nearest.manhattanDistanceTo(northDistrictBackExitTile)
+          ? candidate
+          : nearest,
+    );
+
 final List<FireSpot> hometownFireSpots = <FireSpot>[
-  for (final place in _streets) ...firesIn(place),
+  for (final place in _streets)
+    for (final spot in firesIn(place))
+      if (spot.tile != extinguishedNorthDistrictBinTile) spot,
   ...stationWreckFireSpots,
 ];
 
@@ -923,7 +963,19 @@ LevelContents hometownContents(EntityFactory factory) {
         case '4':
           pickups.add(Pickup(id: parkingBackpackId, position: point, ammo: 2));
         case '5':
-          pickups.add(Pickup(id: boatBackpackId, position: point, ammo: 4));
+          pickups.add(Pickup(id: boatBackpackId, position: point, ammo: 2));
+        case '6':
+          pickups.add(Pickup(id: shipyardBackpackId, position: point, ammo: 2));
+        case '7':
+          pickups.add(Pickup(id: oldTownBackpackId, position: point, ammo: 2));
+        case '8':
+          pickups.add(
+            Pickup(
+              id: mallNorthBackpackId,
+              position: point,
+              ammo: mallNorthBackpackAmmo,
+            ),
+          );
       }
     }
   }
@@ -971,6 +1023,11 @@ LevelContents hometownContents(EntityFactory factory) {
       id: airlinerBackpackId,
       position: _airlinerCabin.tileOf('9'),
       ammo: airlinerBackpackAmmo,
+    ),
+    Pickup(
+      id: rooftopBackpackId,
+      position: rooftopBackpackTile,
+      ammo: rooftopBackpackAmmo,
     ),
   ]);
   var indoorZombies = 0;
