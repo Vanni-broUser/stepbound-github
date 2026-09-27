@@ -2164,7 +2164,10 @@ void main() {
           scenes: const <StoryScene>[
             StoryScene(image: same, text: 'Prima'),
             StoryScene(image: same, text: 'Seconda'),
-            StoryScene(image: 'assets/story/scenes/harbour.jpg', text: 'Terza'),
+            StoryScene(
+              image: 'assets/story/scenes/outbreak.jpg',
+              text: 'Terza',
+            ),
           ],
           onFinished: () => finished = true,
         ),

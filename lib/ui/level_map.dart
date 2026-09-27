@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/ui/blood_decor.dart';
 import 'package:stepbound/ui/main_menu.dart';
@@ -17,7 +18,7 @@ final class LevelMap extends StatefulWidget {
   });
 
   static const String mapImage = 'assets/story/maps/europe.jpg';
-  static const String hometownImage = 'assets/story/scenes/harbour.jpg';
+  static const String hometownImage = hometownCoverImage;
   static const String romeImage = 'assets/story/maps/rome.jpg';
   static const String northCapeImage = 'assets/story/maps/north_cape.jpg';
 

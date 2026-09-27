@@ -539,7 +539,7 @@ void main() {
       final harbour = gamePlaces.firstWhere(
         (region) => region.name == harbourName,
       );
-      expect(harbour.cardImage, harbourCardImage);
+      expect(harbour.cardImage, hometownCoverImage);
       // The centre line of the road, one step before its last row.
       final road = GridPoint(
         place(PlaceId.northDistrict).origin.x +
