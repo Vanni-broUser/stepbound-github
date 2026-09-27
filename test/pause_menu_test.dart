@@ -133,6 +133,13 @@ void main() {
     tester,
   ) async {
     await pumpMenu(tester);
+    expect(
+      tester.getRect(find.byKey(const ValueKey<String>('pause-outfits'))).top,
+      lessThan(
+        tester.getRect(find.byKey(const ValueKey<String>('pause-resume'))).top,
+      ),
+      reason: 'changing clothes comes first, once it is there',
+    );
     await tap(tester, 'pause-outfits');
 
     expect(find.text('BASE'), findsNWidgets(2));

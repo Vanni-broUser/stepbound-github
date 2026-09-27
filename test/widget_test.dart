@@ -2108,6 +2108,60 @@ void main() {
     });
   });
 
+  testWidgets('the missions and what Mario carries show only while he is '
+      'free to move, and a mission done is crossed out and goes', (tester) {
+    return tester.runAsync(() async {
+      final game = await _pumpReadyGame(tester);
+      final board = find.byKey(const ValueKey<String>('mission-board'));
+      Finder mission(Mission mission) =>
+          find.byKey(ValueKey<String>('mission-text-${mission.name}'));
+      Future<void> frame() async {
+        game.update(1 / 60);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+      }
+
+      await frame();
+      expect(game.freeToMove.value, isTrue);
+      expect(board, findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('mission-board-city')),
+        findsOneWidget,
+      );
+      expect(mission(Mission.findSurvivors), findsOneWidget);
+
+      // Something about to be said: the corner empties before the box.
+      game.story.queue(
+        StoryPrompt(const <StoryLine>[StoryLine('Un messaggio')], delay: 5),
+      );
+      await frame();
+      expect(game.freeToMove.value, isFalse);
+      expect(board, findsNothing);
+
+      // Done while the story holds Mario: crossed out once he is free.
+      game.progress.missions
+        ..complete(Mission.findSurvivors)
+        ..give(Mission.freeLuigi);
+      for (var i = 0; i < 400 && game.cover.value == null; i++) {
+        game.update(0.05);
+      }
+      await tester.pump();
+      game.dismissPrompt();
+      await frame();
+      expect(board, findsOneWidget);
+      expect(mission(Mission.findSurvivors), findsOneWidget);
+      expect(mission(Mission.freeLuigi), findsOneWidget);
+      for (var i = 0; i < 12; i++) {
+        await tester.pump(const Duration(milliseconds: 250));
+      }
+      expect(mission(Mission.findSurvivors), findsNothing);
+      expect(mission(Mission.freeLuigi), findsOneWidget);
+      expect(game.missions.value, <BoardMission>[
+        (mission: Mission.freeLuigi, done: false),
+      ]);
+    });
+  });
+
   testWidgets('the controls disappear while a text box is on screen', (
     tester,
   ) async {
@@ -2135,7 +2189,15 @@ void main() {
           find.byType(GameWidget<StepboundGame>),
         )
         .currentGame;
-    const controls = <String>['touch-move', 'touch-act', 'touch-ammo'];
+    // Mario has the game (the loop that says so does not run here).
+    game.freeToMove.value = true;
+    await tester.pump();
+    const controls = <String>[
+      'touch-move',
+      'touch-act',
+      'touch-ammo',
+      'mission-board',
+    ];
     for (final key in controls) {
       expect(find.byKey(ValueKey<String>(key)), findsOneWidget);
     }
@@ -2682,6 +2744,15 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const ValueKey<String>('menu-slot-1')));
     await tester.pump();
+    tester
+            .state<GameWidgetState<StepboundGame>>(
+              find.byType(GameWidget<StepboundGame>),
+            )
+            .currentGame
+            .freeToMove
+            .value =
+        true;
+    await tester.pump();
 
     Rect rectOf(String key) =>
         tester.getRect(find.byKey(ValueKey<String>(key)));
@@ -2695,8 +2766,16 @@ void main() {
     expect(move.right, moreOrLessEquals(screen / 2));
     expect(act.left, moreOrLessEquals(screen / 2));
     expect(act.right, moreOrLessEquals(screen));
-    // The bullets are carried up with the rest, in the left corner.
-    expect(rectOf('touch-ammo').center.dx, lessThan(screen / 2));
+    // The missions in the top-left corner, what Mario carries in the
+    // bottom-left one, the menu in the top-right one.
+    final height =
+        tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    expect(rectOf('mission-board').left, lessThan(screen * 0.1));
+    expect(rectOf('mission-board').top, lessThan(height / 4));
+    expect(rectOf('touch-ammo').left, lessThan(screen * 0.1));
+    expect(rectOf('touch-ammo').center.dy, greaterThan(height * 0.75));
+    expect(rectOf('touch-menu').right, greaterThan(screen * 0.9));
+    expect(rectOf('touch-menu').center.dy, lessThan(height / 4));
   });
 
   group('on a phone longer than 16:9, with the camera on the left', () {
@@ -2734,11 +2813,14 @@ void main() {
       await tester.pump();
       await tester.tap(find.byKey(const ValueKey<String>('menu-slot-1')));
       await tester.pump();
-      return tester
+      final game = tester
           .state<GameWidgetState<StepboundGame>>(
             find.byType(GameWidget<StepboundGame>),
           )
           .currentGame;
+      game.freeToMove.value = true;
+      await tester.pump();
+      return game;
     }
 
     Rect rectOf(WidgetTester tester, String key) =>
@@ -2755,12 +2837,14 @@ void main() {
       );
 
       // The camera cutout is on the left; the right edge keeps the same
-      // gap, so the HUD looks the same from either side. The carried
-      // things start the row on the left, the menu ends the top on the
-      // right, and both keep that mirrored gap.
-      final left = rectOf(tester, 'touch-ammo').left;
-      expect(left, moreOrLessEquals(cutout), reason: 'same gap both sides');
-      expect(left, lessThan(band), reason: 'out by the edge of the screen');
+      // gap, so the HUD looks the same from either side. The missions and
+      // what Mario carries start on the left, the menu ends the top on the
+      // right, and all keep that mirrored gap.
+      for (final key in <String>['mission-board', 'touch-ammo']) {
+        final left = rectOf(tester, key).left;
+        expect(left, moreOrLessEquals(cutout), reason: 'same gap both sides');
+        expect(left, lessThan(band), reason: 'out by the edge of the screen');
+      }
       expect(
         screen.width - rectOf(tester, 'touch-menu').right,
         moreOrLessEquals(cutout),

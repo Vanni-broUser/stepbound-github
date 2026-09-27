@@ -4,6 +4,7 @@ import 'package:flame/camera.dart';
 import 'package:flame/components.dart' hide PositionComponent;
 import 'package:flame/events.dart';
 import 'package:flame/game.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:stepbound/core/core.dart';
@@ -175,6 +176,57 @@ final class StepboundGame extends FlameGame
 
   /// Set by the app while Mario's opening lines play over the game.
   bool inputLocked = false;
+
+  /// Whether the player has the game: nothing said or about to be, no
+  /// story holding Mario, no rest at a fire. What he carries and what he
+  /// has to do are only shown then.
+  final ValueNotifier<bool> freeToMove = ValueNotifier<bool>(false);
+
+  /// The missions in the corner: the open ones of the level being played,
+  /// in the order they were handed out, and those just done until their
+  /// row has been crossed out (see [missionCrossedOut]).
+  late final ValueNotifier<List<BoardMission>> missions =
+      ValueNotifier<List<BoardMission>>(<BoardMission>[
+        for (final mission in progress.missions.open)
+          if (mission.level == progress.level) (mission: mission, done: false),
+      ]);
+  late int _missionsSeen = progress.missions.revision;
+
+  /// The corner has crossed [mission] out: its row goes.
+  void missionCrossedOut(Mission mission) {
+    final rows = missions.value;
+    if (rows.any((row) => row.mission == mission && row.done)) {
+      missions.value = <BoardMission>[
+        for (final row in rows)
+          if (row.mission != mission || !row.done) row,
+      ];
+    }
+  }
+
+  /// Brings the corner up to the missions the story has just handed out or
+  /// seen done.
+  void _syncMissions() {
+    final log = progress.missions;
+    if (log.revision == _missionsSeen) {
+      return;
+    }
+    _missionsSeen = log.revision;
+    final rows = missions.value;
+    final synced = <BoardMission>[
+      for (final row in rows)
+        if (log.isOpen(row.mission))
+          (mission: row.mission, done: false)
+        else if (log.isDone(row.mission))
+          (mission: row.mission, done: true),
+      for (final mission in log.open)
+        if (mission.level == progress.level &&
+            !rows.any((row) => row.mission == mission))
+          (mission: mission, done: false),
+    ];
+    if (!listEquals(synced, rows)) {
+      missions.value = synced;
+    }
+  }
 
   /// True while two fingers are zooming the view: the touches that began
   /// as a step or an action are dropped, and nothing new starts until
@@ -372,6 +424,8 @@ final class StepboundGame extends FlameGame
       molotovs,
       readyToShow,
       pinching,
+      freeToMove,
+      missions,
     ]) {
       notifier.dispose();
     }
@@ -394,6 +448,17 @@ final class StepboundGame extends FlameGame
     }
     input.update(dt);
     _syncPresentation();
+    _syncMissions();
+    final free =
+        _acceptsInput &&
+        !inputLocked &&
+        !_levelCompleted &&
+        !_stages.any((stage) => stage.holdsMario) &&
+        story.isIdle &&
+        _campfire == null;
+    if (freeToMove.value != free) {
+      freeToMove.value = free;
+    }
     _camera.follow(
       dt,
       player: _playerFeet,

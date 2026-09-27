@@ -133,7 +133,11 @@ final class MallScript extends StoryScript {
         host.playCutscene(
           luigiScene,
           memories: const <StoryMemory>{StoryMemory.luigiTrapped},
-          onFinished: _releaseHorde,
+          onFinished: () {
+            progress.missions.give(Mission.freeLuigi);
+            director.foundSurvivor();
+            _releaseHorde();
+          },
         );
       }
       return;
@@ -182,7 +186,8 @@ final class MallScript extends StoryScript {
     _startTrustDialogue();
   }
 
-  /// Luigi trusts Mario with his plan, then leaves to wait at the station.
+  /// Luigi trusts Mario with his plan, then leaves to wait at the station:
+  /// he is free, and the next thing to do is to join him there.
   void _startTrustDialogue() {
     say(
       StoryPrompt(
@@ -191,6 +196,9 @@ final class MallScript extends StoryScript {
           StoryLine.luigi(meetAtStationLine),
         ],
         onDismissed: () {
+          progress.missions
+            ..complete(Mission.freeLuigi)
+            ..give(Mission.reachLuigi);
           _luigiGone = true;
           host.hometown.sendLuigiAway();
         },

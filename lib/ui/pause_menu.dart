@@ -158,16 +158,9 @@ final class _PauseMenuState extends State<PauseMenu> {
       onPressed: widget.onClose,
     ),
     children: <Widget>[
-      if (widget.resumePoint case final point?)
-        MenuButton(
-          key: const ValueKey<String>('pause-resume'),
-          label: point.resumeLabel,
-          unit: unit,
-          compact: true,
-          onPressed: () => _open(_PausePage.resume),
-        ),
       // Leaving the Duomo after the massacre is when the story introduces
       // changing clothes. Finding the robe or a linked skin is not enough.
+      // First, once there: the one thing here that is not a way out.
       if (widget.progress.hasExperienced(StoryMemory.priestMassacre))
         MenuButton(
           key: const ValueKey<String>('pause-outfits'),
@@ -175,6 +168,14 @@ final class _PauseMenuState extends State<PauseMenu> {
           unit: unit,
           compact: true,
           onPressed: () => _open(_PausePage.outfits),
+        ),
+      if (widget.resumePoint case final point?)
+        MenuButton(
+          key: const ValueKey<String>('pause-resume'),
+          label: point.resumeLabel,
+          unit: unit,
+          compact: true,
+          onPressed: () => _open(_PausePage.resume),
         ),
       MenuButton(
         key: const ValueKey<String>('pause-restart'),

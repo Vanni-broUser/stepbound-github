@@ -102,6 +102,9 @@ final class _StepboundAppState extends State<StepboundApp> {
   GameSnapshot? _completedSnapshot;
   late LevelStats _levelStats;
 
+  /// The mission the completed level ended on, crossed out on its results.
+  Mission? _levelFinale;
+
   /// Whether the loading picture fades in from the black a story ended on.
   bool _loadingFadesIn = false;
 
@@ -415,6 +418,7 @@ final class _StepboundAppState extends State<StepboundApp> {
     setState(() {
       _completedSnapshot = snapshot;
       _levelStats = stats;
+      _levelFinale = Mission.finaleOf(progress.level);
       _game = null;
       _phase = _Phase.levelComplete;
     });
@@ -560,6 +564,7 @@ final class _StepboundAppState extends State<StepboundApp> {
                 ),
                 _Phase.levelComplete => LevelComplete(
                   stats: _levelStats,
+                  finale: _levelFinale,
                   onContinue: _openLevelMap,
                 ),
                 _Phase.levelMap => LevelMap(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/input/action_zone.dart';
 import 'package:stepbound/game/input/hud_badges.dart';
+import 'package:stepbound/game/input/mission_board.dart';
 import 'package:stepbound/game/input/move_zone.dart';
 import 'package:stepbound/game/input/pinch_zone.dart';
 import 'package:stepbound/game/stepbound_game.dart';
@@ -11,8 +12,11 @@ import 'package:stepbound/ui/blood_decor.dart';
 
 /// What is drawn over the game while nothing else covers it: the two
 /// halves of the screen that walk ([MoveZone]) and act ([ActionZone]),
-/// the pinch that zooms ([PinchZone]) over both, and, in the corners, the
-/// menu button and the badges of what Mario carries (hud_badges.dart).
+/// the pinch that zooms ([PinchZone]) over both, the menu button in the
+/// top-right corner and, while Mario is free to move (see
+/// [StepboundGame.freeToMove]), the missions in the top-left corner
+/// ([MissionBoard]) and the badges of what he carries in the bottom-left
+/// one (hud_badges.dart).
 final class TouchControls extends StatelessWidget {
   const TouchControls({required this.game, super.key});
 
@@ -56,27 +60,41 @@ final class TouchControls extends StatelessWidget {
                   // Always there, unlocked or not: it is the way out, not
                   // something the tutorial hands over.
                   Positioned(right: 0, top: 0, child: _PauseButton(game: game)),
+                  // What Mario has to do, in the other top corner.
+                  Positioned(
+                    left: 0,
+                    top: 0,
+                    child: _WhileFree(
+                      game: game,
+                      child: MissionBoard(game: game),
+                    ),
+                  ),
                   // What Mario carries, in the order he picked it up: the
                   // bullets counted, then whatever the story has him hold
-                  // for someone. One row in the far top corner from the
-                  // menu, out of both thumbs' way.
+                  // for someone. One row from the bottom-left corner.
                   if (badges.isNotEmpty)
                     Positioned(
                       left: 0,
-                      top: 0,
-                      // The molotovs only while there is one: the last
-                      // thrown, the badge goes, and comes back with the
-                      // next found.
-                      child: ValueListenableBuilder<int>(
-                        valueListenable: game.molotovs,
-                        builder: (context, molotovs, _) => Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: <Widget>[
-                            for (final element in unlocked)
-                              if (element != HudElement.molotov || molotovs > 0)
-                                ?carriedBadge(element, game: game),
-                          ],
+                      right: 0,
+                      bottom: 0,
+                      child: _WhileFree(
+                        game: game,
+                        // The molotovs only while there is one: the last
+                        // thrown, the badge goes, and comes back with the
+                        // next found.
+                        child: ValueListenableBuilder<int>(
+                          valueListenable: game.molotovs,
+                          builder: (context, molotovs, _) => Wrap(
+                            key: const ValueKey<String>('hud-carried'),
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: <Widget>[
+                              for (final element in unlocked)
+                                if (element != HudElement.molotov ||
+                                    molotovs > 0)
+                                  ?carriedBadge(element, game: game),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -86,6 +104,34 @@ final class TouchControls extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+/// [child] only while Mario is free to move: it fades out as soon as
+/// something is about to be said or a story holds him, and back in once
+/// he has the game again.
+final class _WhileFree extends StatelessWidget {
+  const _WhileFree({required this.game, required this.child});
+
+  final StepboundGame game;
+  final Widget child;
+
+  static const Duration fade = Duration(milliseconds: 220);
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<bool>(
+      valueListenable: game.freeToMove,
+      builder: (context, free, _) => AnimatedSwitcher(
+        duration: fade,
+        // Kept to the left edge, as everything it shows starts there.
+        layoutBuilder: (current, previous) => Stack(
+          alignment: Alignment.centerLeft,
+          children: <Widget>[...previous, ?current],
+        ),
+        child: free ? child : const SizedBox.shrink(),
+      ),
     );
   }
 }

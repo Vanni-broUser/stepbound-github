@@ -228,6 +228,9 @@ final class DuomoScript extends StoryScript {
       memories: const <StoryMemory>{StoryMemory.priestFamily},
       music: Music.sacred,
       onBlack: _finishInitiation,
+      onFinished: () => progress.missions
+        ..complete(Mission.findRing)
+        ..give(Mission.initiation),
     );
   }
 
@@ -250,6 +253,7 @@ final class DuomoScript extends StoryScript {
       },
       music: Music.sacred,
       onBlack: host.hometown.startDuomoMassacre,
+      onFinished: () => progress.missions.complete(Mission.initiation),
     );
   }
 
