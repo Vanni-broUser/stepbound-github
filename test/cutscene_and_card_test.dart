@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/ui/game_cutscene.dart';
 import 'package:stepbound/ui/location_card.dart';
@@ -23,7 +24,7 @@ void main() {
         tester,
         LocationCard(
           name: 'Porto e centro storico',
-          image: 'assets/story/scenes/harbour.jpg',
+          image: hometownCoverImage,
           onBlack: () => blacks++,
           onFinished: () => finishes++,
         ),

@@ -104,9 +104,13 @@ const Legend rooftopLegend = Legend(
   fire: '&',
 );
 
-/// The card shown on the way into the harbour.
+/// The name on the card shown on the way into the harbour.
 const String harbourName = 'Porto e centro storico';
-const String harbourCardImage = 'assets/story/scenes/harbour.jpg';
+
+/// The picture the city stands for: the level's loading cover, its card on
+/// the Europe map, and the card on the way into the harbour, which is what
+/// it shows. Kept with the other levels' covers, in assets/story/maps.
+const String hometownCoverImage = 'assets/story/maps/molfetta.jpg';
 
 /// Molfetta, the first level: the street where Mario wakes up, the inside
 /// of the carabinieri barracks, the north district behind it with the two
@@ -144,7 +148,7 @@ const List<PlaceSpec> hometownPlaces = <PlaceSpec>[
     rows: harbourRows,
     legend: outdoorLegend,
     name: harbourName,
-    cardImage: harbourCardImage,
+    cardImage: hometownCoverImage,
   ),
   // Painted from its rows out of the tile atlas.
   PlaceSpec(
