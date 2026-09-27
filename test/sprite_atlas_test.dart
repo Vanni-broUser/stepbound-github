@@ -193,6 +193,25 @@ void main() {
       }
     },
   );
+
+  test('held molotov is a shared transparent weapon layer', () async {
+    final image = await loadAsset('assets/objects/molotov_held.png');
+    expect(image.width, 8);
+    expect(image.height, 8);
+    final rgba = await pixelsOf(image);
+    var transparentPixels = 0;
+    var opaquePixels = 0;
+    for (var index = 3; index < rgba.length; index += 4) {
+      if (rgba[index] == 0) {
+        transparentPixels += 1;
+      } else if (rgba[index] == 255) {
+        opaquePixels += 1;
+      }
+    }
+    expect(transparentPixels, greaterThan(0));
+    expect(opaquePixels, greaterThan(0));
+    image.dispose();
+  });
 }
 
 Future<Uint8List> pixelsOf(ui.Image image) async {

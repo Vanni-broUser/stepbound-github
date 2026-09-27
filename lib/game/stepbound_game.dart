@@ -397,15 +397,19 @@ final class StepboundGame extends FlameGame
     for (final event in presentation.lastEvents) {
       switch (event) {
         case MolotovThrownEvent(:final origin, :final target):
-          blastDelay = MolotovBlastComponent.flightSeconds;
-          unawaited(
-            world.addAll(<Component>[
+          _characters[playerId]?.playThrow(_facingOf(playerId));
+          blastDelay =
+              CharacterComponent.throwReleaseDelay +
+              MolotovBlastComponent.flightSeconds;
+          _later(
+            CharacterComponent.throwReleaseDelay,
+            () => addToWorld(
               MolotovBlastComponent(
                 origin: origin,
                 target: target,
                 onLanded: () => audio.play(Sfx.gunshot),
               ),
-            ]),
+            ),
           );
         case DamagedEvent(entityId: final target, sourceEntityId: final source)
             when source == playerId && blastDelay > 0:
@@ -936,8 +940,14 @@ final class StepboundGame extends FlameGame
         )
         ..isMoving = presentation.isEntityMoving(entry.key)
         ..animationProgress = presentation.progress
-        ..aiming =
-            entry.key == playerId && input.aiming.value && !input.throwing;
+        ..aimingPose = entry.key != playerId || !input.aiming.value
+            ? null
+            : input.throwing
+            ? PlayerPoseFamily.throwable
+            : PlayerPoseFamily.oneHanded
+        ..aimingWeapon = entry.key == playerId && input.throwing
+            ? PlayerWeaponSprite.molotov
+            : null;
     }
   }
 

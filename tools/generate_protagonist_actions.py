@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build Mario's action sheets from his real idle frames.
+"""Build Mario's action sheets from the real outfit idle frames.
 
 The walk/idle atlas (assets/characters/mario/sprites/base.png) is hand-detailed pixel
 art; action frames drawn from scratch looked blocky next to it. This script
@@ -11,11 +11,15 @@ so every frame shares the same head, jacket, backpack and proportions:
                           fire_2 (smoke)
   base_pickup.png         pick_0 bend, pick_1 crouch, pick_2 reach,
                           pick_3 grab, pick_4 rise with the bag, pick_5 stand
+  <outfit>_throwable.png  aim_0/aim_1/aim_2 (hold), throw_0 (wind-up),
+                          throw_1 (release), throw_2 (recover)
   backpack.png            16x16 backpack lying on the ground
+  molotov_held.png        shared 8x8 weapon layer, composed over every outfit
 
 Rows: south, west, east, north (see assets/characters/atlas_manifest.json).
 Run from the repository root:  python tools/generate_protagonist_actions.py
 """
+
 from __future__ import annotations
 
 import os
@@ -27,6 +31,7 @@ W, H = 16, 24
 SPRITES = os.path.join("assets", "characters", "mario", "sprites")
 OBJECTS = os.path.join("assets", "objects")
 ROWS = ("south", "west", "east", "north")
+OUTFITS = ("base", "cultist")
 
 OUTLINE = (14, 10, 12, 255)
 METAL_DARK = (38, 40, 46, 255)
@@ -36,22 +41,31 @@ FLASH_CORE = (255, 248, 214, 255)
 FLASH = (255, 206, 90, 255)
 FLASH_EDGE = (238, 120, 40, 255)
 SMOKE = (150, 150, 150, 170)
+GLASS_DARK = (42, 76, 42, 255)
+GLASS = (70, 122, 62, 255)
+GLASS_LIGHT = (142, 188, 112, 255)
+RAG = (216, 198, 160, 255)
+FLAME = (255, 142, 28, 255)
+FLAME_CORE = (255, 222, 70, 255)
 
 
-def load_idle() -> dict[str, list[Image.Image]]:
-    sheet = Image.open(os.path.join(SPRITES, "base.png")).convert("RGBA")
+def load_idle(outfit: str = "base") -> dict[str, list[Image.Image]]:
+    sheet = Image.open(os.path.join(SPRITES, f"{outfit}.png")).convert("RGBA")
     return {
         name: [sheet.crop((c * W, r * H, c * W + W, r * H + H)) for c in (0, 1)]
         for r, name in enumerate(ROWS)
     }
 
 
-def palette(frames: dict[str, list[Image.Image]]) -> dict[str, tuple]:
+def palette(
+    frames: dict[str, list[Image.Image]],
+    outfit: str = "base",
+) -> dict[str, tuple]:
     """Pick Mario's own colours out of his frames."""
     colours = Counter()
     for pair in frames.values():
         for frame in pair:
-            for pixel in frame.getdata():
+            for pixel in frame.get_flattened_data():
                 if pixel[3] > 200:
                     colours[pixel[:3]] += 1
 
@@ -59,13 +73,13 @@ def palette(frames: dict[str, list[Image.Image]]) -> dict[str, tuple]:
         found = [c for c, _ in colours.most_common() if test(*c)]
         return found[0] + (255,) if found else None
 
-    skin = best(lambda r, g, b: r > 200 and g > 140 and b > 90 and r > g > b)
+    skin = best(lambda r, g, b: r > 200 and g > 110 and b > 45 and r > g > b)
     jacket = best(lambda r, g, b: r > 110 and g < 70 and b < 70)
     jacket_dark = best(lambda r, g, b: 60 < r < 110 and g < 45 and b < 45)
     trousers = best(lambda r, g, b: b > r and b > 70)
     olive = best(lambda r, g, b: g > r > b and g > 80)
     olive_dark = best(lambda r, g, b: g >= r > b and 45 < g <= 80)
-    return {
+    result = {
         "skin": skin,
         "jacket": jacket,
         "jacket_dark": jacket_dark or jacket,
@@ -73,6 +87,7 @@ def palette(frames: dict[str, list[Image.Image]]) -> dict[str, tuple]:
         "olive": olive,
         "olive_dark": olive_dark or olive,
     }
+    return result
 
 
 def put(frame: Image.Image, x: int, y: int, colour) -> None:
@@ -225,6 +240,158 @@ def gun_frames(idle, pal, direction: str) -> list[Image.Image]:
     return frames
 
 
+# ------------------------------------------------------------ throwable
+
+
+def cultist_throw_palette(frame: Image.Image, direction: str, pal) -> dict[str, tuple]:
+    """Reuse only brown sleeve and skin colours from Mario's cultist skin."""
+    if direction == "east":
+        jacket_at, dark_at = (8, 14), (8, 15)
+        hand_box = (9, 14, 12, 17)
+    elif direction == "south":
+        jacket_at, dark_at = (3, 14), (4, 14)
+        hand_box = (3, 15, 5, 17)
+    else:
+        jacket_at, dark_at = (10, 13), (11, 13)
+        hand_box = (12, 13, 14, 15)
+
+    skin_candidates = []
+    for y in range(hand_box[1], hand_box[3]):
+        for x in range(hand_box[0], hand_box[2]):
+            pixel = frame.getpixel((x, y))
+            r, g, b, a = pixel
+            if a > 200 and r > 180 and r > g > b:
+                skin_candidates.append(pixel)
+
+    result = dict(pal)
+    result.update(
+        jacket=frame.getpixel(jacket_at),
+        jacket_dark=frame.getpixel(dark_at),
+        skin=max(
+            skin_candidates,
+            key=lambda colour: sum(colour[:3]),
+            default=pal["skin"],
+        ),
+    )
+    return result
+
+
+def clear_cultist_throwing_hand(
+    frame: Image.Image,
+    direction: str,
+    index: int,
+) -> None:
+    """Remove only the old hand, never the brown robe or lowered hood."""
+    boxes = {
+        "east": [(9, 14, 12, 17)],
+        "south": [(3, 15, 5, 17)],
+        "north": [(12, 13, 14, 15)],
+    }[direction]
+    if direction == "south" and index == 4:
+        boxes.append((11, 15, 13, 17))
+
+    for x0, y0, x1, y1 in boxes:
+        for y in range(y0, y1):
+            for x in range(x0, x1):
+                r, g, b, a = frame.getpixel((x, y))
+                if a > 200 and r > 180 and r > g > b:
+                    frame.putpixel((x, y), (0, 0, 0, 0))
+
+
+def throwable_frames(
+    idle,
+    pal,
+    direction: str,
+    outfit: str = "base",
+) -> list[Image.Image]:
+    """Empty-hand throwable family; the held weapon is a separate layer."""
+    base_name = "east" if direction == "west" else direction
+    frames = []
+    for index in range(6):
+        breathe = 1 if index == 2 else 0
+        source_name = direction if outfit == "cultist" else base_name
+        frame = idle[source_name][breathe].copy()
+        if direction == "west" and outfit == "cultist":
+            frame = frame.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+        if index < 5:
+            pose_pal = pal
+            if outfit == "cultist":
+                pose_pal = cultist_throw_palette(frame, base_name, pal)
+                clear_cultist_throwing_hand(frame, base_name, index)
+            else:
+                hide_hanging_hands(frame, pal)
+            paint_throw_pose(frame, pose_pal, base_name, index)
+        if direction == "west":
+            frame = frame.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+        frames.append(frame)
+    return frames
+
+
+def paint_throw_pose(frame, pal, direction: str, index: int) -> None:
+    """Paint aim, wind-up and release arms without embedding an object."""
+    jacket = pal["jacket"]
+    dark = pal["jacket_dark"]
+    skin = pal["skin"]
+
+    if direction == "east":
+        if index < 3:
+            lift = 1 if index == 2 else 0
+            for x, y in ((8, 14), (9, 13), (10, 12 - lift)):
+                put(frame, x, y, jacket)
+                put(frame, x, y + 1, dark)
+            put(frame, 11, 12 - lift, skin)
+            put(frame, 12, 12 - lift, skin)
+        elif index == 3:
+            for x, y in ((8, 13), (7, 11), (6, 9)):
+                put(frame, x, y, jacket)
+                put(frame, x, y + 1, dark)
+            put(frame, 6, 8, skin)
+        else:
+            for x in range(8, 13):
+                put(frame, x, 11, jacket)
+                put(frame, x, 12, dark)
+            put(frame, 13, 11, skin)
+            put(frame, 14, 11, skin)
+        return
+
+    if direction == "south":
+        if index < 3:
+            lift = 1 if index == 1 else 0
+            put(frame, 4, 14, jacket)
+            put(frame, 5, 13 - lift, jacket)
+            put(frame, 5, 12 - lift, skin)
+            put(frame, 6, 14, dark)
+        elif index == 3:
+            for x, y in ((4, 14), (4, 12), (5, 10)):
+                put(frame, x, y, jacket)
+                put(frame, x + 1, y, dark)
+            put(frame, 5, 8, skin)
+            put(frame, 5, 9, skin)
+        else:
+            for x in (5, 6, 9, 10):
+                put(frame, x, 13, jacket)
+            put(frame, 7, 14, skin)
+            put(frame, 8, 14, skin)
+        return
+
+    # North: the arm crosses behind the hood and rises beside it.
+    if index < 3:
+        lift = 1 if index > 0 else 0
+        put(frame, 11, 13 - lift, jacket)
+        put(frame, 12, 12 - lift, jacket)
+        put(frame, 12, 11 - lift, skin)
+    elif index == 3:
+        for x, y in ((11, 12), (11, 10), (11, 8)):
+            put(frame, x, y, jacket)
+            put(frame, x + 1, y, dark)
+        put(frame, 11, 6, skin)
+        put(frame, 11, 7, skin)
+    else:
+        for x, y in ((10, 10), (9, 8), (8, 6)):
+            put(frame, x, y, jacket)
+        put(frame, 8, 5, skin)
+
+
 # ---------------------------------------------------------------- pickup
 
 
@@ -344,6 +511,29 @@ def backpack(pal) -> Image.Image:
     return img
 
 
+def held_molotov() -> Image.Image:
+    """One shared upright molotov, attached to any throwable pose at runtime."""
+    img = Image.new("RGBA", (8, 8), (0, 0, 0, 0))
+    # Flame and burning rag.
+    put_any(img, 3, 0, FLAME)
+    put_any(img, 4, 0, FLAME_CORE)
+    put_any(img, 3, 1, FLAME_CORE)
+    put_any(img, 4, 1, FLAME)
+    put_any(img, 3, 2, RAG)
+    put_any(img, 4, 2, RAG)
+    # Neck and green glass body.
+    put_any(img, 3, 3, GLASS_LIGHT)
+    put_any(img, 4, 3, GLASS_DARK)
+    for y in range(4, 7):
+        put_any(img, 2, y, OUTLINE)
+        put_any(img, 3, y, GLASS_LIGHT if y == 4 else GLASS)
+        put_any(img, 4, y, GLASS)
+        put_any(img, 5, y, OUTLINE)
+    put_any(img, 3, 7, OUTLINE)
+    put_any(img, 4, 7, OUTLINE)
+    return img
+
+
 def put_any(img: Image.Image, x: int, y: int, colour) -> None:
     if 0 <= x < img.width and 0 <= y < img.height:
         img.putpixel((x, y), colour)
@@ -369,9 +559,21 @@ def main() -> None:
     sheet([pickup_frames(idle, pal, d) for d in ROWS]).save(
         os.path.join(SPRITES, "base_pickup.png")
     )
+    for outfit in OUTFITS:
+        outfit_idle = load_idle(outfit)
+        outfit_pal = palette(outfit_idle, outfit)
+        sheet(
+            [throwable_frames(outfit_idle, outfit_pal, d, outfit) for d in ROWS]
+        ).save(
+            os.path.join(SPRITES, f"{outfit}_throwable.png")
+        )
     os.makedirs(OBJECTS, exist_ok=True)
     backpack(pal).save(os.path.join(OBJECTS, "backpack.png"))
-    print("wrote base_gun.png, base_pickup.png and assets/objects/backpack.png")
+    held_molotov().save(os.path.join(OBJECTS, "molotov_held.png"))
+    print(
+        "wrote base_gun.png, base_pickup.png, throwable outfit sheets, "
+        "assets/objects/backpack.png and assets/objects/molotov_held.png"
+    )
 
 
 if __name__ == "__main__":
