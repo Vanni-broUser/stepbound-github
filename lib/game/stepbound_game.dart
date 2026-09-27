@@ -122,13 +122,41 @@ final class StepboundGame extends FlameGame
     canAct: () => _canAct,
     ignoresKeys: () => inputLocked || cover.value != null,
     isUnlocked: isUnlocked,
-    submit: (action) => presentation.submit(action),
+    // A step is drawn over as long as it takes, so walking never stops
+    // between one and the next.
+    submit: (action) => presentation.submit(
+      action,
+      duration: action is MoveAction ? input.stepSeconds : null,
+    ),
     dropQueuedSteps: () => presentation.clearBuffer(),
     toggleDebug: () => debugOverlay.enabled = !debugOverlay.enabled,
     throwArea: () => placeAt(
       simulation.player.component<PositionComponent>().position,
     )?.bounds,
+    zombiesNear: _zombiesNear,
   );
+
+  /// How far, in steps, a zombie makes Mario walk carefully.
+  static const int cautionRadius = 8;
+
+  /// Whether a zombie, aware of Mario or not, is within [cautionRadius]
+  /// of him in the place he is in: the next map over, past a wall, does
+  /// not count.
+  bool _zombiesNear() {
+    final here = placeAt(
+      simulation.player.component<PositionComponent>().position,
+    );
+    return simulation
+        .actorsInSimulationRadius(radius: cautionRadius)
+        .any(
+          (zombie) =>
+              here == null ||
+              here.bounds.contains(
+                zombie.component<PositionComponent>().position,
+              ),
+        );
+  }
+
   late final FollowCamera _camera = FollowCamera(camera);
   late final PlaceLayers _places = PlaceLayers(
     places: gamePlaces,

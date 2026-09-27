@@ -129,7 +129,7 @@ final class FollowCamera {
     _place = place;
     _zoom = 1;
     _gliding = false;
-    _centre = _rounded(_body(player));
+    _centre = _body(player);
     _clamp(place);
     _show(player);
   }
@@ -139,9 +139,6 @@ final class FollowCamera {
   bool _gliding = false;
 
   static Vector2 _body(Vector2 feet) => Vector2(feet.x, feet.y - bodyHeight);
-
-  static Vector2 _rounded(Vector2 point) =>
-      Vector2(point.x.roundToDouble(), point.y.roundToDouble());
 
   /// One frame of following [player], framed with [focus] if there is one.
   void follow(
@@ -176,7 +173,7 @@ final class FollowCamera {
     } else {
       _gliding = false;
     }
-    _centre = _rounded(current + offset);
+    _centre = current + offset;
     _clamp(place);
     _show(player);
   }
@@ -219,9 +216,40 @@ final class FollowCamera {
         _centre.y + height / 2 - halfHeight,
       );
     }
+    // On whole pixels of the screen, so the tiles stay crisp, but not of
+    // the world: at 3x a world pixel is three of them, and a view moving
+    // a world pixel at a time would shake Mario, who walks smoothly, back
+    // and forth against it.
+    final scale = screenScale * _zoom;
+    final area = _place == null ? null : pixelRect(_place!.bounds);
     camera.viewfinder
-      ..zoom = screenScale * _zoom
-      ..position = Vector2(x, y);
+      ..zoom = scale
+      ..position = Vector2(
+        _snap(x, scale, area?.left, area?.right, width / 2 / _zoom),
+        _snap(y, scale, area?.top, area?.bottom, height / 2 / _zoom),
+      );
+  }
+
+  /// [centre] on the nearest whole screen pixel that still keeps a view
+  /// [half] wide on each side of it between [from] and [to], so rounding
+  /// never shows a sliver past the edge of the place.
+  static double _snap(
+    double centre,
+    double scale,
+    double? from,
+    double? to,
+    double half,
+  ) {
+    final snapped = (centre * scale).roundToDouble() / scale;
+    if (from == null || to == null || to - from <= half * 2) {
+      return snapped;
+    }
+    final lowest = ((from + half) * scale).ceilToDouble() / scale;
+    final highest = ((to - half) * scale).floorToDouble() / scale;
+    if (lowest > highest) {
+      return centre;
+    }
+    return snapped.clamp(lowest, highest);
   }
 
   /// [centre] moved just enough for [point] to be [zoomMargin] inside a

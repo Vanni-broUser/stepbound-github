@@ -27,10 +27,23 @@ final class GameInputController {
     required this.dropQueuedSteps,
     required this.toggleDebug,
     required this.throwArea,
+    this.zombiesNear = _nobodyNear,
   });
 
-  /// How often a direction held down takes another step.
+  /// How long a step takes once Mario runs: after [warmUpSteps] steps of
+  /// a direction held down, with no zombie near him.
   static const double holdRepeatSeconds = 0.18;
+
+  /// How long a step takes while he walks carefully: the first one, and
+  /// every one with zombies near him, seen or not, so a turn game keeps
+  /// its precision and only a long way goes quickly.
+  static const double cautiousRepeatSeconds = 0.3;
+
+  /// Steps it takes to go from walking carefully to running...
+  static const int warmUpSteps = 3;
+
+  /// ...and back, once a zombie is near.
+  static const int slowDownSteps = 2;
 
   /// How long the space bar, or a finger on the right half of the screen,
   /// stays down before Mario raises the pistol. Let go sooner and it is a
@@ -56,6 +69,26 @@ final class GameInputController {
   /// The rectangle a molotov may land in: the place Mario stands in, so a
   /// bottle never flies into the next map laid out beside it.
   final GridRect? Function() throwArea;
+
+  /// Whether there are zombies close to Mario: he walks carefully then.
+  final bool Function() zombiesNear;
+
+  static bool _nobodyNear() => false;
+
+  /// How long the next step takes, from [cautiousRepeatSeconds] to
+  /// [holdRepeatSeconds]: its walk is drawn over all of it, so a direction
+  /// held down moves Mario on without stopping between one step and the
+  /// next.
+  double get stepSeconds =>
+      cautiousRepeatSeconds +
+      (holdRepeatSeconds - cautiousRepeatSeconds) * _pace;
+
+  /// 0 walking carefully, 1 running: a held direction gets there a step
+  /// at a time, and a zombie near brings it back down the same way.
+  double _pace = 0;
+
+  /// How long the step walking now takes: the next one comes after it.
+  double _stepTaken = cautiousRepeatSeconds;
 
   /// Tiles ahead of Mario a molotov lands when aiming starts.
   static const int throwStart = 3;
@@ -215,9 +248,13 @@ final class GameInputController {
     if (_heldDirection == direction) {
       return;
     }
+    // Turning a corner keeps the pace; setting off again starts it over.
+    if (_heldDirection == null) {
+      _pace = 0;
+    }
     _heldDirection = direction;
     _holdElapsed = 0;
-    submit(MoveAction(direction));
+    _step(direction);
   }
 
   void releaseDirection(Direction direction) {
@@ -229,6 +266,7 @@ final class GameInputController {
   void _releaseHeld() {
     _heldDirection = null;
     _holdElapsed = 0;
+    _pace = 0;
   }
 
   void _repeatHeldDirection(double dt) {
@@ -237,10 +275,19 @@ final class GameInputController {
       return;
     }
     _holdElapsed += dt;
-    while (_holdElapsed >= holdRepeatSeconds) {
-      _holdElapsed -= holdRepeatSeconds;
-      submit(MoveAction(direction));
+    while (_holdElapsed >= _stepTaken) {
+      _holdElapsed -= _stepTaken;
+      _step(direction);
     }
+  }
+
+  /// One step at [stepSeconds], then the pace for the next.
+  void _step(Direction direction) {
+    _stepTaken = stepSeconds;
+    submit(MoveAction(direction));
+    _pace = zombiesNear()
+        ? math.max(0, _pace - 1 / slowDownSteps)
+        : math.min(1, _pace + 1 / warmUpSteps);
   }
 
   void pressInteract() {
