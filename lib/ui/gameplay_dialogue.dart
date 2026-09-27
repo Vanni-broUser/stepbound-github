@@ -44,6 +44,7 @@ const List<DialogueLine> tutorialOpening = <DialogueLine>[
   ),
   DialogueLine.tutorial(
     'Trascina il dito sulla parte sinistra dello schermo per muoverti',
+    demo: ControlDemo.move,
   ),
 ];
 

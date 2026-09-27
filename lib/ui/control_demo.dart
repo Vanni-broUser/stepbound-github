@@ -139,6 +139,7 @@ abstract base class _Script {
   static _Script of(ControlDemo demo) => switch (demo) {
     ControlDemo.shoot => const _ShootScript(),
     ControlDemo.cancelShot => const _CancelShotScript(),
+    ControlDemo.move => const _MoveScript(),
   };
 
   double get cycle;
@@ -279,6 +280,49 @@ final class _CancelShotScript extends _Script {
     _Beat(_ShootScript._raised, SplatKind.hold, home(round)),
     _Beat(_lift, SplatKind.tap, home(round)),
   ];
+}
+
+/// A thumb comes down on the left half, drags the stick one way, holds it
+/// there while Mario walks, and lifts: the next round, the next way.
+final class _MoveScript extends _Script {
+  const _MoveScript();
+
+  static const double _approach = 0.2;
+  static const double _dragFrom = 0.35;
+  static const double _dragTo = 0.75;
+  static const double _lift = 1.75;
+  static const double _gone = 2;
+
+  @override
+  double get cycle => 2.3;
+
+  @override
+  bool get rightHalf => false;
+
+  @override
+  _Pose poseAt(int round, double t) {
+    final centre = home(round);
+    final pull =
+        _Script.directions[round % _Script.directions.length] * MoveZone.reach;
+    if (t < _approach) {
+      return _Pose(finger: centre, fingerAlpha: t / _approach);
+    }
+    if (t < _lift) {
+      final thumb = centre + pull * _Script.ease(_dragFrom, _dragTo, t);
+      return _Pose(finger: thumb, pressed: true, centre: centre, thumb: thumb);
+    }
+    if (t < _gone) {
+      return _Pose(
+        finger: centre + pull,
+        fingerAlpha: 1 - (t - _lift) / (_gone - _lift),
+      );
+    }
+    return _Pose.none;
+  }
+
+  /// Walking leaves no blood on the glass.
+  @override
+  List<_Beat> beatsOf(int round) => const <_Beat>[];
 }
 
 /// The splats of the rounds still on screen, made once each.

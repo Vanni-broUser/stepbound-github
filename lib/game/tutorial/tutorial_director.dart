@@ -83,6 +83,10 @@ enum ControlDemo {
   /// The pistol comes up with its splash, the finger stays in the ring in
   /// the middle a moment and lifts there: nothing is fired.
   cancelShot,
+
+  /// A thumb on the left half drags the stick one way and holds it there
+  /// to walk: up, right, down and left in turn.
+  move,
 }
 
 /// One full-screen picture of a story scene played during the game: the
