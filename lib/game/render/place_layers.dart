@@ -24,6 +24,7 @@ final class PlaceLayers {
     required this.places,
     required this.playerFeet,
     this.showOpened,
+    this.onKeptChanged,
   });
 
   /// Every place of the game.
@@ -35,8 +36,21 @@ final class PlaceLayers {
   /// Whether the story has opened what [Place] can open.
   final bool Function(Place place)? showOpened;
 
+  /// Told which places are kept whenever that changes, before their
+  /// pictures are composed: for whatever else the game puts in the world
+  /// place by place (its fires, its backpacks).
+  final void Function(Set<Place> kept)? onKeptChanged;
+
   final Map<Place, _Layers> _loaded = <Place, _Layers>{};
   AreaId? _area;
+  Set<Place> _kept = const <Place>{};
+
+  /// The places kept loaded now: Mario's area and one door out of it.
+  Set<Place> get keptPlaces => _kept;
+
+  /// The last [settle] still composing pictures, for whoever has to wait
+  /// for them (the tests do).
+  Future<void> settling = Future<void>.value();
 
   /// How long the last area took to be composed, once it has: for
   /// measuring on a phone.
@@ -78,34 +92,63 @@ final class PlaceLayers {
     Place shown,
     Map<GridPoint, Portal> portals,
     Component world,
-  ) async {
+  ) {
     if (shown.area == _area) {
-      return;
+      return settling;
     }
     _area = shown.area;
-    final wanted = kept(shown, places, portals);
+    final wanted = _kept = kept(shown, places, portals);
     TilePlaceComponent.keepOnly(wanted);
     for (final place in _loaded.keys.toList()) {
       if (!wanted.contains(place)) {
-        final layers = _loaded.remove(place)!;
-        for (final component in layers.components) {
-          component.removeFromParent();
-        }
-        layers.background.release();
+        _drop(_loaded.remove(place)!);
       }
     }
     final added = <_Layers>[
       for (final place in wanted)
         if (!_loaded.containsKey(place)) _loaded[place] = _layersOf(place),
     ];
+    onKeptChanged?.call(wanted);
     if (added.isEmpty) {
-      return;
+      return settling;
     }
+    return settling = _compose(added, world);
+  }
+
+  /// Composes [added] into [world] one place at a time. A place's picture
+  /// is drawn once it is added, on the raster thread; added all at once,
+  /// an area's places would be drawn in the same frame, and the frame
+  /// would wait for the lot. One after the other, each frame carries at
+  /// most one place's picture, and Mario keeps moving while the far
+  /// places of the area come in behind the ones near him.
+  Future<void> _compose(List<_Layers> added, Component world) async {
     final clock = Stopwatch()..start();
-    final components = added.expand((layers) => layers.components).toList();
-    await world.addAll(components);
-    await Future.wait(components.map((component) => component.loaded));
+    for (final layers in added) {
+      // Let go again before its turn came: Mario has already moved on.
+      if (!identical(_loaded[layers.background.place], layers)) {
+        continue;
+      }
+      await world.addAll(layers.components);
+      await Future.wait(layers.components.map((component) => component.loaded));
+    }
     lastLoad = clock.elapsed;
+  }
+
+  void _drop(_Layers layers) {
+    for (final component in layers.components) {
+      component.removeFromParent();
+    }
+    layers.background.release();
+  }
+
+  /// Takes every place out of the world and lets its pictures go: the
+  /// game is over. The pictures built stay cached for the next game
+  /// (see [TilePlaceComponent.keepOnly]).
+  void release() {
+    _loaded.values.forEach(_drop);
+    _loaded.clear();
+    _area = null;
+    _kept = const <Place>{};
   }
 
   _Layers _layersOf(Place place) {

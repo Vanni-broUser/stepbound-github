@@ -8,6 +8,15 @@ import 'package:stepbound/core/core.dart' hide PositionComponent;
 /// lamp cuts a stepped pool of light out of it, pixel-art style (hard rings,
 /// no gradients). Flickering lamps die out now and then. The player carries
 /// a faint halo so they never vanish in the shadows.
+///
+/// Cutting the pools out of the darkness takes a layer: a room's worth of
+/// darkness composed off screen, every ring of every lamp blended into it,
+/// every frame. On the cheapest phone we support that layer is the most
+/// expensive thing on screen, so the darkness with its steady lamps is
+/// composed once, into an image the size of the room, and drawn from there
+/// (see [_bake]). Only what changes from frame to frame is still cut live:
+/// the flickering lamps, the torches and the player's halo, each in a
+/// layer no bigger than its own pool.
 final class LightingComponent extends Component {
   LightingComponent({
     required this.area,
@@ -50,6 +59,9 @@ final class LightingComponent extends Component {
     (13, 0.5),
   ];
 
+  /// How high over the feet the player's halo is centred.
+  static const double _haloRise = 10;
+
   late final ui.Paint _dark = ui.Paint()
     ..color = ui.Color.fromRGBO(2, 2, 8, darkness)
     ..isAntiAlias = false;
@@ -57,12 +69,88 @@ final class LightingComponent extends Component {
     ..blendMode = ui.BlendMode.dstOut
     ..isAntiAlias = false;
   final ui.Paint _warm = ui.Paint()..isAntiAlias = false;
+  final ui.Paint _image = ui.Paint()
+    ..isAntiAlias = false
+    ..filterQuality = ui.FilterQuality.none;
   double _time = 0;
+
+  /// The darkness with the steady lamps cut out of it, once composed.
+  ui.Image? _baked;
+  bool _removed = false;
+
+  /// The lamps whose light changes from frame to frame, grouped wherever
+  /// their pools overlap: each group is cut in one layer, as they all
+  /// were before, so overlapping pools still add up the same way.
+  late final List<_LiveGroup> _live = _groupLive();
+
+  @override
+  Future<void> onLoad() async {
+    await super.onLoad();
+    final baked = await _bake();
+    // Taken out of the world while it was being composed.
+    if (_removed) {
+      baked.dispose();
+      return;
+    }
+    _baked = baked;
+  }
+
+  @override
+  void onRemove() {
+    _removed = true;
+    _baked?.dispose();
+    _baked = null;
+    super.onRemove();
+  }
 
   @override
   void update(double dt) {
     super.update(dt);
     _time += dt;
+  }
+
+  /// Whether [light]'s pool changes from frame to frame.
+  static bool _isLive(LightSpot light) => light.torch || light.flickers;
+
+  ui.Offset _centre(LightSpot light) => ui.Offset(
+    light.tile.x * tileSize + tileSize / 2,
+    light.tile.y * tileSize + tileSize / 2,
+  );
+
+  List<(double, double)> _rings(LightSpot light) =>
+      light.torch ? _torchRings : _lampRings;
+
+  /// The world pixels [light]'s pool can touch.
+  ui.Rect _reach(LightSpot light) => ui.Rect.fromCircle(
+    center: _centre(light),
+    radius: _rings(light)[0].$1 + 1,
+  );
+
+  List<_LiveGroup> _groupLive() {
+    final groups = <_LiveGroup>[];
+    for (final (index, light) in lights.indexed) {
+      if (!_isLive(light)) {
+        continue;
+      }
+      var group = _LiveGroup(_reach(light), <int>[index]);
+      // Pulls in every group it touches, and every group those touch.
+      var merged = true;
+      while (merged) {
+        merged = false;
+        for (final other in groups.toList()) {
+          if (other.rect.overlaps(group.rect)) {
+            groups.remove(other);
+            group = _LiveGroup(group.rect.expandToInclude(other.rect), <int>[
+              ...group.lights,
+              ...other.lights,
+            ]);
+            merged = true;
+          }
+        }
+      }
+      groups.add(group);
+    }
+    return groups;
   }
 
   /// 1 when lit, briefly near 0 when a flickering lamp stutters; a torch
@@ -91,46 +179,139 @@ final class LightingComponent extends Component {
     }
   }
 
+  /// The room's darkness with every steady lamp's pool cut out of it, as
+  /// an image the size of the room, in world pixels: scaled up with the
+  /// rest of the picture, so its rings stay on the same pixel grid as the
+  /// tiles they fall on.
+  Future<ui.Image> _bake() async {
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder)
+      ..translate(-area.left, -area.top)
+      ..saveLayer(area, ui.Paint())
+      ..drawRect(area, _dark);
+    for (final light in lights) {
+      if (!_isLive(light)) {
+        _pool(canvas, _centre(light), _rings(light), 1);
+      }
+    }
+    canvas.restore();
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(
+      area.width.round(),
+      area.height.round(),
+    );
+    picture.dispose();
+    return image;
+  }
+
   @override
   void render(ui.Canvas canvas) {
     if (!onScreen) {
       return;
     }
+    final feet = playerPosition();
+    final halo = ui.Offset(feet.x, feet.y - _haloRise);
+    final baked = _baked;
+    if (baked == null) {
+      _renderLive(canvas, halo);
+    } else {
+      _renderBaked(canvas, baked, halo);
+    }
+    _renderWarmth(canvas);
+  }
+
+  /// Everything cut in one layer: until the darkness is composed.
+  void _renderLive(ui.Canvas canvas, ui.Offset halo) {
     canvas
       ..saveLayer(area, ui.Paint())
       ..drawRect(area, _dark);
-    for (var i = 0; i < lights.length; i++) {
-      final light = lights[i];
-      final center = ui.Offset(
-        light.tile.x * tileSize + tileSize / 2,
-        light.tile.y * tileSize + tileSize / 2,
-      );
-      _pool(
-        canvas,
-        center,
-        light.torch ? _torchRings : _lampRings,
-        _intensity(light, i),
-      );
+    for (final (index, light) in lights.indexed) {
+      _pool(canvas, _centre(light), _rings(light), _intensity(light, index));
     }
-    final feet = playerPosition();
-    _pool(canvas, ui.Offset(feet.x, feet.y - 10), _playerRings, 1);
+    _pool(canvas, halo, _playerRings, 1);
     canvas.restore();
+  }
 
-    // A warm tint under each working lamp, an orange one round a torch.
-    for (var i = 0; i < lights.length; i++) {
-      final light = lights[i];
-      final intensity = _intensity(light, i);
+  /// The composed darkness, except where a live pool falls: there the
+  /// darkness is drawn again into a small layer and the pool cut out of it.
+  void _renderBaked(ui.Canvas canvas, ui.Image baked, ui.Offset halo) {
+    // The player's halo joins whichever live groups it touches, so a halo
+    // over a torch cuts into the same layer as the torch.
+    var haloRect = ui.Rect.fromCircle(
+      center: halo,
+      radius: _playerRings[0].$1 + 1,
+    );
+    final haloLights = <int>[];
+    final apart = <_LiveGroup>[];
+    var merged = true;
+    var pending = _live;
+    while (merged) {
+      merged = false;
+      final rest = <_LiveGroup>[];
+      for (final group in pending) {
+        if (group.rect.overlaps(haloRect)) {
+          haloRect = haloRect.expandToInclude(group.rect);
+          haloLights.addAll(group.lights);
+          merged = true;
+        } else {
+          rest.add(group);
+        }
+      }
+      pending = rest;
+    }
+    apart.addAll(pending);
+    final patches = <(ui.Rect, List<int>, bool)>[
+      for (final group in apart)
+        (group.rect.intersect(area), group.lights, false),
+      (haloRect.intersect(area), haloLights, true),
+    ];
+
+    canvas.save();
+    for (final (rect, _, _) in patches) {
+      if (!rect.isEmpty) {
+        canvas.clipRect(rect, clipOp: ui.ClipOp.difference, doAntiAlias: false);
+      }
+    }
+    canvas
+      ..drawImage(baked, area.topLeft, _image)
+      ..restore();
+
+    for (final (rect, indices, withHalo) in patches) {
+      if (rect.isEmpty) {
+        continue;
+      }
+      canvas
+        ..saveLayer(rect, ui.Paint())
+        ..drawImageRect(baked, rect.shift(-area.topLeft), rect, _image);
+      for (final index in indices) {
+        final light = lights[index];
+        _pool(canvas, _centre(light), _rings(light), _intensity(light, index));
+      }
+      if (withHalo) {
+        _pool(canvas, halo, _playerRings, 1);
+      }
+      canvas.restore();
+    }
+  }
+
+  /// A warm tint under each working lamp, an orange one round a torch.
+  void _renderWarmth(ui.Canvas canvas) {
+    for (final (index, light) in lights.indexed) {
+      final intensity = _intensity(light, index);
       _warm.color = light.torch
           ? ui.Color.fromRGBO(255, 150, 60, 0.1 * intensity)
           : ui.Color.fromRGBO(255, 200, 120, 0.07 * intensity);
-      canvas.drawCircle(
-        ui.Offset(
-          light.tile.x * tileSize + tileSize / 2,
-          light.tile.y * tileSize + tileSize / 2,
-        ),
-        light.torch ? 30 : 20,
-        _warm,
-      );
+      canvas.drawCircle(_centre(light), light.torch ? 30 : 20, _warm);
     }
   }
+}
+
+/// Live lamps whose pools overlap, and the world pixels they cover.
+final class _LiveGroup {
+  const _LiveGroup(this.rect, this.lights);
+
+  final ui.Rect rect;
+
+  /// Indices into `LightingComponent.lights`.
+  final List<int> lights;
 }

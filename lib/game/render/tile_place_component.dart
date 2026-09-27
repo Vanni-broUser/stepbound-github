@@ -85,8 +85,16 @@ final class TilePlaceComponent extends Component {
 
   bool _released = false;
 
+  /// Taken out of the world, for whatever reason: the images go with it.
+  @override
+  void onRemove() {
+    release();
+    super.onRemove();
+  }
+
   /// Lets go of this place's images: the game calls it when the place is
-  /// taken out of the world, having left its area.
+  /// taken out of the world, having left its area, and [onRemove] calls it
+  /// when the world itself is taken down.
   void release() {
     _released = true;
     for (final image in <ui.Image?>[_shut, _open, _frontShut, _frontOpen]) {

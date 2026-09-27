@@ -29,21 +29,27 @@ void main() {
   //
   //   TILE_RENDER_DUMP=some/dir flutter test test/levels/tile_place_render_test.dart
   //   python tools/build_tile_atlas.py --compare some/dir
-  test('every converted place is drawn at the size of its rows', () async {
-    resetTileAtlasCache();
-    final places = gamePlaces;
-    expect(places, isNotEmpty);
-    final dump = Platform.environment['TILE_RENDER_DUMP'];
-    for (final place in places) {
-      final image = await _render(place);
-      expect(image.width, place.width * levelTileSize.round());
-      expect(image.height, place.height * levelTileSize.round());
-      if (dump != null) {
-        final bytes = await image.toByteData();
-        File(
-          '$dump/${place.id.name}.rgba',
-        ).writeAsBytesSync(bytes!.buffer.asUint8List());
+  test(
+    'every converted place is drawn at the size of its rows',
+    () async {
+      resetTileAtlasCache();
+      final places = gamePlaces;
+      expect(places, isNotEmpty);
+      final dump = Platform.environment['TILE_RENDER_DUMP'];
+      for (final place in places) {
+        final image = await _render(place);
+        expect(image.width, place.width * levelTileSize.round());
+        expect(image.height, place.height * levelTileSize.round());
+        if (dump != null) {
+          final bytes = await image.toByteData();
+          File(
+            '$dump/${place.id.name}.rgba',
+          ).writeAsBytesSync(bytes!.buffer.asUint8List());
+        }
       }
-    }
-  });
+    },
+    // Twenty-three places, the harbour's 2304x992 among them: six seconds
+    // on its own under coverage, and the whole suite runs beside it.
+    timeout: const Timeout(Duration(minutes: 2)),
+  );
 }

@@ -31,6 +31,7 @@ import 'package:stepbound/game/render/pixel_palette.dart';
 import 'package:stepbound/game/render/place_layers.dart';
 import 'package:stepbound/game/render/screen_fade_component.dart';
 import 'package:stepbound/game/render/throw_preview_component.dart';
+import 'package:stepbound/game/render/tile_place_component.dart';
 import 'package:stepbound/game/render/torch_component.dart';
 import 'package:stepbound/game/story/story_director.dart';
 
@@ -133,7 +134,14 @@ final class StepboundGame extends FlameGame
     places: gamePlaces,
     playerFeet: () => _characters[playerId]!.position,
     showOpened: (place) => _stages.any((stage) => stage.showsOpened(place.id)),
+    onKeptChanged: _syncProps,
   );
+
+  /// What stands in each place kept loaded, besides its picture: its
+  /// fires, torches, backpacks and burning ground. They come and go with
+  /// the place (see [PlaceLayers]), so a level far from Mario costs no
+  /// updates either.
+  final Map<Place, List<Component>> _props = <Place, List<Component>>{};
 
   /// Molfetta on the stage, which its story drives.
   @override
@@ -250,8 +258,9 @@ final class StepboundGame extends FlameGame
     for (final stage in _stages) {
       stage.restore();
     }
-    // Only the area Mario is in, and what lies one door away from it: the
-    // rest comes in as he gets near it (see the call in update).
+    // Only the area Mario is in, and what lies one door away from it, its
+    // fires and backpacks with it: the rest comes in as he gets near it
+    // (see the call in update).
     await _places.settle(
       placeAt(simulation.player.component<PositionComponent>().position) ??
           place(PlaceId.street),
@@ -259,26 +268,7 @@ final class StepboundGame extends FlameGame
       world,
     );
     await world.addAll(<Component>[
-      for (final (index, spot) in outdoorFireSpots.indexed)
-        if (spot.kind == FireKind.campfire)
-          _campfires[spot.tile] = FireComponent.at(spot, seed: index)
-        else
-          FireComponent.at(spot, seed: index),
-      for (final (index, torch)
-          in gamePlaces.expand((place) => place.torches).indexed)
-        TorchComponent(tile: torch, seed: index),
-      for (final pickup in simulation.pickups.values)
-        PickupComponent(pickup: pickup),
       for (final stage in _stages) ...stage.build(),
-    ]);
-    // The ground burning from the start, and any a burning zombie set
-    // alight before the game was saved.
-    final map = simulation.map;
-    await world.addAll(<Component>[
-      for (var y = 0; y < map.height; y++)
-        for (var x = 0; x < map.width; x++)
-          if (map.tileAt(GridPoint(x, y)).kind == TileKind.fire)
-            ...burningGround(GridPoint(x, y)),
     ]);
     for (final entity in simulation.entities.values) {
       final component = CharacterComponent(
@@ -311,6 +301,82 @@ final class StepboundGame extends FlameGame
 
   /// How long the game took to load, for measuring on a phone.
   Duration? loadTime;
+
+  /// Puts in the world what stands in the places just [kept], and takes
+  /// out what stood in those let go.
+  void _syncProps(Set<Place> kept) {
+    for (final place in _props.keys.toList()) {
+      if (!kept.contains(place)) {
+        for (final component in _props.remove(place)!) {
+          component.removeFromParent();
+        }
+        _campfires.removeWhere((tile, _) => place.bounds.contains(tile));
+      }
+    }
+    final added = <Component>[
+      for (final place in kept)
+        if (!_props.containsKey(place)) ...(_props[place] = _propsOf(place)),
+    ];
+    if (added.isNotEmpty) {
+      unawaited(world.addAll(added));
+    }
+  }
+
+  /// The fires, torches, backpacks and burning ground of [place]. The
+  /// seeds are each fire's place in the level's list, so a fire flickers
+  /// the same way whenever its place is loaded again.
+  List<Component> _propsOf(Place place) {
+    final bounds = place.bounds;
+    final map = simulation.map;
+    return <Component>[
+      for (final (index, spot) in outdoorFireSpots.indexed)
+        if (bounds.contains(spot.tile))
+          if (spot.kind == FireKind.campfire)
+            _campfires[spot.tile] = FireComponent.at(spot, seed: index)
+          else
+            FireComponent.at(spot, seed: index),
+      for (final (index, torch)
+          in gamePlaces.expand((place) => place.torches).indexed)
+        if (bounds.contains(torch)) TorchComponent(tile: torch, seed: index),
+      for (final pickup in simulation.pickups.values)
+        if (bounds.contains(pickup.position)) PickupComponent(pickup: pickup),
+      // The ground burning from the start, and any a burning zombie set
+      // alight before the game was saved.
+      for (var y = bounds.top; y <= bounds.bottom; y++)
+        for (var x = bounds.left; x <= bounds.right; x++)
+          if (map.tileAt(GridPoint(x, y)).kind == TileKind.fire)
+            ...burningGround(GridPoint(x, y)),
+    ];
+  }
+
+  /// Once the area Mario has walked into is composed, for the tests.
+  @visibleForTesting
+  Future<void> get areaSettled => _places.settling;
+
+  /// Lets go of the pictures of every place the last game built and kept
+  /// for the next: the app calls it when nothing will play for a while.
+  static void releasePlacePictures() =>
+      TilePlaceComponent.keepOnly(const <Place>{});
+
+  /// Taken out of the widget tree: the places' pictures go, and whoever
+  /// was listening to the game has stopped.
+  @override
+  void onRemove() {
+    _places.release();
+    input.dispose();
+    for (final notifier in <ChangeNotifier>[
+      cover,
+      hud,
+      ammoLoaded,
+      hasGun,
+      molotovs,
+      readyToShow,
+      pinching,
+    ]) {
+      notifier.dispose();
+    }
+    super.onRemove();
+  }
 
   @override
   void update(double dt) {
@@ -438,7 +504,15 @@ final class StepboundGame extends FlameGame
         case AlertedEvent(entityId: final spotter):
           _characters[spotter]?.playAlert();
         case FireStartedEvent(:final at):
-          unawaited(world.addAll(burningGround(at)));
+          // Only in a place that is loaded: one that is not scans its
+          // map for burning tiles when it comes in.
+          final place = placeAt(at);
+          final props = place == null ? null : _props[place];
+          if (props != null) {
+            final ground = burningGround(at);
+            props.addAll(ground);
+            unawaited(world.addAll(ground));
+          }
         case ShotEvent(entityId: final shooter) when shooter == playerId:
           _characters[playerId]?.playFire(_facingOf(playerId));
         case DamagedEvent(entityId: final target, sourceEntityId: final source)
@@ -771,6 +845,32 @@ final class StepboundGame extends FlameGame
       cover.value = null;
     }
   }
+
+  /// Whether the game can be put down as it is and picked up again from
+  /// the menu: playing, Mario alive and free to act, or the pause menu
+  /// open over him. Not in the middle of a story line, a scene, a place
+  /// card or a rest at a fire: the scripts' steps in between would be
+  /// lost with the screen, and the game would come back stuck.
+  bool get canBeSuspended {
+    final scene = cover.value;
+    return readyToShow.value &&
+        _acceptsInput &&
+        !_levelCompleted &&
+        _campfire == null &&
+        _cardThreshold == null &&
+        !story.holdsInput &&
+        !_stages.any((stage) => stage.holdsMario) &&
+        (scene == null || scene is PauseCover);
+  }
+
+  /// The name of where Mario is, for the slot list: the place's own, or
+  /// the level's where a place has none.
+  String get placeName =>
+      _placeShown.name ??
+      switch (progress.level) {
+        LevelId.hometown => 'Città natale',
+        LevelId.rome => 'Roma',
+      };
 
   /// The whole game as it is now, ready to be saved.
   GameSnapshot snapshot({required String place, bool confirmStory = false}) => (

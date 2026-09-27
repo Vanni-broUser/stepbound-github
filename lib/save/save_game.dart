@@ -270,12 +270,19 @@ final class EmptySave extends SaveRead {
 }
 
 /// A save that can be played. [fromBackup] when the slot's own save was
-/// damaged and this is the good one it had replaced.
+/// damaged and this is the good one it had replaced; [suspended] when it
+/// is the game as it was put down, not the last campfire (see
+/// [SaveRepository.suspend]).
 final class LoadedSave extends SaveRead {
-  const LoadedSave(this.save, {this.fromBackup = false});
+  const LoadedSave(
+    this.save, {
+    this.fromBackup = false,
+    this.suspended = false,
+  });
 
   final SaveGame save;
   final bool fromBackup;
+  final bool suspended;
 
   @override
   SaveGame get game => save;
@@ -304,21 +311,37 @@ final class SaveWriteException implements Exception {
 abstract interface class SaveRepository {
   static const int slotCount = 4;
 
-  /// Every slot in order.
+  /// Every slot in order, as [read] gives them.
   Future<List<SaveRead>> all();
 
-  /// What [slot] holds. Never throws: storage that cannot be read makes
-  /// the slot a damaged one.
+  /// What [slot] holds for the menu: the game as it was put down, if it
+  /// was put down since the last campfire, else the campfire's save.
+  /// Never throws: storage that cannot be read makes the slot a damaged
+  /// one.
   Future<SaveRead> read(int slot);
 
-  /// The save in [slot], null when there is none to play.
+  /// The save in [slot] to go back to: the last campfire's (or the
+  /// train's), never the game as it was put down. Null when there is
+  /// none to play.
   Future<SaveGame?> load(int slot);
 
-  /// Writes [game] in its slot, keeping the save it replaces as a backup.
-  /// Throws a [SaveWriteException] when it cannot.
+  /// Writes [game] in its slot, keeping the save it replaces as a backup,
+  /// and drops the game put down since: this is newer. Throws a
+  /// [SaveWriteException] when it cannot.
   Future<void> save(SaveGame game);
 
-  /// Empties [slot], backup included.
+  /// Writes [game] beside its slot's save, as the game put down: what
+  /// the app was doing when it went to the background, to be picked up
+  /// from the menu. The slot's own save, the campfire to go back to,
+  /// stays as it is; the next campfire, or going back to it, drops this.
+  /// Throws a [SaveWriteException] when it cannot.
+  Future<void> suspend(SaveGame game);
+
+  /// Drops the game put down in [slot], if any: the player went back to
+  /// the campfire instead.
+  Future<void> clearSuspended(int slot);
+
+  /// Empties [slot], backup and game put down included.
   Future<void> clear(int slot);
 
   /// Story sequences watched on [slot], even when the attempt that showed
@@ -341,6 +364,7 @@ abstract base class StoredSaveRepository implements SaveRepository {
 
   static String slotKey(int slot) => 'stepbound.save.$slot';
   static String backupKey(int slot) => 'stepbound.save.$slot.previous';
+  static String suspendedKey(int slot) => 'stepbound.save.$slot.suspended';
   static String storyHistoryKey(int slot) => 'stepbound.story-history.$slot';
 
   @protected
@@ -360,6 +384,31 @@ abstract base class StoredSaveRepository implements SaveRepository {
 
   @override
   Future<SaveRead> read(int slot) async {
+    // Both at once: the menu is waiting on this.
+    final reads = await Future.wait(<Future<Object>>[
+      _readAt(suspendedKey(slot)),
+      _readCheckpoint(slot),
+    ]);
+    final (_, suspended) = reads[0] as (String?, SaveRead);
+    switch (suspended) {
+      case LoadedSave(:final save):
+        return LoadedSave(save, suspended: true);
+      case DamagedSave(:final reason):
+        // The campfire's save is still there to play.
+        debugPrint(
+          'save: the game put down in slot $slot is damaged ($reason)',
+        );
+      case EmptySave():
+        break;
+    }
+    return reads[1] as SaveRead;
+  }
+
+  @override
+  Future<SaveGame?> load(int slot) async => (await _readCheckpoint(slot)).game;
+
+  /// The slot's own save, or the backup it replaced when it is damaged.
+  Future<SaveRead> _readCheckpoint(int slot) async {
     final (_, current) = await _readAt(slotKey(slot));
     if (current is! DamagedSave) {
       return current;
@@ -373,9 +422,6 @@ abstract base class StoredSaveRepository implements SaveRepository {
   }
 
   @override
-  Future<SaveGame?> load(int slot) async => (await read(slot)).game;
-
-  @override
   Future<void> save(SaveGame game) async {
     final (encoded, current) = await _readAt(slotKey(game.slot));
     try {
@@ -385,15 +431,30 @@ abstract base class StoredSaveRepository implements SaveRepository {
         await writeValue(backupKey(game.slot), encoded);
       }
       await writeValue(slotKey(game.slot), jsonEncode(game.toJson()));
+      // Whatever was put down before this campfire is older than it.
+      await removeValue(suspendedKey(game.slot));
     } on Object catch (error) {
       throw SaveWriteException(game.slot, error);
     }
   }
 
   @override
+  Future<void> suspend(SaveGame game) async {
+    try {
+      await writeValue(suspendedKey(game.slot), jsonEncode(game.toJson()));
+    } on Object catch (error) {
+      throw SaveWriteException(game.slot, error);
+    }
+  }
+
+  @override
+  Future<void> clearSuspended(int slot) => removeValue(suspendedKey(slot));
+
+  @override
   Future<void> clear(int slot) async {
     await removeValue(slotKey(slot));
     await removeValue(backupKey(slot));
+    await removeValue(suspendedKey(slot));
     await removeValue(storyHistoryKey(slot));
   }
 
