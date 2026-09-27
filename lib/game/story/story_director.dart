@@ -305,13 +305,17 @@ final class StoryDirector {
   /// [ZombieLore]): the type is known from now on, and the book lists it;
   /// the camera frames the zombie with Mario while its lesson is shown with
   /// its portrait, and goes back to Mario alone once it is dismissed.
-  void introduceZombie(Entity zombie) {
+  /// [then] is said after the lesson, the zombie still framed.
+  void introduceZombie(
+    Entity zombie, {
+    List<StoryLine> then = const <StoryLine>[],
+  }) {
     final lore = zombieLore[zombie.kind]!;
     progress.meet(zombie.kind);
     host.focusOn(zombie.id);
     queue(
       StoryPrompt(
-        <StoryLine>[StoryLine(lore.lesson, portrait: lore.portrait)],
+        <StoryLine>[StoryLine(lore.lesson, portrait: lore.portrait), ...then],
         delay: focusDelay,
         onDismissed: () => host.focusOn(null),
       ),

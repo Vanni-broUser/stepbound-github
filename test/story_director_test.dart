@@ -636,14 +636,14 @@ void main() {
     expect(host.shown, isEmpty, reason: 'the balloon shows first');
     expect(host.focus, tutorialZombieId);
     settle();
-    expect(
-      host.shown.single.single.text,
+    final lines = host.shown.single;
+    expect(lines.map((line) => line.text), <String>[
       zombieLore[EntityKind.wanderer]!.lesson,
-    );
-    expect(
-      host.shown.single.single.portrait,
-      zombieLore[EntityKind.wanderer]!.portrait,
-    );
+      StreetScript.zombieSpotted,
+    ]);
+    expect(lines.first.portrait, zombieLore[EntityKind.wanderer]!.portrait);
+    expect(lines.last.speaker, 'Mario Rossi', reason: 'he says it himself');
+    expect(lines.last.portrait, isNotNull);
     host.dismiss();
     expect(host.focus, isNull);
   });
