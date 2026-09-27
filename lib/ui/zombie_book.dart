@@ -6,6 +6,7 @@ import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/game/zombie_lore.dart';
 import 'package:stepbound/ui/main_menu.dart';
+import 'package:stepbound/ui/portrait_image.dart';
 import 'package:stepbound/ui/story_intro.dart';
 
 /// One card of the book of zombie types. [kind] is null for the
@@ -238,12 +239,11 @@ final class _ZombieBookState extends State<ZombieBook> {
                     children: <Widget>[
                       Expanded(
                         child: known
-                            ? Image.asset(
+                            ? PortraitImage(
                                 card.portrait,
                                 key: ValueKey<String>(
                                   'zombie-book-portrait-$_selectedZombie',
                                 ),
-                                fit: BoxFit.contain,
                               )
                             // Unknown: just a black shape.
                             : ColorFiltered(
@@ -251,10 +251,7 @@ final class _ZombieBookState extends State<ZombieBook> {
                                   Color(0xff050303),
                                   BlendMode.srcIn,
                                 ),
-                                child: Image.asset(
-                                  card.portrait,
-                                  fit: BoxFit.contain,
-                                ),
+                                child: PortraitImage(card.portrait),
                               ),
                       ),
                       SizedBox(height: 4 * unit),
