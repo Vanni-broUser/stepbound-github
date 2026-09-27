@@ -23,6 +23,7 @@ final class CutsceneCover extends GameCover {
     this.onFinished,
     this.onBlack,
     this.stayBlack = false,
+    this.canSkip = false,
     this.music,
   });
 
@@ -34,6 +35,7 @@ final class CutsceneCover extends GameCover {
   /// shows again.
   final void Function()? onBlack;
   final bool stayBlack;
+  final bool canSkip;
 
   /// The scene's own music, played over the game's while it lasts.
   final Music? music;

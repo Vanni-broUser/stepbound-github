@@ -69,16 +69,16 @@ final class StationScript extends StoryScript {
   void onEvent(WorldEvent event) {
     if (event case NoInteractionEvent(:final at)
         when at == stationTrainDoorTile &&
-            !progress.memories.contains(StoryMemory.luigiRescued)) {
+            !progress.hasExperienced(StoryMemory.luigiRescued)) {
       say(StoryPrompt(const <StoryLine>[StoryLine(lockedDoorLine)]));
       return;
     }
-    if (!progress.memories.contains(StoryMemory.luigiRescued)) {
+    if (!progress.hasExperienced(StoryMemory.luigiRescued)) {
       return;
     }
     if (event case TravelMapUsedEvent(:final at)
         when trainMapTiles.contains(at) &&
-            progress.memories.contains(StoryMemory.luigiAtStation)) {
+            progress.hasExperienced(StoryMemory.luigiAtStation)) {
       host.openTravelMap();
       return;
     }
@@ -94,7 +94,7 @@ final class StationScript extends StoryScript {
   void update({required bool turnAnimating}) {
     if (_reunionPlayed ||
         !_steppedOnPlatform ||
-        !progress.memories.contains(StoryMemory.luigiRescued) ||
+        !progress.hasExperienced(StoryMemory.luigiRescued) ||
         turnAnimating ||
         host.isPromptVisible) {
       return;
@@ -104,9 +104,9 @@ final class StationScript extends StoryScript {
       return;
     }
     _reunionPlayed = true;
-    progress.remember(StoryMemory.luigiAtStation);
     host.playCutscene(
       reunionScene,
+      memories: const <StoryMemory>{StoryMemory.luigiAtStation},
       stayBlack: true,
       music: Music.luigi,
       onFinished: _board,
