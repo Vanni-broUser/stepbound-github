@@ -16,7 +16,7 @@ final class TrainStage extends LevelStage {
   TrainStage(super.game);
 
   bool get _luigiRescued =>
-      game.progress.memories.contains(StoryMemory.luigiRescued);
+      game.progress.hasExperienced(StoryMemory.luigiRescued);
 
   @override
   void restore() {

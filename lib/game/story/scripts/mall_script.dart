@@ -130,8 +130,11 @@ final class MallScript extends StoryScript {
           !turnAnimating &&
           !host.isPromptVisible) {
         _luigiScenePlayed = true;
-        progress.remember(StoryMemory.luigiTrapped);
-        host.playCutscene(luigiScene, onFinished: _releaseHorde);
+        host.playCutscene(
+          luigiScene,
+          memories: const <StoryMemory>{StoryMemory.luigiTrapped},
+          onFinished: _releaseHorde,
+        );
       }
       return;
     }
@@ -140,9 +143,9 @@ final class MallScript extends StoryScript {
         !turnAnimating &&
         !host.isPromptVisible) {
       _reunionPlayed = true;
-      progress.remember(StoryMemory.luigiRescued);
       host.playCutscene(
         reunionScene,
+        memories: const <StoryMemory>{StoryMemory.luigiRescued},
         music: Music.luigi,
         onFinished: _luigiTakesOver,
       );

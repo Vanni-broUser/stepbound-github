@@ -161,5 +161,41 @@ void main() {
         findsNothing,
       );
     });
+
+    testWidgets('an already watched sequence can be skipped as a whole', (
+      tester,
+    ) async {
+      var blacks = 0;
+      var finishes = 0;
+      await pumpIn(
+        tester,
+        GameCutscene(
+          frames: frames,
+          canSkip: true,
+          onBlack: () => blacks++,
+          onFinished: () => finishes++,
+        ),
+      );
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey<String>('story-skip')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey<String>('story-skip')));
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey<String>('story-fade-out')),
+        findsOneWidget,
+      );
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pump();
+      expect(blacks, 1);
+      expect(
+        find.byKey(const ValueKey<String>('cutscene-from-black')),
+        findsOneWidget,
+      );
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pump();
+      expect(finishes, 1);
+    });
   });
 }

@@ -151,9 +151,9 @@ final class PriestScript extends StoryScript {
     if (!_metPlayed) {
       if (priestSceneTrigger.contains(position)) {
         _metPlayed = true;
-        progress.remember(StoryMemory.priestMet);
         host.playCutscene(
           meetingScene,
+          memories: const <StoryMemory>{StoryMemory.priestMet},
           music: Music.sacred,
           onFinished: _askToClearTheGate,
         );
@@ -162,9 +162,9 @@ final class PriestScript extends StoryScript {
     }
     if (_clearAsked && !_dealPlayed && _gateIsClear(position)) {
       _dealPlayed = true;
-      progress.remember(StoryMemory.priestErrand);
       host.playCutscene(
         dealScene,
+        memories: const <StoryMemory>{StoryMemory.priestErrand},
         music: Music.sacred,
         onFinished: _askForIncense,
       );
@@ -181,9 +181,9 @@ final class PriestScript extends StoryScript {
     }
     if (_gateIsClear(position)) {
       _welcomePlayed = true;
-      progress.remember(StoryMemory.priestWelcomed);
       host.playCutscene(
         welcomeScene,
+        memories: const <StoryMemory>{StoryMemory.priestWelcomed},
         music: Music.sacred,
         onBlack: _finishWelcome,
       );

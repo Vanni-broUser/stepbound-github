@@ -223,9 +223,9 @@ final class DuomoScript extends StoryScript {
       return;
     }
     _ringDelivered = true;
-    progress.remember(StoryMemory.priestFamily);
     host.playCutscene(
       initiationScene,
+      memories: const <StoryMemory>{StoryMemory.priestFamily},
       music: Music.sacred,
       onBlack: _finishInitiation,
     );
@@ -244,12 +244,13 @@ final class DuomoScript extends StoryScript {
       return;
     }
     _massacrePlayed = true;
-    final massSeen = progress.memories.contains(StoryMemory.priestMass);
-    progress
-      ..remember(StoryMemory.priestMass)
-      ..remember(StoryMemory.priestMassacre);
+    final massSeen = progress.hasViewed(StoryMemory.priestMass);
     host.playCutscene(
       massSeen ? massacreScene : massSequence,
+      memories: const <StoryMemory>{
+        StoryMemory.priestMass,
+        StoryMemory.priestMassacre,
+      },
       music: Music.sacred,
       onBlack: host.hometown.startDuomoMassacre,
     );

@@ -62,6 +62,7 @@ final class Progress {
   Progress({
     Iterable<EntityKind> knownZombies = const <EntityKind>[],
     Iterable<StoryMemory> memories = const <StoryMemory>[],
+    Iterable<StoryMemory> viewedMemories = const <StoryMemory>[],
     Iterable<PlayerOutfit> unlockedOutfits = const <PlayerOutfit>[
       PlayerOutfit.base,
     ],
@@ -77,19 +78,28 @@ final class Progress {
        litCampfires = Set<String>.of(litCampfires),
        knownZombies = Set<EntityKind>.of(knownZombies),
        memories = Set<StoryMemory>.of(memories),
+       _viewedMemories = Set<StoryMemory>.of(viewedMemories),
        unlockedOutfits = Set<PlayerOutfit>.of(unlockedOutfits) {
     this.unlockedOutfits
       ..add(PlayerOutfit.base)
       ..add(activeOutfit);
   }
 
-  /// A new game: the opening story has just been watched.
-  factory Progress.newGame() => Progress(
-    memories: const <StoryMemory>[
+  /// A new game after the opening story. Until its first real save, the
+  /// opening memories can remain pending instead of known.
+  factory Progress.newGame({bool openingSaved = true}) {
+    final progress = Progress();
+    final opening = <StoryMemory>{
       StoryMemory.newsBroadcast,
       StoryMemory.outbreakNight,
-    ],
-  );
+    };
+    if (openingSaved) {
+      progress.memories.addAll(opening);
+    } else {
+      progress._pendingMemories.addAll(opening);
+    }
+    return progress;
+  }
 
   factory Progress.fromJson(Map<String, Object?> json) {
     final outfitName = json['activeOutfit'] as String?;
@@ -139,6 +149,16 @@ final class Progress {
   /// what was put in it first, and a save writes and reads it in that same
   /// order, so the camp replays them as the player met them.
   final Set<StoryMemory> memories;
+
+  /// Story sequences completed in this attempt but not yet confirmed by a
+  /// campfire or the train. They drive the current world's progression, but
+  /// deliberately stay out of [memories], memory replay and level stats.
+  final Set<StoryMemory> _pendingMemories = <StoryMemory>{};
+
+  /// Story sequences completed in earlier attempts. This device-local,
+  /// slot-specific history only decides whether a sequence may be skipped;
+  /// it never unlocks gameplay or counts as a known memory.
+  final Set<StoryMemory> _viewedMemories;
 
   /// Clothes found in the world and the one Mario is currently wearing.
   final Set<PlayerOutfit> unlockedOutfits;
@@ -204,6 +224,31 @@ final class Progress {
 
   void remember(StoryMemory memory) => memories.add(memory);
 
+  /// Marks [memory] as completed in the current attempt, awaiting a real
+  /// save at a campfire or on the train.
+  void view(StoryMemory memory) => _pendingMemories.add(memory);
+
+  /// Whether this attempt has reached [memory], either before or after its
+  /// next real save. Use this for gameplay state, never for replay or stats.
+  bool hasExperienced(StoryMemory memory) =>
+      memories.contains(memory) || _pendingMemories.contains(memory);
+
+  /// Whether [memory] has ever been watched on this slot, including an
+  /// earlier attempt lost to death. This is only for showing the skip button.
+  bool hasViewed(StoryMemory memory) =>
+      hasExperienced(memory) || _viewedMemories.contains(memory);
+
+  /// Adds device-local viewing history loaded by the app.
+  void addViewedMemories(Iterable<StoryMemory> viewed) =>
+      _viewedMemories.addAll(viewed);
+
+  /// Promotes the current attempt's story to confirmed memories after a
+  /// campfire/train save succeeds.
+  void confirmPendingMemories() {
+    memories.addAll(_pendingMemories);
+    _pendingMemories.clear();
+  }
+
   void unlockOutfit(PlayerOutfit outfit) => unlockedOutfits.add(outfit);
 
   bool wearOutfit(PlayerOutfit outfit) {
@@ -214,9 +259,16 @@ final class Progress {
     return true;
   }
 
-  Map<String, Object?> toJson() => <String, Object?>{
+  Map<String, Object?> toJson({
+    bool confirmPendingMemories = false,
+  }) => <String, Object?>{
     'knownZombies': <String>[for (final kind in knownZombies) kind.name],
-    'memories': <String>[for (final memory in memories) memory.name],
+    'memories': <String>[
+      for (final memory in memories) memory.name,
+      if (confirmPendingMemories)
+        for (final memory in _pendingMemories)
+          if (!memories.contains(memory)) memory.name,
+    ],
     'unlockedOutfits': <String>[
       for (final outfit in unlockedOutfits) outfit.name,
     ],

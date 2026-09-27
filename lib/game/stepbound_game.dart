@@ -66,6 +66,7 @@ final class StepboundGame extends FlameGame
     this.onRest,
     this.onLevelCompleted,
     this.onTravelMapRequested,
+    this.onStoryViewed,
     GameAudio? audio,
     GameplayHaptics? haptics,
     Progress? progress,
@@ -105,6 +106,7 @@ final class StepboundGame extends FlameGame
 
   /// The zombie types met and the story scenes seen, over the whole game.
   final Progress progress;
+  final ValueChanged<StoryMemory>? onStoryViewed;
   final GameAudio audio;
   final GameplayHaptics haptics;
   late final Soundscape soundscape = Soundscape(
@@ -499,19 +501,30 @@ final class StepboundGame extends FlameGame
   @override
   void playCutscene(
     List<CutsceneFrame> frames, {
+    Set<StoryMemory> memories = const <StoryMemory>{},
     void Function()? onFinished,
     void Function()? onBlack,
     bool stayBlack = false,
     Music? music,
-  }) => _cover(
-    CutsceneCover(
-      List<CutsceneFrame>.unmodifiable(frames),
-      onFinished: onFinished,
-      onBlack: onBlack,
-      stayBlack: stayBlack,
-      music: music,
-    ),
-  );
+  }) {
+    final canSkip = memories.isNotEmpty && memories.every(progress.hasViewed);
+    _cover(
+      CutsceneCover(
+        List<CutsceneFrame>.unmodifiable(frames),
+        onFinished: () {
+          for (final memory in memories) {
+            progress.view(memory);
+            onStoryViewed?.call(memory);
+          }
+          onFinished?.call();
+        },
+        onBlack: onBlack,
+        stayBlack: stayBlack,
+        canSkip: canSkip,
+        music: music,
+      ),
+    );
+  }
 
   /// Called by the cutscene overlay once its last frame has faded to black.
   void cutsceneBlack() {
@@ -538,7 +551,7 @@ final class StepboundGame extends FlameGame
     _levelCompleted = true;
     inputLocked = true;
     soundscapePaused = true;
-    final aboard = snapshot(place: trainPlaceName);
+    final aboard = snapshot(place: trainPlaceName, confirmStory: true);
     unawaited(onRest?.call(aboard));
     onLevelCompleted?.call(aboard);
   }
@@ -556,7 +569,9 @@ final class StepboundGame extends FlameGame
     simulation.player.component<PositionComponent>()
       ..position = trainMapStandTile
       ..facing = trainArrivalFacing;
-    onTravelMapRequested?.call(snapshot(place: trainPlaceName));
+    onTravelMapRequested?.call(
+      snapshot(place: trainPlaceName, confirmStory: true),
+    );
   }
 
   @override
@@ -706,7 +721,9 @@ final class StepboundGame extends FlameGame
     var saved = true;
     try {
       saved =
-          await onRest?.call(snapshot(place: campfireNames[_campfire] ?? '')) ??
+          await onRest?.call(
+            snapshot(place: campfireNames[_campfire] ?? '', confirmStory: true),
+          ) ??
           true;
     } on Object catch (error) {
       debugPrint('save: $error');
@@ -747,10 +764,10 @@ final class StepboundGame extends FlameGame
   }
 
   /// The whole game as it is now, ready to be saved.
-  GameSnapshot snapshot({required String place}) => (
+  GameSnapshot snapshot({required String place, bool confirmStory = false}) => (
     world: saveGameWorld(simulation),
     story: story.toJson(),
-    progress: progress.toJson(),
+    progress: progress.toJson(confirmPendingMemories: confirmStory),
     hud: <String>[for (final element in hud.value) element.name],
     place: place,
   );

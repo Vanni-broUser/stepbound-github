@@ -30,7 +30,6 @@ import 'package:stepbound/ui/gameplay_dialogue.dart';
 import 'package:stepbound/ui/level_map.dart';
 import 'package:stepbound/ui/loading_art.dart';
 import 'package:stepbound/ui/story_intro.dart';
-import 'package:stepbound/ui/title_splash.dart';
 
 /// Opens the app on the main menu and starts a new game in slot 1.
 Future<SaveRepository> _startNewGame(
@@ -85,9 +84,6 @@ Future<void> _pumpAppThroughIntro(
     await tester.tap(intro);
     await tester.pump();
   }
-  await tester.pump();
-  await tester.pump(TitleSplash.total + const Duration(milliseconds: 50));
-  await tester.pump();
   await _tapThroughOutbreak(tester);
   await _waitForGame(tester);
   final dialogue = find.byKey(const ValueKey<String>('gameplay-dialogue'));
@@ -603,12 +599,15 @@ void main() {
       await tester.tap(intro);
       await tester.pump();
     }
-    expect(find.byKey(const ValueKey<String>('story-intro')), findsNothing);
-    expect(find.byKey(const ValueKey<String>('title-splash')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('outbreak-story')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey<String>('loading-cover')), findsNothing);
   });
 
-  testWidgets('title card fades in and out, the outbreak scenes play, then the '
-      'protagonist speaks before the controls appear', (tester) {
+  testWidgets('the outbreak follows the first scenes without an intermediate '
+      'loading screen, then gameplay loads once', (tester) {
     return tester.runAsync(() async {
       await _startNewGame(tester);
       final intro = find.byKey(const ValueKey<String>('story-intro'));
@@ -616,17 +615,6 @@ void main() {
         await tester.tap(intro);
         await tester.pump();
       }
-      final fade = find.descendant(
-        of: find.byKey(const ValueKey<String>('title-splash')),
-        matching: find.byType(FadeTransition),
-      );
-      expect(tester.widget<FadeTransition>(fade).opacity.value, 0);
-      await tester.pump();
-      await tester.pump(TitleSplash.fade + TitleSplash.hold ~/ 2);
-      expect(tester.widget<FadeTransition>(fade).opacity.value, 1);
-
-      await tester.pump(TitleSplash.total + const Duration(milliseconds: 50));
-      await tester.pump();
       expect(find.byKey(const ValueKey<String>('title-splash')), findsNothing);
       expect(
         find.byKey(const ValueKey<String>('outbreak-story')),
@@ -708,20 +696,20 @@ void main() {
     expect(_splats(tester).last.at.dx, greaterThan(box.center.dx));
   });
 
-  testWidgets('tapping the title card skips to its fade out', (tester) async {
+  testWidgets('the first three scenes lead straight into the outbreak', (
+    tester,
+  ) async {
     await _startNewGame(tester);
     final intro = find.byKey(const ValueKey<String>('story-intro'));
     for (var i = 0; i < _introTapCount; i++) {
       await tester.tap(intro);
       await tester.pump();
     }
-    await tester.pump();
-    await tester.pump(TitleSplash.fade);
-    await tester.tap(find.byKey(const ValueKey<String>('title-splash')));
-    await tester.pump();
-    await tester.pump(TitleSplash.fade + const Duration(milliseconds: 50));
-    await tester.pump();
     expect(find.byKey(const ValueKey<String>('title-splash')), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('outbreak-story')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('camera starts clamped around the player', (tester) {
@@ -1135,7 +1123,8 @@ void main() {
   ) {
     return tester.runAsync(() async {
       final audio = SilentAudio();
-      final game = await _pumpReadyGame(tester, audio: audio);
+      final saves = MemorySaveRepository();
+      final game = await _pumpReadyGame(tester, audio: audio, saves: saves);
 
       final player = game.simulation.player;
       expect(
@@ -1181,6 +1170,7 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey<String>('restart-button')));
       await tester.pump();
+      await tester.pump();
       expect(
         find.byKey(const ValueKey<String>('game-over-overlay')),
         findsNothing,
@@ -1190,6 +1180,23 @@ void main() {
         contains(Sfx.gameOver),
         reason: 'the sting is cut: it must not play on over the new game',
       );
+      expect(find.byKey(const ValueKey<String>('story-intro')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey<String>('story-skip')),
+        findsOneWidget,
+        reason: 'the opening was already watched before Mario died',
+      );
+      expect(
+        Progress.fromJson((await saves.load(1))!.progress).memories,
+        isEmpty,
+        reason: 'a level-start write is not a campfire or train save',
+      );
+
+      await tester.tap(find.byKey(const ValueKey<String>('story-skip')));
+      await tester.pump();
+      await _pumpBlackFade(tester);
+      await _waitForGame(tester);
+      expect(find.byType(GameWidget<StepboundGame>), findsOneWidget);
     });
   });
 
@@ -1709,6 +1716,7 @@ void main() {
       'the memories', (tester) {
     return tester.runAsync(() async {
       final game = await _pumpReadyGame(tester);
+      game.progress.confirmPendingMemories();
       game.openZombieBook();
       await tester.pump();
       expect(find.byKey(const ValueKey<String>('zombie-book')), findsOneWidget);
@@ -1937,7 +1945,7 @@ void main() {
       expect(saved.story, isEmpty);
       final progress = Progress.fromJson(saved.progress);
       expect(progress.knownZombies, isEmpty, reason: 'it had met a wanderer');
-      expect(progress.memories, Progress.newGame().memories);
+      expect(progress.memories, isEmpty);
       expect(saved.hud, isEmpty);
       expect(
         saved.played,

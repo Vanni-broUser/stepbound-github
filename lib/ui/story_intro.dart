@@ -135,12 +135,16 @@ const List<StoryScene> romeScenes = <StoryScene>[
 /// With [fadeOutAtEnd] the last scene fades to black before [onFinished].
 /// With [onExit] an exit button stays in the corner, from the first picture
 /// on, to leave at any moment (watching a memory again at a camp).
+/// With [onSkip], a sequence already watched in an earlier attempt can be
+/// skipped as a whole from the button in the top-right corner.
 final class StoryIntro extends StatefulWidget {
   const StoryIntro({
     required this.onFinished,
     this.scenes = introScenes,
     this.fadeOutAtEnd = false,
     this.onExit,
+    this.onSkip,
+    this.allowBackNavigation = false,
     this.onScene,
     super.key,
   });
@@ -149,6 +153,8 @@ final class StoryIntro extends StatefulWidget {
   final VoidCallback onFinished;
   final bool fadeOutAtEnd;
   final VoidCallback? onExit;
+  final VoidCallback? onSkip;
+  final bool allowBackNavigation;
 
   /// Told of every scene as it comes up, the first one included.
   final ValueChanged<StoryScene>? onScene;
@@ -161,10 +167,12 @@ final class _StoryIntroState extends State<StoryIntro> {
   int _sceneIndex = 0;
   bool _showText = false;
   bool _fadingOut = false;
+  bool _skipping = false;
 
   /// Where the finger lifted: the tap that turns the story leaves blood
   /// there, on the left of the screen as much as on the right.
   Offset? _tappedAt;
+  Offset? _tappedLocal;
 
   /// The picture shown before the current one: it stays up until the new
   /// one is decoded, so turning a page never lets the game show through.
@@ -220,14 +228,55 @@ final class _StoryIntroState extends State<StoryIntro> {
     });
   }
 
+  void _back() {
+    if (_fadingOut || _sceneIndex == 0) {
+      return;
+    }
+    final at = _tappedAt;
+    if (at != null) {
+      BloodSplatLayer.maybeOf(context)?.splat(at, SplatKind.tap);
+    }
+    AudioScope.of(context).play(Sfx.dialogue);
+    setState(() {
+      _previousImage = widget.scenes[_sceneIndex].image;
+      _sceneIndex -= 1;
+      _showText = true;
+      widget.onScene?.call(widget.scenes[_sceneIndex]);
+    });
+  }
+
+  void _tap() {
+    final local = _tappedLocal;
+    if (widget.allowBackNavigation &&
+        local != null &&
+        local.dx < (context.size?.width ?? 0) / 2) {
+      _back();
+      return;
+    }
+    _advance();
+  }
+
+  void _skip() {
+    if (_fadingOut) {
+      return;
+    }
+    setState(() {
+      _skipping = true;
+      _fadingOut = true;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final scene = widget.scenes[_sceneIndex];
     return GestureDetector(
       key: const ValueKey<String>('story-intro'),
       behavior: HitTestBehavior.opaque,
-      onTapUp: (details) => _tappedAt = details.globalPosition,
-      onTap: _advance,
+      onTapUp: (details) {
+        _tappedAt = details.globalPosition;
+        _tappedLocal = details.localPosition;
+      },
+      onTap: _tap,
       child: Semantics(
         label: _showText ? 'Tocca per continuare' : 'Tocca per leggere',
         child: Stack(
@@ -264,7 +313,7 @@ final class _StoryIntroState extends State<StoryIntro> {
                 alignment: Alignment.bottomCenter,
                 child: StoryTextBox(speaker: scene.speaker, text: scene.text),
               ),
-            if (widget.onExit != null)
+            if (!_fadingOut && (widget.onExit != null || widget.onSkip != null))
               Align(
                 alignment: Alignment.topRight,
                 child: LayoutBuilder(
@@ -276,12 +325,16 @@ final class _StoryIntroState extends State<StoryIntro> {
                     return Padding(
                       padding: EdgeInsets.all(6 * unit),
                       child: MenuButton(
-                        key: const ValueKey<String>('story-exit'),
-                        label: 'ESCI',
+                        key: ValueKey<String>(
+                          widget.onSkip != null ? 'story-skip' : 'story-exit',
+                        ),
+                        label: widget.onSkip != null ? 'SALTA' : 'ESCI',
                         unit: unit,
                         compact: true,
-                        width: 44,
-                        onPressed: widget.onExit,
+                        width: widget.onSkip != null ? 52 : 44,
+                        onPressed: widget.onSkip != null
+                            ? _skip
+                            : widget.onExit,
                       ),
                     );
                   },
@@ -291,7 +344,7 @@ final class _StoryIntroState extends State<StoryIntro> {
               BlackFade(
                 key: const ValueKey<String>('story-fade-out'),
                 toBlack: true,
-                onDone: widget.onFinished,
+                onDone: _skipping ? widget.onSkip : widget.onFinished,
               ),
           ],
         ),

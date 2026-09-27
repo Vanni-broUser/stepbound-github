@@ -29,16 +29,14 @@ import 'package:stepbound/ui/pause_menu.dart';
 import 'package:stepbound/ui/rome_placeholder.dart';
 import 'package:stepbound/ui/screen_wide_layer.dart';
 import 'package:stepbound/ui/story_intro.dart';
-import 'package:stepbound/ui/title_splash.dart';
 import 'package:stepbound/ui/zombie_book.dart';
 
-/// The main menu first; a new game then plays the story scenes, the title
-/// card and the protagonist's line before the controls appear, while a
-/// loaded game goes straight to playing.
+/// The main menu first; a new game then plays the story scenes and the
+/// protagonist's line before the controls appear, while a loaded game goes
+/// straight to playing.
 enum _Phase {
   menu,
   story,
-  title,
   outbreak,
   dialogue,
   playing,
@@ -93,6 +91,8 @@ final class _StepboundAppState extends State<StepboundApp> {
   /// in a pocket is not play, and nothing between two saves is kept.
   Duration _playedBefore = Duration.zero;
   final Stopwatch _clock = Stopwatch();
+  final Set<StoryMemory> _storyHistory = <StoryMemory>{};
+  Future<void> _storyHistoryWrite = Future<void>.value();
 
   Duration get _played => _playedBefore + _clock.elapsed;
 
@@ -150,6 +150,7 @@ final class _StepboundAppState extends State<StepboundApp> {
   }
 
   Future<void> _newGame(int slot) async {
+    await _storyHistoryWrite;
     try {
       await _saves.clear(slot);
     } on Object catch (error) {
@@ -164,6 +165,7 @@ final class _StepboundAppState extends State<StepboundApp> {
     _startClock(Duration.zero);
     setState(() {
       _slot = slot;
+      _storyHistory.clear();
       _resumePoint = null;
       _levelStart = null;
       _completedSnapshot = null;
@@ -171,22 +173,31 @@ final class _StepboundAppState extends State<StepboundApp> {
     });
   }
 
-  void _loadGame(SaveGame save) {
+  Future<void> _loadGame(SaveGame save) async {
+    final history = await _saves.loadStoryHistory(save.slot);
+    if (!mounted) {
+      return;
+    }
+    final progress = Progress.fromJson(save.progress);
+    _storyHistory
+      ..clear()
+      ..addAll(history)
+      ..addAll(progress.memories);
     _startClock(save.played);
     _loadingFadesIn = false;
     setState(() {
       _slot = save.slot;
       _resumePoint = _resumePointOf(save);
       _levelStart = save.levelStart;
-      _game = _gameFrom(save);
+      _game = _gameFrom(save, progress: progress);
       _phase = _Phase.playing;
     });
   }
 
-  StepboundGame _gameFrom(SaveGame save) => _gameOf(
+  StepboundGame _gameFrom(SaveGame save, {Progress? progress}) => _gameOf(
     world: save.world,
     story: save.story,
-    progress: Progress.fromJson(save.progress),
+    progress: progress ?? Progress.fromJson(save.progress),
     hud: save.hud,
   );
 
@@ -195,20 +206,24 @@ final class _StepboundAppState extends State<StepboundApp> {
     required Map<String, Object?> story,
     required Progress progress,
     required List<String> hud,
-  }) => StepboundGame(
-    world: restoreGameWorld(world),
-    storyState: story,
-    progress: progress,
-    unlocked: <HudElement>{
-      for (final name in hud)
-        for (final element in HudElement.values)
-          if (element.name == name) element,
-    },
-    onRest: _store,
-    onLevelCompleted: _completeLevel,
-    onTravelMapRequested: _travelFromTrain,
-    audio: _audio,
-  );
+  }) {
+    progress.addViewedMemories(_storyHistory);
+    return StepboundGame(
+      world: restoreGameWorld(world),
+      storyState: story,
+      progress: progress,
+      unlocked: <HudElement>{
+        for (final name in hud)
+          for (final element in HudElement.values)
+            if (element.name == name) element,
+      },
+      onRest: _store,
+      onLevelCompleted: _completeLevel,
+      onTravelMapRequested: _travelFromTrain,
+      onStoryViewed: _rememberStory,
+      audio: _audio,
+    );
+  }
 
   static ResumePoint? _resumePointOf(SaveGame save) => !save.atCampfire
       ? null
@@ -221,6 +236,7 @@ final class _StepboundAppState extends State<StepboundApp> {
   /// written: the slot still holds the one before, and so does
   /// [_resumePoint].
   Future<bool> _store(GameSnapshot snapshot) async {
+    final game = _game;
     try {
       await _saves.save(
         SaveGame(
@@ -242,24 +258,29 @@ final class _StepboundAppState extends State<StepboundApp> {
     _resumePoint = snapshot.place == trainPlaceName
         ? ResumePoint.train
         : ResumePoint.campfire;
+    game?.progress.confirmPendingMemories();
     return true;
   }
 
   void _finishIntro() {
-    setState(() => _phase = _Phase.title);
-  }
-
-  void _finishTitle() {
     setState(() => _phase = _Phase.outbreak);
   }
 
   void _finishOutbreak() {
+    _rememberStories(const <StoryMemory>{
+      StoryMemory.newsBroadcast,
+      StoryMemory.outbreakNight,
+    });
+    final progress = Progress.newGame(openingSaved: false)
+      ..addViewedMemories(_storyHistory);
     setState(() {
       _phase = _Phase.dialogue;
       _game = StepboundGame(
         onRest: _store,
         onLevelCompleted: _completeLevel,
         onTravelMapRequested: _travelFromTrain,
+        onStoryViewed: _rememberStory,
+        progress: progress,
         audio: _audio,
       )..inputLocked = true;
     });
@@ -278,6 +299,7 @@ final class _StepboundAppState extends State<StepboundApp> {
   /// player stuck.
   Future<void> _resumeFromCamp() async {
     final save = await _saves.load(_slot);
+    final history = await _saves.loadStoryHistory(_slot);
     if (!mounted) {
       return;
     }
@@ -287,6 +309,7 @@ final class _StepboundAppState extends State<StepboundApp> {
     }
     _startClock(save.played);
     _loadingFadesIn = false;
+    _storyHistory.addAll(history);
     setState(() {
       _levelStart = save.levelStart;
       _game = _gameFrom(save);
@@ -316,7 +339,7 @@ final class _StepboundAppState extends State<StepboundApp> {
           place: levelStartPlace,
           world: saveGameWorld(createGameWorld()),
           story: const <String, Object?>{},
-          progress: Progress.newGame().toJson(),
+          progress: Progress().toJson(),
           hud: const <String>[],
           atCampfire: false,
           // The hours played are the one thing starting over keeps.
@@ -391,6 +414,25 @@ final class _StepboundAppState extends State<StepboundApp> {
       ..playMusic(Music.story);
   }
 
+  bool get _openingStorySeen =>
+      _storyHistory.contains(StoryMemory.newsBroadcast) &&
+      _storyHistory.contains(StoryMemory.outbreakNight);
+
+  void _rememberStory(StoryMemory memory) =>
+      _rememberStories(<StoryMemory>{memory});
+
+  void _rememberStories(Set<StoryMemory> memories) {
+    if (memories.every(_storyHistory.contains)) {
+      return;
+    }
+    _storyHistory.addAll(memories);
+    final copy = Set<StoryMemory>.of(_storyHistory);
+    final slot = _slot;
+    _storyHistoryWrite = _storyHistoryWrite.then(
+      (_) => _saves.saveStoryHistory(slot, copy),
+    );
+  }
+
   /// What is drawn over the game for [cover]: the touch controls when
   /// nothing covers it.
   Widget _coverOf(StepboundGame game, GameCover? cover) => switch (cover) {
@@ -410,10 +452,11 @@ final class _StepboundAppState extends State<StepboundApp> {
       ],
       onFinished: game.dismissPrompt,
     ),
-    CutsceneCover(:final frames) => GameCutscene(
+    CutsceneCover(:final frames, :final canSkip) => GameCutscene(
       key: ObjectKey(cover),
       frames: frames,
       stayBlack: cover.stayBlack,
+      canSkip: canSkip,
       onBlack: game.cutsceneBlack,
       onFinished: game.finishCutscene,
     ),
@@ -441,6 +484,7 @@ final class _StepboundAppState extends State<StepboundApp> {
       child: StoryIntro(
         key: const ValueKey<String>('train-memories-story'),
         scenes: seenScenes(game.progress, game.progress.level),
+        allowBackNavigation: true,
         // Each memory with the music it was lived with, the rest with the
         // story's.
         onScene: (scene) => _audio.playMusic(scene.music ?? Music.story),
@@ -588,6 +632,7 @@ final class _StepboundAppState extends State<StepboundApp> {
   }
 
   void _finishRomeStory() {
+    _rememberStory(StoryMemory.presidentFled);
     _loadingFadesIn = true;
     _startLevel(LevelId.rome);
   }
@@ -652,15 +697,18 @@ final class _StepboundAppState extends State<StepboundApp> {
                 _Phase.menu => MainMenu(
                   saves: _saves,
                   onNewGame: (slot) => unawaited(_newGame(slot)),
-                  onLoad: _loadGame,
+                  onLoad: (save) => unawaited(_loadGame(save)),
                 ),
-                _Phase.story => StoryIntro(onFinished: _finishIntro),
-                _Phase.title => TitleSplash(onFinished: _finishTitle),
+                _Phase.story => StoryIntro(
+                  onFinished: _finishIntro,
+                  onSkip: _openingStorySeen ? _finishOutbreak : null,
+                ),
                 _Phase.outbreak => StoryIntro(
                   key: const ValueKey<String>('outbreak-story'),
                   scenes: outbreakScenes,
                   fadeOutAtEnd: true,
                   onFinished: _finishOutbreak,
+                  onSkip: _openingStorySeen ? _finishOutbreak : null,
                 ),
                 _Phase.levelComplete => LevelComplete(
                   stats: _levelStats,
@@ -675,6 +723,9 @@ final class _StepboundAppState extends State<StepboundApp> {
                   scenes: romeScenes,
                   fadeOutAtEnd: true,
                   onFinished: _finishRomeStory,
+                  onSkip: _storyHistory.contains(StoryMemory.presidentFled)
+                      ? _finishRomeStory
+                      : null,
                 ),
                 _ => const SizedBox.shrink(),
               },
