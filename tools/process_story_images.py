@@ -9,21 +9,24 @@ Two kinds of scene live in assets/story:
 * the scenes played during the game, which keep the source frame as it is
   (1376x768), like every other `scene_*.jpg` already in the repository.
 
-Both read from [SOURCE_DIR], the folder the frames are generated into. A
-scene whose source is not there gets a painted stand-in instead, so the
-story always has a frame to show: run the script again on the machine that
-has the art and the stand-in is overwritten by the real thing.
+Both read from the folder given with `--source`, the one the frames are
+generated into. A scene whose source is not there gets a painted stand-in
+instead, so the story always has a frame to show: run the script again on
+the machine that has the art and the stand-in is overwritten by the real
+thing.
+
+    python tools/process_story_images.py --source ~/Downloads
 """
 
 from __future__ import annotations
 
+import argparse
 import random
 from pathlib import Path
 
 from PIL import Image, ImageDraw
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SOURCE_DIR = Path(r"C:\Users\vanni\Downloads")
 TARGET_SIZE = (768, 432)
 SCENE_SIZE = (1376, 768)
 
@@ -356,10 +359,20 @@ def placeholder(name: str) -> Image.Image:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    parser.add_argument(
+        "--source",
+        type=Path,
+        required=True,
+        help="the folder the generated frames are in",
+    )
+    source_dir: Path = parser.parse_args().source
+    if not source_dir.is_dir():
+        parser.error(f"{source_dir} is not a folder")
     output_dir = REPO_ROOT / "assets" / "story"
     output_dir.mkdir(parents=True, exist_ok=True)
     for source_name, output_name in INTRO_SCENES:
-        source = SOURCE_DIR / source_name
+        source = source_dir / source_name
         if not source.exists():
             print(f"{source_name} missing: {output_name} left as it is")
             continue
@@ -369,7 +382,7 @@ def main() -> None:
         converted.save(destination, optimize=True)
         print(f"{source_name} -> {destination} ({destination.stat().st_size} bytes)")
     for source_name, output_name in STORY_SCENES:
-        source = SOURCE_DIR / source_name
+        source = source_dir / source_name
         destination = output_dir / output_name
         if source.exists():
             with Image.open(source) as image:

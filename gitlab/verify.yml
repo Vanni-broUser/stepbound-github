@@ -13,7 +13,8 @@ unit_tests:
   needs: []
   script:
     - set -o pipefail
-    - dart pub global activate junitreport
+    # Fissato: attivato senza versione prendeva l'ultima del giorno.
+    - dart pub global activate junitreport 2.0.2
     - flutter test --coverage --machine | dart pub global run junitreport:tojunit --output report.xml
     # Soglie per area e totale in tools/coverage_policy.json. Fallisce anche
     # se una libreria con codice non e caricata da nessun test: nel file
@@ -52,9 +53,6 @@ levels_check:
   stage: verify
   needs: []
   image: python:3.11.15-slim
-  # Informativo per la prima settimana: prima si misura quanto e stabile,
-  # poi si toglie `allow_failure` e diventa bloccante.
-  allow_failure: true
   cache: []
   before_script:
     - python -m pip install --no-cache-dir --quiet -r tools/requirements.txt

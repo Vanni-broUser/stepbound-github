@@ -3,8 +3,8 @@
 # dove vivono le pull request di questo mirror, e in piu pubblica l'APK di
 # debug come artefatto scaricabile dalla pagina della run.
 #
-# I job rispecchiano quelli di GitLab: `analyze` e `unit_tests` bloccano,
-# `levels_check` per ora no, `android_debug` produce il pacchetto. Quando si
+# I job rispecchiano quelli di GitLab: `analyze`, `unit_tests` e
+# `levels_check` bloccano, `android_debug` produce il pacchetto. Quando si
 # cambia un job qui va cambiato anche il suo gemello in gitlab/, e viceversa.
 name: CI
 
@@ -70,9 +70,6 @@ jobs:
   levels_check:
     name: Atlas dei livelli rigenerato
     runs-on: ubuntu-latest
-    # Informativo per la prima settimana, come su GitLab: prima si misura
-    # quanto e stabile, poi si toglie e diventa bloccante.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
