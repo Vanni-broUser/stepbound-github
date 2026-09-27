@@ -1584,6 +1584,11 @@ void main() {
         PriestScript.seafrontScene,
         PriestScript.gateScene,
       ]);
+      expect(
+        frames.first.text,
+        'Ohh che piacere vedere qualcuno ancora in vita passeggiare per il '
+        'nostro porto',
+      );
       expect(progress.memories, <StoryMemory>{StoryMemory.priestMet});
 
       host.onCutsceneFinished!();

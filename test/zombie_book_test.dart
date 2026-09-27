@@ -198,6 +198,14 @@ void main() {
     }
   });
 
+  test('Rome names the president as President of the Council', () {
+    expect(
+      romeScenes.where((scene) => scene.speaker == 'Presidente del consiglio'),
+      hasLength(5),
+    );
+    expect(romeScenes.any((scene) => scene.speaker == 'Presidente'), isFalse);
+  });
+
   test('memories are replayed in the order they were lived, not in the '
       'order of the enum', () {
     // The Duomo met before the hypermarket, and its second half after it.

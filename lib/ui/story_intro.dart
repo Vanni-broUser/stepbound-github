@@ -84,7 +84,7 @@ const List<StoryScene> romeScenes = <StoryScene>[
   ),
   StoryScene(
     image: 'assets/story/scenes/rome_president_call.jpg',
-    speaker: 'Presidente',
+    speaker: 'Presidente del consiglio',
     text: 'Non è possibile, tutte le nostre forze sono già occupate',
   ),
   StoryScene(
@@ -96,7 +96,7 @@ const List<StoryScene> romeScenes = <StoryScene>[
   ),
   StoryScene(
     image: 'assets/story/scenes/rome_president_call.jpg',
-    speaker: 'Presidente',
+    speaker: 'Presidente del consiglio',
     text: 'Generale non posso fare altrimenti, dovete vedervela da soli',
   ),
   StoryScene(
@@ -106,7 +106,7 @@ const List<StoryScene> romeScenes = <StoryScene>[
   ),
   StoryScene(
     image: 'assets/story/scenes/rome_secretary.jpg',
-    speaker: 'Presidente',
+    speaker: 'Presidente del consiglio',
     text:
         'Non preoccuparti Petunia, quei rinforzi servono per proteggere il '
         'mio bunker',
@@ -120,12 +120,12 @@ const List<StoryScene> romeScenes = <StoryScene>[
   ),
   StoryScene(
     image: 'assets/story/scenes/rome_departure.jpg',
-    speaker: 'Presidente',
+    speaker: 'Presidente del consiglio',
     text: 'Petunia non essere petulante oppure non ti ci porto nel bunker',
   ),
   StoryScene(
     image: 'assets/story/scenes/rome_president_attacked.jpg',
-    speaker: 'Presidente',
+    speaker: 'Presidente del consiglio',
     text: 'Oddio aiuto! Petunia, aiutooo!',
   ),
 ];

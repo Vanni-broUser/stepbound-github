@@ -55,7 +55,7 @@ final class PriestScript extends TutorialScript {
       speaker: priest,
       text:
           'Ohh che piacere vedere qualcuno ancora in vita passeggiare per il '
-          'nostro lungomare',
+          'nostro porto',
     ),
     CutsceneFrame(
       image: seafrontScene,
