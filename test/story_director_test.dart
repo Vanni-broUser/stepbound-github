@@ -332,9 +332,12 @@ void main() {
     expect(host.cutscenes.single.last.text, DuomoScript.robeLine);
     expect(progress.memories, contains(StoryMemory.priestFamily));
 
+    progress.missions.give(Mission.findRing);
     host.onCutsceneFinished?.call();
     expect(host.unlocked, isNot(contains(HudElement.episcopalRing)));
     expect(host.duomoUpperOpenings, 1);
+    expect(progress.missions.isDone(Mission.findRing), isTrue);
+    expect(progress.missions.open, <Mission>[Mission.initiation]);
 
     director.onEvents(<WorldEvent>[
       NoInteractionEvent(duomoPriestTile),
@@ -444,8 +447,15 @@ void main() {
 
     // The nave is left to the cultists only once the scene is over.
     expect(host.duomoMassacres, 0);
+    expect(progress.missions.isOpen(Mission.initiation), isTrue);
     host.onCutsceneFinished?.call();
     expect(host.duomoMassacres, 1);
+    expect(
+      progress.missions.isDone(Mission.initiation),
+      isTrue,
+      reason: 'the ceremony is over once all of the mass has played',
+    );
+    expect(progress.missions.open, isEmpty);
 
     // Nobody is left in it to answer.
     director.onEvents(<WorldEvent>[
@@ -1346,6 +1356,7 @@ void main() {
       ]);
       expect(progress.memories, contains(StoryMemory.luigiRescued));
 
+      expect(progress.missions.open, <Mission>[Mission.freeLuigi]);
       host.onCutsceneFinished!();
       expect(
         host.killed,
@@ -1363,8 +1374,15 @@ void main() {
       expect(lines.last.text, MallScript.meetAtStationLine);
 
       expect(host.luigiSent, 0);
+      expect(
+        progress.missions.isOpen(Mission.freeLuigi),
+        isTrue,
+        reason: 'crossed out only once Luigi has had his say',
+      );
       host.dismiss();
       expect(host.luigiSent, 1);
+      expect(progress.missions.done, <Mission>[Mission.freeLuigi]);
+      expect(progress.missions.open, <Mission>[Mission.reachLuigi]);
     });
   });
 
@@ -1426,8 +1444,14 @@ void main() {
       expect(progress.memories, contains(StoryMemory.luigiAtStation));
       expect(host.levelsCompleted, 0, reason: 'not before the scene is over');
 
+      expect(progress.missions.isDone(Mission.reachLuigi), isFalse);
       host.onCutsceneFinished?.call();
       expect(host.levelsCompleted, 1);
+      expect(
+        progress.missions.isDone(Mission.reachLuigi),
+        isTrue,
+        reason: 'done before the level is saved, for its results',
+      );
       final mario = world.player.component<PositionComponent>();
       expect(
         mario.position,
@@ -1741,8 +1765,11 @@ void main() {
         expect(lines.every((line) => line.portrait != null), isTrue);
         final priest = director.scripts.whereType<PriestScript>().single;
         expect(priest.errandGiven, isFalse, reason: 'not until it is read');
+        expect(progress.missions.open, <Mission>[Mission.clearGate]);
         host.dismiss();
         expect(priest.errandGiven, isTrue);
+        expect(progress.missions.done, <Mission>[Mission.clearGate]);
+        expect(progress.missions.open, <Mission>[Mission.findIncense]);
       },
     );
 
@@ -1832,7 +1859,12 @@ void main() {
       expect(warning.portrait, PriestScript.priestPortrait);
 
       final warnings = host.shown.length;
+      expect(progress.missions.open, <Mission>[Mission.findIncense]);
       host.dismiss();
+      expect(progress.missions.open, <Mission>[
+        Mission.findIncense,
+        Mission.clearGate,
+      ], reason: 'the gate is a mission again');
       settle();
       expect(
         host.shown,
@@ -1850,6 +1882,13 @@ void main() {
       nearbyZombie.component<HealthComponent>().current = 0;
       settle();
       expect(host.cutscenes.last, PriestScript.welcomeScene);
+      host.onCutsceneFinished!();
+      expect(
+        progress.missions.done,
+        <Mission>[Mission.clearGate, Mission.findIncense],
+        reason: 'crossed out together, the gate counted once',
+      );
+      expect(progress.missions.open, <Mission>[Mission.findRing]);
     });
 
     test('a save after the welcome does not play it again', () {
@@ -1902,6 +1941,12 @@ void main() {
       settle();
       host.onCutsceneFinished!();
       settle();
+
+      expect(
+        progress.missions.done,
+        <Mission>[Mission.findSurvivors],
+        reason: 'Don Angelo, then Luigi: there are other survivors',
+      );
 
       // Back to the harbour to finish it.
       killTheZombiesAtTheGate();

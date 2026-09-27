@@ -44,6 +44,24 @@ final class ScenarioBuilder {
 
   void remember(StoryMemory memory) => progress.remember(memory);
 
+  /// [done] as the story leaves them, then [given] handed out after them.
+  void missions({
+    List<Mission> done = const <Mission>[],
+    List<Mission> given = const <Mission>[],
+  }) {
+    for (final mission in done) {
+      progress.missions
+        ..give(mission)
+        ..complete(mission);
+    }
+    given.forEach(progress.missions.give);
+    // Luigi and Don Angelo both met: there are other survivors.
+    if (progress.memories.contains(StoryMemory.luigiTrapped) &&
+        progress.memories.contains(StoryMemory.priestMet)) {
+      progress.missions.complete(Mission.findSurvivors);
+    }
+  }
+
   /// The backpack [id] has been picked up.
   void collect(String id) {
     world.pickups[id]!
@@ -202,6 +220,7 @@ final TestScenario vanniDeployScenario = TestScenario(
       ..collect(molotovBackpackId)
       ..unlock(HudElement.molotov)
       ..remember(StoryMemory.luigiAtStation)
+      ..missions(done: const <Mission>[Mission.reachLuigi])
       ..script('station', <String, Object?>{'reunion': true})
       ..aboardTrain();
     story.world.player.component<AmmoComponent>()
@@ -292,6 +311,7 @@ void _afterTheMass(ScenarioBuilder story) {
   story
     ..remember(StoryMemory.priestMass)
     ..remember(StoryMemory.priestMassacre)
+    ..missions(done: const <Mission>[Mission.initiation])
     ..script('duomo', <String, Object?>{'massacre': true});
 }
 
@@ -334,6 +354,10 @@ void _luigiFree(ScenarioBuilder story) {
   story
     ..remember(StoryMemory.luigiTrapped)
     ..remember(StoryMemory.luigiRescued)
+    ..missions(
+      done: const <Mission>[Mission.freeLuigi],
+      given: const <Mission>[Mission.reachLuigi],
+    )
     ..script('mall', <String, Object?>{
       'stepsInside': 10,
       'voice': true,
@@ -352,6 +376,10 @@ void _incenseErrand(ScenarioBuilder story) {
     ..kill(priestZombiePrefix)
     ..remember(StoryMemory.priestMet)
     ..remember(StoryMemory.priestErrand)
+    ..missions(
+      done: const <Mission>[Mission.clearGate],
+      given: const <Mission>[Mission.findIncense],
+    )
     ..script('priest', <String, Object?>{
       'met': true,
       'clearAsked': true,
@@ -372,6 +400,10 @@ void _welcomed(ScenarioBuilder story) {
     ..collect(incenseBackpackId)
     ..unlock(HudElement.barKey)
     ..remember(StoryMemory.priestWelcomed)
+    ..missions(
+      done: const <Mission>[Mission.findIncense],
+      given: const <Mission>[Mission.findRing],
+    )
     ..script('priest', <String, Object?>{'welcome': true});
 }
 
@@ -395,5 +427,9 @@ void _upstairs(ScenarioBuilder story) {
   story
     ..putAway(HudElement.episcopalRing)
     ..remember(StoryMemory.priestFamily)
+    ..missions(
+      done: const <Mission>[Mission.findRing],
+      given: const <Mission>[Mission.initiation],
+    )
     ..script('duomo', <String, Object?>{'ringDelivered': true});
 }

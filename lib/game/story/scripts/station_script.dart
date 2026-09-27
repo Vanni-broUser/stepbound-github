@@ -116,7 +116,10 @@ final class StationScript extends StoryScript {
   /// Behind the black the scene ends on, Mario gets on the train and
   /// stands at the map table: that is where the save puts him, and where the
   /// game picks up again when the map sends him back home.
+  /// Luigi has been reached: that mission is crossed out on the results
+  /// screen, since the level ends here.
   void _board() {
+    progress.missions.complete(Mission.reachLuigi);
     world.player.component<PositionComponent>()
       ..position = trainMapStandTile
       ..facing = trainArrivalFacing;

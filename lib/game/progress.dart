@@ -1,6 +1,9 @@
 import 'dart:math' as math;
 
 import 'package:stepbound/core/core.dart';
+import 'package:stepbound/game/missions.dart';
+
+export 'package:stepbound/game/missions.dart';
 
 /// How many rounds Mario has at least when the train brings him into a
 /// level.
@@ -93,7 +96,9 @@ final class Progress {
     Iterable<String> litCampfires = const <String>[],
     Map<LevelId, int> roundsLeft = const <LevelId, int>{},
     Map<LevelId, int> molotovsLeft = const <LevelId, int>{},
-  }) : steps = Map<LevelId, int>.of(steps),
+    MissionLog? missions,
+  }) : missions = missions ?? MissionLog(),
+       steps = Map<LevelId, int>.of(steps),
        roundsLeft = Map<LevelId, int>.of(roundsLeft),
        molotovsLeft = Map<LevelId, int>.of(molotovsLeft),
        litCampfires = Set<String>.of(litCampfires),
@@ -110,6 +115,7 @@ final class Progress {
   /// opening memories can remain pending instead of known.
   factory Progress.newGame({bool openingSaved = true}) {
     final progress = Progress();
+    progress.missions.arriveIn(progress.level);
     final opening = <StoryMemory>{
       StoryMemory.newsBroadcast,
       StoryMemory.outbreakNight,
@@ -161,6 +167,7 @@ final class Progress {
             in (json['molotovsLeft']! as Map<String, Object?>).entries)
           LevelId.values.byName(key): value! as int,
       },
+      missions: MissionLog.fromJson(json['missions']! as Map<String, Object?>),
     );
   }
 
@@ -204,6 +211,9 @@ final class Progress {
   /// like the rounds, they stay where they were found.
   final Map<LevelId, int> molotovsLeft;
 
+  /// What Mario has been asked to do, open and done, in every level.
+  final MissionLog missions;
+
   /// Whether the train has taken Mario anywhere yet, from the Europe map.
   bool get hasTravelled => roundsLeft.isNotEmpty;
 
@@ -215,6 +225,7 @@ final class Progress {
   int travel(LevelId destination, {required int rounds}) {
     roundsLeft[level] = rounds;
     level = destination;
+    missions.arriveIn(destination);
     return math.max(roundsLeft[destination] ?? 0, arrivalRounds);
   }
 
@@ -306,5 +317,6 @@ final class Progress {
       for (final MapEntry(:key, :value) in molotovsLeft.entries)
         key.name: value,
     },
+    'missions': missions.toJson(),
   };
 }

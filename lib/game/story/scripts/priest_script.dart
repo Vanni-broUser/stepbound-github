@@ -186,6 +186,12 @@ final class PriestScript extends StoryScript {
         memories: const <StoryMemory>{StoryMemory.priestWelcomed},
         music: Music.sacred,
         onBlack: _finishWelcome,
+        // The gate too, if the zombies had crowded it again: both are done
+        // together.
+        onFinished: () => progress.missions
+          ..complete(Mission.clearGate)
+          ..complete(Mission.findIncense)
+          ..give(Mission.findRing),
       );
       return;
     }
@@ -219,23 +225,37 @@ final class PriestScript extends StoryScript {
   }
 
   /// Back in the open world, the priest asks for the gate to be cleared;
-  /// the controls come back once Mario has heard him out.
+  /// the controls come back once Mario has heard him out. Asked again, once
+  /// Mario is back with the incense, the gate is a mission once more.
   void _askToClearTheGate() {
     say(
-      StoryPrompt(const <StoryLine>[
-        StoryLine.priest(clearThemOut),
-      ], onDismissed: () => _clearAsked = true),
+      StoryPrompt(
+        const <StoryLine>[StoryLine.priest(clearThemOut)],
+        onDismissed: () {
+          _clearAsked = true;
+          progress.missions.give(Mission.clearGate);
+          director.foundSurvivor();
+        },
+      ),
     );
   }
 
   /// Back in the open world again, the errand itself.
   void _askForIncense() {
     say(
-      StoryPrompt(const <StoryLine>[
-        StoryLine.priest(incenseLine),
-        StoryLine.mario(whereLine),
-        StoryLine.priest(everyTwoStreetsLine),
-      ], onDismissed: () => _errandGiven = true),
+      StoryPrompt(
+        const <StoryLine>[
+          StoryLine.priest(incenseLine),
+          StoryLine.mario(whereLine),
+          StoryLine.priest(everyTwoStreetsLine),
+        ],
+        onDismissed: () {
+          _errandGiven = true;
+          progress.missions
+            ..complete(Mission.clearGate)
+            ..give(Mission.findIncense);
+        },
+      ),
     );
   }
 

@@ -325,6 +325,15 @@ final class StoryDirector {
     );
   }
 
+  /// Luigi or Don Angelo has just been found: once both have, there are
+  /// other survivors, and that mission is done.
+  void foundSurvivor() {
+    if (progress.hasExperienced(StoryMemory.luigiTrapped) &&
+        progress.hasExperienced(StoryMemory.priestMet)) {
+      progress.missions.complete(Mission.findSurvivors);
+    }
+  }
+
   /// What has already happened, script by script, to be saved.
   Map<String, Object?> toJson() => <String, Object?>{
     for (final script in scripts) script.key: script.toJson(),
