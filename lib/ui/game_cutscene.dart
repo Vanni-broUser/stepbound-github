@@ -20,6 +20,7 @@ final class GameCutscene extends StatefulWidget {
     required this.onFinished,
     this.onBlack,
     this.stayBlack = false,
+    this.canSkip = false,
     super.key,
   });
 
@@ -27,6 +28,7 @@ final class GameCutscene extends StatefulWidget {
   final VoidCallback onFinished;
   final VoidCallback? onBlack;
   final bool stayBlack;
+  final bool canSkip;
 
   @override
   State<GameCutscene> createState() => _GameCutsceneState();
@@ -35,6 +37,15 @@ final class GameCutscene extends StatefulWidget {
 final class _GameCutsceneState extends State<GameCutscene> {
   _Stage _stage = _Stage.toBlack;
   bool _precached = false;
+
+  void _finishStory() {
+    widget.onBlack?.call();
+    if (widget.stayBlack) {
+      widget.onFinished();
+    } else {
+      setState(() => _stage = _Stage.fromBlack);
+    }
+  }
 
   @override
   void didChangeDependencies() {
@@ -71,14 +82,8 @@ final class _GameCutsceneState extends State<GameCutscene> {
               ),
           ],
           fadeOutAtEnd: true,
-          onFinished: () {
-            widget.onBlack?.call();
-            if (widget.stayBlack) {
-              widget.onFinished();
-            } else {
-              setState(() => _stage = _Stage.fromBlack);
-            }
-          },
+          onFinished: _finishStory,
+          onSkip: widget.canSkip ? _finishStory : null,
         ),
       ),
       _Stage.fromBlack => BlackFade(

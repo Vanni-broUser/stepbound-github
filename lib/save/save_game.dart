@@ -320,6 +320,14 @@ abstract interface class SaveRepository {
 
   /// Empties [slot], backup included.
   Future<void> clear(int slot);
+
+  /// Story sequences watched on [slot], even when the attempt that showed
+  /// them ended before a campfire or the train saved the game.
+  Future<Set<StoryMemory>> loadStoryHistory(int slot);
+
+  /// Replaces the lightweight viewing history for [slot]. It only enables
+  /// skipping repeated scenes; it is not part of the saved game progress.
+  Future<void> saveStoryHistory(int slot, Set<StoryMemory> memories);
 }
 
 /// A [SaveRepository] over a store of strings: each slot's save under
@@ -333,6 +341,7 @@ abstract base class StoredSaveRepository implements SaveRepository {
 
   static String slotKey(int slot) => 'stepbound.save.$slot';
   static String backupKey(int slot) => 'stepbound.save.$slot.previous';
+  static String storyHistoryKey(int slot) => 'stepbound.story-history.$slot';
 
   @protected
   Future<String?> readValue(String key);
@@ -385,6 +394,46 @@ abstract base class StoredSaveRepository implements SaveRepository {
   Future<void> clear(int slot) async {
     await removeValue(slotKey(slot));
     await removeValue(backupKey(slot));
+    await removeValue(storyHistoryKey(slot));
+  }
+
+  @override
+  Future<Set<StoryMemory>> loadStoryHistory(int slot) async {
+    final String? encoded;
+    try {
+      encoded = await readValue(storyHistoryKey(slot));
+    } on Object catch (error) {
+      debugPrint('story history: slot $slot is unreadable ($error)');
+      return <StoryMemory>{};
+    }
+    if (encoded == null) {
+      return <StoryMemory>{};
+    }
+    try {
+      final decoded = jsonDecode(encoded);
+      if (decoded is! List<Object?> || decoded.any((name) => name is! String)) {
+        throw const FormatException('not a list of names');
+      }
+      return <StoryMemory>{
+        for (final name in decoded.cast<String>())
+          StoryMemory.values.byName(name),
+      };
+    } on Object catch (error) {
+      debugPrint('story history: slot $slot is damaged ($error)');
+      return <StoryMemory>{};
+    }
+  }
+
+  @override
+  Future<void> saveStoryHistory(int slot, Set<StoryMemory> memories) async {
+    try {
+      await writeValue(
+        storyHistoryKey(slot),
+        jsonEncode(<String>[for (final memory in memories) memory.name]),
+      );
+    } on Object catch (error) {
+      debugPrint('story history: could not write slot $slot ($error)');
+    }
   }
 
   Future<(String?, SaveRead)> _readAt(String key) async {

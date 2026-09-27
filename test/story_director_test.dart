@@ -8,6 +8,10 @@ import 'package:stepbound/game/zombie_lore.dart';
 
 /// The game, and Molfetta's stage with it.
 final class _FakeHost implements StoryHost, HometownActions {
+  _FakeHost([this.progress]);
+
+  final Progress? progress;
+
   @override
   HometownActions get hometown => this;
 
@@ -99,11 +103,15 @@ final class _FakeHost implements StoryHost, HometownActions {
   @override
   void playCutscene(
     List<CutsceneFrame> frames, {
+    Set<StoryMemory> memories = const <StoryMemory>{},
     void Function()? onFinished,
     void Function()? onBlack,
     bool stayBlack = false,
     Music? music,
   }) {
+    if (progress case final progress?) {
+      memories.forEach(progress.remember);
+    }
     cutscenes.add(frames);
     cutsceneMusic.add(music);
     onCutsceneFinished = () {
@@ -192,8 +200,8 @@ void main() {
 
   setUp(() {
     world = createGameWorld();
-    host = _FakeHost();
     progress = Progress();
+    host = _FakeHost(progress);
     director = StoryDirector(world: world, host: host, progress: progress);
   });
 
@@ -1795,7 +1803,7 @@ void main() {
       settle();
       final saved = director.toJson();
 
-      host = _FakeHost()..unlock(HudElement.incense);
+      host = _FakeHost(progress)..unlock(HudElement.incense);
       director = StoryDirector(world: world, host: host, progress: progress)
         ..restore(saved);
       settle();
@@ -1810,7 +1818,7 @@ void main() {
       final saved = director.toJson();
       final resumed = StoryDirector(
         world: world,
-        host: host = _FakeHost(),
+        host: host = _FakeHost(progress),
         progress: progress,
       )..restore(saved);
       director = resumed;

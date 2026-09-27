@@ -269,6 +269,7 @@ void main() {
       MaterialApp(
         home: StoryIntro(
           scenes: scenes,
+          allowBackNavigation: true,
           onFinished: () {},
           onScene: (scene) => shown.add(scene.music),
         ),
@@ -281,5 +282,11 @@ void main() {
     await tester.tap(story);
     await tester.pump();
     expect(shown, <Music?>[null, Music.luigi]);
+
+    final bounds = tester.getRect(story);
+    await tester.tapAt(Offset(bounds.left + 10, bounds.center.dy));
+    await tester.pump();
+    expect(shown, <Music?>[null, Music.luigi, null]);
+    expect(find.text('a'), findsOneWidget);
   });
 }

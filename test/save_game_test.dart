@@ -71,6 +71,46 @@ void main() {
     ]);
   });
 
+  test('viewed story stays separate until a campfire or train confirms it', () {
+    final progress = Progress(
+      viewedMemories: const <StoryMemory>{StoryMemory.priestMet},
+    );
+    expect(progress.hasViewed(StoryMemory.priestMet), isTrue);
+    expect(progress.hasExperienced(StoryMemory.priestMet), isFalse);
+    expect(progress.memories, isEmpty);
+
+    progress.view(StoryMemory.priestMet);
+    expect(progress.hasExperienced(StoryMemory.priestMet), isTrue);
+    expect(progress.memories, isEmpty, reason: 'not saved yet');
+    expect(progress.toJson()['memories'], isEmpty);
+    expect(progress.toJson(confirmPendingMemories: true)['memories'], <String>[
+      StoryMemory.priestMet.name,
+    ]);
+
+    progress.confirmPendingMemories();
+    expect(progress.memories, <StoryMemory>{StoryMemory.priestMet});
+  });
+
+  test(
+    'story viewing history survives without becoming save progress',
+    () async {
+      final saves = MemorySaveRepository();
+      await saves.saveStoryHistory(1, <StoryMemory>{
+        StoryMemory.luigiTrapped,
+        StoryMemory.priestMet,
+      });
+
+      expect(await saves.load(1), isNull);
+      expect(await saves.loadStoryHistory(1), <StoryMemory>{
+        StoryMemory.luigiTrapped,
+        StoryMemory.priestMet,
+      });
+
+      await saves.clear(1);
+      expect(await saves.loadStoryHistory(1), isEmpty);
+    },
+  );
+
   test('a save keeps the steps walked in each level and the fires lit', () {
     final progress = Progress.newGame()
       ..countStep()

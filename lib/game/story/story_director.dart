@@ -167,6 +167,7 @@ abstract interface class StoryHost {
   /// happening. With [music] the scene has its own, in place of the game's.
   void playCutscene(
     List<CutsceneFrame> frames, {
+    Set<StoryMemory> memories = const <StoryMemory>{},
     void Function()? onFinished,
     void Function()? onBlack,
     bool stayBlack = false,
