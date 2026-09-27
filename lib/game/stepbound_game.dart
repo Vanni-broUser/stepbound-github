@@ -837,6 +837,32 @@ final class StepboundGame extends FlameGame
     }
   }
 
+  /// Whether the game can be put down as it is and picked up again from
+  /// the menu: playing, Mario alive and free to act, or the pause menu
+  /// open over him. Not in the middle of a story line, a scene, a place
+  /// card or a rest at a fire: the scripts' steps in between would be
+  /// lost with the screen, and the game would come back stuck.
+  bool get canBeSuspended {
+    final scene = cover.value;
+    return readyToShow.value &&
+        _acceptsInput &&
+        !_levelCompleted &&
+        _campfire == null &&
+        _cardThreshold == null &&
+        !story.holdsInput &&
+        !_stages.any((stage) => stage.holdsMario) &&
+        (scene == null || scene is PauseCover);
+  }
+
+  /// The name of where Mario is, for the slot list: the place's own, or
+  /// the level's where a place has none.
+  String get placeName =>
+      _placeShown.name ??
+      switch (progress.level) {
+        LevelId.hometown => 'Città natale',
+        LevelId.rome => 'Roma',
+      };
+
   /// The whole game as it is now, ready to be saved.
   GameSnapshot snapshot({required String place, bool confirmStory = false}) => (
     world: saveGameWorld(simulation),

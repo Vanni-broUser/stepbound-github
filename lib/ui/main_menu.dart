@@ -98,12 +98,15 @@ final class _MainMenuState extends State<MainMenu> {
 
   /// A slot whose save is damaged says so, and cannot be loaded; one whose
   /// save was damaged but had a good one before it shows that one, marked
-  /// as the backup it is.
+  /// as the backup it is; one holding the game as it was put down, since
+  /// its last campfire, says that too.
   String _slotLabel(int slot) => switch (_slots[slot - 1]) {
     EmptySave() => 'SLOT $slot\nvuoto',
     DamagedSave() => 'SLOT $slot\ndanneggiato, non si può caricare',
-    LoadedSave(:final save, :final fromBackup) =>
-      'SLOT $slot  ${_date(save.savedAt)}${fromBackup ? '  (riserva)' : ''}\n'
+    LoadedSave(:final save, :final fromBackup, :final suspended) =>
+      'SLOT $slot  ${_date(save.savedAt)}'
+          '${fromBackup ? '  (riserva)' : ''}'
+          '${suspended ? '  (in sospeso)' : ''}\n'
           '${save.place}  ·  ${_played(save.played)}',
   };
 

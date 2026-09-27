@@ -366,6 +366,72 @@ void main() {
     });
   });
 
+  group('the game put down', () {
+    test(
+      'is what the menu reads, while the fire is what is gone back to',
+      () async {
+        final saves = MemorySaveRepository();
+        await saves.save(save(place: 'Il porto'));
+        await saves.suspend(save(place: 'Via del porto'));
+        final read = await saves.read(1);
+        expect(read, isA<LoadedSave>());
+        expect((read as LoadedSave).suspended, isTrue);
+        expect(read.save.place, 'Via del porto');
+        expect((await saves.load(1))!.place, 'Il porto');
+        expect((await saves.all()).first, isA<LoadedSave>());
+      },
+    );
+
+    test('can be put down with no fire behind it', () async {
+      final saves = MemorySaveRepository();
+      await saves.suspend(save(place: 'Via del porto'));
+      expect((await saves.read(1)).game!.place, 'Via del porto');
+      expect(await saves.load(1), isNull);
+    });
+
+    test(
+      'goes with the next campfire, or with going back to the fire',
+      () async {
+        final saves = MemorySaveRepository();
+        await saves.save(save(place: 'Il porto'));
+        await saves.suspend(save(place: 'Via del porto'));
+        await saves.save(save(place: 'La stazione'));
+        expect((await saves.read(1)).game!.place, 'La stazione');
+        expect((await saves.read(1) as LoadedSave).suspended, isFalse);
+
+        await saves.suspend(save(place: 'Via del porto'));
+        await saves.clearSuspended(1);
+        expect((await saves.read(1)).game!.place, 'La stazione');
+        expect((await saves.read(1) as LoadedSave).suspended, isFalse);
+      },
+    );
+
+    test('damaged, leaves the fire to play', () async {
+      final saves = MemorySaveRepository();
+      await saves.save(save(place: 'Il porto'));
+      saves.values[StoredSaveRepository.suspendedKey(1)] = '{';
+      final read = await saves.read(1);
+      expect(read.game!.place, 'Il porto');
+      expect((read as LoadedSave).suspended, isFalse);
+    });
+
+    test('is wiped with the slot', () async {
+      final saves = MemorySaveRepository();
+      await saves.save(save(place: 'Il porto'));
+      await saves.suspend(save(place: 'Via del porto'));
+      await saves.clear(1);
+      expect(saves.values, isEmpty);
+    });
+
+    test('that cannot be written is a SaveWriteException', () async {
+      final saves = MemorySaveRepository()..failWrites = true;
+      await expectLater(
+        saves.suspend(save()),
+        throwsA(isA<SaveWriteException>()),
+      );
+    });
+  });
+
   group('on the device', () {
     setUp(
       () => SharedPreferencesAsyncPlatform.instance =

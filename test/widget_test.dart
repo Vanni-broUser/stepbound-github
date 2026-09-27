@@ -2349,6 +2349,161 @@ void main() {
     });
   });
 
+  testWidgets('putting the app down writes the game as it is, beside the '
+      'fire', (tester) {
+    return tester.runAsync(() async {
+      final saves = MemorySaveRepository();
+      final game = await _pumpReadyGame(tester, saves: saves);
+      game.simulation.player.component<PositionComponent>().position =
+          const GridPoint(16, 20);
+      expect(await saves.read(1), isA<EmptySave>());
+
+      // The way out as Android walks it: inactive, hidden, paused.
+      <AppLifecycleState>[
+        AppLifecycleState.inactive,
+        AppLifecycleState.hidden,
+        AppLifecycleState.paused,
+      ].forEach(tester.binding.handleAppLifecycleStateChanged);
+      await tester.pump();
+      final key = StoredSaveRepository.suspendedKey(1);
+      for (var i = 0; i < 20 && !saves.values.containsKey(key); i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      }
+      final read = await saves.read(1);
+      expect(read, isA<LoadedSave>());
+      expect((read as LoadedSave).suspended, isTrue);
+      expect(read.save.atCampfire, isFalse);
+      expect(read.save.place, game.placeName);
+      expect(
+        restoreGameWorld(
+          read.save.world,
+        ).player.component<PositionComponent>().position,
+        const GridPoint(16, 20),
+      );
+      expect(await saves.load(1), isNull, reason: 'no fire has been rested at');
+      <AppLifecycleState>[
+        AppLifecycleState.hidden,
+        AppLifecycleState.inactive,
+        AppLifecycleState.resumed,
+      ].forEach(tester.binding.handleAppLifecycleStateChanged);
+      await tester.pump();
+    });
+  });
+
+  testWidgets('not in the middle of a story line, where the game could not '
+      'pick itself up again', (tester) {
+    return tester.runAsync(() async {
+      final saves = MemorySaveRepository();
+      final game = await _pumpReadyGame(tester, saves: saves);
+      game.showPrompt(const <StoryLine>[StoryLine('Un momento.')]);
+      await tester.pump();
+      expect(game.canBeSuspended, isFalse);
+      // The way out as Android walks it: inactive, hidden, paused.
+      <AppLifecycleState>[
+        AppLifecycleState.inactive,
+        AppLifecycleState.hidden,
+        AppLifecycleState.paused,
+      ].forEach(tester.binding.handleAppLifecycleStateChanged);
+      await tester.pump();
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      expect(
+        saves.values.containsKey(StoredSaveRepository.suspendedKey(1)),
+        isFalse,
+      );
+      <AppLifecycleState>[
+        AppLifecycleState.hidden,
+        AppLifecycleState.inactive,
+        AppLifecycleState.resumed,
+      ].forEach(tester.binding.handleAppLifecycleStateChanged);
+      await tester.pump();
+    });
+  });
+
+  testWidgets('a game put down is picked up from the menu as it was, and '
+      'the fire behind it is still the one to go back to', (tester) {
+    return tester.runAsync(() async {
+      final saves = MemorySaveRepository();
+      final atFire = createGameWorld();
+      atFire.player.component<PositionComponent>().position = const GridPoint(
+        16,
+        20,
+      );
+      await saves.save(
+        SaveGame(
+          slot: 1,
+          savedAt: DateTime(2026, 9, 21, 17),
+          place: 'Dietro la caserma',
+          world: saveGameWorld(atFire),
+          story: const <String, Object?>{},
+          progress: Progress.newGame().toJson(),
+          hud: const <String>['interact'],
+        ),
+      );
+      final putDown = createGameWorld();
+      putDown.player.component<PositionComponent>().position = const GridPoint(
+        16,
+        24,
+      );
+      await saves.suspend(
+        SaveGame(
+          slot: 1,
+          savedAt: DateTime(2026, 9, 21, 18),
+          place: 'Città natale',
+          world: saveGameWorld(putDown),
+          story: const <String, Object?>{},
+          progress: Progress.newGame().toJson(),
+          hud: const <String>['interact'],
+          atCampfire: false,
+        ),
+      );
+      await tester.pumpWidget(StepboundApp(saves: saves, audio: SilentAudio()));
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey<String>('menu-load')));
+      await tester.pump();
+      expect(find.textContaining('(in sospeso)'), findsOne);
+      expect(find.textContaining('Città natale'), findsOne);
+      await tester.tap(find.byKey(const ValueKey<String>('menu-slot-1')));
+      await tester.pump();
+      await _waitForGame(tester);
+      final game = tester
+          .state<GameWidgetState<StepboundGame>>(
+            find.byType(GameWidget<StepboundGame>),
+          )
+          .currentGame;
+      expect(
+        game.simulation.player.component<PositionComponent>().position,
+        const GridPoint(16, 24),
+        reason: 'the game as it was put down',
+      );
+
+      game.cover.value = const GameOverCover();
+      await tester.pump();
+      expect(
+        find.text('RIPRENDI DAL FALÒ (60)'),
+        findsOneWidget,
+        reason: 'the fire of the slot is still there to go back to',
+      );
+      await tester.tap(find.text('RIPRENDI DAL FALÒ (60)'));
+      await tester.pump();
+      await _waitForGame(tester);
+      final resumed = tester
+          .state<GameWidgetState<StepboundGame>>(
+            find.byType(GameWidget<StepboundGame>),
+          )
+          .currentGame;
+      expect(
+        resumed.simulation.player.component<PositionComponent>().position,
+        const GridPoint(16, 20),
+      );
+      expect(
+        (await saves.read(1) as LoadedSave).suspended,
+        isFalse,
+        reason: 'going back to the fire gives up the game put down',
+      );
+    });
+  });
+
   testWidgets('a game loaded from the train offers the train back', (tester) {
     return tester.runAsync(() async {
       final saves = MemorySaveRepository();

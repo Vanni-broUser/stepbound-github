@@ -68,3 +68,22 @@ coprono i punti della storia che gli scenari coprono. Il controllo
 script della storia (vedi la voce P3 sui salvataggi nel backlog). Prima di
 pubblicare una build che migra, conviene comunque caricare a mano un
 salvataggio vero della build precedente.
+
+## Il salvataggio sospeso
+
+Oltre al salvataggio del falò, uno slot può tenere la partita **come era
+quando è stata messa giù**: l'app che va in secondo piano, o il giocatore
+che torna al menu principale, la scrivono sotto la chiave
+`stepbound.save.<slot>.suspended` (`SaveRepository.suspend`). Non viene
+scritta in mezzo a una battuta, a una scena o a una sosta al fuoco: da lì
+gli script non saprebbero ripartire.
+
+Il menu mostra e carica quella, segnata "(in sospeso)"; il falò a cui
+tornare resta il salvataggio dello slot (`SaveRepository.load`). La
+scrittura del falò successivo, il ritorno al falò e una nuova partita la
+cancellano.
+
+È un `SaveGame` come gli altri, dello stesso formato: `SaveGame.decode` la
+legge e la migra con le stesse regole, e una danneggiata lascia giocare il
+falò. I salvataggi congelati della build pubblica non ne includono uno:
+non ce n'è bisogno, il formato è quello.

@@ -122,10 +122,50 @@ final class _StepboundAppState extends State<StepboundApp> {
       if (_phase != _Phase.menu) {
         _clock.start();
       }
+      _putDown = false;
       return;
     }
     _audio.pause();
     _clock.stop();
+    // Once on the way out, whatever the steps: Android may kill the app
+    // in the background, and everything since the last fire would go.
+    if (!_putDown) {
+      _putDown = true;
+      unawaited(_suspend());
+    }
+  }
+
+  /// Whether the game has been written down since the app left the front.
+  bool _putDown = false;
+
+  /// Writes the game as it is beside the slot's save, to be picked up from
+  /// the menu; the campfire's save stays the one to go back to. Only while
+  /// playing, and only in a state the game can come back to (see
+  /// [StepboundGame.canBeSuspended]): otherwise the slot keeps what it had.
+  Future<void> _suspend() async {
+    final game = _game;
+    if (game == null || _phase != _Phase.playing || !game.canBeSuspended) {
+      return;
+    }
+    final snapshot = game.snapshot(place: game.placeName);
+    try {
+      await _saves.suspend(
+        SaveGame(
+          slot: _slot,
+          savedAt: DateTime.now(),
+          place: snapshot.place,
+          world: snapshot.world,
+          story: snapshot.story,
+          progress: snapshot.progress,
+          hud: snapshot.hud,
+          atCampfire: false,
+          played: _played,
+          levelStart: _levelStart,
+        ),
+      );
+    } on SaveWriteException catch (error) {
+      debugPrint('save: $error');
+    }
   }
 
   @override
@@ -175,6 +215,9 @@ final class _StepboundAppState extends State<StepboundApp> {
 
   Future<void> _loadGame(SaveGame save) async {
     final history = await _saves.loadStoryHistory(save.slot);
+    // A game put down is picked up as it was, but the fire to go back to
+    // is still the slot's own save.
+    final checkpoint = await _saves.load(save.slot) ?? save;
     if (!mounted) {
       return;
     }
@@ -187,7 +230,7 @@ final class _StepboundAppState extends State<StepboundApp> {
     _loadingFadesIn = false;
     setState(() {
       _slot = save.slot;
-      _resumePoint = _resumePointOf(save);
+      _resumePoint = _resumePointOf(checkpoint);
       _levelStart = save.levelStart;
       _game = _gameFrom(save, progress: progress);
       _phase = _Phase.playing;
@@ -300,6 +343,12 @@ final class _StepboundAppState extends State<StepboundApp> {
   Future<void> _resumeFromCamp() async {
     final save = await _saves.load(_slot);
     final history = await _saves.loadStoryHistory(_slot);
+    // Going back to the fire is giving up whatever was put down since.
+    try {
+      await _saves.clearSuspended(_slot);
+    } on Object catch (error) {
+      debugPrint('save: could not drop the game put down ($error)');
+    }
     if (!mounted) {
       return;
     }
@@ -640,10 +689,12 @@ final class _StepboundAppState extends State<StepboundApp> {
     _startLevel(LevelId.rome);
   }
 
-  /// From the pause menu or the game over screen. The pictures of the
-  /// game's places, kept for a game started over at once, go: the menu
-  /// can stay open a long while.
+  /// From the pause menu or the game over screen. A game left from its
+  /// menu is put down like one sent to the background: the slot offers it
+  /// again as it was. The pictures of its places, kept for a game
+  /// started over at once, go: the menu can stay open a long while.
   void _backToMenu() {
+    unawaited(_suspend());
     _audio
       ..silenceAmbience()
       ..playMusic(Music.menu);
