@@ -13,10 +13,16 @@ Future<void> bootstrap() async {
   // Instantiate the listener before startup work so a cold-start link cannot
   // be missed while orientation and system UI are being configured.
   final skinLinks = AppLinks().uriLinkStream;
-  await SystemChrome.setPreferredOrientations(const <DeviceOrientation>[
-    DeviceOrientation.landscapeLeft,
-    DeviceOrientation.landscapeRight,
-  ]);
+  // On Android the manifest's sensorLandscape already locks to landscape and
+  // flips between both sides with the sensor. Asking Flutter for the same two
+  // orientations would replace it with userLandscape, which obeys the system
+  // rotation lock and keeps the game upside down when the phone is turned.
+  if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+    await SystemChrome.setPreferredOrientations(const <DeviceOrientation>[
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
+  }
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   final saves = PreferencesSaveRepository();
   final outfitUnlocks = PreferencesOutfitUnlockRepository();
