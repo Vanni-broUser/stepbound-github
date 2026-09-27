@@ -15,7 +15,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: AdventureStats(
-          world: createTutorialWorld(),
+          world: createGameWorld(),
           progress: progress,
           onClose: () => closes++,
         ),

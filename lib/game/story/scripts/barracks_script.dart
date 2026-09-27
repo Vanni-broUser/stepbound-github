@@ -1,12 +1,12 @@
 import 'package:stepbound/core/core.dart';
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/game/story/story_director.dart';
 
 /// The carabinieri barracks: on the forecourt Mario hopes he is safe; a few
 /// steps inside, the carabinieri zombies come out of the dark, and the
 /// first one to become aware of him is framed while its reach is
 /// explained. The lesson belongs here: the carabinieri in the hordes on the
 /// hospital road never give it.
-final class BarracksScript extends TutorialScript {
+final class BarracksScript extends StoryScript {
   BarracksScript(super.director);
 
   static const String barracksReached =
@@ -58,9 +58,9 @@ final class BarracksScript extends TutorialScript {
     }
     _forecourtLinesGiven = true;
     say(
-      TutorialPrompt(const <TutorialLine>[
-        TutorialLine.mario(barracksReached),
-        TutorialLine.mario(barracksSafe),
+      StoryPrompt(const <StoryLine>[
+        StoryLine.mario(barracksReached),
+        StoryLine.mario(barracksSafe),
       ]),
     );
   }

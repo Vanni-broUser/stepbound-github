@@ -6,7 +6,7 @@ import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/input/game_input_controller.dart';
 import 'package:stepbound/game/stepbound_game.dart';
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/ui/audio_scope.dart';
 import 'package:stepbound/ui/blood_decor.dart';
 import 'package:stepbound/ui/blood_splat.dart';

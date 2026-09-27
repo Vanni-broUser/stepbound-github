@@ -2,7 +2,7 @@
 """Paint what the levels are drawn with, or check that it is current.
 
 A place used to live twice: as the ASCII `rows` the simulation reads
-(lib/core/levels/tutorial) and as a PNG the player saw (assets/levels),
+(lib/core/levels/<level>/) and as a PNG the player saw (assets/levels),
 baked from those rows by one of eleven bakers. Nothing in `flutter test` or
 `flutter analyze` saw the PNGs, so the two could drift apart unnoticed, and
 this script was the gate that noticed.

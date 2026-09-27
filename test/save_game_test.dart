@@ -31,8 +31,8 @@ void main() {
     slot: 1,
     savedAt: DateTime(2026),
     place: place,
-    world: saveTutorialWorld(createTutorialWorld()),
-    tutorial: const <String, Object?>{},
+    world: saveGameWorld(createGameWorld()),
+    story: const <String, Object?>{},
     progress: progress ?? Progress.newGame().toJson(),
     hud: const <String>[],
     played: const Duration(hours: 2, minutes: 7, seconds: 3),
@@ -208,7 +208,7 @@ void main() {
       'savedAt',
       'place',
       'world',
-      'tutorial',
+      'story',
       'progress',
       'hud',
       'atCampfire',
@@ -253,7 +253,7 @@ void main() {
         SaveGame.decode(jsonEncode(zombies), check: checkRestorable),
         isA<DamagedSave>(),
       );
-      final world = saveTutorialWorld(createTutorialWorld());
+      final world = saveGameWorld(createGameWorld());
       world['mapChanges'] = <Object?>[
         <String, Object?>{'x': 1, 'y': 1, 'kind': 'lava'},
       ];

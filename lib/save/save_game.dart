@@ -13,7 +13,7 @@ final class SaveGame {
     required this.savedAt,
     required this.place,
     required this.world,
-    required this.tutorial,
+    required this.story,
     required this.progress,
     required this.hud,
     this.atCampfire = true,
@@ -54,7 +54,7 @@ final class SaveGame {
       savedAt: savedAt,
       place: fields.read<String>('place'),
       world: fields.read<Map<String, Object?>>('world'),
-      tutorial: fields.read<Map<String, Object?>>('tutorial'),
+      story: fields.read<Map<String, Object?>>('story'),
       progress: fields.read<Map<String, Object?>>('progress'),
       hud: hud.cast<String>(),
       atCampfire: fields.read<bool>('atCampfire'),
@@ -118,7 +118,7 @@ final class SaveGame {
   /// Bump it whenever what a save holds changes. Saves of the formats in
   /// between public builds are dropped, never migrated; those of the last
   /// public build are, see `docs/save_policy.md`.
-  static const int format = 31;
+  static const int format = 32;
 
   /// 1 to [SaveRepository.slotCount].
   final int slot;
@@ -127,11 +127,11 @@ final class SaveGame {
   /// Where the save was made, as shown in the slot list.
   final String place;
 
-  /// The simulation, as `saveTutorialWorld`.
+  /// The simulation, as `saveGameWorld`.
   final Map<String, Object?> world;
 
-  /// What the tutorial's scripts have done, as `TutorialDirector.toJson`.
-  final Map<String, Object?> tutorial;
+  /// What the story's scripts have done, as `StoryDirector.toJson`.
+  final Map<String, Object?> story;
 
   /// The zombie types met and the story scenes seen, as `Progress.toJson`.
   final Map<String, Object?> progress;
@@ -160,7 +160,7 @@ final class SaveGame {
     savedAt: savedAt,
     place: place,
     world: world,
-    tutorial: tutorial,
+    story: story,
     progress: progress,
     hud: hud,
     atCampfire: atCampfire,
@@ -174,7 +174,7 @@ final class SaveGame {
     'savedAt': savedAt.toIso8601String(),
     'place': place,
     'world': world,
-    'tutorial': tutorial,
+    'story': story,
     'progress': progress,
     'hud': hud,
     'atCampfire': atCampfire,
@@ -188,7 +188,7 @@ final class SaveGame {
 final class LevelStart {
   const LevelStart({
     required this.world,
-    required this.tutorial,
+    required this.story,
     required this.progress,
     required this.hud,
   });
@@ -201,20 +201,20 @@ final class LevelStart {
     }
     return LevelStart(
       world: fields.read<Map<String, Object?>>('world'),
-      tutorial: fields.read<Map<String, Object?>>('tutorial'),
+      story: fields.read<Map<String, Object?>>('story'),
       progress: fields.read<Map<String, Object?>>('progress'),
       hud: hud.cast<String>(),
     );
   }
 
   final Map<String, Object?> world;
-  final Map<String, Object?> tutorial;
+  final Map<String, Object?> story;
   final Map<String, Object?> progress;
   final List<String> hud;
 
   Map<String, Object?> toJson() => <String, Object?>{
     'world': world,
-    'tutorial': tutorial,
+    'story': story,
     'progress': progress,
     'hud': hud,
   };
@@ -248,10 +248,10 @@ typedef SaveCheck = void Function(SaveGame save);
 /// they throw (a missing field, a zombie type or a tile kind the game does
 /// not know) marks the save as damaged.
 void checkRestorable(SaveGame save) {
-  restoreTutorialWorld(save.world);
+  restoreGameWorld(save.world);
   Progress.fromJson(save.progress);
   if (save.levelStart case final start?) {
-    restoreTutorialWorld(start.world);
+    restoreGameWorld(start.world);
     Progress.fromJson(start.progress);
   }
 }

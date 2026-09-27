@@ -3,7 +3,7 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/input/game_input_controller.dart';
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/game/story/story_director.dart';
 
 import 'test_world.dart';
 

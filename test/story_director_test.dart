@@ -1,14 +1,19 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/sound.dart';
+import 'package:stepbound/game/levels/hometown_stage.dart';
 import 'package:stepbound/game/progress.dart';
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/game/zombie_lore.dart';
 
-final class _FakeHost implements TutorialHost {
+/// The game, and Molfetta's stage with it.
+final class _FakeHost implements StoryHost, HometownActions {
+  @override
+  HometownActions get hometown => this;
+
   final Set<GridPoint> visible = <GridPoint>{};
   final Set<HudElement> unlocked = <HudElement>{};
-  final List<List<TutorialLine>> shown = <List<TutorialLine>>[];
+  final List<List<StoryLine>> shown = <List<StoryLine>>[];
   final List<Entity> spawned = <Entity>[];
   void Function()? _onDismissed;
   int pickupAnimations = 0;
@@ -27,7 +32,7 @@ final class _FakeHost implements TutorialHost {
   bool isTileVisible(GridPoint tile) => visible.contains(tile);
 
   @override
-  void showPrompt(List<TutorialLine> lines, {void Function()? onDismissed}) {
+  void showPrompt(List<StoryLine> lines, {void Function()? onDismissed}) {
     shown.add(lines);
     isPromptVisible = true;
     _onDismissed = onDismissed;
@@ -153,7 +158,7 @@ final class _FakeHost implements TutorialHost {
 void main() {
   late WorldState world;
   late _FakeHost host;
-  late TutorialDirector director;
+  late StoryDirector director;
   late Progress progress;
 
   GridPoint zombiePosition() =>
@@ -186,17 +191,17 @@ void main() {
   );
 
   setUp(() {
-    world = createTutorialWorld();
+    world = createGameWorld();
     host = _FakeHost();
     progress = Progress();
-    director = TutorialDirector(world: world, host: host, progress: progress);
+    director = StoryDirector(world: world, host: host, progress: progress);
   });
 
   test('a queued prompt stops Mario and counts down while he still walks', () {
     director.queue(
-      TutorialPrompt(<TutorialLine>[
-        const TutorialLine('Ecco'),
-      ], delay: TutorialDirector.reactionDelay),
+      StoryPrompt(<StoryLine>[
+        const StoryLine('Ecco'),
+      ], delay: StoryDirector.reactionDelay),
     );
 
     // Holding an arrow down leaves hardly a frame between one step and the
@@ -948,7 +953,7 @@ void main() {
       AlertedEvent(entityId: tutorialZombieId, at: zombiePosition()),
     ]);
     final saved = director.toJson();
-    final restored = TutorialDirector(
+    final restored = StoryDirector(
       world: world,
       host: _FakeHost(),
       progress: Progress(),
@@ -1047,7 +1052,7 @@ void main() {
 
     test('a type met before, in this level or another, is not introduced '
         'again', () {
-      final known = TutorialDirector(
+      final known = StoryDirector(
         world: world,
         host: host,
         progress: Progress(knownZombies: <EntityKind>[EntityKind.mutilated]),
@@ -1060,11 +1065,11 @@ void main() {
       expect(host.focus, isNull);
     });
 
-    test('it survives a save through the progress, not the tutorial', () {
+    test('it survives a save through the progress, not the story scripts', () {
       host.visible.add(at(mutilated().first));
       settle();
       host.dismiss();
-      final restored = TutorialDirector(
+      final restored = StoryDirector(
         world: world,
         host: host,
         progress: Progress.fromJson(progress.toJson()),
@@ -1102,7 +1107,7 @@ void main() {
     });
 
     test('a new type waits for what is being said to be over', () {
-      host.showPrompt(const <TutorialLine>[TutorialLine('...')]);
+      host.showPrompt(const <StoryLine>[StoryLine('...')]);
       host.visible.add(at(mutilated().first));
       settle();
       expect(host.focus, isNull, reason: 'the camera stays on Mario');
@@ -1504,7 +1509,7 @@ void main() {
       takeAPlatformStep();
       expect(host.cutscenes, hasLength(1));
 
-      final resumed = TutorialDirector(
+      final resumed = StoryDirector(
         world: world,
         host: host,
         progress: progress,
@@ -1778,7 +1783,7 @@ void main() {
       final saved = director.toJson();
 
       host = _FakeHost()..unlock(HudElement.incense);
-      director = TutorialDirector(world: world, host: host, progress: progress)
+      director = StoryDirector(world: world, host: host, progress: progress)
         ..restore(saved);
       settle();
 
@@ -1790,7 +1795,7 @@ void main() {
       meetThePriest();
       // Resting at a camp and loading again: a new director, restored.
       final saved = director.toJson();
-      final resumed = TutorialDirector(
+      final resumed = StoryDirector(
         world: world,
         host: host = _FakeHost(),
         progress: progress,

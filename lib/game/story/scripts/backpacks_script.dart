@@ -1,11 +1,11 @@
 import 'package:stepbound/core/core.dart';
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/game/story/story_director.dart';
 
 /// Backpacks, wherever they are: the first one seen teaches picking them up
 /// and unlocks interacting (slipping past the first zombie can lead
 /// to the accident one first); each one collected says what it held,
 /// unlocking the ammo counter and, with the pistol, shooting.
-final class BackpacksScript extends TutorialScript {
+final class BackpacksScript extends StoryScript {
   BackpacksScript(super.director);
 
   static const String backpackLesson =
@@ -50,9 +50,9 @@ final class BackpacksScript extends TutorialScript {
       if (duomoKey) {
         // Whose it was is the news, as much as the key itself.
         say(
-          TutorialPrompt(
-            const <TutorialLine>[TutorialLine(duomoKeyFound)],
-            delay: TutorialDirector.pickupDelay,
+          StoryPrompt(
+            const <StoryLine>[StoryLine(duomoKeyFound)],
+            delay: StoryDirector.pickupDelay,
             onShown: () => host.unlock(HudElement.duomoKey),
           ),
         );
@@ -61,9 +61,9 @@ final class BackpacksScript extends TutorialScript {
       if (episcopalRing) {
         // Like the incense: the news and the badge are one moment.
         say(
-          TutorialPrompt(
-            const <TutorialLine>[TutorialLine(ringFound)],
-            delay: TutorialDirector.pickupDelay,
+          StoryPrompt(
+            const <StoryLine>[StoryLine(ringFound)],
+            delay: StoryDirector.pickupDelay,
             onShown: () => host.unlock(HudElement.episcopalRing),
           ),
         );
@@ -73,7 +73,7 @@ final class BackpacksScript extends TutorialScript {
     }
   }
 
-  TutorialPrompt _found({
+  StoryPrompt _found({
     required int ammo,
     required bool gun,
     required bool incense,
@@ -81,23 +81,23 @@ final class BackpacksScript extends TutorialScript {
     if (incense) {
       // The censer goes up in the corner as soon as the box is read, so
       // the news and the icon appearing are one moment.
-      return TutorialPrompt(
-        const <TutorialLine>[TutorialLine(incenseFound)],
-        delay: TutorialDirector.pickupDelay,
+      return StoryPrompt(
+        const <StoryLine>[StoryLine(incenseFound)],
+        delay: StoryDirector.pickupDelay,
         onShown: () => host.unlock(HudElement.incense),
       );
     }
     if (gun) {
-      return TutorialPrompt(
-        const <TutorialLine>[TutorialLine(gunFound), TutorialLine(shootLesson)],
-        delay: TutorialDirector.pickupDelay,
+      return StoryPrompt(
+        const <StoryLine>[StoryLine(gunFound), StoryLine(shootLesson)],
+        delay: StoryDirector.pickupDelay,
         onDismissed: () => host.unlock(HudElement.shoot),
       );
     }
     final hasGun = world.player.component<AmmoComponent>().hasGun;
-    return TutorialPrompt(
-      <TutorialLine>[TutorialLine(ammoFound(ammo, hasGun: hasGun))],
-      delay: TutorialDirector.pickupDelay,
+    return StoryPrompt(
+      <StoryLine>[StoryLine(ammoFound(ammo, hasGun: hasGun))],
+      delay: StoryDirector.pickupDelay,
       onShown: () => host.unlock(HudElement.ammo),
     );
   }
@@ -115,12 +115,9 @@ final class BackpacksScript extends TutorialScript {
     }
     _lessonGiven = true;
     say(
-      TutorialPrompt(
-        const <TutorialLine>[
-          TutorialLine(backpackLesson),
-          TutorialLine(interactLesson),
-        ],
-        delay: TutorialDirector.reactionDelay,
+      StoryPrompt(
+        const <StoryLine>[StoryLine(backpackLesson), StoryLine(interactLesson)],
+        delay: StoryDirector.reactionDelay,
         onDismissed: () => host.unlock(HudElement.interact),
       ),
     );

@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:stepbound/core/core.dart';
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/game/story/story_director.dart';
 
 /// Turns the keyboard and the touch controls into Mario's actions: a
 /// direction held down keeps walking, the pistol goes up and down, and the

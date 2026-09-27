@@ -1,62 +1,63 @@
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/sound.dart';
+import 'package:stepbound/game/levels/hometown_stage.dart';
 import 'package:stepbound/game/progress.dart';
-import 'package:stepbound/game/tutorial/scripts/backpacks_script.dart';
-import 'package:stepbound/game/tutorial/scripts/bar_script.dart';
-import 'package:stepbound/game/tutorial/scripts/barracks_script.dart';
-import 'package:stepbound/game/tutorial/scripts/duomo_script.dart';
-import 'package:stepbound/game/tutorial/scripts/journey_script.dart';
-import 'package:stepbound/game/tutorial/scripts/mall_script.dart';
-import 'package:stepbound/game/tutorial/scripts/north_district_script.dart';
-import 'package:stepbound/game/tutorial/scripts/priest_script.dart';
-import 'package:stepbound/game/tutorial/scripts/roadblock_fire_script.dart';
-import 'package:stepbound/game/tutorial/scripts/rome_script.dart';
-import 'package:stepbound/game/tutorial/scripts/rooftops_script.dart';
-import 'package:stepbound/game/tutorial/scripts/station_script.dart';
-import 'package:stepbound/game/tutorial/scripts/street_script.dart';
-import 'package:stepbound/game/tutorial/scripts/train_script.dart';
-import 'package:stepbound/game/tutorial/scripts/zombie_sightings_script.dart';
+import 'package:stepbound/game/story/scripts/backpacks_script.dart';
+import 'package:stepbound/game/story/scripts/bar_script.dart';
+import 'package:stepbound/game/story/scripts/barracks_script.dart';
+import 'package:stepbound/game/story/scripts/duomo_script.dart';
+import 'package:stepbound/game/story/scripts/journey_script.dart';
+import 'package:stepbound/game/story/scripts/mall_script.dart';
+import 'package:stepbound/game/story/scripts/north_district_script.dart';
+import 'package:stepbound/game/story/scripts/priest_script.dart';
+import 'package:stepbound/game/story/scripts/roadblock_fire_script.dart';
+import 'package:stepbound/game/story/scripts/rome_script.dart';
+import 'package:stepbound/game/story/scripts/rooftops_script.dart';
+import 'package:stepbound/game/story/scripts/station_script.dart';
+import 'package:stepbound/game/story/scripts/street_script.dart';
+import 'package:stepbound/game/story/scripts/train_script.dart';
+import 'package:stepbound/game/story/scripts/zombie_sightings_script.dart';
 import 'package:stepbound/game/zombie_lore.dart';
 
-export 'package:stepbound/game/tutorial/scripts/backpacks_script.dart';
-export 'package:stepbound/game/tutorial/scripts/bar_script.dart';
-export 'package:stepbound/game/tutorial/scripts/barracks_script.dart';
-export 'package:stepbound/game/tutorial/scripts/duomo_script.dart';
-export 'package:stepbound/game/tutorial/scripts/journey_script.dart';
-export 'package:stepbound/game/tutorial/scripts/mall_script.dart';
-export 'package:stepbound/game/tutorial/scripts/north_district_script.dart';
-export 'package:stepbound/game/tutorial/scripts/priest_script.dart';
-export 'package:stepbound/game/tutorial/scripts/roadblock_fire_script.dart';
-export 'package:stepbound/game/tutorial/scripts/rome_script.dart';
-export 'package:stepbound/game/tutorial/scripts/rooftops_script.dart';
-export 'package:stepbound/game/tutorial/scripts/station_script.dart';
-export 'package:stepbound/game/tutorial/scripts/street_script.dart';
-export 'package:stepbound/game/tutorial/scripts/train_script.dart';
-export 'package:stepbound/game/tutorial/scripts/zombie_sightings_script.dart';
+export 'package:stepbound/game/story/scripts/backpacks_script.dart';
+export 'package:stepbound/game/story/scripts/bar_script.dart';
+export 'package:stepbound/game/story/scripts/barracks_script.dart';
+export 'package:stepbound/game/story/scripts/duomo_script.dart';
+export 'package:stepbound/game/story/scripts/journey_script.dart';
+export 'package:stepbound/game/story/scripts/mall_script.dart';
+export 'package:stepbound/game/story/scripts/north_district_script.dart';
+export 'package:stepbound/game/story/scripts/priest_script.dart';
+export 'package:stepbound/game/story/scripts/roadblock_fire_script.dart';
+export 'package:stepbound/game/story/scripts/rome_script.dart';
+export 'package:stepbound/game/story/scripts/rooftops_script.dart';
+export 'package:stepbound/game/story/scripts/station_script.dart';
+export 'package:stepbound/game/story/scripts/street_script.dart';
+export 'package:stepbound/game/story/scripts/train_script.dart';
+export 'package:stepbound/game/story/scripts/zombie_sightings_script.dart';
 
 /// A line shown in the dialogue box over the gameplay.
-final class TutorialLine {
+final class StoryLine {
   /// A hint or system message: no name over the box.
-  const TutorialLine(this.text, {this.speaker, this.portrait});
+  const StoryLine(this.text, {this.speaker, this.portrait});
 
   /// A line spoken by Mario, with his portrait over the box.
-  const TutorialLine.mario(this.text)
+  const StoryLine.mario(this.text)
     : speaker = 'Mario Rossi',
       portrait = 'assets/characters/mario/portraits/base.png';
 
   /// A line spoken by Luigi, with his portrait over the box.
-  const TutorialLine.luigi(this.text)
+  const StoryLine.luigi(this.text)
     : speaker = 'Luigi Rovaga',
       portrait = 'assets/characters/npcs/portraits/luigi.png';
 
   /// A line spoken by the priest of the Duomo, with his portrait over the
   /// box.
-  const TutorialLine.priest(this.text)
+  const StoryLine.priest(this.text)
     : speaker = PriestScript.priest,
       portrait = 'assets/characters/npcs/portraits/priest.png';
 
   /// A member of Don Angelo's community inside the Duomo.
-  const TutorialLine.cultist(this.text)
+  const StoryLine.cultist(this.text)
     : speaker = DuomoScript.cultist,
       portrait = DuomoScript.cultistPortrait;
 
@@ -91,12 +92,12 @@ enum HudElement {
 }
 
 /// What the director needs from the game.
-abstract interface class TutorialHost {
+abstract interface class StoryHost {
   /// True when the whole tile is inside the camera view.
   bool isTileVisible(GridPoint tile);
 
   /// Shows [lines] one per tap; the game pauses until [onDismissed].
-  void showPrompt(List<TutorialLine> lines, {void Function()? onDismissed});
+  void showPrompt(List<StoryLine> lines, {void Function()? onDismissed});
 
   /// True while anything covers the game (a text box, a story scene...):
   /// prompts wait for it to go.
@@ -129,23 +130,8 @@ abstract interface class TutorialHost {
   /// or consumed.
   void removeHud(HudElement element);
 
-  /// Opens the churchyard and moves Don Angelo from the gate to the altar.
-  void openDuomo();
-
-  /// Clears the Duomo stair, moves its guard aside and consumes the ring.
-  void openDuomoUpper();
-
-  /// Collects the robe upstairs, fades to black and dresses Mario in it.
-  void collectCultistRobe();
-
   /// Dresses Mario in [outfit], one he has already found, at once.
   void wearOutfit(PlayerOutfit outfit);
-
-  /// What the mass leaves behind, once its scene is over: Don Angelo's
-  /// community are four mutated cultists standing across the nave, his body
-  /// lies behind them and the backpack beside it, with the key of the upper
-  /// floor, can be picked up.
-  void startDuomoMassacre();
 
   /// Fades to black and plays [frames] like the intro story, then calls
   /// [onFinished]. Unless [stayBlack] is true, it fades back to the game
@@ -183,17 +169,17 @@ abstract interface class TutorialHost {
   /// Plays again every story scene seen so far.
   void replayMemories();
 
-  /// Luigi walks off through the shop's open shutter and vanishes, once he
-  /// has agreed to meet Mario again; calls [onFinished] once he is gone.
-  void sendLuigiAway({void Function()? onFinished});
+  /// Molfetta's stage, for what its story moves: Don Angelo, his
+  /// community, Luigi.
+  HometownActions get hometown;
 }
 
 /// Lines waiting their turn: they show [delay] seconds after the previous
 /// ones are gone and the turn has finished animating. With [holdsInput]
 /// Mario cannot act while they wait: they come before the player has the
 /// game.
-final class TutorialPrompt {
-  TutorialPrompt(
+final class StoryPrompt {
+  StoryPrompt(
     this.lines, {
     this.delay = 0,
     this.onShown,
@@ -201,28 +187,28 @@ final class TutorialPrompt {
     this.holdsInput = false,
   });
 
-  final List<TutorialLine> lines;
+  final List<StoryLine> lines;
   double delay;
   final bool holdsInput;
   final void Function()? onShown;
   final void Function()? onDismissed;
 }
 
-/// One part of the tutorial, for a place or a theme: it watches what
+/// One part of the story, for a place or a theme: it watches what
 /// happens and queues its prompts through the [director]. What it has done
 /// is saved under its [key].
-abstract class TutorialScript {
-  TutorialScript(this.director);
+abstract class StoryScript {
+  StoryScript(this.director);
 
-  final TutorialDirector director;
+  final StoryDirector director;
 
   String get key;
 
   WorldState get world => director.world;
-  TutorialHost get host => director.host;
+  StoryHost get host => director.host;
   Progress get progress => director.progress;
 
-  void say(TutorialPrompt prompt) => director.queue(prompt);
+  void say(StoryPrompt prompt) => director.queue(prompt);
 
   /// Each event of a resolved turn.
   void onEvent(WorldEvent event) {}
@@ -236,20 +222,20 @@ abstract class TutorialScript {
   void restore(Map<String, Object?> json);
 }
 
-/// Runs the tutorial's scripts and shows their prompts one after the
+/// Runs the story's scripts and shows their prompts one after the
 /// other: the backpacks, the first street, the barracks, the north
 /// district, the hypermarket, the Duomo, the station, the train Mario and
 /// Luigi live in, the roofs the crashed airliner came down in, the arrival
 /// in Rome, what the train carries from one level to the next and the
 /// zombie types met on sight. It records what the player comes to know in
 /// [progress].
-final class TutorialDirector {
-  TutorialDirector({
+final class StoryDirector {
+  StoryDirector({
     required this.world,
     required this.host,
     required this.progress,
   }) {
-    scripts = <TutorialScript>[
+    scripts = <StoryScript>[
       BackpacksScript(this),
       BarScript(this),
       StreetScript(this),
@@ -278,12 +264,12 @@ final class TutorialDirector {
   static const double pickupDelay = 0.65;
 
   final WorldState world;
-  final TutorialHost host;
+  final StoryHost host;
   final Progress progress;
-  late final List<TutorialScript> scripts;
-  final List<TutorialPrompt> _queue = <TutorialPrompt>[];
+  late final List<StoryScript> scripts;
+  final List<StoryPrompt> _queue = <StoryPrompt>[];
 
-  void queue(TutorialPrompt prompt) => _queue.add(prompt);
+  void queue(StoryPrompt prompt) => _queue.add(prompt);
 
   /// Nothing waiting to be said and nothing covering the game.
   bool get isIdle => _queue.isEmpty && !host.isPromptVisible;
@@ -297,8 +283,8 @@ final class TutorialDirector {
     progress.meet(zombie.kind);
     host.focusOn(zombie.id);
     queue(
-      TutorialPrompt(
-        <TutorialLine>[TutorialLine(lore.lesson, portrait: lore.portrait)],
+      StoryPrompt(
+        <StoryLine>[StoryLine(lore.lesson, portrait: lore.portrait)],
         delay: focusDelay,
         onDismissed: () => host.focusOn(null),
       ),

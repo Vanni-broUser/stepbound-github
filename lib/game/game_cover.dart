@@ -1,8 +1,8 @@
 import 'package:stepbound/game/audio/sound.dart';
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/game/story/story_director.dart';
 
 /// What covers the game, one thing at a time: while anything does, Mario
-/// waits, the touch controls step aside and the tutorial holds its next
+/// waits, the touch controls step aside and the story holds its next
 /// prompt. The app draws each kind over the game.
 sealed class GameCover {
   const GameCover();
@@ -12,7 +12,7 @@ sealed class GameCover {
 final class PromptCover extends GameCover {
   PromptCover(this.lines, {this.onDismissed});
 
-  final List<TutorialLine> lines;
+  final List<StoryLine> lines;
   final void Function()? onDismissed;
 }
 

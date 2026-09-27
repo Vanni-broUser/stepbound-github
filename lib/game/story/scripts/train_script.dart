@@ -1,5 +1,5 @@
 import 'package:stepbound/core/core.dart';
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/game/story/story_director.dart';
 
 /// Mario and Luigi's home in the locomotive: talking to Luigi, the books by
 /// Mario's cot (the zombie types met so far), the abacus and calculator
@@ -10,17 +10,17 @@ import 'package:stepbound/game/tutorial/tutorial_director.dart';
 /// which loads Mario up to [trainAmmoRefill] rounds whenever he has fewer.
 /// Each says a line first, so Mario always knows what he is using. None of
 /// it is used up, so each can be come back to.
-final class TrainScript extends TutorialScript {
+final class TrainScript extends StoryScript {
   TrainScript(super.director);
 
-  static const TutorialLine luigiLine = TutorialLine.luigi(
+  static const StoryLine luigiLine = StoryLine.luigi(
     "Sarà un viaggio per l'Europa molto impegnativo",
   );
 
   /// What Luigi has to say while the train stands in Rome.
-  static const List<TutorialLine> romeLines = <TutorialLine>[
-    TutorialLine.luigi('Tutte le strade portano a Roma ragazzo'),
-    TutorialLine.luigi('Cosa? Dici che l’avevo già detto?'),
+  static const List<StoryLine> romeLines = <StoryLine>[
+    StoryLine.luigi('Tutte le strade portano a Roma ragazzo'),
+    StoryLine.luigi('Cosa? Dici che l’avevo già detto?'),
   ];
 
   /// What the cot says before the memories play: only those of the city
@@ -58,33 +58,33 @@ final class TrainScript extends TutorialScript {
     }
     if (event.at == trainLuigiTile) {
       say(
-        TutorialPrompt(switch (progress.level) {
-          LevelId.hometown => const <TutorialLine>[luigiLine],
+        StoryPrompt(switch (progress.level) {
+          LevelId.hometown => const <StoryLine>[luigiLine],
           LevelId.rome => romeLines,
         }),
       );
     } else if (trainBookTiles.contains(event.at)) {
       say(
-        TutorialPrompt(const <TutorialLine>[
-          TutorialLine(zombieNotes),
+        StoryPrompt(const <StoryLine>[
+          StoryLine(zombieNotes),
         ], onDismissed: host.openZombieBook),
       );
     } else if (trainWardrobeTiles.contains(event.at)) {
       say(
-        TutorialPrompt(const <TutorialLine>[
-          TutorialLine(wardrobeLine),
+        StoryPrompt(const <StoryLine>[
+          StoryLine(wardrobeLine),
         ], onDismissed: host.openWardrobe),
       );
     } else if (trainStatsTiles.contains(event.at)) {
       say(
-        TutorialPrompt(const <TutorialLine>[
-          TutorialLine(adventureFigures),
+        StoryPrompt(const <StoryLine>[
+          StoryLine(adventureFigures),
         ], onDismissed: host.openAdventureStats),
       );
     } else if (trainCotTiles.contains(event.at)) {
       say(
-        TutorialPrompt(<TutorialLine>[
-          TutorialLine(memoriesLine(progress.level)),
+        StoryPrompt(<StoryLine>[
+          StoryLine(memoriesLine(progress.level)),
         ], onDismissed: host.replayMemories),
       );
     } else if (trainAmmoTiles.contains(event.at)) {
@@ -97,12 +97,12 @@ final class TrainScript extends TutorialScript {
   void _refill() {
     final ammo = world.player.component<AmmoComponent>();
     if (ammo.loaded >= trainAmmoRefill) {
-      say(TutorialPrompt(const <TutorialLine>[TutorialLine(ammoFull)]));
+      say(StoryPrompt(const <StoryLine>[StoryLine(ammoFull)]));
       return;
     }
     ammo.loaded = trainAmmoRefill;
     host.unlock(HudElement.ammo);
-    say(TutorialPrompt(const <TutorialLine>[TutorialLine(ammoRefilled)]));
+    say(StoryPrompt(const <StoryLine>[StoryLine(ammoRefilled)]));
   }
 
   @override
