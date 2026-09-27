@@ -18,6 +18,7 @@ final class _Harness {
       submit: submitted.add,
       dropQueuedSteps: () => dropped++,
       toggleDebug: () => debugToggles++,
+      throwArea: () => null,
     );
   }
 
@@ -175,7 +176,7 @@ void main() {
         WaitAction,
       ]);
       expect(h.debugToggles, 1);
-      expect(h.press(LogicalKeyboardKey.keyQ), KeyEventResult.ignored);
+      expect(h.press(LogicalKeyboardKey.keyZ), KeyEventResult.ignored);
     });
 
     test('keys are left alone while something covers the game', () {

@@ -18,6 +18,11 @@ final class BackpacksScript extends StoryScript {
   static const String ringFound = 'Hai trovato un anello episcopale';
   static const String duomoKeyFound =
       'Hai trovato la Chiave del Duomo vicino il cadavere di Don Angelo';
+  static const String molotovFound = 'Hai trovato una molotov';
+  static const String molotovLesson =
+      "Tocca l'icona della molotov per prenderla in mano, poi tieni premuto "
+      'a destra e trascina per scegliere dove lanciarla: brucia tutto in un '
+      "quadrato 3x3. Tocca di nuovo l'icona per tornare alla pistola";
   static const String shootLesson =
       'Tieni premuto a destra per mirare e trascina verso una direzione: '
       'lascia per sparare. Lascia nel cerchio al centro per non sparare';
@@ -37,6 +42,7 @@ final class BackpacksScript extends StoryScript {
     if (event case PickedUpEvent(
       :final ammo,
       :final gun,
+      :final molotovs,
       :final incense,
       :final episcopalRing,
       :final cultistRobe,
@@ -65,6 +71,22 @@ final class BackpacksScript extends StoryScript {
             const <StoryLine>[StoryLine(ringFound)],
             delay: StoryDirector.pickupDelay,
             onShown: () => host.unlock(HudElement.episcopalRing),
+          ),
+        );
+        return;
+      }
+      if (molotovs > 0) {
+        say(
+          StoryPrompt(
+            <StoryLine>[
+              StoryLine(
+                molotovs == 1 ? molotovFound : 'Hai trovato $molotovs molotov',
+              ),
+              if (!host.isUnlocked(HudElement.molotov))
+                const StoryLine(molotovLesson),
+            ],
+            delay: StoryDirector.pickupDelay,
+            onShown: () => host.unlock(HudElement.molotov),
           ),
         );
         return;

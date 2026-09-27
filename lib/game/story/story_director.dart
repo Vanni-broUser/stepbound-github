@@ -89,6 +89,7 @@ enum HudElement {
   barKey,
   episcopalRing,
   duomoKey,
+  molotov,
 }
 
 /// What the director needs from the game.

@@ -24,11 +24,13 @@ import 'package:stepbound/game/render/character_component.dart';
 import 'package:stepbound/game/render/debug_overlay.dart';
 import 'package:stepbound/game/render/fire_component.dart';
 import 'package:stepbound/game/render/follow_camera.dart';
+import 'package:stepbound/game/render/molotov_blast_component.dart';
 import 'package:stepbound/game/render/offscreen_culled.dart';
 import 'package:stepbound/game/render/pickup_component.dart';
 import 'package:stepbound/game/render/pixel_palette.dart';
 import 'package:stepbound/game/render/place_layers.dart';
 import 'package:stepbound/game/render/screen_fade_component.dart';
+import 'package:stepbound/game/render/throw_preview_component.dart';
 import 'package:stepbound/game/render/torch_component.dart';
 import 'package:stepbound/game/story/story_director.dart';
 
@@ -81,6 +83,9 @@ final class StepboundGame extends FlameGame
     hasGun = ValueNotifier<bool>(
       simulation.player.component<AmmoComponent>().hasGun,
     );
+    molotovs = ValueNotifier<int>(
+      simulation.player.component<AmmoComponent>().molotovs,
+    );
   }
 
   /// The side of a tile on screen: the level grid's own unit, shared
@@ -117,6 +122,9 @@ final class StepboundGame extends FlameGame
     submit: (action) => presentation.submit(action),
     dropQueuedSteps: () => presentation.clearBuffer(),
     toggleDebug: () => debugOverlay.enabled = !debugOverlay.enabled,
+    throwArea: () => placeAt(
+      simulation.player.component<PositionComponent>().position,
+    )?.bounds,
   );
   late final FollowCamera _camera = FollowCamera(camera);
   late final PlaceLayers _places = PlaceLayers(
@@ -144,6 +152,9 @@ final class StepboundGame extends FlameGame
   /// Whether Mario carries the pistol itself, and not just its bullets:
   /// the ammo badge waits dimmed until the story hands the gun over.
   late final ValueNotifier<bool> hasGun;
+
+  /// The molotovs Mario carries, for their badge.
+  late final ValueNotifier<int> molotovs;
 
   /// Touch controls unlocked so far by the tutorial (walking is always
   /// available).
@@ -281,7 +292,12 @@ final class StepboundGame extends FlameGame
     debugOverlay = DebugWorldOverlay(simulation: simulation);
     await world.addAll(<Component>[
       debugOverlay,
-      AimLineComponent(simulation: simulation, aiming: input.aiming),
+      AimLineComponent(
+        simulation: simulation,
+        aiming: input.aiming,
+        hidden: () => input.throwing,
+      ),
+      ThrowPreviewComponent(simulation: simulation, target: input.throwTarget),
     ]);
 
     _syncPresentation();
@@ -339,6 +355,15 @@ final class StepboundGame extends FlameGame
     if (hasGun.value != ammo.hasGun) {
       hasGun.value = ammo.hasGun;
     }
+    if (molotovs.value != ammo.molotovs) {
+      molotovs.value = ammo.molotovs;
+    }
+    // The last one thrown (or the level left behind): the pistol is back.
+    if (ammo.molotovs == 0 &&
+        input.weapon.value == Weapon.molotov &&
+        !input.aiming.value) {
+      input.weapon.value = Weapon.pistol;
+    }
   }
 
   /// The music of a place that has its own, if its level gives it one.
@@ -364,8 +389,35 @@ final class StepboundGame extends FlameGame
     ]) {
       audio.play(cue.sfx, volume: cue.volume);
     }
+    // The hits of a molotov show once the bottle has landed, not as it
+    // leaves Mario's hand: they follow its event in the same turn.
+    var blastDelay = 0.0;
     for (final event in presentation.lastEvents) {
       switch (event) {
+        case MolotovThrownEvent(:final origin, :final target):
+          blastDelay = MolotovBlastComponent.flightSeconds;
+          unawaited(
+            world.addAll(<Component>[
+              MolotovBlastComponent(
+                origin: origin,
+                target: target,
+                onLanded: () => audio.play(Sfx.gunshot),
+              ),
+            ]),
+          );
+        case DamagedEvent(entityId: final target, sourceEntityId: final source)
+            when source == playerId && blastDelay > 0:
+          _later(
+            blastDelay,
+            () => _characters[target]?.playHit(_facingOf(target)),
+          );
+        case DiedEvent(entityId: final victim)
+            when victim != playerId && blastDelay > 0:
+          _characters[victim]?.deathPending = true;
+          _later(
+            blastDelay,
+            () => _characters[victim]?.playDeath(_facingOf(victim)),
+          );
         case CampfireUsedEvent(:final at):
           _startRest(at);
         case MovedEvent(:final entityId) when entityId == playerId:
@@ -393,6 +445,15 @@ final class StepboundGame extends FlameGame
           break;
       }
     }
+  }
+
+  /// Runs [then] [seconds] from now, on the game's own clock.
+  void _later(double seconds, void Function() then) {
+    unawaited(
+      world.addAll(<Component>[
+        TimerComponent(period: seconds, removeOnFinish: true, onTick: then),
+      ]),
+    );
   }
 
   // ------------------------------------------------------------ covers
@@ -858,7 +919,8 @@ final class StepboundGame extends FlameGame
         )
         ..isMoving = presentation.isEntityMoving(entry.key)
         ..animationProgress = presentation.progress
-        ..aiming = entry.key == playerId && input.aiming.value;
+        ..aiming =
+            entry.key == playerId && input.aiming.value && !input.throwing;
     }
   }
 

@@ -17,6 +17,7 @@ sealed class WorldEvent {
       'died' => DiedEvent.fromJson(json),
       'shot' => ShotEvent.fromJson(json),
       'dryFired' => DryFiredEvent.fromJson(json),
+      'molotovThrown' => MolotovThrownEvent.fromJson(json),
       'alerted' => AlertedEvent.fromJson(json),
       'pickedUp' => PickedUpEvent.fromJson(json),
       'teleported' => TeleportedEvent.fromJson(json),
@@ -275,6 +276,40 @@ final class DryFiredEvent extends WorldEvent {
   };
 }
 
+/// A molotov left [entityId]'s hand at [origin] and burst over the 3x3
+/// square centred on [target]. Emitted before the damage it does, so the
+/// game knows which hits to show only once the bottle has landed.
+final class MolotovThrownEvent extends WorldEvent {
+  const MolotovThrownEvent({
+    required this.entityId,
+    required this.origin,
+    required this.target,
+  });
+
+  factory MolotovThrownEvent.fromJson(Map<String, Object?> json) {
+    return MolotovThrownEvent(
+      entityId: json['entityId']! as String,
+      origin: GridPoint.fromJson(json['origin']! as Map<String, Object?>),
+      target: GridPoint.fromJson(json['target']! as Map<String, Object?>),
+    );
+  }
+
+  final String entityId;
+  final GridPoint origin;
+  final GridPoint target;
+
+  @override
+  String get description => '$entityId throws a molotov at $target';
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+    'type': 'molotovThrown',
+    'entityId': entityId,
+    'origin': origin.toJson(),
+    'target': target.toJson(),
+  };
+}
+
 final class AlertedEvent extends WorldEvent {
   const AlertedEvent({required this.entityId, required this.at});
 
@@ -455,6 +490,7 @@ final class PickedUpEvent extends WorldEvent {
     required this.at,
     required this.ammo,
     required this.gun,
+    this.molotovs = 0,
     this.incense = false,
     this.episcopalRing = false,
     this.cultistRobe = false,
@@ -467,6 +503,7 @@ final class PickedUpEvent extends WorldEvent {
       at: GridPoint.fromJson(json['at']! as Map<String, Object?>),
       ammo: json['ammo']! as int,
       gun: json['gun']! as bool,
+      molotovs: json['molotovs']! as int,
       incense: json['incense']! as bool,
       episcopalRing: json['episcopalRing']! as bool,
       cultistRobe: json['cultistRobe']! as bool,
@@ -478,6 +515,7 @@ final class PickedUpEvent extends WorldEvent {
   final GridPoint at;
   final int ammo;
   final bool gun;
+  final int molotovs;
   final bool incense;
   final bool episcopalRing;
   final bool cultistRobe;
@@ -487,6 +525,7 @@ final class PickedUpEvent extends WorldEvent {
   String get description =>
       'player picks up $pickupId: $ammo rounds'
       '${gun ? ' and a pistol' : ''}'
+      '${molotovs > 0 ? ' and $molotovs molotovs' : ''}'
       '${incense ? ' and the incense' : ''}'
       '${episcopalRing ? ' and the episcopal ring' : ''}'
       '${cultistRobe ? ' and the occultist robe' : ''}'
@@ -499,6 +538,7 @@ final class PickedUpEvent extends WorldEvent {
     'at': at.toJson(),
     'ammo': ammo,
     'gun': gun,
+    'molotovs': molotovs,
     'incense': incense,
     'episcopalRing': episcopalRing,
     'cultistRobe': cultistRobe,
