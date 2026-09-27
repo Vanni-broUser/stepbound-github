@@ -64,7 +64,21 @@ final class TouchControls extends StatelessWidget {
                     Positioned(
                       left: 0,
                       top: 0,
-                      child: Wrap(spacing: 8, runSpacing: 8, children: badges),
+                      // The molotovs only while there is one: the last
+                      // thrown, the badge goes, and comes back with the
+                      // next found.
+                      child: ValueListenableBuilder<int>(
+                        valueListenable: game.molotovs,
+                        builder: (context, molotovs, _) => Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: <Widget>[
+                            for (final element in unlocked)
+                              if (element != HudElement.molotov || molotovs > 0)
+                                ?carriedBadge(element, game: game),
+                          ],
+                        ),
+                      ),
                     ),
                 ],
               ),

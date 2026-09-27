@@ -187,6 +187,7 @@ void main() {
     bool episcopalRing = false,
     bool cultistRobe = false,
     bool duomoKey = false,
+    int molotovs = 0,
   }) => PickedUpEvent(
     pickupId: id,
     at: world.pickups[id]!.position,
@@ -196,6 +197,7 @@ void main() {
     episcopalRing: episcopalRing,
     cultistRobe: cultistRobe,
     duomoKey: duomoKey,
+    molotovs: molotovs,
   );
 
   setUp(() {
@@ -862,13 +864,85 @@ void main() {
     ]);
     expect(host.shown.last.map((line) => line.demo), <ControlDemo?>[
       null,
-      ControlDemo.shoot,
-      ControlDemo.shoot,
+      ControlDemo.aim,
+      ControlDemo.aim,
       ControlDemo.cancelShot,
     ]);
     expect(host.unlocked, isNot(contains(HudElement.shoot)));
     host.dismiss();
     expect(host.unlocked, contains(HudElement.shoot));
+  });
+
+  group('molotovs', () {
+    AmmoComponent ammo() => world.player.component<AmmoComponent>();
+
+    test('found with the pistol: the count, the area, and choosing', () {
+      ammo()
+        ..hasGun = true
+        ..molotovs = 2;
+      director.onEvents(<WorldEvent>[pickedUp(molotovBackpackId, molotovs: 2)]);
+      settle();
+      expect(host.shown.last.map((line) => line.text), <String>[
+        'Hai trovato 2 molotov',
+        BackpacksScript.molotovLesson,
+        BackpacksScript.weaponChoiceLesson,
+      ]);
+      expect(
+        host.shown.last.map((line) => line.demo),
+        <ControlDemo?>[null, ControlDemo.aim, null],
+        reason: 'the same finger that fires the pistol throws the bottle',
+      );
+      expect(host.unlocked, contains(HudElement.molotov));
+      host.dismiss();
+
+      // Found again: only the count.
+      director.onEvents(<WorldEvent>[pickedUp(molotovBackpackId, molotovs: 2)]);
+      settle();
+      expect(host.shown.last.map((line) => line.text), <String>[
+        'Hai trovato 2 molotov',
+      ]);
+    });
+
+    test('found with no pistol: no choice to tell of, until the pistol', () {
+      ammo()
+        ..hasGun = false
+        ..molotovs = 2;
+      director.onEvents(<WorldEvent>[pickedUp(molotovBackpackId, molotovs: 2)]);
+      settle();
+      expect(host.shown.last.map((line) => line.text), <String>[
+        'Hai trovato 2 molotov',
+        BackpacksScript.molotovLesson,
+      ]);
+      host.dismiss();
+
+      ammo().hasGun = true;
+      director.onEvents(<WorldEvent>[pickedUp(gunBackpackId, gun: true)]);
+      settle();
+      expect(host.shown.last.last.text, BackpacksScript.weaponChoiceLesson);
+    });
+
+    test('told once, even across a save', () {
+      ammo()
+        ..hasGun = true
+        ..molotovs = 2;
+      director.onEvents(<WorldEvent>[pickedUp(molotovBackpackId, molotovs: 2)]);
+      settle();
+      host.dismiss();
+      final saved = director.toJson();
+      director =
+          StoryDirector(
+              world: world,
+              host: host = _FakeHost(progress),
+              progress: progress,
+            )
+            ..restore(saved)
+            ..onEvents(<WorldEvent>[pickedUp(gunBackpackId, gun: true)]);
+      settle();
+      expect(
+        host.shown.last.map((line) => line.text),
+        isNot(contains(BackpacksScript.weaponChoiceLesson)),
+      );
+    });
   });
 
   test('Mario speaks when he reaches the barracks', () {

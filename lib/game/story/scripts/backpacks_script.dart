@@ -19,11 +19,13 @@ final class BackpacksScript extends StoryScript {
   static const String ringFound = 'Hai trovato un anello episcopale';
   static const String duomoKeyFound =
       'Hai trovato la Chiave del Duomo vicino il cadavere di Don Angelo';
-  static const String molotovFound = 'Hai trovato una molotov';
-  static const String molotovLesson =
-      "Tocca l'icona della molotov per prenderla in mano, poi tieni premuto "
-      'a destra e trascina per scegliere dove lanciarla: brucia tutto in un '
-      "quadrato 3x3. Tocca di nuovo l'icona per tornare alla pistola";
+  static String molotovFound(int count) => 'Hai trovato $count molotov';
+  static const String molotovLesson = 'Le molotov fanno danno ad area';
+
+  /// Told once, the first time Mario has more than one weapon to hold.
+  static const String weaponChoiceLesson =
+      "Puoi impugnare un'arma per volta, tocca l'arma che vuoi impugnare tra "
+      "gli oggetti dell'inventario. Le fiamme indicheranno l'arma attiva";
   static const String aimLesson =
       'Tieni premuto sulla parte destra dello schermo per iniziare a mirare';
   static const String fireLesson =
@@ -39,6 +41,22 @@ final class BackpacksScript extends StoryScript {
       : 'Hai trovato $rounds proiettili. $noGun';
 
   bool _lessonGiven = false;
+
+  /// Whether [weaponChoiceLesson] has been told.
+  bool _weaponChoiceTaught = false;
+
+  /// [weaponChoiceLesson], the first time Mario holds both the pistol and
+  /// a molotov; nothing otherwise.
+  List<StoryLine> _weaponChoice({
+    required bool hasGun,
+    required bool hasMolotov,
+  }) {
+    if (_weaponChoiceTaught || !hasGun || !hasMolotov) {
+      return const <StoryLine>[];
+    }
+    _weaponChoiceTaught = true;
+    return const <StoryLine>[StoryLine(weaponChoiceLesson)];
+  }
 
   @override
   String get key => 'backpacks';
@@ -85,11 +103,15 @@ final class BackpacksScript extends StoryScript {
         say(
           StoryPrompt(
             <StoryLine>[
-              StoryLine(
-                molotovs == 1 ? molotovFound : 'Hai trovato $molotovs molotov',
-              ),
+              StoryLine(molotovFound(molotovs)),
               if (!host.isUnlocked(HudElement.molotov))
-                const StoryLine(molotovLesson),
+                // The same finger that fires the pistol throws the
+                // bottle: the gesture plays beside the line about it.
+                const StoryLine(molotovLesson, demo: ControlDemo.aim),
+              ..._weaponChoice(
+                hasGun: world.player.component<AmmoComponent>().hasGun,
+                hasMolotov: true,
+              ),
             ],
             delay: StoryDirector.pickupDelay,
             onShown: () => host.unlock(HudElement.molotov),
@@ -117,11 +139,15 @@ final class BackpacksScript extends StoryScript {
     }
     if (gun) {
       return StoryPrompt(
-        const <StoryLine>[
-          StoryLine(gunFound),
-          StoryLine(aimLesson, demo: ControlDemo.shoot),
-          StoryLine(fireLesson, demo: ControlDemo.shoot),
-          StoryLine(cancelLesson, demo: ControlDemo.cancelShot),
+        <StoryLine>[
+          const StoryLine(gunFound),
+          const StoryLine(aimLesson, demo: ControlDemo.aim),
+          const StoryLine(fireLesson, demo: ControlDemo.aim),
+          const StoryLine(cancelLesson, demo: ControlDemo.cancelShot),
+          ..._weaponChoice(
+            hasGun: true,
+            hasMolotov: world.player.component<AmmoComponent>().molotovs > 0,
+          ),
         ],
         delay: StoryDirector.pickupDelay,
         onDismissed: () => host.unlock(HudElement.shoot),
@@ -160,10 +186,14 @@ final class BackpacksScript extends StoryScript {
   }
 
   @override
-  Map<String, Object?> toJson() => <String, Object?>{'lesson': _lessonGiven};
+  Map<String, Object?> toJson() => <String, Object?>{
+    'lesson': _lessonGiven,
+    'weaponChoice': _weaponChoiceTaught,
+  };
 
   @override
   void restore(Map<String, Object?> json) {
     _lessonGiven = json['lesson'] as bool? ?? false;
+    _weaponChoiceTaught = json['weaponChoice'] as bool? ?? false;
   }
 }

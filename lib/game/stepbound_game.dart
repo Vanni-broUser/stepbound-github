@@ -361,10 +361,15 @@ final class StepboundGame extends FlameGame
       molotovs.value = ammo.molotovs;
     }
     // The last one thrown (or the level left behind): the pistol is back.
-    if (ammo.molotovs == 0 &&
-        input.weapon.value == Weapon.molotov &&
-        !input.aiming.value) {
-      input.weapon.value = Weapon.pistol;
+    // Molotovs and no pistol yet: the molotov is the one weapon in hand.
+    if (!input.aiming.value) {
+      if (ammo.molotovs == 0 && input.weapon.value == Weapon.molotov) {
+        input.weapon.value = Weapon.pistol;
+      } else if (!ammo.hasGun &&
+          input.weapon.value == Weapon.pistol &&
+          input.hasWeapon(Weapon.molotov)) {
+        input.weapon.value = Weapon.molotov;
+      }
     }
   }
 
@@ -860,14 +865,19 @@ final class StepboundGame extends FlameGame
     }
   }
 
-  /// Opens a small system text box about the bullets, the one thing
-  /// carried that is counted. The badge only answers once the pistol has
-  /// been found, so there is always something to fire them with.
-  void inspectAmmo() {
-    if (_canAct) {
-      final loaded = simulation.player.component<AmmoComponent>().loaded;
-      showPrompt(<StoryLine>[StoryLine('$loaded proiettili')]);
+  /// A tap on a weapon's badge. With more than one weapon it takes that
+  /// one in hand; with only this one there is nothing to choose, and a
+  /// small system text box tells how many rounds or bottles are left.
+  void tapWeapon(Weapon weapon) {
+    if (input.hasWeapon(Weapon.pistol) && input.hasWeapon(Weapon.molotov)) {
+      input.selectWeapon(weapon);
+      return;
     }
+    final ammo = simulation.player.component<AmmoComponent>();
+    inspectInventory(switch (weapon) {
+      Weapon.pistol => '${ammo.loaded} proiettili',
+      Weapon.molotov => '${ammo.molotovs} molotov',
+    });
   }
 
   // --------------------------------------------------------------- input

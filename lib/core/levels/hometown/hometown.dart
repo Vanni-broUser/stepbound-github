@@ -377,7 +377,7 @@ const String episcopalRingPickupId = 'episcopal-ring';
 /// The backpack with a molotov in the park behind the hypermarket, and
 /// how many it holds.
 const String molotovBackpackId = 'molotov-backpack';
-const int molotovBackpackCount = 1;
+const int molotovBackpackCount = 2;
 const String cultistRobePickupId = 'cultist-robe';
 
 /// The service door in the top-right corner of the Bar Arcobaleno. It is

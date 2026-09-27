@@ -229,6 +229,26 @@ void main() {
       );
     });
 
+    test('picking a weapon puts the other away; only one carried', () {
+      final h = _Harness();
+      h.world.player.component<AmmoComponent>().hasGun = true;
+      h.input.selectWeapon(Weapon.molotov);
+      expect(h.input.weapon.value, Weapon.molotov);
+      h.input.selectWeapon(Weapon.molotov);
+      expect(h.input.weapon.value, Weapon.molotov, reason: 'stays in hand');
+      h.input.selectWeapon(Weapon.pistol);
+      expect(h.input.weapon.value, Weapon.pistol);
+      h.world.player.component<AmmoComponent>().hasGun = false;
+      h.input
+        ..selectWeapon(Weapon.molotov)
+        ..selectWeapon(Weapon.pistol);
+      expect(h.input.weapon.value, Weapon.molotov, reason: 'no pistol yet');
+      h.input
+        ..beginAim()
+        ..selectWeapon(Weapon.pistol);
+      expect(h.input.weapon.value, Weapon.molotov, reason: 'not mid-aim');
+    });
+
     test('with none carried, it cannot be taken in hand', () {
       final h = _Harness(molotovs: 0);
       h.input.toggleWeapon();
@@ -284,7 +304,7 @@ void main() {
     () {
       final world = createGameWorld(seed: 1);
       final bag = world.pickups[molotovBackpackId]!;
-      expect(bag.molotovs, 1);
+      expect(bag.molotovs, 2);
       expect(world.map.tileAt(bag.position).isWalkable, isTrue);
       final carabiniere = world.entities.values.singleWhere(
         (entity) =>

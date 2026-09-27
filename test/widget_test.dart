@@ -9,6 +9,7 @@ import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/game_audio.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/input/action_zone.dart';
+import 'package:stepbound/game/input/game_input_controller.dart';
 import 'package:stepbound/game/input/move_zone.dart';
 import 'package:stepbound/game/input/pinch_zone.dart';
 import 'package:stepbound/game/progress.dart';
@@ -28,6 +29,7 @@ import 'package:stepbound/save/save_game.dart';
 import 'package:stepbound/ui/black_fade.dart';
 import 'package:stepbound/ui/blood_decor.dart';
 import 'package:stepbound/ui/blood_splat.dart';
+import 'package:stepbound/ui/fire_frame.dart';
 import 'package:stepbound/ui/gameplay_dialogue.dart';
 import 'package:stepbound/ui/level_map.dart';
 import 'package:stepbound/ui/loading_art.dart';
@@ -230,6 +232,90 @@ void main() {
     });
   });
 
+  testWidgets('one weapon in hand at a time, burning round its badge; the '
+      'molotovs show only while there is one', (tester) {
+    return tester.runAsync(() async {
+      final game = await _pumpReadyGame(tester)
+        ..unlock(HudElement.ammo)
+        ..unlock(HudElement.molotov);
+      final ammo = game.simulation.player.component<AmmoComponent>()
+        ..hasGun = true
+        ..molotovs = 0;
+      game.update(1 / 60);
+      await tester.pump();
+
+      const pistol = ValueKey<String>('touch-ammo');
+      const molotov = ValueKey<String>('hud-molotov');
+      Finder burning(ValueKey<String> key) =>
+          find.ancestor(of: find.byKey(key), matching: find.byType(FireFrame));
+
+      // None carried: no badge at all, not a badge at zero, and the
+      // pistol alone does not burn.
+      expect(find.byKey(molotov), findsNothing);
+      expect(burning(pistol), findsNothing);
+
+      // Two weapons: the one in hand burns, and a tap picks, telling
+      // nothing.
+      ammo.molotovs = 2;
+      game.update(1 / 60);
+      await tester.pump();
+      await tester.tap(find.byKey(pistol));
+      await tester.pump();
+      expect(game.cover.value, isNull);
+      expect(find.byKey(molotov), findsOneWidget);
+      expect(find.text('×2'), findsWidgets);
+      expect(burning(pistol), findsOneWidget);
+      expect(burning(molotov), findsNothing);
+
+      // A tap on the molotov takes it in hand, the pistol goes away.
+      await tester.tap(find.byKey(molotov));
+      await tester.pump();
+      expect(game.input.weapon.value, Weapon.molotov);
+      expect(burning(molotov), findsOneWidget);
+      expect(burning(pistol), findsNothing);
+      // The count is laid over the flames, not under them.
+      expect(
+        find.ancestor(
+          of: find.byKey(const ValueKey<String>('hud-molotov-count')),
+          matching: find.byType(FireFrame),
+        ),
+        findsNothing,
+      );
+
+      // And the pistol back the same way.
+      await tester.tap(find.byKey(pistol));
+      await tester.pump();
+      expect(game.input.weapon.value, Weapon.pistol);
+      expect(burning(pistol), findsOneWidget);
+      expect(burning(molotov), findsNothing);
+
+      // The last one gone, the badge goes; a new one found, it is back.
+      await tester.tap(find.byKey(molotov));
+      await tester.pump();
+      ammo.molotovs = 0;
+      game.update(1 / 60);
+      await tester.pump();
+      expect(find.byKey(molotov), findsNothing);
+      expect(game.input.weapon.value, Weapon.pistol);
+      expect(burning(pistol), findsNothing);
+      ammo.molotovs = 1;
+      game.update(1 / 60);
+      await tester.pump();
+      expect(find.byKey(molotov), findsOneWidget);
+      expect(find.text('×1'), findsWidgets);
+
+      // Molotovs and no pistol: one weapon, no flames, a tap tells.
+      ammo.hasGun = false;
+      game.update(1 / 60);
+      await tester.pump();
+      expect(game.input.weapon.value, Weapon.molotov);
+      expect(burning(molotov), findsNothing);
+      await tester.tap(find.byKey(molotov));
+      await tester.pump();
+      expect(find.text('1 molotov'), findsOneWidget);
+    });
+  });
+
   testWidgets('the bullets sit in the row of carried things, and a tap '
       'tells of them', (tester) {
     return tester.runAsync(() async {
@@ -279,11 +365,19 @@ void main() {
       expect(count.left, lessThan(box.right));
       expect(count.top, lessThan(box.bottom));
 
-      // The pistol found, the badge wakes up: the count is the news.
+      // The pistol found, the badge wakes up; the only weapon, it does
+      // not burn: there is nothing to choose between.
       game.simulation.player.component<AmmoComponent>().hasGun = true;
       game.update(1 / 60);
       await tester.pump();
       expect(borderOf(badge()).top.color, BloodColors.fresh);
+      expect(
+        find.ancestor(
+          of: find.byKey(const ValueKey<String>('touch-ammo')),
+          matching: find.byType(FireFrame),
+        ),
+        findsNothing,
+      );
       await tester.tap(find.byKey(const ValueKey<String>('touch-ammo')));
       await tester.pump();
       expect(find.text('3 proiettili'), findsOneWidget);
