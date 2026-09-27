@@ -1,5 +1,5 @@
 import 'package:stepbound/core/core.dart';
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/game/zombie_lore.dart';
 
 /// The zombie types introduced the first time one is on screen, wherever
@@ -10,7 +10,7 @@ import 'package:stepbound/game/zombie_lore.dart';
 /// What it has done is `Progress.knownZombies` itself: a type is introduced
 /// once in the whole game, not once a level, and a save keeps that with the
 /// rest of the progress, so this script has nothing of its own to save.
-final class ZombieSightingsScript extends TutorialScript {
+final class ZombieSightingsScript extends StoryScript {
   ZombieSightingsScript(super.director);
 
   @override

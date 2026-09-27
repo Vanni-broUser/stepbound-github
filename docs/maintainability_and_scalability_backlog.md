@@ -64,7 +64,7 @@ the zombie book actually draw, or decode them with `cacheWidth`. The scenes
 ## P2 — Split application and game orchestration
 
 `StepboundApp` combines application phases, persistence, audio lifecycle,
-restart behaviour and widget composition. `StepboundGame` combines tutorial
+restart behaviour and widget composition. `StepboundGame` combines story
 hosting, event presentation, camera, audio, place transitions, rendering and
 save snapshots. They are also the most frequently changed source files
 in the current history (1465 and 976 lines at `1b0261a`), and
@@ -80,6 +80,24 @@ management framework:
 - `PlaceTransitionController` for portals, location cards and camera hand-off;
 - the touch controls split into the pad, the action buttons and the HUD
   badges.
+
+## P2 — Compatibility code for development saves
+
+Old development saves read as empty slots, yet code written to carry them
+forward is still there, dead since the format moved on:
+`HometownStage.restore` (`lib/game/levels/hometown_stage.dart`) reconciles
+saves "made before the key quest existed" and ones missing the ring's
+badge, and the comments of `HometownStage.afterCharacters` and of
+`DuomoScript._startMassIfDressed` still speak of saves from before the
+mass.
+
+- Remove it, after checking that none of those lines also rebuilds the
+  state of a current save (the priest gate, the stair cultist's tiles).
+- Keep what `restoreGameWorld` (`lib/core/levels/game_world.dart`) does:
+  doors, travel maps, and zombies and backpacks a save does not know come
+  from the current level. With `docs/save_policy.md` it means content
+  added to a level reaches the saves of the public build with no
+  migration: write it down there as a rule.
 
 ## P2 — Make asset generation reproducible
 
@@ -115,11 +133,23 @@ last and has to be installed after uninstalling it.
 Slots are now read as a typed result, damaged ones fall back on the save they
 replaced, and failed writes never leave the game stuck. Two corners remain:
 
-- The tutorial scripts' state is not checked before loading: `restore` reads
+- The story scripts' state is not checked before loading: `restore` reads
   with lenient casts, but a field of the wrong type still throws when the game
-  starts. Checking it needs a `TutorialHost`, which only the game has.
+  starts. Checking it needs a `StoryHost`, which only the game has.
 - The save written aboard the train when the level ends is logged when it
   fails, but the results screen does not say so; the next campfire writes it.
+
+## P3 — Place images outlive the game
+
+`TilePlaceComponent.release()` is only called when Mario leaves an area,
+not when the game is taken down (starting over at a campfire, game over,
+back to the menu): the images of the last area go with the garbage
+collector, and the static cache `_built` keeps them through the menu too.
+Tens of megabytes held longer than needed on a 2 GB phone.
+
+- Release a place's images in `TilePlaceComponent.onRemove`.
+- Let the P1 figures say whether the cache should also be emptied when
+  the game ends.
 
 ## P3 — Release-only differences
 

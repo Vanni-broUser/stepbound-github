@@ -70,8 +70,10 @@ final class Progress {
     Map<LevelId, int> steps = const <LevelId, int>{},
     Iterable<String> litCampfires = const <String>[],
     Map<LevelId, int> roundsLeft = const <LevelId, int>{},
+    Map<LevelId, int> molotovsLeft = const <LevelId, int>{},
   }) : steps = Map<LevelId, int>.of(steps),
        roundsLeft = Map<LevelId, int>.of(roundsLeft),
+       molotovsLeft = Map<LevelId, int>.of(molotovsLeft),
        litCampfires = Set<String>.of(litCampfires),
        knownZombies = Set<EntityKind>.of(knownZombies),
        memories = Set<StoryMemory>.of(memories),
@@ -123,6 +125,11 @@ final class Progress {
             in (json['roundsLeft']! as Map<String, Object?>).entries)
           LevelId.values.byName(key): value! as int,
       },
+      molotovsLeft: <LevelId, int>{
+        for (final MapEntry(:key, :value)
+            in (json['molotovsLeft']! as Map<String, Object?>).entries)
+          LevelId.values.byName(key): value! as int,
+      },
     );
   }
 
@@ -152,6 +159,10 @@ final class Progress {
   /// bullets are used up, so they stay with the level they were found in.
   final Map<LevelId, int> roundsLeft;
 
+  /// The molotovs Mario had on him when the train last left each level:
+  /// like the rounds, they stay where they were found.
+  final Map<LevelId, int> molotovsLeft;
+
   /// Whether the train has taken Mario anywhere yet, from the Europe map.
   bool get hasTravelled => roundsLeft.isNotEmpty;
 
@@ -164,6 +175,14 @@ final class Progress {
     roundsLeft[level] = rounds;
     level = destination;
     return math.max(roundsLeft[destination] ?? 0, arrivalRounds);
+  }
+
+  /// Leaves Mario's [molotovs] in the level he is in and returns those he
+  /// left in [destination], none if he never did. Called just before
+  /// [travel], which moves him there.
+  int swapMolotovs(LevelId destination, {required int molotovs}) {
+    molotovsLeft[level] = molotovs;
+    return molotovsLeft[destination] ?? 0;
   }
 
   /// Whether Mario has been to [level] at least once: Molfetta always,
@@ -209,6 +228,10 @@ final class Progress {
     'litCampfires': <String>[...litCampfires],
     'roundsLeft': <String, int>{
       for (final MapEntry(:key, :value) in roundsLeft.entries) key.name: value,
+    },
+    'molotovsLeft': <String, int>{
+      for (final MapEntry(:key, :value) in molotovsLeft.entries)
+        key.name: value,
     },
   };
 }

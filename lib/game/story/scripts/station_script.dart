@@ -1,7 +1,7 @@
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/game/story/story_director.dart';
 
 /// The station, where Luigi said he would wait. Getting to him is the
 /// whole of it: the doorway onto the platform leads to a dead end behind
@@ -10,7 +10,7 @@ import 'package:stepbound/game/tutorial/tutorial_director.dart';
 /// first step on that platform plays their meeting, and that is the end of
 /// the level: Mario is aboard, at the map table in the locomotive, and
 /// the game is saved there.
-final class StationScript extends TutorialScript {
+final class StationScript extends StoryScript {
   StationScript(super.director);
 
   static const String luigi = 'Luigi Rovaga';
@@ -70,7 +70,7 @@ final class StationScript extends TutorialScript {
     if (event case NoInteractionEvent(:final at)
         when at == stationTrainDoorTile &&
             !progress.memories.contains(StoryMemory.luigiRescued)) {
-      say(TutorialPrompt(const <TutorialLine>[TutorialLine(lockedDoorLine)]));
+      say(StoryPrompt(const <StoryLine>[StoryLine(lockedDoorLine)]));
       return;
     }
     if (!progress.memories.contains(StoryMemory.luigiRescued)) {

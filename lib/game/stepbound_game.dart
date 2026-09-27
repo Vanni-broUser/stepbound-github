@@ -14,34 +14,33 @@ import 'package:stepbound/game/audio/soundscape.dart';
 import 'package:stepbound/game/game_cover.dart';
 import 'package:stepbound/game/haptics/game_haptics.dart';
 import 'package:stepbound/game/input/game_input_controller.dart';
+import 'package:stepbound/game/levels/hometown_stage.dart';
+import 'package:stepbound/game/levels/level_stage.dart';
+import 'package:stepbound/game/levels/train_stage.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/aim_line_component.dart';
 import 'package:stepbound/game/render/burning_ground_component.dart';
 import 'package:stepbound/game/render/character_component.dart';
-import 'package:stepbound/game/render/crucified_zombie_component.dart';
 import 'package:stepbound/game/render/debug_overlay.dart';
 import 'package:stepbound/game/render/fire_component.dart';
-import 'package:stepbound/game/render/flag_component.dart';
 import 'package:stepbound/game/render/follow_camera.dart';
-import 'package:stepbound/game/render/interact_glint_component.dart';
-import 'package:stepbound/game/render/mall_props.dart';
-import 'package:stepbound/game/render/npc_component.dart';
+import 'package:stepbound/game/render/molotov_blast_component.dart';
 import 'package:stepbound/game/render/offscreen_culled.dart';
 import 'package:stepbound/game/render/pickup_component.dart';
 import 'package:stepbound/game/render/pixel_palette.dart';
 import 'package:stepbound/game/render/place_layers.dart';
-import 'package:stepbound/game/render/quest_props.dart';
 import 'package:stepbound/game/render/screen_fade_component.dart';
+import 'package:stepbound/game/render/throw_preview_component.dart';
 import 'package:stepbound/game/render/torch_component.dart';
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/game/story/story_director.dart';
 
 export 'package:stepbound/game/game_cover.dart';
 
-/// What a save stores: the simulation, the tutorial's scripts, the
+/// What a save stores: the simulation, the story's scripts, the
 /// player's progress, the unlocked controls and the name of the place.
 typedef GameSnapshot = ({
   Map<String, Object?> world,
-  Map<String, Object?> tutorial,
+  Map<String, Object?> story,
   Map<String, Object?> progress,
   List<String> hud,
   String place,
@@ -53,8 +52,8 @@ typedef GameSnapshot = ({
 /// draws.
 final class StepboundGame extends FlameGame
     with KeyboardEvents
-    implements TutorialHost {
-  /// A new game, or one resumed from a save: [world], `tutorialState` and
+    implements StoryHost {
+  /// A new game, or one resumed from a save: [world], `storyState` and
   /// [progress] come from `SaveGame`, [unlocked] lists the touch controls
   /// already earned. [onRest] stores the snapshot taken at a campfire, and
   /// the one taken aboard the train when the level ends.
@@ -62,7 +61,7 @@ final class StepboundGame extends FlameGame
   StepboundGame({
     int seed = 20260920,
     WorldState? world,
-    this._tutorialState,
+    this._storyState,
     Set<HudElement> unlocked = const <HudElement>{},
     this.onRest,
     this.onLevelCompleted,
@@ -70,7 +69,7 @@ final class StepboundGame extends FlameGame
     GameAudio? audio,
     GameplayHaptics? haptics,
     Progress? progress,
-  }) : simulation = world ?? createTutorialWorld(seed: seed),
+  }) : simulation = world ?? createGameWorld(seed: seed),
        progress = progress ?? Progress.newGame(),
        audio = audio ?? SilentAudio(),
        haptics = haptics ?? const GameplayHaptics(),
@@ -83,6 +82,9 @@ final class StepboundGame extends FlameGame
     );
     hasGun = ValueNotifier<bool>(
       simulation.player.component<AmmoComponent>().hasGun,
+    );
+    molotovs = ValueNotifier<int>(
+      simulation.player.component<AmmoComponent>().molotovs,
     );
   }
 
@@ -99,12 +101,6 @@ final class StepboundGame extends FlameGame
   /// place he has just walked into can sink in.
   static const double entranceHoldSeconds = 2.2;
 
-  /// Standing this close to the cross, its groan is at its loudest; this
-  /// much further away, at its faintest. Further still it stays there: the
-  /// nave is long and the thing on the cross is loud.
-  static const int crossHearingNear = 6;
-  static const int crossHearingFar = 18;
-
   final WorldState simulation;
 
   /// The zombie types met and the story scenes seen, over the whole game.
@@ -116,7 +112,7 @@ final class StepboundGame extends FlameGame
     fires: outdoorFireSpots,
   );
   late final TurnPresentationController presentation;
-  late final TutorialDirector tutorial;
+  late final StoryDirector story;
   late final DebugWorldOverlay debugOverlay;
   late final GameInputController input = GameInputController(
     world: simulation,
@@ -126,46 +122,27 @@ final class StepboundGame extends FlameGame
     submit: (action) => presentation.submit(action),
     dropQueuedSteps: () => presentation.clearBuffer(),
     toggleDebug: () => debugOverlay.enabled = !debugOverlay.enabled,
+    throwArea: () => placeAt(
+      simulation.player.component<PositionComponent>().position,
+    )?.bounds,
   );
   late final FollowCamera _camera = FollowCamera(camera);
   late final PlaceLayers _places = PlaceLayers(
-    places: tutorialPlaces,
+    places: gamePlaces,
     playerFeet: () => _characters[playerId]!.position,
-    showOpened: (place) => switch (place.id) {
-      // At Termini the train is Mario's own, its door open from the
-      // start.
-      PlaceId.romeTermini => true,
-      PlaceId.stationFarSide => progress.memories.contains(
-        StoryMemory.luigiRescued,
-      ),
-      // The door the key opens stands open from then on.
-      PlaceId.duomoUpper =>
-        simulation.map.tileAt(duomoUpperLockedDoorTile).isWalkable,
-      _ => false,
-    },
+    showOpened: (place) => _stages.any((stage) => stage.showsOpened(place.id)),
   );
+
+  /// Molfetta on the stage, which its story drives.
+  @override
+  late final HometownStage hometown = HometownStage(this);
+  late final List<LevelStage> _stages = <LevelStage>[
+    TrainStage(this),
+    hometown,
+  ];
   final Map<String, CharacterComponent> _characters =
       <String, CharacterComponent>{};
   final Map<GridPoint, FireComponent> _campfires = <GridPoint, FireComponent>{};
-  NpcComponent? _luigi;
-  NpcComponent? _priest;
-  NpcComponent? _stairCultist;
-  NpcComponent? _welcomingCultist;
-  PriestCorpseComponent? _priestCorpse;
-  CrucifiedZombieComponent? _crucified;
-  bool _priestInside = false;
-  bool _stairCultistMoved = false;
-  bool _changingOutfit = false;
-
-  /// True while Luigi walks out of the hypermarket: Mario waits for him to
-  /// be gone, so the two never walk through each other.
-  bool _luigiLeaving = false;
-
-  MallScript get _mallScript => tutorial.scripts.whereType<MallScript>().first;
-  PriestScript get _priestScript =>
-      tutorial.scripts.whereType<PriestScript>().first;
-  DuomoScript get _duomoScript =>
-      tutorial.scripts.whereType<DuomoScript>().first;
 
   /// What covers the game, if anything.
   final ValueNotifier<GameCover?> cover = ValueNotifier<GameCover?>(null);
@@ -175,6 +152,9 @@ final class StepboundGame extends FlameGame
   /// Whether Mario carries the pistol itself, and not just its bullets:
   /// the ammo badge waits dimmed until the story hands the gun over.
   late final ValueNotifier<bool> hasGun;
+
+  /// The molotovs Mario carries, for their badge.
+  late final ValueNotifier<int> molotovs;
 
   /// Touch controls unlocked so far by the tutorial (walking is always
   /// available).
@@ -233,7 +213,7 @@ final class StepboundGame extends FlameGame
 
   /// Leaves gameplay directly for the destination map from the train.
   final void Function(GameSnapshot snapshot)? onTravelMapRequested;
-  final Map<String, Object?>? _tutorialState;
+  final Map<String, Object?>? _storyState;
 
   bool _acceptsInput = false;
   int _processedTurn = 0;
@@ -260,54 +240,14 @@ final class StepboundGame extends FlameGame
     final clock = Stopwatch()..start();
     await super.onLoad();
     presentation = TurnPresentationController(world: simulation);
-    tutorial = TutorialDirector(
-      world: simulation,
-      host: this,
-      progress: progress,
-    );
-    final tutorialState = _tutorialState;
-    if (tutorialState != null) {
-      tutorial.restore(tutorialState);
+    story = StoryDirector(world: simulation, host: this, progress: progress);
+    final storyState = _storyState;
+    if (storyState != null) {
+      story.restore(storyState);
     }
-    // Saves made before the key quest existed already know that the welcome
-    // scene played, but still carry incense and a shut gate. Migrate them to
-    // the first playable state after that scene. A used key stays used.
-    if (_priestScript.welcomePlayed) {
-      _openPriestGate();
-      final reconciled = <HudElement>{
-        ...hud.value.where((element) => element != HudElement.incense),
-        if (!simulation.map.tileAt(barLockedDoorTile).isWalkable)
-          HudElement.barKey,
-      };
-      hud.value = reconciled;
+    for (final stage in _stages) {
+      stage.restore();
     }
-    if (_duomoScript.ringDelivered) {
-      _openDuomoUpperAccess();
-      hud.value = <HudElement>{
-        ...hud.value.where((element) => element != HudElement.episcopalRing),
-      };
-    } else if (simulation.pickups[episcopalRingPickupId]?.collected ?? false) {
-      // Saves made after collecting the ring but before this quest item had
-      // its own badge should still show what Mario is carrying.
-      hud.value = <HudElement>{...hud.value, HudElement.episcopalRing};
-    }
-    _priestInside = simulation.map.tileAt(priestGateTiles.first).isWalkable;
-    _stairCultistMoved = simulation.map
-        .tileAt(duomoStairCultistTile)
-        .isWalkable;
-    final massacre = _duomoScript.massacrePlayed;
-    // Nobody walks through a person: where each one stands is an obstacle.
-    if (!_priestInside) {
-      _occupy(priestTile);
-    }
-    if (_stairCultistMoved && !massacre) {
-      _occupy(duomoStairCultistMovedTile);
-    }
-    if (_mallScript.luigiGone) {
-      _vacate(luigiTile);
-    }
-    _syncTrainDoor();
-    parkTrain(simulation, progress.level);
     // Only the area Mario is in, and what lies one door away from it: the
     // rest comes in as he gets near it (see the call in update).
     await _places.settle(
@@ -322,45 +262,12 @@ final class StepboundGame extends FlameGame
           _campfires[spot.tile] = FireComponent.at(spot, seed: index)
         else
           FireComponent.at(spot, seed: index),
-      FlagComponent(
-        foot: Vector2(
-          flagpoleTile.x * tileSize + tileSize / 2,
-          flagpoleTile.y * tileSize + tileSize - 2,
-        ),
-      ),
       for (final (index, torch)
-          in tutorialPlaces.expand((place) => place.torches).indexed)
+          in gamePlaces.expand((place) => place.torches).indexed)
         TorchComponent(tile: torch, seed: index),
       for (final pickup in simulation.pickups.values)
         PickupComponent(pickup: pickup),
-      if (!_mallScript.luigiGone)
-        _luigi = NpcComponent(asset: NpcComponent.luigiAsset, tile: luigiTile),
-      // The mass is where Don Angelo and his community end: after it none
-      // of the three is in the nave any more.
-      if (!massacre)
-        _priest = NpcComponent(
-          asset: NpcComponent.priestAsset,
-          tile: _priestInside ? duomoPriestTile : priestTile,
-        ),
-      if (!massacre)
-        _stairCultist = NpcComponent(
-          asset: NpcComponent.cultistAsset,
-          tile: _stairCultistMoved
-              ? duomoStairCultistMovedTile
-              : duomoStairCultistTile,
-        ),
-      if (!massacre)
-        _welcomingCultist = NpcComponent(
-          asset: NpcComponent.cultistAsset,
-          tile: duomoWelcomingCultistTile,
-        ),
-      // Luigi at home in the locomotive. Nobody gets aboard before he has
-      // opened the door, so he can be there all along.
-      NpcComponent(asset: NpcComponent.luigiAsset, tile: trainLuigiTile),
-      ShutterComponent(bars: luigiBars, map: simulation.map),
-      ..._interactGlints(),
-      ChurchyardGateComponent(gate: priestGate, map: simulation.map),
-      BarServiceDoorComponent(door: barLockedDoorTile, map: simulation.map),
+      for (final stage in _stages) ...stage.build(),
     ]);
     // The ground burning from the start, and any a burning zombie set
     // alight before the game was saved.
@@ -379,17 +286,18 @@ final class StepboundGame extends FlameGame
       _characters[entity.id] = component;
       await world.add(component);
     }
-    // A save from after the mass has the cultists among its entities and
-    // the body's tile among its map changes; one from before this quest
-    // existed, and a test scenario built from the level, have neither. The
-    // same call puts whatever is missing back, without a sound.
-    if (massacre) {
-      _applyDuomoMassacre(announce: false);
+    for (final stage in _stages) {
+      stage.afterCharacters();
     }
     debugOverlay = DebugWorldOverlay(simulation: simulation);
     await world.addAll(<Component>[
       debugOverlay,
-      AimLineComponent(simulation: simulation, aiming: input.aiming),
+      AimLineComponent(
+        simulation: simulation,
+        aiming: input.aiming,
+        hidden: () => input.throwing,
+      ),
+      ThrowPreviewComponent(simulation: simulation, target: input.throwTarget),
     ]);
 
     _syncPresentation();
@@ -408,8 +316,10 @@ final class StepboundGame extends FlameGame
     presentation.update(dt);
     _routeNewEvents();
     _updateGameOverCountdown(dt);
-    tutorial.update(dt, turnAnimating: presentation.isAnimating);
-    _syncTrainDoor();
+    story.update(dt, turnAnimating: presentation.isAnimating);
+    for (final stage in _stages) {
+      stage.update(dt);
+    }
     _updateRest(dt);
     if (_entranceHoldLeft > 0) {
       _entranceHoldLeft -= dt;
@@ -432,7 +342,7 @@ final class StepboundGame extends FlameGame
       indoor: shown.indoor,
       resting: _campfire != null && scene == null,
       gameOver: scene is GameOverCover,
-      theme: _themeOf(shown.id),
+      theme: _musicOf(shown.id),
       scene: scene is CutsceneCover ? scene.music : null,
     );
     if (!soundscapePaused) {
@@ -445,117 +355,25 @@ final class StepboundGame extends FlameGame
     if (hasGun.value != ammo.hasGun) {
       hasGun.value = ammo.hasGun;
     }
-  }
-
-  /// The music of a place that has its own: the churches, and the train
-  /// once Luigi is waiting there. The station reunion starts Luigi's music
-  /// with its cutscene, not while Mario is still crossing the station.
-  Music? _themeOf(PlaceId place) => switch (place) {
-    PlaceId.church ||
-    PlaceId.duomo ||
-    PlaceId.duomoUpper ||
-    PlaceId.duomoSecondFloor ||
-    PlaceId.duomoTower ||
-    PlaceId.duomoBells ||
-    PlaceId.duomoTowerRoof => Music.sacred,
-    PlaceId.trainInterior
-        when progress.memories.contains(StoryMemory.luigiRescued) =>
-      Music.luigi,
-    _ => null,
-  };
-
-  /// The glint on every object Mario can use, the same one the backpacks
-  /// give off (they draw their own, as it rides their drop): the panel
-  /// until it is pulled, the map once there is somewhere to go, and the
-  /// rest once there is an interact button to press. People go without:
-  /// someone standing there is reason enough to try talking to them.
-  List<InteractGlintComponent> _interactGlints() {
-    bool canInteract() => hud.value.contains(HudElement.interact);
-    return <InteractGlintComponent>[
-      InteractGlintComponent(
-        tile: mallPanelTile,
-        spot: const Offset(11, 6),
-        active: () => simulation.controls.containsKey(mallPanelTile),
-      ),
-      InteractGlintComponent(
-        tile: trainMapPanelTile,
-        spot: const Offset(11, 6),
-        active: () => progress.memories.contains(StoryMemory.luigiRescued),
-      ),
-      InteractGlintComponent(tile: rooftopGapTile, active: canInteract),
-      InteractGlintComponent(tile: duomoTowerLookoutTile, active: canInteract),
-      InteractGlintComponent(tile: shoppingStreetFireTile, active: canInteract),
-      InteractGlintComponent(tile: stationTrackFireTile, active: canInteract),
-      // Luigi has the key: until he is free, the shut passenger door can
-      // still be examined and explains why Mario cannot board.
-      InteractGlintComponent(
-        tile: stationTrainDoorTile,
-        active: () => !simulation.map.tileAt(stationTrainDoorTile).isWalkable,
-      ),
-      // Over the open book on the desk.
-      InteractGlintComponent(
-        tile: trainBookTiles.first,
-        spot: const Offset(5, 6),
-        active: canInteract,
-      ),
-      // On the middle of the wardrobe rail.
-      InteractGlintComponent(
-        tile: trainWardrobeTiles[trainWardrobeTiles.length ~/ 2],
-        active: canInteract,
-      ),
-      // Over the calculator beside the abacus.
-      InteractGlintComponent(
-        tile: trainStatsTiles.first,
-        spot: const Offset(12, 7),
-        active: canInteract,
-      ),
-      // On the middle of Mario's cot.
-      InteractGlintComponent(
-        tile: trainCotTiles[trainCotTiles.length ~/ 2],
-        active: canInteract,
-      ),
-      // In the middle of the weapons table.
-      InteractGlintComponent(
-        tile: trainAmmoTiles[trainAmmoTiles.length ~/ 2],
-        active: canInteract,
-      ),
-      // On the closed leaf, until the key opens it.
-      InteractGlintComponent(
-        tile: barLockedDoorTile,
-        spot: const Offset(8, 8),
-        active: () => !simulation.map.tileAt(barLockedDoorTile).isWalkable,
-      ),
-      // Like the bar's own door: nothing left to use once it is open.
-      InteractGlintComponent(
-        tile: duomoUpperLockedDoorTile,
-        active: () =>
-            canInteract() &&
-            !simulation.map.tileAt(duomoUpperLockedDoorTile).isWalkable,
-      ),
-      for (final fire in campfireNames.keys)
-        if (!trainFoodTiles.contains(fire))
-          InteractGlintComponent(
-            tile: fire,
-            spot: const Offset(11, 3),
-            active: canInteract,
-          ),
-      // The table aboard is one place to eat: one glint, in its middle.
-      InteractGlintComponent(
-        tile: trainFoodTiles[trainFoodTiles.length ~/ 2],
-        active: canInteract,
-      ),
-    ];
-  }
-
-  /// Luigi carries the keys: rescuing him opens the visible passenger door
-  /// and its matching tile in the same frame. Before that the train remains
-  /// a solid wall even though its portal already belongs to the level.
-  void _syncTrainDoor() {
-    final open = progress.memories.contains(StoryMemory.luigiRescued);
-    final kind = open ? TileKind.floor : TileKind.wall;
-    if (simulation.map.tileAt(stationTrainDoorTile).kind != kind) {
-      simulation.map.setTile(stationTrainDoorTile, Tile(kind));
+    if (molotovs.value != ammo.molotovs) {
+      molotovs.value = ammo.molotovs;
     }
+    // The last one thrown (or the level left behind): the pistol is back.
+    if (ammo.molotovs == 0 &&
+        input.weapon.value == Weapon.molotov &&
+        !input.aiming.value) {
+      input.weapon.value = Weapon.pistol;
+    }
+  }
+
+  /// The music of a place that has its own, if its level gives it one.
+  Music? _musicOf(PlaceId place) {
+    for (final stage in _stages) {
+      if (stage.musicOf(place) case final music?) {
+        return music;
+      }
+    }
+    return null;
   }
 
   void _routeNewEvents() {
@@ -563,7 +381,7 @@ final class StepboundGame extends FlameGame
       return;
     }
     _processedTurn = presentation.turnCount;
-    tutorial.onEvents(presentation.lastEvents);
+    story.onEvents(presentation.lastEvents);
     haptics.onEvents(presentation.lastEvents, playerId: playerId);
     for (final cue in <SfxCue>[
       ...soundscape.soundsFor(presentation.lastEvents),
@@ -571,8 +389,35 @@ final class StepboundGame extends FlameGame
     ]) {
       audio.play(cue.sfx, volume: cue.volume);
     }
+    // The hits of a molotov show once the bottle has landed, not as it
+    // leaves Mario's hand: they follow its event in the same turn.
+    var blastDelay = 0.0;
     for (final event in presentation.lastEvents) {
       switch (event) {
+        case MolotovThrownEvent(:final origin, :final target):
+          blastDelay = MolotovBlastComponent.flightSeconds;
+          unawaited(
+            world.addAll(<Component>[
+              MolotovBlastComponent(
+                origin: origin,
+                target: target,
+                onLanded: () => audio.play(Sfx.gunshot),
+              ),
+            ]),
+          );
+        case DamagedEvent(entityId: final target, sourceEntityId: final source)
+            when source == playerId && blastDelay > 0:
+          _later(
+            blastDelay,
+            () => _characters[target]?.playHit(_facingOf(target)),
+          );
+        case DiedEvent(entityId: final victim)
+            when victim != playerId && blastDelay > 0:
+          _characters[victim]?.deathPending = true;
+          _later(
+            blastDelay,
+            () => _characters[victim]?.playDeath(_facingOf(victim)),
+          );
         case CampfireUsedEvent(:final at):
           _startRest(at);
         case MovedEvent(:final entityId) when entityId == playerId:
@@ -602,14 +447,22 @@ final class StepboundGame extends FlameGame
     }
   }
 
+  /// Runs [then] [seconds] from now, on the game's own clock.
+  void _later(double seconds, void Function() then) {
+    unawaited(
+      world.addAll(<Component>[
+        TimerComponent(period: seconds, removeOnFinish: true, onTick: then),
+      ]),
+    );
+  }
+
   // ------------------------------------------------------------ covers
 
   bool get _canAct =>
       _acceptsInput &&
       !inputLocked &&
-      !_changingOutfit &&
-      !_luigiLeaving &&
-      !tutorial.holdsInput &&
+      !_stages.any((stage) => stage.holdsMario) &&
+      !story.holdsInput &&
       cover.value == null &&
       _campfire == null &&
       _entranceHoldLeft <= 0;
@@ -626,10 +479,10 @@ final class StepboundGame extends FlameGame
   void stopWalking() => input.stopWalking();
 
   @override
-  void showPrompt(List<TutorialLine> lines, {void Function()? onDismissed}) =>
+  void showPrompt(List<StoryLine> lines, {void Function()? onDismissed}) =>
       _cover(
         PromptCover(
-          List<TutorialLine>.unmodifiable(lines),
+          List<StoryLine>.unmodifiable(lines),
           onDismissed: onDismissed,
         ),
       );
@@ -759,34 +612,6 @@ final class StepboundGame extends FlameGame
     }
   }
 
-  @override
-  void sendLuigiAway({void Function()? onFinished}) {
-    final luigi = _luigi;
-    if (luigi == null) {
-      onFinished?.call();
-      return;
-    }
-    _luigi = null;
-    input.stop();
-    _luigiLeaving = true;
-    luigi.walkAwayThrough(
-      luigiExitPath,
-      onArrived: () {
-        _luigiLeaving = false;
-        _vacate(luigiTile);
-        onFinished?.call();
-      },
-    );
-  }
-
-  /// Someone now stands on [tile]: nobody walks through them.
-  void _occupy(GridPoint tile) =>
-      simulation.map.setTile(tile, const Tile(TileKind.obstacle));
-
-  /// Whoever stood on [tile] has gone.
-  void _vacate(GridPoint tile) =>
-      simulation.map.setTile(tile, const Tile(TileKind.floor));
-
   /// A door or a road into another place: a short fade to black (a slower
   /// one into a building, where Mario then stands still a moment), or, into
   /// a place with a card, its picture and name. The card only announces a
@@ -810,14 +635,10 @@ final class StepboundGame extends FlameGame
       return;
     }
     final entering = destination?.indoor ?? false;
-    _addWithoutWaiting(
-      camera.viewport,
-      ScreenFadeComponent(
-        size: camera.viewport.size.clone(),
-        fadeIn: entering
-            ? ScreenFadeComponent.slowFadeIn
-            : ScreenFadeComponent.defaultFadeIn,
-      ),
+    fadeScreen(
+      fadeIn: entering
+          ? ScreenFadeComponent.slowFadeIn
+          : ScreenFadeComponent.defaultFadeIn,
     );
     if (entering) {
       input.stop();
@@ -891,8 +712,8 @@ final class StepboundGame extends FlameGame
       debugPrint('save: $error');
       saved = false;
     }
-    showPrompt(<TutorialLine>[
-      TutorialLine(
+    showPrompt(<StoryLine>[
+      StoryLine(
         saved
             ? savedLine
             : _atTable
@@ -927,8 +748,8 @@ final class StepboundGame extends FlameGame
 
   /// The whole game as it is now, ready to be saved.
   GameSnapshot snapshot({required String place}) => (
-    world: saveTutorialWorld(simulation),
-    tutorial: tutorial.toJson(),
+    world: saveGameWorld(simulation),
+    story: story.toJson(),
     progress: progress.toJson(),
     hud: <String>[for (final element in hud.value) element.name],
     place: place,
@@ -945,7 +766,7 @@ final class StepboundGame extends FlameGame
     }
   }
 
-  // ------------------------------------------------------- tutorial host
+  // ---------------------------------------------------------- story host
 
   @override
   bool isTileVisible(GridPoint tile) {
@@ -967,10 +788,8 @@ final class StepboundGame extends FlameGame
   @override
   void spawnZombie(Entity zombie) {
     simulation.addEntity(zombie);
-    final component = CharacterComponent(entity: zombie)..playEmerge();
+    addCharacter(zombie).playEmerge();
     audio.play(Sfx.zombieAlert);
-    _characters[zombie.id] = component;
-    _addWithoutWaiting(world, component);
   }
 
   @override
@@ -1003,153 +822,6 @@ final class StepboundGame extends FlameGame
     }
   }
 
-  void _openPriestGate() {
-    for (final tile in priestGateTiles) {
-      simulation.map.setTile(tile, const Tile(TileKind.floor));
-    }
-  }
-
-  @override
-  void openDuomo() {
-    _openPriestGate();
-    if (_priestInside) {
-      return;
-    }
-    _priestInside = true;
-    _vacate(priestTile);
-    _priest?.removeFromParent();
-    _priest = NpcComponent(
-      asset: NpcComponent.priestAsset,
-      tile: duomoPriestTile,
-    );
-    _addWithoutWaiting(world, _priest!);
-  }
-
-  /// The stair cultist steps aside: his old tile, in front of the door
-  /// upstairs, is free, the one he moves to is not.
-  void _openDuomoUpperAccess() {
-    simulation.map.setTile(duomoStairCultistTile, const Tile(TileKind.floor));
-    _occupy(duomoStairCultistMovedTile);
-  }
-
-  @override
-  void openDuomoUpper() {
-    _openDuomoUpperAccess();
-    if (_stairCultistMoved) {
-      return;
-    }
-    _stairCultistMoved = true;
-    _stairCultist?.removeFromParent();
-    _stairCultist = NpcComponent(
-      asset: NpcComponent.cultistAsset,
-      tile: duomoStairCultistMovedTile,
-    );
-    _addWithoutWaiting(world, _stairCultist!);
-  }
-
-  @override
-  void startDuomoMassacre() => _applyDuomoMassacre(announce: true);
-
-  /// The nave after the mass: Don Angelo and the two cultists who stood in
-  /// it are gone, the tiles they filled are free again, his body lies in the
-  /// aisle between the first two blocks of pews with the backpack beside it,
-  /// and the four that his community has become stand across that aisle.
-  /// Called again on the next load, it only puts back what is missing:
-  /// [announce] is false then, so no zombie is heard coming out of the dark.
-  void _applyDuomoMassacre({required bool announce}) {
-    _priest?.removeFromParent();
-    _stairCultist?.removeFromParent();
-    _welcomingCultist?.removeFromParent();
-    _priest = null;
-    _stairCultist = null;
-    _welcomingCultist = null;
-    _priestInside = true;
-    <GridPoint>[
-      duomoPriestTile,
-      duomoWelcomingCultistTile,
-      duomoStairCultistTile,
-      duomoStairCultistMovedTile,
-    ].forEach(_vacate);
-    _occupy(duomoPriestCorpseTile);
-    if (_priestCorpse == null) {
-      _priestCorpse = PriestCorpseComponent(tile: duomoPriestCorpseTile);
-      _addWithoutWaiting(world, _priestCorpse!);
-    }
-    if (_crucified == null) {
-      _crucified = CrucifiedZombieComponent(
-        tile: duomoCrucifixTile,
-        seed: simulation.tick,
-        onTwitch: _groanFromTheCross,
-      );
-      _addWithoutWaiting(world, _crucified!);
-    }
-    final key = simulation.pickups[duomoKeyPickupId];
-    if (key != null && !key.collected) {
-      key.active = true;
-    }
-    var raised = false;
-    for (final (index, tile) in duomoCultistSpawns.indexed) {
-      final id = '$duomoCultistPrefix$index';
-      // Already raised, or somebody is standing on the tile: nobody is
-      // raised on top of Mario, whatever an old save had him doing.
-      if (simulation.entities[id] != null ||
-          simulation.entityAt(tile) != null) {
-        continue;
-      }
-      // Already standing when the game fades back in from the mass: they
-      // do not climb out of the floor in front of Mario.
-      final cultist = createDuomoCultist(id, tile);
-      simulation.addEntity(cultist);
-      final component = CharacterComponent(entity: cultist);
-      _characters[id] = component;
-      _addWithoutWaiting(world, component);
-      raised = true;
-    }
-    if (announce && raised) {
-      audio.play(Sfx.zombieAlert);
-    }
-  }
-
-  /// The thing on the cross thrashes: it is heard by anyone in the Duomo,
-  /// louder the nearer they are, and not at all over a story scene or a
-  /// text box, where it would land on top of someone talking.
-  void _groanFromTheCross() {
-    if (cover.value != null) {
-      return;
-    }
-    final mario = simulation.player.component<PositionComponent>().position;
-    if (placeAt(mario)?.id != PlaceId.duomo) {
-      return;
-    }
-    final steps = mario.manhattanDistanceTo(duomoCrucifixTile);
-    final nearness = (1 - (steps - crossHearingNear) / crossHearingFar).clamp(
-      0.0,
-      1.0,
-    );
-    audio.play(Sfx.zombieAlert, volume: 0.15 + 0.3 * nearness);
-  }
-
-  @override
-  void collectCultistRobe() {
-    if (progress.unlockedOutfits.contains(PlayerOutfit.cultist)) {
-      return;
-    }
-    input.stop();
-    _changingOutfit = true;
-    _addWithoutWaiting(
-      camera.viewport,
-      ScreenFadeComponent(
-        size: camera.viewport.size.clone(),
-        fadeIn: ScreenFadeComponent.slowFadeIn,
-        onBlack: () {
-          progress.unlockOutfit(PlayerOutfit.cultist);
-          wearOutfit(PlayerOutfit.cultist);
-        },
-        onFinished: () => _changingOutfit = false,
-      ),
-    );
-  }
-
   /// Changes every player action sheet immediately. The pause-menu wardrobe
   /// calls this only for clothes already found in the world.
   @override
@@ -1163,7 +835,7 @@ final class StepboundGame extends FlameGame
   /// Opens a small system text box naming a carried quest item.
   void inspectInventory(String name) {
     if (_canAct) {
-      showPrompt(<TutorialLine>[TutorialLine(name)]);
+      showPrompt(<StoryLine>[StoryLine(name)]);
     }
   }
 
@@ -1173,7 +845,7 @@ final class StepboundGame extends FlameGame
   void inspectAmmo() {
     if (_canAct) {
       final loaded = simulation.player.component<AmmoComponent>().loaded;
-      showPrompt(<TutorialLine>[TutorialLine('$loaded proiettili')]);
+      showPrompt(<StoryLine>[StoryLine('$loaded proiettili')]);
     }
   }
 
@@ -1247,7 +919,8 @@ final class StepboundGame extends FlameGame
         )
         ..isMoving = presentation.isEntityMoving(entry.key)
         ..animationProgress = presentation.progress
-        ..aiming = entry.key == playerId && input.aiming.value;
+        ..aiming =
+            entry.key == playerId && input.aiming.value && !input.throwing;
     }
   }
 
@@ -1273,7 +946,34 @@ final class StepboundGame extends FlameGame
       simulation.entities[entityId]?.component<PositionComponent>().facing ??
       Direction.south;
 
-  /// Adds [child] mid-frame; it finishes loading on its own.
+  /// Draws [entity], come into the simulation mid-game.
+  CharacterComponent addCharacter(Entity entity) {
+    final component = CharacterComponent(entity: entity);
+    _characters[entity.id] = component;
+    addToWorld(component);
+    return component;
+  }
+
+  /// Adds [component] to the world mid-frame; it finishes loading on its
+  /// own.
+  void addToWorld(Component component) => _addWithoutWaiting(world, component);
+
+  /// Fades the screen to black and back in over [fadeIn] seconds, calling
+  /// [onBlack] while it is black.
+  void fadeScreen({
+    required double fadeIn,
+    void Function()? onBlack,
+    void Function()? onFinished,
+  }) => _addWithoutWaiting(
+    camera.viewport,
+    ScreenFadeComponent(
+      size: camera.viewport.size.clone(),
+      fadeIn: fadeIn,
+      onBlack: onBlack,
+      onFinished: onFinished,
+    ),
+  );
+
   void _addWithoutWaiting(Component parent, Component child) {
     final result = parent.add(child);
     if (result is Future<void>) {

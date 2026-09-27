@@ -1,11 +1,11 @@
 import 'package:stepbound/core/core.dart';
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/game/story/story_director.dart';
 
 /// Backpacks, wherever they are: the first one seen teaches picking them up
 /// and unlocks interacting (slipping past the first zombie can lead
 /// to the accident one first); each one collected says what it held,
 /// unlocking the ammo counter and, with the pistol, shooting.
-final class BackpacksScript extends TutorialScript {
+final class BackpacksScript extends StoryScript {
   BackpacksScript(super.director);
 
   static const String backpackLesson =
@@ -18,6 +18,11 @@ final class BackpacksScript extends TutorialScript {
   static const String ringFound = 'Hai trovato un anello episcopale';
   static const String duomoKeyFound =
       'Hai trovato la Chiave del Duomo vicino il cadavere di Don Angelo';
+  static const String molotovFound = 'Hai trovato una molotov';
+  static const String molotovLesson =
+      "Tocca l'icona della molotov per prenderla in mano, poi tieni premuto "
+      'a destra e trascina per scegliere dove lanciarla: brucia tutto in un '
+      "quadrato 3x3. Tocca di nuovo l'icona per tornare alla pistola";
   static const String aimLesson =
       'Tieni premuto sulla parte destra dello schermo per iniziare a mirare';
   static const String fireLesson =
@@ -42,6 +47,7 @@ final class BackpacksScript extends TutorialScript {
     if (event case PickedUpEvent(
       :final ammo,
       :final gun,
+      :final molotovs,
       :final incense,
       :final episcopalRing,
       :final cultistRobe,
@@ -55,9 +61,9 @@ final class BackpacksScript extends TutorialScript {
       if (duomoKey) {
         // Whose it was is the news, as much as the key itself.
         say(
-          TutorialPrompt(
-            const <TutorialLine>[TutorialLine(duomoKeyFound)],
-            delay: TutorialDirector.pickupDelay,
+          StoryPrompt(
+            const <StoryLine>[StoryLine(duomoKeyFound)],
+            delay: StoryDirector.pickupDelay,
             onShown: () => host.unlock(HudElement.duomoKey),
           ),
         );
@@ -66,10 +72,26 @@ final class BackpacksScript extends TutorialScript {
       if (episcopalRing) {
         // Like the incense: the news and the badge are one moment.
         say(
-          TutorialPrompt(
-            const <TutorialLine>[TutorialLine(ringFound)],
-            delay: TutorialDirector.pickupDelay,
+          StoryPrompt(
+            const <StoryLine>[StoryLine(ringFound)],
+            delay: StoryDirector.pickupDelay,
             onShown: () => host.unlock(HudElement.episcopalRing),
+          ),
+        );
+        return;
+      }
+      if (molotovs > 0) {
+        say(
+          StoryPrompt(
+            <StoryLine>[
+              StoryLine(
+                molotovs == 1 ? molotovFound : 'Hai trovato $molotovs molotov',
+              ),
+              if (!host.isUnlocked(HudElement.molotov))
+                const StoryLine(molotovLesson),
+            ],
+            delay: StoryDirector.pickupDelay,
+            onShown: () => host.unlock(HudElement.molotov),
           ),
         );
         return;
@@ -78,7 +100,7 @@ final class BackpacksScript extends TutorialScript {
     }
   }
 
-  TutorialPrompt _found({
+  StoryPrompt _found({
     required int ammo,
     required bool gun,
     required bool incense,
@@ -86,28 +108,28 @@ final class BackpacksScript extends TutorialScript {
     if (incense) {
       // The censer goes up in the corner as soon as the box is read, so
       // the news and the icon appearing are one moment.
-      return TutorialPrompt(
-        const <TutorialLine>[TutorialLine(incenseFound)],
-        delay: TutorialDirector.pickupDelay,
+      return StoryPrompt(
+        const <StoryLine>[StoryLine(incenseFound)],
+        delay: StoryDirector.pickupDelay,
         onShown: () => host.unlock(HudElement.incense),
       );
     }
     if (gun) {
-      return TutorialPrompt(
-        const <TutorialLine>[
-          TutorialLine(gunFound),
-          TutorialLine(aimLesson, demo: ControlDemo.shoot),
-          TutorialLine(fireLesson, demo: ControlDemo.shoot),
-          TutorialLine(cancelLesson, demo: ControlDemo.cancelShot),
+      return StoryPrompt(
+        const <StoryLine>[
+          StoryLine(gunFound),
+          StoryLine(aimLesson, demo: ControlDemo.shoot),
+          StoryLine(fireLesson, demo: ControlDemo.shoot),
+          StoryLine(cancelLesson, demo: ControlDemo.cancelShot),
         ],
-        delay: TutorialDirector.pickupDelay,
+        delay: StoryDirector.pickupDelay,
         onDismissed: () => host.unlock(HudElement.shoot),
       );
     }
     final hasGun = world.player.component<AmmoComponent>().hasGun;
-    return TutorialPrompt(
-      <TutorialLine>[TutorialLine(ammoFound(ammo, hasGun: hasGun))],
-      delay: TutorialDirector.pickupDelay,
+    return StoryPrompt(
+      <StoryLine>[StoryLine(ammoFound(ammo, hasGun: hasGun))],
+      delay: StoryDirector.pickupDelay,
       onShown: () => host.unlock(HudElement.ammo),
     );
   }
@@ -125,12 +147,12 @@ final class BackpacksScript extends TutorialScript {
     }
     _lessonGiven = true;
     say(
-      TutorialPrompt(
-        const <TutorialLine>[
-          TutorialLine(backpackLesson),
-          TutorialLine(interactLesson, demo: ControlDemo.interact),
+      StoryPrompt(
+        const <StoryLine>[
+          StoryLine(backpackLesson),
+          StoryLine(interactLesson, demo: ControlDemo.interact),
         ],
-        delay: TutorialDirector.reactionDelay,
+        delay: StoryDirector.reactionDelay,
         onDismissed: () => host.unlock(HudElement.interact),
       ),
     );

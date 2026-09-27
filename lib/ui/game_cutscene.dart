@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/ui/black_fade.dart';
 import 'package:stepbound/ui/letterbox.dart';
 import 'package:stepbound/ui/story_intro.dart';

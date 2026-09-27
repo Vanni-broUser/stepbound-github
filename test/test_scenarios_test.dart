@@ -6,8 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/stepbound_game.dart';
+import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/game/test_scenarios.dart';
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
 import 'package:stepbound/save/save_game.dart';
 
 const int _slot = SaveRepository.slotCount;
@@ -19,8 +19,8 @@ TestScenario _named(String name) =>
 Future<StepboundGame> _play(WidgetTester tester, TestScenario scenario) async {
   final save = scenario.save(_slot);
   final game = StepboundGame(
-    world: restoreTutorialWorld(save.world),
-    tutorialState: save.tutorial,
+    world: restoreGameWorld(save.world),
+    storyState: save.story,
     progress: Progress.fromJson(save.progress),
     unlocked: <HudElement>{
       for (final name in save.hud) HudElement.values.byName(name),
@@ -48,7 +48,7 @@ void main() {
         check: checkRestorable,
       );
       expect(read, isA<LoadedSave>(), reason: scenario.name);
-      final mario = restoreTutorialWorld(
+      final mario = restoreGameWorld(
         save.world,
       ).player.component<PositionComponent>();
       if (save.place == trainPlaceName) {

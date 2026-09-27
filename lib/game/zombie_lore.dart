@@ -2,7 +2,7 @@ import 'package:stepbound/core/core.dart';
 
 /// Everything the game tells about one zombie type, in one place, so that
 /// a new type cannot be half introduced. The first time one is met the
-/// tutorial director's `introduceZombie` does all of it together:
+/// story director's `introduceZombie` does all of it together:
 ///
 /// 1. records the type in `Progress.knownZombies`, which a save keeps and
 ///    the book on the train reads (its card stops being "???");

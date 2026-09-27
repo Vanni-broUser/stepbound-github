@@ -10,7 +10,7 @@ import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/game/render/pixel_palette.dart';
 import 'package:stepbound/game/stepbound_game.dart';
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/save/save_game.dart';
 import 'package:stepbound/ui/audio_scope.dart';
 import 'package:stepbound/ui/black_fade.dart';
@@ -185,19 +185,19 @@ final class _StepboundAppState extends State<StepboundApp> {
 
   StepboundGame _gameFrom(SaveGame save) => _gameOf(
     world: save.world,
-    tutorial: save.tutorial,
+    story: save.story,
     progress: Progress.fromJson(save.progress),
     hud: save.hud,
   );
 
   StepboundGame _gameOf({
     required Map<String, Object?> world,
-    required Map<String, Object?> tutorial,
+    required Map<String, Object?> story,
     required Progress progress,
     required List<String> hud,
   }) => StepboundGame(
-    world: restoreTutorialWorld(world),
-    tutorialState: tutorial,
+    world: restoreGameWorld(world),
+    storyState: story,
     progress: progress,
     unlocked: <HudElement>{
       for (final name in hud)
@@ -228,7 +228,7 @@ final class _StepboundAppState extends State<StepboundApp> {
           savedAt: DateTime.now(),
           place: snapshot.place,
           world: snapshot.world,
-          tutorial: snapshot.tutorial,
+          story: snapshot.story,
           progress: snapshot.progress,
           hud: snapshot.hud,
           played: _played,
@@ -314,8 +314,8 @@ final class _StepboundAppState extends State<StepboundApp> {
           slot: _slot,
           savedAt: DateTime.now(),
           place: levelStartPlace,
-          world: saveTutorialWorld(createTutorialWorld()),
-          tutorial: const <String, Object?>{},
+          world: saveGameWorld(createGameWorld()),
+          story: const <String, Object?>{},
           progress: Progress.newGame().toJson(),
           hud: const <String>[],
           atCampfire: false,
@@ -353,7 +353,7 @@ final class _StepboundAppState extends State<StepboundApp> {
           savedAt: DateTime.now(),
           place: levelStartPlace,
           world: start.world,
-          tutorial: start.tutorial,
+          story: start.story,
           progress: start.progress,
           hud: start.hud,
           atCampfire: false,
@@ -375,7 +375,7 @@ final class _StepboundAppState extends State<StepboundApp> {
       }
       _game = _gameOf(
         world: start.world,
-        tutorial: start.tutorial,
+        story: start.story,
         progress: Progress.fromJson(start.progress),
         hud: start.hud,
       );
@@ -492,7 +492,7 @@ final class _StepboundAppState extends State<StepboundApp> {
   static const String levelStartPlace = 'Inizio del livello';
 
   void _completeLevel(GameSnapshot snapshot) {
-    final world = restoreTutorialWorld(snapshot.world);
+    final world = restoreGameWorld(snapshot.world);
     final progress = Progress.fromJson(snapshot.progress);
     final stats = LevelStats.of(world, progress, progress.level);
     _playStoryAudio();
@@ -517,7 +517,8 @@ final class _StepboundAppState extends State<StepboundApp> {
 
   /// The train takes Mario and Luigi to [level]: the game picks up aboard,
   /// with the train's door onto that level's station, and is saved there.
-  /// Mario's rounds stay in the level he leaves (see [Progress.travel]).
+  /// Mario's rounds and molotovs stay in the level he leaves (see
+  /// [Progress.travel] and [Progress.swapMolotovs]).
   /// Rome starts over from here.
   void _startLevel(LevelId level) {
     final snapshot = _completedSnapshot;
@@ -525,9 +526,11 @@ final class _StepboundAppState extends State<StepboundApp> {
       return;
     }
     final progress = Progress.fromJson(snapshot.progress);
-    final world = restoreTutorialWorld(snapshot.world);
+    final world = restoreGameWorld(snapshot.world);
     final ammo = world.player.component<AmmoComponent>();
-    ammo.loaded = progress.travel(level, rounds: ammo.loaded);
+    ammo
+      ..molotovs = progress.swapMolotovs(level, molotovs: ammo.molotovs)
+      ..loaded = progress.travel(level, rounds: ammo.loaded);
     // At the map, but turned away from it: a stray tap on arrival does
     // not open it again.
     world.player.component<PositionComponent>()
@@ -537,8 +540,8 @@ final class _StepboundAppState extends State<StepboundApp> {
       progress.remember(StoryMemory.presidentFled);
     }
     final arrival = (
-      world: saveTutorialWorld(world),
-      tutorial: snapshot.tutorial,
+      world: saveGameWorld(world),
+      story: snapshot.story,
       progress: progress.toJson(),
       hud: snapshot.hud,
       place: trainPlaceName,
@@ -547,7 +550,7 @@ final class _StepboundAppState extends State<StepboundApp> {
         ? null
         : LevelStart(
             world: arrival.world,
-            tutorial: arrival.tutorial,
+            story: arrival.story,
             progress: arrival.progress,
             hud: arrival.hud,
           );
@@ -555,7 +558,7 @@ final class _StepboundAppState extends State<StepboundApp> {
     setState(() {
       _game = _gameOf(
         world: arrival.world,
-        tutorial: arrival.tutorial,
+        story: arrival.story,
         progress: progress,
         hud: arrival.hud,
       );

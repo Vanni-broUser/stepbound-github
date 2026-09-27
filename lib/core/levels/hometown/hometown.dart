@@ -1,53 +1,29 @@
 import 'dart:math' as math;
 
 import 'package:stepbound/core/entities/balance.dart';
-import 'package:stepbound/core/entities/components.dart';
 import 'package:stepbound/core/entities/entity.dart';
 import 'package:stepbound/core/entities/entity_factory.dart';
 import 'package:stepbound/core/grid/grid_point.dart';
-import 'package:stepbound/core/grid/tile.dart';
-import 'package:stepbound/core/grid/tile_map.dart';
 import 'package:stepbound/core/items/pickup.dart';
+import 'package:stepbound/core/levels/game_world.dart';
 import 'package:stepbound/core/levels/place.dart';
-import 'package:stepbound/core/levels/rome/termini.dart';
-import 'package:stepbound/core/levels/tutorial/airliner.dart';
-import 'package:stepbound/core/levels/tutorial/bar_arcobaleno.dart';
-import 'package:stepbound/core/levels/tutorial/bar_backroom.dart';
-import 'package:stepbound/core/levels/tutorial/barracks.dart';
-import 'package:stepbound/core/levels/tutorial/church.dart';
-import 'package:stepbound/core/levels/tutorial/duomo.dart';
-import 'package:stepbound/core/levels/tutorial/duomo_second_floor.dart';
-import 'package:stepbound/core/levels/tutorial/duomo_tower.dart';
-import 'package:stepbound/core/levels/tutorial/duomo_tower_roof.dart';
-import 'package:stepbound/core/levels/tutorial/duomo_upper.dart';
-import 'package:stepbound/core/levels/tutorial/harbour.dart';
-import 'package:stepbound/core/levels/tutorial/mall.dart';
-import 'package:stepbound/core/levels/tutorial/mall_north_street.dart';
-import 'package:stepbound/core/levels/tutorial/north_district.dart';
-import 'package:stepbound/core/levels/tutorial/station.dart';
-import 'package:stepbound/core/levels/tutorial/street.dart';
-import 'package:stepbound/core/levels/tutorial/train.dart';
-import 'package:stepbound/core/seeded_random.dart';
-import 'package:stepbound/core/world.dart';
 
-export 'package:stepbound/core/levels/rome/termini.dart';
-export 'package:stepbound/core/levels/tutorial/airliner.dart';
-export 'package:stepbound/core/levels/tutorial/bar_arcobaleno.dart';
-export 'package:stepbound/core/levels/tutorial/bar_backroom.dart';
-export 'package:stepbound/core/levels/tutorial/barracks.dart';
-export 'package:stepbound/core/levels/tutorial/church.dart';
-export 'package:stepbound/core/levels/tutorial/duomo.dart';
-export 'package:stepbound/core/levels/tutorial/duomo_second_floor.dart';
-export 'package:stepbound/core/levels/tutorial/duomo_tower.dart';
-export 'package:stepbound/core/levels/tutorial/duomo_tower_roof.dart';
-export 'package:stepbound/core/levels/tutorial/duomo_upper.dart';
-export 'package:stepbound/core/levels/tutorial/harbour.dart';
-export 'package:stepbound/core/levels/tutorial/mall.dart';
-export 'package:stepbound/core/levels/tutorial/mall_north_street.dart';
-export 'package:stepbound/core/levels/tutorial/north_district.dart';
-export 'package:stepbound/core/levels/tutorial/station.dart';
-export 'package:stepbound/core/levels/tutorial/street.dart';
-export 'package:stepbound/core/levels/tutorial/train.dart';
+export 'package:stepbound/core/levels/hometown/airliner.dart';
+export 'package:stepbound/core/levels/hometown/bar_arcobaleno.dart';
+export 'package:stepbound/core/levels/hometown/bar_backroom.dart';
+export 'package:stepbound/core/levels/hometown/barracks.dart';
+export 'package:stepbound/core/levels/hometown/church.dart';
+export 'package:stepbound/core/levels/hometown/duomo.dart';
+export 'package:stepbound/core/levels/hometown/duomo_second_floor.dart';
+export 'package:stepbound/core/levels/hometown/duomo_tower.dart';
+export 'package:stepbound/core/levels/hometown/duomo_tower_roof.dart';
+export 'package:stepbound/core/levels/hometown/duomo_upper.dart';
+export 'package:stepbound/core/levels/hometown/harbour.dart';
+export 'package:stepbound/core/levels/hometown/mall.dart';
+export 'package:stepbound/core/levels/hometown/mall_north_street.dart';
+export 'package:stepbound/core/levels/hometown/north_district.dart';
+export 'package:stepbound/core/levels/hometown/station.dart';
+export 'package:stepbound/core/levels/hometown/street.dart';
 
 /// The glyphs of the street, the north district and the harbour (see
 /// street.dart), of the barracks (barracks.dart) and of the hypermarket
@@ -106,22 +82,6 @@ const Legend stationLegend = Legend(
   fire: '?',
 );
 
-/// Inside the train the shell, the windscreen and the gangway partitions
-/// are walls. Seats, tables, luggage, the controls, the driver's seat and
-/// the map table can be seen over but not walked through, and so can the
-/// two cots, the bin bags, the books, Mario's ammunition crate, the table
-/// laid for eating and Luigi.
-const Legend trainLegend = Legend(
-  walls: 'xWwIiV',
-  obstacles: 'STLCPhbBuklaGKqYRO',
-);
-
-/// Roma Termini (termini.dart) keeps to the far platform's glyphs, but
-/// its train's door `P` is open from the start: the train is Mario's own.
-/// The name board high on the wall `Q` is wall, the one on its posts at
-/// the platform's edge `o` can be seen over.
-const Legend terminiLegend = Legend(walls: 'xWMQ|', obstacles: 'Tno');
-
 /// Inside the crashed airliner (airliner.dart) the hull is a wall all
 /// round; the blocks of seats `T` and the galley trolleys `K` are waist
 /// high, and the buckled panelling `:` and the broken seats `r` are walked
@@ -148,15 +108,15 @@ const Legend rooftopLegend = Legend(
 const String harbourName = 'Porto e centro storico';
 const String harbourCardImage = 'assets/story/scenes/harbour.jpg';
 
-/// The tutorial: the street where Mario wakes up, the inside of the
-/// carabinieri barracks, the north district behind it with the two floors
-/// of its hypermarket and, past the car park, the block with the station
-/// and its three places, and the harbour south of all that with the Duomo,
-/// the Bar Arcobaleno and the church of San Nicola. Backgrounds are baked
-/// by the bakers listed in tools/build_levels.py, except for the
+/// Molfetta, the first level: the street where Mario wakes up, the inside
+/// of the carabinieri barracks, the north district behind it with the two
+/// floors of its hypermarket and, past the car park, the block with the
+/// station and its three places, and the harbour south of all that with the
+/// Duomo, the Bar Arcobaleno and the church of San Nicola. Backgrounds are
+/// baked by the bakers listed in tools/build_levels.py, except for the
 /// places with no `background`: those the game paints from these same
 /// rows, out of assets/levels/tiles (tools/build_tile_atlas.py).
-final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
+const List<PlaceSpec> hometownPlaces = <PlaceSpec>[
   PlaceSpec(
     id: PlaceId.street,
     area: AreaId.hometownTown,
@@ -264,16 +224,6 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
   ),
   // Painted from its rows out of the tile atlas.
   PlaceSpec(
-    id: PlaceId.trainInterior,
-    area: AreaId.train,
-    rows: trainInteriorRows,
-    legend: trainLegend,
-    indoor: true,
-    // Luigi keeps the lights on: the whole train is bright, end to end.
-    lit: true,
-  ),
-  // Painted from its rows out of the tile atlas.
-  PlaceSpec(
     id: PlaceId.airlinerCabin,
     area: AreaId.hometownTown,
     rows: airlinerCabinRows,
@@ -290,8 +240,6 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     rows: airlinerRoofRows,
     legend: rooftopLegend,
   ),
-  // Appended so adding these places does not move any existing place in a
-  // saved world's shared coordinate grid.
   // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.duomo,
@@ -323,14 +271,6 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     // The community lives up here: every lamp is lit, no darkness at all.
     lit: true,
     daylight: 'D',
-  ),
-  // The first place of Rome, on the same grid: the train is the one place
-  // the two levels share, and there is no road between them.
-  PlaceSpec(
-    id: PlaceId.romeTermini,
-    area: AreaId.romeTermini,
-    rows: terminiRows,
-    legend: terminiLegend,
   ),
   // Painted from its rows out of the tile atlas.
   PlaceSpec(
@@ -370,23 +310,7 @@ final List<Place> tutorialPlaces = layOutPlaces(const <PlaceSpec>[
     rows: duomoTowerRoofRows,
     legend: duomoTowerRoofLegend,
   ),
-]);
-
-final Map<PlaceId, Place> _placesById = <PlaceId, Place>{
-  for (final place in tutorialPlaces) place.id: place,
-};
-
-Place place(PlaceId id) => _placesById[id]!;
-
-/// The place [tile] belongs to, if any.
-Place? placeAt(GridPoint tile) {
-  for (final place in tutorialPlaces) {
-    if (place.bounds.contains(tile)) {
-      return place;
-    }
-  }
-  return null;
-}
+];
 
 final Place _street = place(PlaceId.street);
 final Place _barracks = place(PlaceId.barracks);
@@ -400,13 +324,11 @@ final Place _church = place(PlaceId.church);
 final Place _station = place(PlaceId.station);
 final Place _underpass = place(PlaceId.stationUnderpass);
 final Place _farSide = place(PlaceId.stationFarSide);
-final Place _train = place(PlaceId.trainInterior);
 final Place _airlinerCabin = place(PlaceId.airlinerCabin);
 final Place _airlinerRoofs = place(PlaceId.airlinerRoofs);
 final Place _duomo = place(PlaceId.duomo);
 final Place _barBackroom = place(PlaceId.barBackroom);
 final Place _duomoUpper = place(PlaceId.duomoUpper);
-final Place _termini = place(PlaceId.romeTermini);
 final Place _duomoSecond = place(PlaceId.duomoSecondFloor);
 final Place _duomoTower = place(PlaceId.duomoTower);
 final Place _duomoBells = place(PlaceId.duomoBells);
@@ -438,6 +360,11 @@ const String boatBackpackId = 'backpack-boat';
 /// Angelo asked for.
 const String incenseBackpackId = 'backpack-incense';
 const String episcopalRingPickupId = 'episcopal-ring';
+
+/// The backpack with a molotov in the park behind the hypermarket, and
+/// how many it holds.
+const String molotovBackpackId = 'molotov-backpack';
+const int molotovBackpackCount = 1;
 const String cultistRobePickupId = 'cultist-robe';
 
 /// The service door in the top-right corner of the Bar Arcobaleno. It is
@@ -560,61 +487,19 @@ const Map<PlaceId, String> _campNames = <PlaceId, String>{
   PlaceId.harbour: 'Cantiere navale',
 };
 
-/// Campfires, by tile, with the name shown in the save slots. Aboard, the
-/// table laid with food takes the place of one, and saves as the train.
-final Map<GridPoint, String> campfireNames = <GridPoint, String>{
+/// Molfetta's campfires, by tile, with the name shown in the save slots.
+final Map<GridPoint, String> hometownCampfireNames = <GridPoint, String>{
   for (final place in _streets)
     for (final (point, glyph) in place.glyphs)
       if (glyph == 'S' && _campNames.containsKey(place.id))
         point: _campNames[place.id]!,
-  for (final tile in trainFoodTiles) tile: trainPlaceName,
 };
 
 /// The flagpole planted on the forecourt, where the tricolour flies.
 final GridPoint flagpoleTile = _street.tileOf('I');
 
-enum FireKind { car, bin, window, campfire }
-
-/// Where an animated fire burns, in tile coordinates of its tile (the left
-/// or top tile for a car).
-final class FireSpot {
-  const FireSpot(this.tile, this.kind, {this.vertical = false});
-
-  final GridPoint tile;
-  final FireKind kind;
-
-  /// True for a car parked north-south.
-  final bool vertical;
-}
-
-List<FireSpot> _firesIn(Place place) {
-  final rows = place.rows;
-  final spots = <FireSpot>[];
-  for (var y = 0; y < rows.length; y++) {
-    for (var x = 0; x < rows[y].length; x++) {
-      final glyph = rows[y][x];
-      final tile = GridPoint(place.origin.x + x, place.origin.y + y);
-      final carStart = glyph == 'X' && (x == 0 || rows[y][x - 1] != 'X');
-      final verticalCarStart =
-          glyph == 'k' && (y == 0 || rows[y - 1][x] != 'k');
-      final spot = switch (glyph) {
-        'F' => FireSpot(tile, FireKind.bin),
-        'f' => FireSpot(tile, FireKind.window),
-        'S' => FireSpot(tile, FireKind.campfire),
-        _ when carStart => FireSpot(tile, FireKind.car),
-        _ when verticalCarStart => FireSpot(tile, FireKind.car, vertical: true),
-        _ => null,
-      };
-      if (spot != null) {
-        spots.add(spot);
-      }
-    }
-  }
-  return spots;
-}
-
 /// Fires burning on the first street.
-final List<FireSpot> streetFireSpots = _firesIn(_street);
+final List<FireSpot> streetFireSpots = firesIn(_street);
 
 /// The flames along the overturned car `H` burning at the west end of the
 /// station's tracks, one every two cells from its west end.
@@ -630,8 +515,8 @@ final List<FireSpot> stationWreckFireSpots = () {
 }();
 
 /// Fires of every outdoor place, and those on the station's burning car.
-final List<FireSpot> outdoorFireSpots = <FireSpot>[
-  for (final place in _streets) ..._firesIn(place),
+final List<FireSpot> hometownFireSpots = <FireSpot>[
+  for (final place in _streets) ...firesIn(place),
   ...stationWreckFireSpots,
 ];
 
@@ -752,6 +637,14 @@ final GridPoint mallExitTile = _mallGround.tileOf('X');
 /// hypermarket behind the car park.
 final GridPoint mallNorthStreetEntry = _mallNorthStreet.tileOf('j');
 
+/// On the park's path, a few steps in front of the carabiniere standing
+/// on it (zombies start looking west): to reach the molotov, Mario walks
+/// up to him.
+final GridPoint molotovBackpackTile = (() {
+  final carabiniere = _mallNorthStreet.tileOf('r');
+  return GridPoint(carabiniere.x - 4, carabiniere.y);
+})();
+
 /// The portal of San Nicola, standing open on the church's little square.
 final GridPoint churchPortalTile = _harbour.tileOf('(');
 
@@ -778,87 +671,6 @@ final GridRect stationPlatform = () {
 /// The passenger door in the train on the far platform. Its tile starts as
 /// a wall and is made walkable by the game as soon as Luigi is rescued.
 final GridPoint stationTrainDoorTile = _farSide.tileOf('P');
-
-/// The door through which Mario enters and leaves the first passenger car.
-final GridPoint trainExitTile = _train.tileOf('E');
-
-/// The table in the middle of the locomotive, the yellowed Europe map
-/// spread over the whole of it: any side of it opens the map.
-final List<GridPoint> trainMapTiles = _train.tilesOf('P');
-
-/// Where Mario stands aboard when the story puts him there: at the map
-/// table, below it, looking up at it ([trainMapFacing]).
-final GridPoint trainMapStandTile = GridPoint(
-  trainMapTiles.first.x + 1,
-  trainMapTiles.last.y + 1,
-);
-
-/// Which way Mario faces from [trainMapStandTile]: at the table.
-const Direction trainMapFacing = Direction.north;
-
-/// Which way Mario faces when the story puts him aboard at
-/// [trainMapStandTile]: away from the table, so a stray tap does not open
-/// the map again at once.
-const Direction trainArrivalFacing = Direction.south;
-
-/// The part of the map Mario looks at from [trainMapStandTile], where the
-/// glint shows once there is somewhere to go.
-final GridPoint trainMapPanelTile = trainMapStandTile.step(trainMapFacing);
-
-/// The passenger door of the train standing at Roma Termini, open onto
-/// the platform.
-final GridPoint terminiTrainDoorTile = _termini.tileOf('P');
-
-/// The stairs out of Termini: for now the end of the playable game.
-final List<GridPoint> terminiExitTiles = _termini.tilesOf('D');
-
-/// The wanderers on the platforms of Termini, `termini-wanderer-<n>`.
-const String terminiZombiePrefix = 'termini-wanderer-';
-
-/// The train's door opens onto the platform of the level it stands in:
-/// Molfetta's far platform or Roma Termini. The door back aboard from
-/// either platform is always there; only the way out moves with it.
-void parkTrain(WorldState world, LevelId level) {
-  final platformDoor = switch (level) {
-    LevelId.hometown => stationTrainDoorTile,
-    LevelId.rome => terminiTrainDoorTile,
-  };
-  world.portals[trainExitTile] = Portal(
-    to: platformDoor.step(Direction.south),
-    facing: Direction.south,
-  );
-}
-
-/// What a save made aboard is called in the slots.
-const String trainPlaceName = 'Treno';
-
-/// Luigi, at home in his corner of the locomotive.
-final GridPoint trainLuigiTile = _train.tileOf('l');
-
-/// The open books on Mario's desk: the zombie types met so far.
-final List<GridPoint> trainBookTiles = _train.tilesOf('k');
-
-/// The abacus and the calculator at the left end of Mario's desk: the
-/// figures of the adventure, city by city.
-final List<GridPoint> trainStatsTiles = _train.tilesOf('K');
-
-/// Mario's wardrobe, a rail with his clothes on it: what to wear.
-final List<GridPoint> trainWardrobeTiles = _train.tilesOf('R');
-
-/// Mario's cot, where the memories come back.
-final List<GridPoint> trainCotTiles = _train.tilesOf('B');
-
-/// Mario's ammunition crate by his cot: interacting with it brings his
-/// rounds up to [trainAmmoRefill], whenever he has fewer.
-final List<GridPoint> trainAmmoTiles = _train.tilesOf('a');
-
-/// The narrow table against the wall above the map table, laid with cured
-/// meats, cheese and bread: stopping to eat there saves the game, as
-/// resting at a campfire does. Its middle tile is where it glints.
-final List<GridPoint> trainFoodTiles = _train.tilesOf('G');
-
-/// How many rounds the crate in the locomotive loads Mario up to.
-const int trainAmmoRefill = 5;
 
 /// The tear in the belly of the airliner, in the lane the wreck left open
 /// at the crossroads behind the hypermarket: two tiles wide, like the
@@ -892,20 +704,6 @@ final GridPoint shoppingStreetFireTile = _mallNorthStreet
 final GridPoint stationTrackFireTile = _station
     .tilesOf('?')
     .reduce((a, b) => a.y > b.y || (a.y == b.y && a.x > b.x) ? a : b);
-
-/// Doors [from] one place [to] another, tile by tile in order: stepping on
-/// a tile of [from] lands on the tile of [to] one step towards [facing].
-Map<GridPoint, Portal> _pairedDoors(
-  List<GridPoint> from,
-  List<GridPoint> to,
-  Direction facing,
-) {
-  assert(from.length == to.length, 'doors of different widths');
-  return <GridPoint, Portal>{
-    for (var i = 0; i < from.length; i++)
-      from[i]: Portal(to: to[i].step(facing), facing: facing),
-  };
-}
 
 /// Every door, both ways:
 /// - the barracks' front door on the street and its back door onto the
@@ -946,86 +744,86 @@ Map<GridPoint, Portal> _portals() {
   final up = _mallGround.doorRow('U');
   final down = _mallFirst.doorRow('D');
   return <GridPoint, Portal>{
-    ..._pairedDoors(
+    ...pairedDoors(
       <GridPoint>[_street.tileOf('E')],
       <GridPoint>[_barracks.tileOf('E')],
       Direction.north,
     ),
-    ..._pairedDoors(
+    ...pairedDoors(
       <GridPoint>[_barracks.tileOf('E')],
       <GridPoint>[_street.tileOf('E')],
       Direction.south,
     ),
-    ..._pairedDoors(
+    ...pairedDoors(
       <GridPoint>[_barracks.tileOf('O')],
       <GridPoint>[_north.tileOf('e')],
       Direction.north,
     ),
-    ..._pairedDoors(
+    ...pairedDoors(
       <GridPoint>[_north.tileOf('e')],
       <GridPoint>[_barracks.tileOf('O')],
       Direction.south,
     ),
-    ..._pairedDoors(northEdge, harbourEdge, Direction.south),
-    ..._pairedDoors(harbourEdge, northEdge, Direction.north),
-    ..._pairedDoors(mallDoor, entrance, Direction.north),
-    ..._pairedDoors(entrance, mallDoor, Direction.south),
-    ..._pairedDoors(up, down, Direction.south),
-    ..._pairedDoors(down, up, Direction.south),
+    ...pairedDoors(northEdge, harbourEdge, Direction.south),
+    ...pairedDoors(harbourEdge, northEdge, Direction.north),
+    ...pairedDoors(mallDoor, entrance, Direction.north),
+    ...pairedDoors(entrance, mallDoor, Direction.south),
+    ...pairedDoors(up, down, Direction.south),
+    ...pairedDoors(down, up, Direction.south),
     // Out of the fire exit Mario stands in its doorway, not out on the
     // tarmac of the car park: pushing on south from there goes back in.
     mallExitTile: Portal(to: mallNorthStreetEntry, facing: Direction.north),
-    ..._pairedDoors(
+    ...pairedDoors(
       <GridPoint>[mallNorthStreetEntry],
       <GridPoint>[mallExitTile],
       Direction.south,
     ),
-    ..._pairedDoors(
+    ...pairedDoors(
       <GridPoint>[_harbour.tileOf('h')],
       <GridPoint>[_bar.tileOf('E')],
       Direction.north,
     ),
-    ..._pairedDoors(
+    ...pairedDoors(
       <GridPoint>[_bar.tileOf('E')],
       <GridPoint>[_harbour.tileOf('h')],
       Direction.south,
     ),
-    ..._pairedDoors(
+    ...pairedDoors(
       <GridPoint>[barLockedDoorTile],
       <GridPoint>[barBackroomDoorTile],
       Direction.north,
     ),
-    ..._pairedDoors(
+    ...pairedDoors(
       <GridPoint>[barBackroomDoorTile],
       <GridPoint>[barLockedDoorTile],
       Direction.south,
     ),
-    ..._pairedDoors(
+    ...pairedDoors(
       <GridPoint>[churchPortalTile],
       <GridPoint>[_church.tileOf('E')],
       Direction.north,
     ),
-    ..._pairedDoors(
+    ...pairedDoors(
       <GridPoint>[_church.tileOf('E')],
       <GridPoint>[churchPortalTile],
       Direction.south,
     ),
-    ..._pairedDoors(
+    ...pairedDoors(
       <GridPoint>[duomoPortalTile],
       <GridPoint>[_duomo.tileOf('E')],
       Direction.north,
     ),
-    ..._pairedDoors(
+    ...pairedDoors(
       <GridPoint>[_duomo.tileOf('E')],
       <GridPoint>[duomoPortalTile],
       Direction.south,
     ),
-    ..._pairedDoors(
+    ...pairedDoors(
       <GridPoint>[duomoStairEntryTile],
       <GridPoint>[duomoUpperStairTile],
       Direction.north,
     ),
-    ..._pairedDoors(
+    ...pairedDoors(
       <GridPoint>[duomoUpperStairTile],
       <GridPoint>[duomoStairEntryTile],
       Direction.south,
@@ -1036,80 +834,49 @@ Map<GridPoint, Portal> _portals() {
       (duomoTowerUpTile, duomoBellsStairTile),
       (duomoBellsUpTile, duomoRoofHatchTile),
     ]) ...<GridPoint, Portal>{
-      ..._pairedDoors(<GridPoint>[below], <GridPoint>[above], Direction.north),
-      ..._pairedDoors(<GridPoint>[above], <GridPoint>[below], Direction.south),
+      ...pairedDoors(<GridPoint>[below], <GridPoint>[above], Direction.north),
+      ...pairedDoors(<GridPoint>[above], <GridPoint>[below], Direction.south),
     },
-    ..._pairedDoors(stationWestDoor, _station.doorRow('E'), Direction.north),
-    ..._pairedDoors(_station.doorRow('E'), stationWestDoor, Direction.south),
-    ..._pairedDoors(stationEastDoor, _station.doorRow('O'), Direction.north),
-    ..._pairedDoors(_station.doorRow('O'), stationEastDoor, Direction.south),
-    ..._pairedDoors(
+    ...pairedDoors(stationWestDoor, _station.doorRow('E'), Direction.north),
+    ...pairedDoors(_station.doorRow('E'), stationWestDoor, Direction.south),
+    ...pairedDoors(stationEastDoor, _station.doorRow('O'), Direction.north),
+    ...pairedDoors(_station.doorRow('O'), stationEastDoor, Direction.south),
+    ...pairedDoors(
       _station.doorRow('U'),
       _underpass.doorRow('D'),
       Direction.south,
     ),
-    ..._pairedDoors(
+    ...pairedDoors(
       _underpass.doorRow('D'),
       _station.doorRow('U'),
       Direction.north,
     ),
-    ..._pairedDoors(
+    ...pairedDoors(
       _underpass.doorRow('U'),
       _farSide.doorRow('D'),
       Direction.north,
     ),
-    ..._pairedDoors(
+    ...pairedDoors(
       _farSide.doorRow('D'),
       _underpass.doorRow('U'),
       Direction.south,
     ),
-    ..._pairedDoors(
-      <GridPoint>[stationTrainDoorTile],
-      <GridPoint>[trainExitTile],
-      Direction.north,
-    ),
-    // Where the train's own door leads is up to where it stands: see
-    // parkTrain. A new game starts with it in Molfetta.
-    ..._pairedDoors(
-      <GridPoint>[trainExitTile],
-      <GridPoint>[stationTrainDoorTile],
-      Direction.south,
-    ),
-    ..._pairedDoors(
-      <GridPoint>[terminiTrainDoorTile],
-      <GridPoint>[trainExitTile],
-      Direction.north,
-    ),
-    ..._pairedDoors(airlinerTear, airlinerCabinTear, Direction.north),
-    ..._pairedDoors(airlinerCabinTear, airlinerTear, Direction.south),
+    ...pairedDoors(airlinerTear, airlinerCabinTear, Direction.north),
+    ...pairedDoors(airlinerCabinTear, airlinerTear, Direction.south),
     // The tail break is in the belly: Mario climbs down out of it south onto
     // the roofs, and back up into the cabin north.
-    ..._pairedDoors(airlinerTailBreak, airlinerRoofBreak, Direction.south),
-    ..._pairedDoors(airlinerRoofBreak, airlinerTailBreak, Direction.north),
+    ...pairedDoors(airlinerTailBreak, airlinerRoofBreak, Direction.south),
+    ...pairedDoors(airlinerRoofBreak, airlinerTailBreak, Direction.north),
   };
 }
 
-/// The level as the player finds it at the start: the map of every place,
-/// Mario on the street, the zombies, the backpacks, the doors, the camp and
-/// the panel.
-WorldState createTutorialWorld({int seed = 20260920}) {
-  final factory = EntityFactory(BalanceConfig.standard());
+/// What Molfetta holds when a game starts: Mario on the street, its
+/// zombies and backpacks, its doors, the tutorial zombie's trigger, the
+/// hypermarket's panel and what can be looked at.
+LevelContents hometownContents(EntityFactory factory) {
   final entities = <Entity>[];
   final pickups = <Pickup>[];
-  final width = tutorialPlaces
-      .map((place) => place.bounds.right + 1)
-      .reduce(math.max);
-  final height = tutorialPlaces
-      .map((place) => place.bounds.bottom + 1)
-      .reduce(math.max);
-  final kinds = List<TileKind>.filled(width * height, TileKind.wall);
   final zombieCounts = <EntityKind, int>{};
-
-  for (final place in tutorialPlaces) {
-    for (final (point, glyph) in place.glyphs) {
-      kinds[point.y * width + point.x] = place.kindOf(glyph);
-    }
-  }
   for (final place in _streets) {
     for (final (point, glyph) in place.glyphs) {
       switch (glyph) {
@@ -1170,6 +937,11 @@ WorldState createTutorialWorld({int seed = 20260920}) {
       id: episcopalRingPickupId,
       position: _barBackroom.tileOf('8'),
       episcopalRing: true,
+    ),
+    Pickup(
+      id: molotovBackpackId,
+      position: molotovBackpackTile,
+      molotovs: molotovBackpackCount,
     ),
     Pickup(
       id: cultistRobePickupId,
@@ -1252,18 +1024,6 @@ WorldState createTutorialWorld({int seed = 20260920}) {
       ),
     );
   }
-  for (final (index, spot) in terminiZombieSpots.indexed) {
-    entities.add(
-      factory.zombie(
-        id: '$terminiZombiePrefix$index',
-        kind: EntityKind.wanderer,
-        position: GridPoint(
-          _termini.origin.x + spot.x,
-          _termini.origin.y + spot.y,
-        ),
-      ),
-    );
-  }
   for (final (index, tile) in _bar.tilesOf('U').indexed) {
     entities.add(
       factory.zombie(
@@ -1273,138 +1033,31 @@ WorldState createTutorialWorld({int seed = 20260920}) {
       ),
     );
   }
-
-  return WorldState(
-    map: TileMap(
-      width: width,
-      height: height,
-      tiles: <Tile>[for (final kind in kinds) Tile(kind)],
-    ),
+  return LevelContents(
     entities: entities,
     pickups: pickups,
+    portals: _portals(),
     alertTriggers: const <String, GridRect>{
       tutorialZombieId: tutorialZombieTrigger,
     },
-    portals: _portals(),
-    campfires: campfireNames.keys,
     controls: <GridPoint, GridRect>{mallPanelTile: luigiBars},
-    travelMaps: trainMapTiles,
     lookouts: <GridPoint>[
       rooftopGapTile,
       duomoTowerLookoutTile,
       shoppingStreetFireTile,
       stationTrackFireTile,
-      trainLuigiTile,
-      ...trainBookTiles,
-      ...trainStatsTiles,
-      ...trainWardrobeTiles,
-      ...trainCotTiles,
-      ...trainAmmoTiles,
     ],
-    playerId: 'player',
-    random: SeededRandom(seed),
   );
 }
 
-/// The world as a save stores it: everything that can change (Mario, the
-/// zombies, dead or alive, wherever they stand, the backpacks and whether
-/// they were collected, the panels), but of the map only the tiles that
-/// differ from the level's (the lifted shutter): the level rebuilds the
-/// rest. The dark gaps between places made a full map most of a save.
-Map<String, Object?> saveTutorialWorld(WorldState world) {
-  final level = createTutorialWorld().map;
-  final map = world.map;
-  return <String, Object?>{
-    ...world.toJson(includeMap: false),
-    'mapChanges': <Object?>[
-      for (var y = 0; y < map.height; y++)
-        for (var x = 0; x < map.width; x++)
-          if (level.tileAt(GridPoint(x, y)).kind !=
-              map.tileAt(GridPoint(x, y)).kind)
-            <String, Object?>{
-              'x': x,
-              'y': y,
-              'kind': map.tileAt(GridPoint(x, y)).kind.name,
-            },
-    ],
-  };
-}
-
-/// A world resumed from a [saveTutorialWorld] save: the level's map with
-/// the saved changes, and everything else as it was.
-WorldState restoreTutorialWorld(Map<String, Object?> json) {
-  final currentLevel = createTutorialWorld();
-  final map = currentLevel.map;
-  for (final change
-      in (json['mapChanges']! as List<Object?>).cast<Map<String, Object?>>()) {
-    map.setTile(
-      GridPoint(change['x']! as int, change['y']! as int),
-      Tile(TileKind.values.byName(change['kind']! as String)),
-    );
-  }
-  // Saves keep the complete pickup and entity lists. When a newer level
-  // adds a backpack or a zombie, an older save therefore knows nothing
-  // about it even though the current map around it has already been
-  // rebuilt above. Merge only missing defaults: saved state (including
-  // collected backpacks and dead zombies) wins, while newly shipped
-  // inhabitants and items appear where the level puts them.
-  final savedPickups = (json['pickups'] as List<Object?>? ?? const <Object?>[])
-      .cast<Map<String, Object?>>();
-  final savedPickupIds = <String>{
-    for (final pickup in savedPickups) pickup['id']! as String,
-  };
-  final savedEntities =
-      (json['entities'] as List<Object?>? ?? const <Object?>[])
-          .cast<Map<String, Object?>>();
-  final savedEntityIds = <String>{
-    for (final entity in savedEntities) entity['id']! as String,
-  };
-  final currentLevelJson = currentLevel.toJson(includeMap: false);
-  final migrated = <String, Object?>{
-    ...json,
-    // Doors between places and travel maps are level structure rather than
-    // player state. Taking the current definitions lets older saves enter
-    // the newly added train and use its locomotive map.
-    'portals': currentLevelJson['portals'],
-    'travelMaps': currentLevelJson['travelMaps'],
-    'entities': <Object?>[
-      ...savedEntities,
-      for (final entity in currentLevel.entities.values)
-        if (!savedEntityIds.contains(entity.id)) entity.toJson(),
-    ],
-    'pickups': <Object?>[
-      ...savedPickups,
-      for (final pickup in currentLevel.pickups.values)
-        if (!savedPickupIds.contains(pickup.id)) pickup.toJson(),
-    ],
-  };
-  return WorldState.fromJson(migrated, map: map);
-}
-
-/// Whether [tile] lies in one of [level]'s places.
-bool isInLevel(GridPoint tile, LevelId level) => placeAt(tile)?.level == level;
-
-/// Every zombie [level] can hold: the ones there from the start and the
-/// ones its story raises (the barracks' carabinieri, the horde at the
-/// hypermarket's gate, the mutated cultists of the Duomo), by kind.
-List<EntityKind> levelZombieKinds(LevelId level) => <EntityKind>[
-  for (final entity in createTutorialWorld().entities.values)
-    if (entity.kind != EntityKind.player &&
-        isInLevel(entity.component<PositionComponent>().position, level))
-      entity.kind,
-  if (level == LevelId.hometown) ...<EntityKind>[
-    for (final _ in carabiniereSpawns) EntityKind.carabiniere,
-    for (final _ in mallHordeSpawns) EntityKind.wanderer,
-    for (final _ in duomoCultistSpawns) EntityKind.cultist,
-  ],
+/// The zombies Molfetta's story raises on the way, besides those there
+/// from the start: the barracks' carabinieri, the horde at the
+/// hypermarket's gate and the mutated cultists of the Duomo.
+final List<EntityKind> hometownRaisedZombies = <EntityKind>[
+  for (final _ in carabiniereSpawns) EntityKind.carabiniere,
+  for (final _ in mallHordeSpawns) EntityKind.wanderer,
+  for (final _ in duomoCultistSpawns) EntityKind.cultist,
 ];
-
-/// The names of the campfires of [level].
-Set<String> levelCampfires(LevelId level) => <String>{
-  for (final MapEntry(key: tile, value: name) in campfireNames.entries)
-    // The table aboard saves like a fire but is not one to find.
-    if (isInLevel(tile, level) && !trainFoodTiles.contains(tile)) name,
-};
 
 /// A wanderer coming in through the hypermarket's gate at [position],
 /// looking west down the corridor.

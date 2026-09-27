@@ -7,7 +7,7 @@ import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/render/tile_atlas.dart';
 
 /// The places the game paints from the tile atlas: every one of them.
-Iterable<Place> get convertedPlaces => tutorialPlaces;
+Iterable<Place> get convertedPlaces => gamePlaces;
 
 void main() {
   final manifest = TileAtlasManifest.parse(
@@ -171,7 +171,7 @@ void main() {
   });
 
   test('every place of the atlas is a place of the game', () {
-    final ids = <String>{for (final place in tutorialPlaces) place.id.name};
+    final ids = <String>{for (final place in gamePlaces) place.id.name};
     for (final name in manifest.places.keys) {
       expect(
         ids,

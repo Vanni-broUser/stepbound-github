@@ -183,7 +183,12 @@ final class CharacterComponent extends PositionComponent {
     _startAction(CharacterAction.bite, rowFor(facing), biteDuration);
   }
 
+  /// Dead already, but still standing until [playDeath]: a zombie a
+  /// molotov is on its way to burns only once the bottle lands.
+  bool deathPending = false;
+
   void playDeath(Direction facing) {
+    deathPending = false;
     if (_deathAtlas == null) {
       return;
     }
@@ -260,7 +265,7 @@ final class CharacterComponent extends PositionComponent {
       _drawCell(canvas, atlas, _actionRow, column);
       return;
     }
-    if (!entity.isAlive) {
+    if (!entity.isAlive && !deathPending) {
       return;
     }
     final facing = entity.component<simulation.PositionComponent>().facing;

@@ -1,9 +1,9 @@
 import 'package:stepbound/core/core.dart';
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/game/story/story_director.dart';
 
 /// The first street: the zombie east of the crossroads spots Mario and
 /// steps closer, framed with him, then the wanderers' pace is explained.
-final class StreetScript extends TutorialScript {
+final class StreetScript extends StoryScript {
   StreetScript(super.director);
 
   bool _zombieLessonGiven = false;

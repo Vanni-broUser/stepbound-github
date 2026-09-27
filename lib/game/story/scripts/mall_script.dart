@@ -1,7 +1,7 @@
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/game/story/story_director.dart';
 
 /// The hypermarket: a few steps in, a voice calls for help and Mario
 /// answers; upstairs, walking up to the shutter where Luigi is stuck plays
@@ -9,7 +9,7 @@ import 'package:stepbound/game/tutorial/tutorial_director.dart';
 /// panel that lifts the shutter. Getting to the panel through them is what
 /// saves Luigi: out of his shop, with his axe, he sees off whatever is
 /// left of the horde himself.
-final class MallScript extends TutorialScript {
+final class MallScript extends StoryScript {
   MallScript(super.director);
 
   static const String mysteryVoice = 'Voce misteriosa';
@@ -99,18 +99,18 @@ final class MallScript extends TutorialScript {
         if (_stepsInside >= stepsBeforeVoice && !_voiceHeard) {
           _voiceHeard = true;
           say(
-            TutorialPrompt(const <TutorialLine>[
-              TutorialLine(helpCall, speaker: mysteryVoice),
-              TutorialLine.mario(someoneAlive),
-            ], delay: TutorialDirector.reactionDelay),
+            StoryPrompt(const <StoryLine>[
+              StoryLine(helpCall, speaker: mysteryVoice),
+              StoryLine.mario(someoneAlive),
+            ], delay: StoryDirector.reactionDelay),
           );
         }
       case ControlUsedEvent():
         // The scene follows, so the flag waits for the box to be read:
         // otherwise the pictures would cover the news of the shutter.
         say(
-          TutorialPrompt(const <TutorialLine>[
-            TutorialLine(shutterOpened),
+          StoryPrompt(const <StoryLine>[
+            StoryLine(shutterOpened),
           ], onDismissed: () => _shutterOpen = true),
         );
       case _:
@@ -182,14 +182,14 @@ final class MallScript extends TutorialScript {
   /// Luigi trusts Mario with his plan, then leaves to wait at the station.
   void _startTrustDialogue() {
     say(
-      TutorialPrompt(
-        const <TutorialLine>[
-          TutorialLine.luigi(trustLine),
-          TutorialLine.luigi(meetAtStationLine),
+      StoryPrompt(
+        const <StoryLine>[
+          StoryLine.luigi(trustLine),
+          StoryLine.luigi(meetAtStationLine),
         ],
         onDismissed: () {
           _luigiGone = true;
-          host.sendLuigiAway();
+          host.hometown.sendLuigiAway();
         },
       ),
     );
