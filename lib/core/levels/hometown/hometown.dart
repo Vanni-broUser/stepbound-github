@@ -231,6 +231,7 @@ const List<PlaceSpec> hometownPlaces = <PlaceSpec>[
     indoor: true,
     // Daylight at the tear in the belly and at the tail break.
     daylight: 'EO',
+    lamps: airlinerCabinLamps,
   ),
   // The roofs are open to the sky, so they are lit throughout. Painted
   // from their rows out of the tile atlas.
