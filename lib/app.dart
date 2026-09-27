@@ -540,6 +540,7 @@ final class _StepboundAppState extends State<StepboundApp> {
     final progress = Progress.fromJson(snapshot.progress);
     final stats = LevelStats.of(world, progress, progress.level);
     _playStoryAudio();
+    StepboundGame.releasePlacePictures();
     setState(() {
       _completedSnapshot = snapshot;
       _levelStats = stats;
@@ -552,6 +553,7 @@ final class _StepboundAppState extends State<StepboundApp> {
 
   void _travelFromTrain(GameSnapshot snapshot) {
     _playStoryAudio();
+    StepboundGame.releasePlacePictures();
     setState(() {
       _completedSnapshot = snapshot;
       _game = null;
@@ -638,10 +640,14 @@ final class _StepboundAppState extends State<StepboundApp> {
     _startLevel(LevelId.rome);
   }
 
+  /// From the pause menu or the game over screen. The pictures of the
+  /// game's places, kept for a game started over at once, go: the menu
+  /// can stay open a long while.
   void _backToMenu() {
     _audio
       ..silenceAmbience()
       ..playMusic(Music.menu);
+    StepboundGame.releasePlacePictures();
     setState(() {
       _game = null;
       _completedSnapshot = null;

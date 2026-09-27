@@ -69,6 +69,13 @@ final class GameInputController {
   /// while aiming it; null otherwise.
   final ValueNotifier<GridPoint?> throwTarget = ValueNotifier<GridPoint?>(null);
 
+  /// Once the game is taken down: nobody listens to these any more.
+  void dispose() {
+    aiming.dispose();
+    weapon.dispose();
+    throwTarget.dispose();
+  }
+
   /// Aiming, with a molotov in hand.
   bool get throwing => aiming.value && weapon.value == Weapon.molotov;
 

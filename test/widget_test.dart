@@ -19,6 +19,7 @@ import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/game/render/interact_glint_component.dart';
 import 'package:stepbound/game/render/npc_component.dart';
 import 'package:stepbound/game/render/offscreen_culled.dart';
+import 'package:stepbound/game/render/pickup_component.dart';
 import 'package:stepbound/game/render/place_layers.dart';
 import 'package:stepbound/game/render/tile_place_component.dart';
 import 'package:stepbound/game/render/torch_component.dart';
@@ -1316,7 +1317,9 @@ void main() {
       final view = game.camera.visibleWorldRect;
       final culled = game.world.children.whereType<OffscreenCulled>().toList();
       expect(culled.whereType<FireComponent>(), isNotEmpty);
-      expect(culled.whereType<TorchComponent>(), isNotEmpty);
+      // The Duomo's torches are an area away, down at the harbour: not in
+      // the world at all, let alone drawn.
+      expect(culled.whereType<TorchComponent>(), isEmpty);
       for (final component in culled) {
         expect(component.onScreen, component.reach.overlaps(view));
       }
@@ -1383,7 +1386,7 @@ void main() {
         PlaceId.harbour,
       ).walkableRow(place(PlaceId.harbour).height ~/ 2).first;
       game.update(1 / 30);
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      await game.areaSettled;
       game.update(1 / 30);
       await game.ready();
       expect(game.loadedPlaces, <PlaceId>{
@@ -1396,6 +1399,15 @@ void main() {
         ),
         unorderedEquals(game.loadedPlaces),
       );
+      // What stands in the places comes and goes with them: the Duomo's
+      // torches are in now, and no backpack lies in a place let go.
+      expect(game.world.children.whereType<TorchComponent>(), isNotEmpty);
+      for (final backpack in game.world.children.whereType<PickupComponent>()) {
+        expect(
+          game.loadedPlaces,
+          contains(placeAt(backpack.pickup.position)!.id),
+        );
+      }
     });
   });
 
