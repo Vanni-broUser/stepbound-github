@@ -11,7 +11,8 @@ final class BackpacksScript extends StoryScript {
   static const String backpackLesson =
       'Raccogli gli zaini in giro per trovare nuovo equipaggiamento';
   static const String interactLesson =
-      'Tocca la parte destra dello schermo per interagire con gli oggetti';
+      'Tocca la parte destra dello schermo per interagire con gli oggetti '
+      'vicini';
   static const String noGun = 'Non hai una pistola';
   static const String gunFound = 'Hai trovato una pistola';
   static const String incenseFound = "Hai trovato dell'incenso";

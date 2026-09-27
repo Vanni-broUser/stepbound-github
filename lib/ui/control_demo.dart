@@ -23,7 +23,7 @@ final class ControlDemoView extends StatefulWidget {
 
   /// Whether the panel of [demo] stands on the right of the view, over the
   /// half its taps are about, rather than on the left.
-  static bool standsRight(ControlDemo demo) => demo == ControlDemo.interact;
+  static bool standsRight(ControlDemo demo) => demo != ControlDemo.move;
 
   @override
   State<ControlDemoView> createState() => _ControlDemoViewState();
