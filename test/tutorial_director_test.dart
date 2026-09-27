@@ -846,7 +846,7 @@ void main() {
       null,
       ControlDemo.shoot,
       ControlDemo.shoot,
-      null,
+      ControlDemo.cancelShot,
     ]);
     expect(host.unlocked, isNot(contains(HudElement.shoot)));
     host.dismiss();

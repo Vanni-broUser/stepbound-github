@@ -79,6 +79,10 @@ enum ControlDemo {
   /// Holding on the right half raises the pistol, dragging aims and lifting
   /// fires: once each way, up, right, down and left.
   shoot,
+
+  /// The pistol comes up with its splash, the finger stays in the ring in
+  /// the middle a moment and lifts there: nothing is fired.
+  cancelShot,
 }
 
 /// One full-screen picture of a story scene played during the game: the

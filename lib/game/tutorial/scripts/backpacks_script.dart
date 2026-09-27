@@ -98,7 +98,7 @@ final class BackpacksScript extends TutorialScript {
           TutorialLine(gunFound),
           TutorialLine(aimLesson, demo: ControlDemo.shoot),
           TutorialLine(fireLesson, demo: ControlDemo.shoot),
-          TutorialLine(cancelLesson),
+          TutorialLine(cancelLesson, demo: ControlDemo.cancelShot),
         ],
         delay: TutorialDirector.pickupDelay,
         onDismissed: () => host.unlock(HudElement.shoot),

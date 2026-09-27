@@ -138,6 +138,7 @@ abstract base class _Script {
 
   static _Script of(ControlDemo demo) => switch (demo) {
     ControlDemo.shoot => const _ShootScript(),
+    ControlDemo.cancelShot => const _CancelShotScript(),
   };
 
   double get cycle;
@@ -228,6 +229,55 @@ final class _ShootScript extends _Script {
   List<_Beat> beatsOf(int round) => <_Beat>[
     _Beat(_raised, SplatKind.hold, home(round)),
     _Beat(_fire, SplatKind.swipe, home(round), _pull(round)),
+  ];
+}
+
+/// Press, hold until the pistol comes up with its splash, and stay in the
+/// ring in the middle, lit up with the pistol greyed on the drop, before
+/// lifting: the stick goes and only the tap's splat is left.
+final class _CancelShotScript extends _Script {
+  const _CancelShotScript();
+
+  static const double _lift = 1.95;
+  static const double _gone = 2.2;
+
+  @override
+  double get cycle => 3;
+
+  @override
+  bool get rightHalf => true;
+
+  @override
+  _Pose poseAt(int round, double t) {
+    final centre = home(round);
+    if (t < _ShootScript._approach) {
+      return _Pose(finger: centre, fingerAlpha: t / _ShootScript._approach);
+    }
+    if (t < _ShootScript._raised) {
+      return _Pose(finger: centre, pressed: true);
+    }
+    if (t < _lift) {
+      return _Pose(
+        finger: centre,
+        pressed: true,
+        centre: centre,
+        thumb: centre,
+        aiming: true,
+      );
+    }
+    if (t < _gone) {
+      return _Pose(
+        finger: centre,
+        fingerAlpha: 1 - (t - _lift) / (_gone - _lift),
+      );
+    }
+    return _Pose.none;
+  }
+
+  @override
+  List<_Beat> beatsOf(int round) => <_Beat>[
+    _Beat(_ShootScript._raised, SplatKind.hold, home(round)),
+    _Beat(_lift, SplatKind.tap, home(round)),
   ];
 }
 
