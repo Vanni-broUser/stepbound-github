@@ -234,9 +234,7 @@ final class DuomoScript extends StoryScript {
   /// The mass waits for Mario in the Duomo in the occultist robe: coming
   /// down in his own clothes changes nothing, until he is back in there
   /// wearing it. It runs straight into the massacre, and once that has been
-  /// played the nave stays as it left it. A save from before the massacre
-  /// existed has the mass among its memories already: it plays what it has
-  /// not seen, and keeps both memories in the order they were lived.
+  /// played the nave stays as it left it.
   void _startMassIfDressed(GridPoint position) {
     if (_massacrePlayed ||
         progress.activeOutfit != PlayerOutfit.cultist ||
@@ -244,9 +242,8 @@ final class DuomoScript extends StoryScript {
       return;
     }
     _massacrePlayed = true;
-    final massSeen = progress.hasViewed(StoryMemory.priestMass);
     host.playCutscene(
-      massSeen ? massacreScene : massSequence,
+      massSequence,
       memories: const <StoryMemory>{
         StoryMemory.priestMass,
         StoryMemory.priestMassacre,

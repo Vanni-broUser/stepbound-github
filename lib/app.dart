@@ -5,12 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/game_audio.dart';
 import 'package:stepbound/game/audio/sound.dart';
+import 'package:stepbound/game/game_session.dart';
 import 'package:stepbound/game/input/touch_controls.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/game/render/pixel_palette.dart';
 import 'package:stepbound/game/stepbound_game.dart';
-import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/save/save_game.dart';
 import 'package:stepbound/ui/audio_scope.dart';
 import 'package:stepbound/ui/black_fade.dart';
@@ -63,6 +63,15 @@ final class _StepboundAppState extends State<StepboundApp> {
       widget.saves ?? PreferencesSaveRepository();
   late final GameAudio _audio = widget.audio ?? SilentAudio();
 
+  /// The game being played, in its slot: what is saved and restored, and
+  /// the games that play it. The phases here decide what is on screen.
+  late final GameSession _session = GameSession(
+    saves: _saves,
+    audio: _audio,
+    onLevelCompleted: _completeLevel,
+    onTravelMapRequested: _travelFromTrain,
+  );
+
   /// Silences the game whenever it is not the app in front.
   late final AppLifecycleListener _lifecycle;
   StepboundGame? _game;
@@ -72,37 +81,6 @@ final class _StepboundAppState extends State<StepboundApp> {
 
   /// Whether the loading picture fades in from the black a story ended on.
   bool _loadingFadesIn = false;
-
-  /// Where the level being played starts over from, when it is not the
-  /// first story scene: see [SaveGame.levelStart].
-  LevelStart? _levelStart;
-
-  /// The slot this game saves into at campfires and on the train.
-  int _slot = 1;
-
-  /// Where the current slot's save was made: a campfire or the train. Only
-  /// with one is there anywhere to go back to, so only then do the menus
-  /// offer it. The slot written when the level starts over does not count.
-  ResumePoint? _resumePoint;
-
-  /// What this game had been played for when it was loaded or started, and
-  /// the clock running since. Together they are what a save records: it
-  /// only runs while the game is in front and out of the menu, so a phone
-  /// in a pocket is not play, and nothing between two saves is kept.
-  Duration _playedBefore = Duration.zero;
-  final Stopwatch _clock = Stopwatch();
-  final Set<StoryMemory> _storyHistory = <StoryMemory>{};
-  Future<void> _storyHistoryWrite = Future<void>.value();
-
-  Duration get _played => _playedBefore + _clock.elapsed;
-
-  /// Starts this game's clock over from [played].
-  void _startClock(Duration played) {
-    _playedBefore = played;
-    _clock
-      ..reset()
-      ..start();
-  }
 
   @override
   void initState() {
@@ -120,13 +98,13 @@ final class _StepboundAppState extends State<StepboundApp> {
     if (state == AppLifecycleState.resumed) {
       _audio.resume();
       if (_phase != _Phase.menu) {
-        _clock.start();
+        _session.resumeClock();
       }
       _putDown = false;
       return;
     }
     _audio.pause();
-    _clock.stop();
+    _session.pauseClock();
     // Once on the way out, whatever the steps: Android may kill the app
     // in the background, and everything since the last fire would go.
     if (!_putDown) {
@@ -147,25 +125,7 @@ final class _StepboundAppState extends State<StepboundApp> {
     if (game == null || _phase != _Phase.playing || !game.canBeSuspended) {
       return;
     }
-    final snapshot = game.snapshot(place: game.placeName);
-    try {
-      await _saves.suspend(
-        SaveGame(
-          slot: _slot,
-          savedAt: DateTime.now(),
-          place: snapshot.place,
-          world: snapshot.world,
-          story: snapshot.story,
-          progress: snapshot.progress,
-          hud: snapshot.hud,
-          atCampfire: false,
-          played: _played,
-          levelStart: _levelStart,
-        ),
-      );
-    } on SaveWriteException catch (error) {
-      debugPrint('save: $error');
-    }
+    await _session.suspend(game);
   }
 
   @override
@@ -190,119 +150,27 @@ final class _StepboundAppState extends State<StepboundApp> {
   }
 
   Future<void> _newGame(int slot) async {
-    await _storyHistoryWrite;
-    try {
-      await _saves.clear(slot);
-    } on Object catch (error) {
-      // The old game stays in the slot until the first campfire writes
-      // over it: no reason to keep the new one from starting.
-      debugPrint('save: could not clear slot $slot ($error)');
-    }
+    await _session.startNew(slot);
     if (!mounted) {
       return;
     }
     _playStoryAudio();
-    _startClock(Duration.zero);
     setState(() {
-      _slot = slot;
-      _storyHistory.clear();
-      _resumePoint = null;
-      _levelStart = null;
       _completedSnapshot = null;
       _phase = _Phase.story;
     });
   }
 
   Future<void> _loadGame(SaveGame save) async {
-    final history = await _saves.loadStoryHistory(save.slot);
-    // A game put down is picked up as it was, but the fire to go back to
-    // is still the slot's own save.
-    final checkpoint = await _saves.load(save.slot) ?? save;
+    final game = await _session.load(save);
     if (!mounted) {
       return;
     }
-    final progress = Progress.fromJson(save.progress);
-    _storyHistory
-      ..clear()
-      ..addAll(history)
-      ..addAll(progress.memories);
-    _startClock(save.played);
     _loadingFadesIn = false;
     setState(() {
-      _slot = save.slot;
-      _resumePoint = _resumePointOf(checkpoint);
-      _levelStart = save.levelStart;
-      _game = _gameFrom(save, progress: progress);
+      _game = game;
       _phase = _Phase.playing;
     });
-  }
-
-  StepboundGame _gameFrom(SaveGame save, {Progress? progress}) => _gameOf(
-    world: save.world,
-    story: save.story,
-    progress: progress ?? Progress.fromJson(save.progress),
-    hud: save.hud,
-  );
-
-  StepboundGame _gameOf({
-    required Map<String, Object?> world,
-    required Map<String, Object?> story,
-    required Progress progress,
-    required List<String> hud,
-  }) {
-    progress.addViewedMemories(_storyHistory);
-    return StepboundGame(
-      world: restoreGameWorld(world),
-      storyState: story,
-      progress: progress,
-      unlocked: <HudElement>{
-        for (final name in hud)
-          for (final element in HudElement.values)
-            if (element.name == name) element,
-      },
-      onRest: _store,
-      onLevelCompleted: _completeLevel,
-      onTravelMapRequested: _travelFromTrain,
-      onStoryViewed: _rememberStory,
-      audio: _audio,
-    );
-  }
-
-  static ResumePoint? _resumePointOf(SaveGame save) => !save.atCampfire
-      ? null
-      : save.place == trainPlaceName
-      ? ResumePoint.train
-      : ResumePoint.campfire;
-
-  /// Called by the game when Mario rests at a campfire, and when the level
-  /// ends with him aboard the train. False when the save could not be
-  /// written: the slot still holds the one before, and so does
-  /// [_resumePoint].
-  Future<bool> _store(GameSnapshot snapshot) async {
-    final game = _game;
-    try {
-      await _saves.save(
-        SaveGame(
-          slot: _slot,
-          savedAt: DateTime.now(),
-          place: snapshot.place,
-          world: snapshot.world,
-          story: snapshot.story,
-          progress: snapshot.progress,
-          hud: snapshot.hud,
-          played: _played,
-          levelStart: _levelStart,
-        ),
-      );
-    } on SaveWriteException catch (error) {
-      debugPrint('save: $error');
-      return false;
-    }
-    _resumePoint = snapshot.place == trainPlaceName
-        ? ResumePoint.train
-        : ResumePoint.campfire;
-    game?.progress.confirmPendingMemories();
-    return true;
   }
 
   void _finishIntro() {
@@ -310,22 +178,9 @@ final class _StepboundAppState extends State<StepboundApp> {
   }
 
   void _finishOutbreak() {
-    _rememberStories(const <StoryMemory>{
-      StoryMemory.newsBroadcast,
-      StoryMemory.outbreakNight,
-    });
-    final progress = Progress.newGame(openingSaved: false)
-      ..addViewedMemories(_storyHistory);
     setState(() {
       _phase = _Phase.dialogue;
-      _game = StepboundGame(
-        onRest: _store,
-        onLevelCompleted: _completeLevel,
-        onTravelMapRequested: _travelFromTrain,
-        onStoryViewed: _rememberStory,
-        progress: progress,
-        audio: _audio,
-      )..inputLocked = true;
+      _game = _session.newGame();
     });
   }
 
@@ -337,120 +192,53 @@ final class _StepboundAppState extends State<StepboundApp> {
   }
 
   /// Back to the last campfire or to the train, from the menu or after
-  /// dying. Only offered while there is a [_resumePoint]; if the slot has
+  /// dying. Only offered while there is a resume point; if the slot has
   /// gone missing anyway, the level starts over rather than leaving the
   /// player stuck.
   Future<void> _resumeFromCamp() async {
-    final save = await _saves.load(_slot);
-    final history = await _saves.loadStoryHistory(_slot);
-    // Going back to the fire is giving up whatever was put down since.
-    try {
-      await _saves.clearSuspended(_slot);
-    } on Object catch (error) {
-      debugPrint('save: could not drop the game put down ($error)');
-    }
+    final game = await _session.resumeFromCheckpoint();
     if (!mounted) {
       return;
     }
-    if (save == null) {
+    if (game == null) {
       await _restartLevel();
       return;
     }
-    _startClock(save.played);
     _loadingFadesIn = false;
-    _storyHistory.addAll(history);
     setState(() {
-      _levelStart = save.levelStart;
-      _game = _gameFrom(save);
+      _game = game;
       _phase = _Phase.playing;
     });
   }
 
-  /// The level from the very start, the first story picture, with nothing
-  /// kept but the hours played (bullets, known zombies, memories all go).
-  /// It counts as a save: the slot now holds the start of the level, so
-  /// loading it later starts the level over too — but not a campfire one,
-  /// so there is nothing to resume from until the next fire.
+  /// The level from the very start: Molfetta from the first story picture,
+  /// any other level from where Mario arrived in it (see [GameSession]).
   Future<void> _restartLevel() async {
-    if (_levelStart case final start?) {
+    if (_session.levelStart case final start?) {
       await _restartFrom(start);
       return;
     }
     // The camp's fire and hushed music stop at once: the story plays.
     _game?.soundscapePaused = true;
     _playStoryAudio();
-    var saved = true;
-    try {
-      await _saves.save(
-        SaveGame(
-          slot: _slot,
-          savedAt: DateTime.now(),
-          place: levelStartPlace,
-          world: saveGameWorld(createGameWorld()),
-          story: const <String, Object?>{},
-          progress: Progress().toJson(),
-          hud: const <String>[],
-          atCampfire: false,
-          // The hours played are the one thing starting over keeps.
-          played: _played,
-        ),
-      );
-    } on SaveWriteException catch (error) {
-      // The level starts over all the same; the slot keeps the save it
-      // had, and with it the fire to go back to.
-      debugPrint('save: $error');
-      saved = false;
-    }
+    await _session.saveLevelStart();
     if (!mounted) {
       return;
     }
     setState(() {
-      if (saved) {
-        _resumePoint = null;
-      }
       _game = null;
       _phase = _Phase.story;
     });
   }
 
-  /// A level other than Molfetta starts over where Mario arrived in it,
-  /// with what he had then. Like the story's restart it counts as a save,
-  /// not a campfire one.
   Future<void> _restartFrom(LevelStart start) async {
-    var saved = true;
-    try {
-      await _saves.save(
-        SaveGame(
-          slot: _slot,
-          savedAt: DateTime.now(),
-          place: levelStartPlace,
-          world: start.world,
-          story: start.story,
-          progress: start.progress,
-          hud: start.hud,
-          atCampfire: false,
-          played: _played,
-          levelStart: start,
-        ),
-      );
-    } on SaveWriteException catch (error) {
-      debugPrint('save: $error');
-      saved = false;
-    }
+    final game = await _session.restartFrom(start);
     if (!mounted) {
       return;
     }
     _loadingFadesIn = false;
     setState(() {
-      if (saved) {
-        _resumePoint = null;
-      }
-      _game = _gameOf(
-        world: start.world,
-        story: start.story,
-        progress: Progress.fromJson(start.progress),
-        hud: start.hud,
-      );
+      _game = game;
       _phase = _Phase.playing;
     });
   }
@@ -461,25 +249,6 @@ final class _StepboundAppState extends State<StepboundApp> {
       ..silenceAmbience()
       ..setMusicLevel(1)
       ..playMusic(Music.story);
-  }
-
-  bool get _openingStorySeen =>
-      _storyHistory.contains(StoryMemory.newsBroadcast) &&
-      _storyHistory.contains(StoryMemory.outbreakNight);
-
-  void _rememberStory(StoryMemory memory) =>
-      _rememberStories(<StoryMemory>{memory});
-
-  void _rememberStories(Set<StoryMemory> memories) {
-    if (memories.every(_storyHistory.contains)) {
-      return;
-    }
-    _storyHistory.addAll(memories);
-    final copy = Set<StoryMemory>.of(_storyHistory);
-    final slot = _slot;
-    _storyHistoryWrite = _storyHistoryWrite.then(
-      (_) => _saves.saveStoryHistory(slot, copy),
-    );
   }
 
   /// What is drawn over the game for [cover]: the touch controls when
@@ -552,8 +321,8 @@ final class _StepboundAppState extends State<StepboundApp> {
     PauseCover(:final wardrobe) => PauseMenu(
       progress: game.progress,
       wardrobe: wardrobe,
-      resumePoint: _resumePoint,
-      restartsFromStory: _levelStart == null,
+      resumePoint: _session.resumePoint,
+      restartsFromStory: _session.levelStart == null,
       onResumeFromCamp: () => unawaited(_resumeFromCamp()),
       onRestartLevel: () => unawaited(_restartLevel()),
       onMainMenu: _backToMenu,
@@ -563,8 +332,8 @@ final class _StepboundAppState extends State<StepboundApp> {
     GameOverCover() => Letterbox(
       color: _GameOverOverlay.backdrop,
       child: _GameOverOverlay(
-        resumePoint: _resumePoint,
-        restartsFromStory: _levelStart == null,
+        resumePoint: _session.resumePoint,
+        restartsFromStory: _session.levelStart == null,
         onResumeFromCamp: () {
           _audio.stop(Sfx.gameOver);
           unawaited(_resumeFromCamp());
@@ -580,9 +349,6 @@ final class _StepboundAppState extends State<StepboundApp> {
       ),
     ),
   };
-
-  /// What a save made by starting the level over is called in the slots.
-  static const String levelStartPlace = 'Inizio del livello';
 
   void _completeLevel(GameSnapshot snapshot) {
     final world = restoreGameWorld(snapshot.world);
@@ -610,53 +376,15 @@ final class _StepboundAppState extends State<StepboundApp> {
     });
   }
 
-  /// The train takes Mario and Luigi to [level]: the game picks up aboard,
-  /// with the train's door onto that level's station, and is saved there.
-  /// Mario's rounds and molotovs stay in the level he leaves (see
-  /// [Progress.travel] and [Progress.swapMolotovs]).
-  /// Rome starts over from here.
+  /// The train takes Mario and Luigi to [level] (see
+  /// [GameSession.startLevel]).
   void _startLevel(LevelId level) {
     final snapshot = _completedSnapshot;
     if (snapshot == null) {
       return;
     }
-    final progress = Progress.fromJson(snapshot.progress);
-    final world = restoreGameWorld(snapshot.world);
-    final ammo = world.player.component<AmmoComponent>();
-    ammo
-      ..molotovs = progress.swapMolotovs(level, molotovs: ammo.molotovs)
-      ..loaded = progress.travel(level, rounds: ammo.loaded);
-    // At the map, but turned away from it: a stray tap on arrival does
-    // not open it again.
-    world.player.component<PositionComponent>()
-      ..position = trainMapStandTile
-      ..facing = trainArrivalFacing;
-    if (level == LevelId.rome) {
-      progress.remember(StoryMemory.presidentFled);
-    }
-    final arrival = (
-      world: saveGameWorld(world),
-      story: snapshot.story,
-      progress: progress.toJson(),
-      hud: snapshot.hud,
-      place: trainPlaceName,
-    );
-    _levelStart = level == LevelId.hometown
-        ? null
-        : LevelStart(
-            world: arrival.world,
-            story: arrival.story,
-            progress: arrival.progress,
-            hud: arrival.hud,
-          );
-    unawaited(_store(arrival));
     setState(() {
-      _game = _gameOf(
-        world: arrival.world,
-        story: arrival.story,
-        progress: progress,
-        hud: arrival.hud,
-      );
+      _game = _session.startLevel(level, snapshot);
       _phase = _Phase.playing;
     });
   }
@@ -684,7 +412,7 @@ final class _StepboundAppState extends State<StepboundApp> {
   }
 
   void _finishRomeStory() {
-    _rememberStory(StoryMemory.presidentFled);
+    _session.rememberStory(StoryMemory.presidentFled);
     _loadingFadesIn = true;
     _startLevel(LevelId.rome);
   }
@@ -759,14 +487,14 @@ final class _StepboundAppState extends State<StepboundApp> {
                 ),
                 _Phase.story => StoryIntro(
                   onFinished: _finishIntro,
-                  onSkip: _openingStorySeen ? _finishOutbreak : null,
+                  onSkip: _session.openingStorySeen ? _finishOutbreak : null,
                 ),
                 _Phase.outbreak => StoryIntro(
                   key: const ValueKey<String>('outbreak-story'),
                   scenes: outbreakScenes,
                   fadeOutAtEnd: true,
                   onFinished: _finishOutbreak,
-                  onSkip: _openingStorySeen ? _finishOutbreak : null,
+                  onSkip: _session.openingStorySeen ? _finishOutbreak : null,
                 ),
                 _Phase.levelComplete => LevelComplete(
                   stats: _levelStats,
@@ -781,7 +509,8 @@ final class _StepboundAppState extends State<StepboundApp> {
                   scenes: romeScenes,
                   fadeOutAtEnd: true,
                   onFinished: _finishRomeStory,
-                  onSkip: _storyHistory.contains(StoryMemory.presidentFled)
+                  onSkip:
+                      _session.storyHistory.contains(StoryMemory.presidentFled)
                       ? _finishRomeStory
                       : null,
                 ),

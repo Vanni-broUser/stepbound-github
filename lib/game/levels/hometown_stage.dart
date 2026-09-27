@@ -1,7 +1,6 @@
 import 'dart:ui';
 
 import 'package:flame/components.dart' hide PositionComponent;
-import 'package:flutter/foundation.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/levels/level_stage.dart';
@@ -67,36 +66,14 @@ final class HometownStage extends LevelStage implements HometownActions {
 
   MallScript get _mallScript =>
       game.story.scripts.whereType<MallScript>().first;
-  PriestScript get _priestScript =>
-      game.story.scripts.whereType<PriestScript>().first;
   DuomoScript get _duomoScript =>
       game.story.scripts.whereType<DuomoScript>().first;
 
-  ValueNotifier<Set<HudElement>> get _hud => game.hud;
-
+  /// The gates and doors the story has opened are in the save's map, and
+  /// what Mario carries in its HUD: only where the people stand is read
+  /// back from the map here.
   @override
   void restore() {
-    // Saves made before the key quest existed already know that the welcome
-    // scene played, but still carry incense and a shut gate. Migrate them to
-    // the first playable state after that scene. A used key stays used.
-    if (_priestScript.welcomePlayed) {
-      _openPriestGate();
-      _hud.value = <HudElement>{
-        ..._hud.value.where((element) => element != HudElement.incense),
-        if (!simulation.map.tileAt(barLockedDoorTile).isWalkable)
-          HudElement.barKey,
-      };
-    }
-    if (_duomoScript.ringDelivered) {
-      _openDuomoUpperAccess();
-      _hud.value = <HudElement>{
-        ..._hud.value.where((element) => element != HudElement.episcopalRing),
-      };
-    } else if (simulation.pickups[episcopalRingPickupId]?.collected ?? false) {
-      // Saves made after collecting the ring but before this quest item had
-      // its own badge should still show what Mario is carrying.
-      _hud.value = <HudElement>{..._hud.value, HudElement.episcopalRing};
-    }
     _priestInside = simulation.map.tileAt(priestGateTiles.first).isWalkable;
     _stairCultistMoved = simulation.map
         .tileAt(duomoStairCultistTile)
@@ -152,9 +129,9 @@ final class HometownStage extends LevelStage implements HometownActions {
   }
 
   /// A save from after the mass has the cultists among its entities and
-  /// the body's tile among its map changes; one from before this quest
-  /// existed, and a test scenario built from the level, have neither. The
-  /// same call puts whatever is missing back, without a sound.
+  /// the body's tile among its map changes; a test scenario built from the
+  /// level has neither. The same call puts whatever is missing back,
+  /// without a sound.
   @override
   void afterCharacters() {
     if (_duomoScript.massacrePlayed) {

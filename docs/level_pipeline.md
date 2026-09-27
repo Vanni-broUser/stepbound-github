@@ -19,12 +19,6 @@ di `docs/target_devices.md` vanno fatti:
 - **il frame rate**, che non dovrebbe cambiare (a ogni frame resta
   un'immagine per posto, come prima) ma va confermato.
 
-## Rendere bloccante `levels_check`
-
-Il job di CI (`gitlab/verify.yml`, `.github/workflows/ci.yml`) e nato con
-`allow_failure: true` / `continue-on-error: true` per misurarne la
-stabilita. Se e rimasto verde, va tolto e il job diventa bloccante.
-
 ## Dividere i file troppo grandi
 
 - `tools/build_tile_atlas.py` tiene tutti gli interni in circa 2700 righe.

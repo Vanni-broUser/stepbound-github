@@ -14,7 +14,8 @@ guarda che `verify` sia verde.
 ## Verifiche e build
 
 - `analyze`: format e analisi statica bloccanti.
-- `unit_tests`: JUnit, LCOV e `tools/check_coverage.dart`: soglie per area
+- `unit_tests`: JUnit (con `junitreport` fissato alla 2.0.2), LCOV e
+  `tools/check_coverage.dart`: soglie per area
   (piattaforma, salvataggi, core, UI, gioco) e totale da
   `tools/coverage_policy.json`, e nessuna libreria con codice lasciata fuori
   dal report perche nessun test la carica.
@@ -26,8 +27,7 @@ guarda che `verify` sia verde.
   `tools/requirements.txt` (Pillow fissato), non sull'immagine Flutter, e
   sostituisce il `before_script` di default. Fallisce se si cambia un
   painter in `tools/` senza rilanciare `python tools/build_tile_atlas.py`.
-  Nasce con `allow_failure: true` per una settimana, il tempo di misurarne
-  la stabilita; poi si toglie e diventa bloccante. Il confronto e sui pixel
+  Bloccante dal 2026-09-27, dopo una settimana verde. Il confronto e sui pixel
   decodificati e non sui byte del file perche la codifica PNG non e
   garantita stabile fra versioni di Pillow o di zlib.
   Le righe ASCII di un posto non hanno piu una copia dipinta da tenere
@@ -54,7 +54,7 @@ Il repository e specchiato su GitHub, dove vivono le pull request, e
 `.github/workflows/ci.yml` rifa li le stesse verifiche: `analyze` (con
 `generate_balance.dart --check`, formato e analisi), `unit_tests` (test,
 copertura e `check_coverage.dart`, con `lcov.info` come artefatto) e
-`levels_check`, non bloccante come il suo gemello.
+`levels_check`, bloccante come il suo gemello.
 
 In piu c'e `android_debug`, che non ha un equivalente automatico su GitLab:
 costruisce l'APK di debug e lo carica come artefatto scaricabile. Si prende da

@@ -39,6 +39,9 @@ final class ScenarioBuilder {
 
   void unlock(HudElement element) => _hud.add(element);
 
+  /// [element] has been handed over or used up: its badge is gone.
+  void putAway(HudElement element) => _hud.remove(element);
+
   void remember(StoryMemory memory) => progress.remember(memory);
 
   /// The backpack [id] has been picked up.
@@ -357,8 +360,8 @@ void _incenseErrand(ScenarioBuilder story) {
     });
 }
 
-/// The incense delivered: the gate open and the bar's key in hand (the
-/// game hands over the key when the save loads).
+/// The incense delivered: the gate open and the bar's key in hand, as
+/// the game leaves them once the welcome has played.
 void _welcomed(ScenarioBuilder story) {
   _incenseErrand(story);
   final map = story.world.map;
@@ -367,6 +370,7 @@ void _welcomed(ScenarioBuilder story) {
   }
   story
     ..collect(incenseBackpackId)
+    ..unlock(HudElement.barKey)
     ..remember(StoryMemory.priestWelcomed)
     ..script('priest', <String, Object?>{'welcome': true});
 }
@@ -389,6 +393,7 @@ void _upstairs(ScenarioBuilder story) {
     ..setTile(duomoStairCultistTile, const Tile(TileKind.floor))
     ..setTile(duomoStairCultistMovedTile, const Tile(TileKind.obstacle));
   story
+    ..putAway(HudElement.episcopalRing)
     ..remember(StoryMemory.priestFamily)
     ..script('duomo', <String, Object?>{'ringDelivered': true});
 }

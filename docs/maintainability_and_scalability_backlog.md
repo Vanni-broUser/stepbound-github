@@ -41,10 +41,12 @@ The numbers decide how urgent the memory items below are.
 Once the demo is out, an update installs over the old one and keeps its
 data: `docs/save_policy.md` says which save formats a build must still load.
 
-- Keep the progress between levels (levels completed, zombies met, memories,
-  outfits) apart from the state of the game in progress, so a format change
-  can drop the second without the first, and the migration has less to
-  carry.
+- The progress between levels (zombies met, memories, outfits, steps,
+  fires lit) is its own object in the save, `progress`, apart from the
+  game in progress: a migration that cannot carry the game keeps it and
+  puts the level back at its start (`docs/save_policy.md`, "Cosa una
+  migrazione tiene"). That is the rule; the first migration will be the
+  first to apply it.
 - The game put down (`docs/save_policy.md`, "Il salvataggio sospeso") is
   written whenever the app leaves the front or the player leaves for the
   menu, never in the middle of a story line or a scene: if a script ever
@@ -75,31 +77,14 @@ the current history: `lib/app.dart` went from 976 lines at `1b0261a` to
 1000. (The touch controls, once the largest file of the game, are split
 under `lib/game/input/` by zone, stick, badges and icons.)
 
-Extract small framework-free collaborators rather than adding a broad state
-management framework:
+`GameSession` (`lib/game/game_session.dart`) now holds what a save records
+around the game and makes the games that play it: `app.dart` is left with
+the phases and the widgets. Extract the rest as small framework-free
+collaborators too, rather than adding a broad state management framework:
 
 - `AppFlowController` for menu, story, title and playing phases;
-- `GameSession` for creation, restoration and snapshots;
 - `WorldEventPresenter` for event-to-animation/audio routing;
 - `PlaceTransitionController` for portals, location cards and camera hand-off.
-
-## P2 — Compatibility code for development saves
-
-Old development saves read as empty slots, yet code written to carry them
-forward is still there, dead since the format moved on:
-`HometownStage.restore` (`lib/game/levels/hometown_stage.dart`) reconciles
-saves "made before the key quest existed" and ones missing the ring's
-badge, and the comments of `HometownStage.afterCharacters` and of
-`DuomoScript._startMassIfDressed` still speak of saves from before the
-mass.
-
-- Remove it, after checking that none of those lines also rebuilds the
-  state of a current save (the priest gate, the stair cultist's tiles).
-- Keep what `restoreGameWorld` (`lib/core/levels/game_world.dart`) does:
-  doors, travel maps, and zombies and backpacks a save does not know come
-  from the current level. With `docs/save_policy.md` it means content
-  added to a level reaches the saves of the public build with no
-  migration: write it down there as a rule.
 
 ## P2 — Make asset generation reproducible
 
@@ -113,8 +98,6 @@ what is left of them. What is left here:
 
 - Pin the expected `ffmpeg` version, and the environment of the sprite, audio
   and quest-item generators.
-- Replace machine-specific paths with command-line arguments
-  (`tools/process_story_images.py`).
 - Extend the regeneration check to the sprite atlases and the audio.
 
 ## P2 — Release signing and the debug builds
@@ -133,11 +116,10 @@ last and has to be installed after uninstalling it.
 ## P3 — What is left of the save hardening
 
 Slots are now read as a typed result, damaged ones fall back on the save they
-replaced, and failed writes never leave the game stuck. Two corners remain:
+replaced, failed writes never leave the game stuck, and a slot is only
+offered once its world, progress and story scripts have been rebuilt. One
+corner remains:
 
-- The story scripts' state is not checked before loading: `restore` reads
-  with lenient casts, but a field of the wrong type still throws when the game
-  starts. Checking it needs a `StoryHost`, which only the game has.
 - The save written aboard the train when the level ends is logged when it
   fails, but the results screen does not say so; the next campfire writes it.
 
@@ -175,13 +157,11 @@ restarts.
 ## P3 — Streamline CI
 
 Container jobs start from Flutter 3.44.0 and fetch/checkout 3.44.2 for every
-job, which is the largest fixed cost left in the pipeline. The JUnit converter
-is globally activated at execution time, so its version is whatever the day
-brings. `levels_check` is still `allow_failure`: if it has stayed green,
-make it blocking (see `docs/level_pipeline.md`).
+job, which is the largest fixed cost left in the pipeline: cirruslabs has
+published no 3.44.2 image, and GitLab only caches paths inside the project.
 
-- Use an exact prebuilt Flutter image, or cache a prepared SDK.
-- Pin the JUnit conversion tool instead of activating an implicit latest version.
+- Use an exact prebuilt Flutter image once there is one, or install the SDK
+  under the project directory and cache it by version.
 - The GitHub workflow repeats the GitLab jobs by hand (`docs/ci-pipeline.md`
   says so): every change to a job is made twice. Keep it in mind before
   adding jobs.
