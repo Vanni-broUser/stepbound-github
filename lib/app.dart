@@ -11,6 +11,7 @@ import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/game/render/pixel_palette.dart';
 import 'package:stepbound/game/stepbound_game.dart';
+import 'package:stepbound/save/outfit_unlocks.dart';
 import 'package:stepbound/save/save_game.dart';
 import 'package:stepbound/ui/audio_scope.dart';
 import 'package:stepbound/ui/black_fade.dart';
@@ -46,10 +47,23 @@ enum _Phase {
 }
 
 final class StepboundApp extends StatefulWidget {
-  const StepboundApp({this.saves, this.audio, super.key});
+  const StepboundApp({
+    this.saves,
+    this.outfitUnlocks,
+    this.skinLinks = const Stream<Uri>.empty(),
+    this.audio,
+    super.key,
+  });
 
   /// Where the four save slots live; the device storage when null.
   final SaveRepository? saves;
+
+  /// Device-wide outfits obtained through campaign links. In-memory when
+  /// omitted; production supplies the preferences-backed repository.
+  final OutfitUnlockRepository? outfitUnlocks;
+
+  /// Cold- and warm-start links delivered by the platform.
+  final Stream<Uri> skinLinks;
 
   /// The sound of the game; silent when null.
   final GameAudio? audio;
@@ -61,6 +75,8 @@ final class StepboundApp extends StatefulWidget {
 final class _StepboundAppState extends State<StepboundApp> {
   late final SaveRepository _saves =
       widget.saves ?? PreferencesSaveRepository();
+  late final OutfitUnlockRepository _outfitUnlocks =
+      widget.outfitUnlocks ?? MemoryOutfitUnlockRepository();
   late final GameAudio _audio = widget.audio ?? SilentAudio();
 
   /// The game being played, in its slot: what is saved and restored, and
@@ -70,10 +86,17 @@ final class _StepboundAppState extends State<StepboundApp> {
     audio: _audio,
     onLevelCompleted: _completeLevel,
     onTravelMapRequested: _travelFromTrain,
+    linkedOutfits: _linkedOutfits,
   );
 
   /// Silences the game whenever it is not the app in front.
   late final AppLifecycleListener _lifecycle;
+  late final Future<void> _outfitUnlocksReady;
+  StreamSubscription<Uri>? _skinLinkSubscription;
+  Future<void> _skinLinkHandling = Future<void>.value();
+  final Set<PlayerOutfit> _linkedOutfits = <PlayerOutfit>{};
+  PlayerOutfit? _unlockNotice;
+  int _unlockNoticeRevision = 0;
   StepboundGame? _game;
   _Phase _phase = _Phase.menu;
   GameSnapshot? _completedSnapshot;
@@ -85,6 +108,10 @@ final class _StepboundAppState extends State<StepboundApp> {
   @override
   void initState() {
     super.initState();
+    _outfitUnlocksReady = _loadOutfitUnlocks();
+    _skinLinkSubscription = widget.skinLinks.listen((uri) {
+      _skinLinkHandling = _skinLinkHandling.then((_) => _handleSkinLink(uri));
+    }, onError: (Object error) => debugPrint('skin links: $error'));
     // Only `resumed` means the player is looking at the game. Android
     // goes inactive, then hidden, then paused on the way out, and a
     // call or the app switcher stops at inactive: all of them silence
@@ -92,6 +119,30 @@ final class _StepboundAppState extends State<StepboundApp> {
     // all of them stop the clock.
     _lifecycle = AppLifecycleListener(onStateChange: _onLifecycle);
     _audio.playMusic(Music.menu);
+  }
+
+  Future<void> _loadOutfitUnlocks() async {
+    _linkedOutfits.addAll(await _outfitUnlocks.load());
+  }
+
+  Future<void> _handleSkinLink(Uri uri) async {
+    final outfit = outfitFromUnlockLink(uri);
+    if (outfit == null) {
+      return;
+    }
+    await _outfitUnlocksReady;
+    try {
+      await _outfitUnlocks.unlock(outfit);
+    } on Object catch (error) {
+      // It remains available for this run even if device storage is full.
+      debugPrint('outfit unlocks: could not store ${outfit.name} ($error)');
+    }
+    _linkedOutfits.add(outfit);
+    if (!mounted) {
+      return;
+    }
+    _game?.progress.unlockOutfit(outfit);
+    _backToMenu(unlockedOutfit: outfit);
   }
 
   void _onLifecycle(AppLifecycleState state) {
@@ -145,11 +196,13 @@ final class _StepboundAppState extends State<StepboundApp> {
 
   @override
   void dispose() {
+    unawaited(_skinLinkSubscription?.cancel());
     _lifecycle.dispose();
     super.dispose();
   }
 
   Future<void> _newGame(int slot) async {
+    await _outfitUnlocksReady;
     await _session.startNew(slot);
     if (!mounted) {
       return;
@@ -157,17 +210,20 @@ final class _StepboundAppState extends State<StepboundApp> {
     _playStoryAudio();
     setState(() {
       _completedSnapshot = null;
+      _unlockNotice = null;
       _phase = _Phase.story;
     });
   }
 
   Future<void> _loadGame(SaveGame save) async {
+    await _outfitUnlocksReady;
     final game = await _session.load(save);
     if (!mounted) {
       return;
     }
     _loadingFadesIn = false;
     setState(() {
+      _unlockNotice = null;
       _game = game;
       _phase = _Phase.playing;
     });
@@ -421,7 +477,7 @@ final class _StepboundAppState extends State<StepboundApp> {
   /// menu is put down like one sent to the background: the slot offers it
   /// again as it was. The pictures of its places, kept for a game
   /// started over at once, go: the menu can stay open a long while.
-  void _backToMenu() {
+  void _backToMenu({PlayerOutfit? unlockedOutfit}) {
     unawaited(_suspend());
     _audio
       ..silenceAmbience()
@@ -430,6 +486,10 @@ final class _StepboundAppState extends State<StepboundApp> {
     setState(() {
       _game = null;
       _completedSnapshot = null;
+      _unlockNotice = unlockedOutfit;
+      if (unlockedOutfit != null) {
+        _unlockNoticeRevision += 1;
+      }
       _phase = _Phase.menu;
     });
   }
@@ -481,7 +541,9 @@ final class _StepboundAppState extends State<StepboundApp> {
               height: IntegerResolutionViewport.virtualHeight * scale,
               child: switch (_phase) {
                 _Phase.menu => MainMenu(
+                  key: ValueKey<int>(_unlockNoticeRevision),
                   saves: _saves,
+                  unlockedOutfit: _unlockNotice,
                   onNewGame: (slot) => unawaited(_newGame(slot)),
                   onLoad: (save) => unawaited(_loadGame(save)),
                 ),

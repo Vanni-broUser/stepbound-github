@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:stepbound/game/audio/sound.dart';
+import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/save/save_game.dart';
 import 'package:stepbound/ui/audio_scope.dart';
@@ -17,6 +18,7 @@ final class MainMenu extends StatefulWidget {
     required this.saves,
     required this.onNewGame,
     required this.onLoad,
+    this.unlockedOutfit,
     super.key,
   });
 
@@ -34,6 +36,9 @@ final class MainMenu extends StatefulWidget {
       'puramente casuale';
 
   final SaveRepository saves;
+
+  /// The skin just obtained by opening a campaign link.
+  final PlayerOutfit? unlockedOutfit;
 
   /// Starts the story; the game will save in the given slot.
   final void Function(int slot) onNewGame;
@@ -169,6 +174,34 @@ final class _MainMenuState extends State<MainMenu> {
     final hasSaves = _slots.any((slot) => slot is LoadedSave);
     final buttons = switch (_page) {
       _MenuPage.home => <Widget>[
+        if (widget.unlockedOutfit case final outfit?)
+          MenuPanel(
+            key: const ValueKey<String>('skin-unlock-notice'),
+            unit: unit,
+            width: MenuButton.fullWidth,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  'Hai ottenuto la skin ${outfit.label}',
+                  key: const ValueKey<String>('skin-unlock-title'),
+                  textAlign: TextAlign.center,
+                  style: menuTextStyle(
+                    unit,
+                    8,
+                  ).copyWith(fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 3 * unit),
+                MenuParagraph(
+                  'Quando avrai sbloccato nella trama la possibilità di '
+                  'cambiare abbigliamento troverai anche questa nuova opzione',
+                  key: const ValueKey<String>('skin-unlock-explanation'),
+                  unit: unit,
+                  center: true,
+                ),
+              ],
+            ),
+          ),
         MenuButton(
           key: const ValueKey<String>('menu-new-game'),
           label: 'NUOVA PARTITA',
