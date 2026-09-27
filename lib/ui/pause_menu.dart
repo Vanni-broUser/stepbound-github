@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/ui/main_menu.dart';
+import 'package:stepbound/ui/portrait_image.dart';
 
 enum _PausePage { home, outfits, resume, restart, quit }
 
@@ -292,12 +293,11 @@ final class _PauseMenuState extends State<PauseMenu> {
                     children: <Widget>[
                       Expanded(
                         child: unlocked
-                            ? Image.asset(
+                            ? PortraitImage(
                                 outfit!.portrait,
                                 key: ValueKey<String>(
                                   'pause-outfit-portrait-$_selectedOutfit',
                                 ),
-                                fit: BoxFit.contain,
                               )
                             // Not found yet: just a black shape.
                             : ColorFiltered(
@@ -305,9 +305,8 @@ final class _PauseMenuState extends State<PauseMenu> {
                                   Color(0xff050303),
                                   BlendMode.srcIn,
                                 ),
-                                child: Image.asset(
+                                child: PortraitImage(
                                   PlayerOutfit.base.portrait,
-                                  fit: BoxFit.contain,
                                 ),
                               ),
                       ),

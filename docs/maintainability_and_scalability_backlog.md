@@ -1,9 +1,11 @@
 # Maintainability and scalability backlog
 
 This backlog records the findings still open from the review of `main` at
-`7061d62`, re-checked against `1b0261a` (2026-09-26) ahead of the first
-public demo, the hometown level. What has been dealt with leaves the list:
-the commits say what was done and why.
+`7061d62`, re-checked against `1b0261a` (2026-09-26) and again against
+`7319a9e` (2026-09-27) ahead of the first public demo, the hometown level.
+What has been dealt with leaves the list: the commits say what was done
+and why. The figures quoted were measured on the development machine with
+a throwaway script over `lib/core`; a Go phone is five to ten times slower.
 
 Suggested order: measure a release build on the minimum phone, then settle
 the save policy, then the rest.
@@ -21,6 +23,11 @@ Android Go phone with 2 GB of RAM.
   game's load time and the last area's over the game.
 - Measure the time from "Continua" to the first frame of play, the time an
   area takes to compose, and the frame rate in the city and in the Duomo.
+- Measure the frame rate indoors first: `LightingComponent` composes a
+  full-room `saveLayer` every frame and cuts a `dstOut` circle per ring
+  per lamp into it, up to a hundred circles a frame on the hypermarket's
+  ground floor (32 lamps). Nothing in the simulation comes close: a turn
+  with every zombie hunting costs 0.06 ms on the development machine.
 - Compare the places on screen with the previous version (see
   `docs/level_pipeline.md`).
 - Record device, build, commit and figures in the merge request, as for the
@@ -48,28 +55,27 @@ data: `docs/save_policy.md` says which save formats a build must still load.
 
 - An area is composed on the UI isolate as Mario walks into it (into the
   harbour, during its card): measure the hitch on the minimum phone, and
-  spread the work over frames or behind a fade if it shows.
+  spread the work over frames or behind a fade if it shows. The harbour
+  alone is an image of 2304×992 (8.7 MB) plus its front layer of the same
+  size; the harbour area holds about 28 MB of place images, the town
+  about 29 MB.
 - New areas as the levels grow: a place's `area` decides what is loaded
   with it, so a big new district wants an area of its own.
-- The simulation grid (a few bytes a cell) is still whole; split it per
-  level only if the benchmark or the save size ask for it.
-
-## P2 — Smaller story portraits
-
-The thirteen portraits are PNGs of 1048×1501: about 6 MB each once decoded,
-shown at a fraction of that size. Resize them to what the dialogue box and
-the zombie book actually draw, or decode them with `cacheWidth`. The scenes
-(JPEG, 1376×768) are fine.
+- The simulation grid is still whole: 1902×62, 117,924 `Tile` objects
+  (not bytes: about 3.5 MB with the pathfinder's scratch arrays), 92% of
+  them the wall between places. Split it per level only if the benchmark
+  or the save size ask for it: a save only stores the tiles that differ.
 
 ## P2 — Split application and game orchestration
 
 `StepboundApp` combines application phases, persistence, audio lifecycle,
 restart behaviour and widget composition. `StepboundGame` combines story
 hosting, event presentation, camera, audio, place transitions, rendering and
-save snapshots. They are also the most frequently changed source files
-in the current history (1465 and 976 lines at `1b0261a`), and
-`lib/game/input/touch_controls.dart` has since grown to 1488 lines, the
-largest file of the game.
+save snapshots. They are also the most frequently changed source files in
+the current history: `lib/app.dart` went from 976 lines at `1b0261a` to
+1043 at `7319a9e`, `lib/game/stepbound_game.dart` came down from 1465 to
+1000. (The touch controls, once the largest file of the game, are split
+under `lib/game/input/` by zone, stick, badges and icons.)
 
 Extract small framework-free collaborators rather than adding a broad state
 management framework:
@@ -77,9 +83,7 @@ management framework:
 - `AppFlowController` for menu, story, title and playing phases;
 - `GameSession` for creation, restoration and snapshots;
 - `WorldEventPresenter` for event-to-animation/audio routing;
-- `PlaceTransitionController` for portals, location cards and camera hand-off;
-- the touch controls split into the pad, the action buttons and the HUD
-  badges.
+- `PlaceTransitionController` for portals, location cards and camera hand-off.
 
 ## P2 — Compatibility code for development saves
 
@@ -150,6 +154,18 @@ Tens of megabytes held longer than needed on a 2 GB phone.
 - Release a place's images in `TilePlaceComponent.onRemove`.
 - Let the P1 figures say whether the cache should also be emptied when
   the game ends.
+- `StepboundGame` has no teardown of its own either: no `onRemove`, and
+  its eleven `ValueNotifier`s are never disposed. Harmless on its own,
+  but every return to the menu adds to what the images already keep.
+
+## P3 — Smaller portrait files
+
+The seventeen portraits are decoded at the height they are drawn
+(`PortraitImage`), so memory is no longer the question; the files are.
+They are still PNGs of 1048×1501, some 15 MB of the APK, for pictures
+never shown above about 1000 pixels tall. Resize them only if the
+download size matters, and mind that `tools/clean_portraits.py` works on
+the full-size files. The scenes (JPEG, 1376×768) are fine.
 
 ## P3 — Release-only differences
 
@@ -183,17 +199,22 @@ make it blocking (see `docs/level_pipeline.md`).
 
 - Use an exact prebuilt Flutter image, or cache a prepared SDK.
 - Pin the JUnit conversion tool instead of activating an implicit latest version.
+- The GitHub workflow repeats the GitLab jobs by hand (`docs/ci-pipeline.md`
+  says so): every change to a job is made twice. Keep it in mind before
+  adding jobs.
 
 ## P3 — Simulation cost as the world grows
 
 `tools/benchmark_world.dart` measures a turn with 100, 500 and 1,000 entities
-and the cost of a single path query. At those numbers each item below is a
-rounding error next to the path queries, so none of them is worth its
+and the cost of a single path query. On the real world of the game (81
+entities) a turn costs 0.05 ms, 0.06 ms with every zombie hunting Mario:
+each item below is a rounding error, so none of them is worth its
 complexity until the benchmark asks.
 
 - `TurnScheduler.advance` walks every entity twice per tick. Keep active sets
   per place or spatial sector when that starts to show.
-- Characters away from the camera are hidden, not unloaded: Flame still ticks
-  their components. Worth revisiting with a much larger cast.
-- Saving still diffs the whole map. Track changed tiles incrementally instead.
+- Every level is in Flame's world from the start, not only the area Mario
+  is in: 81 characters, 42 fires, 44 pieces of burning ground, 12 torches
+  and 17 backpacks, some 200 components whose `update` runs every frame.
+  Their drawing is culled; the ticking grows with every level added.
 - Cached paths or shared flow fields: not needed at these numbers.

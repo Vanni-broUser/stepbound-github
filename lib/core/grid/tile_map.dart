@@ -58,6 +58,10 @@ final class TileMap {
   final int height;
   final List<Tile> _tiles;
 
+  /// Every tile, row by row: the tile at `x`, `y` is at `y * width + x`.
+  /// For whoever walks the whole map at once, without a [GridPoint] a cell.
+  List<Tile> get tiles => UnmodifiableListView<Tile>(_tiles);
+
   /// Scratch for [shortestNextStep], kept between calls and grown only
   /// once: a search stamps its own number on the tiles it reaches instead
   /// of clearing arrays the size of the map before every query.

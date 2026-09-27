@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/ui/pause_menu.dart';
+import 'package:stepbound/ui/portrait_image.dart';
 
 void main() {
   late int resumes;
@@ -119,23 +120,17 @@ void main() {
     expect(find.text('BASE'), findsNWidgets(2));
     expect(find.text('OCCULTISTA'), findsOneWidget);
     expect(find.text('GIÀ IN USO'), findsOneWidget);
-    final basePortrait = tester.widget<Image>(
+    final basePortrait = tester.widget<PortraitImage>(
       find.byKey(const ValueKey<String>('pause-outfit-portrait-0')),
     );
-    expect(
-      (basePortrait.image as AssetImage).assetName,
-      PlayerOutfit.base.portrait,
-    );
+    expect(basePortrait.asset, PlayerOutfit.base.portrait);
 
     await tap(tester, 'pause-outfit-1');
     expect(find.text('INDOSSA'), findsOneWidget);
-    final cultistPortrait = tester.widget<Image>(
+    final cultistPortrait = tester.widget<PortraitImage>(
       find.byKey(const ValueKey<String>('pause-outfit-portrait-1')),
     );
-    expect(
-      (cultistPortrait.image as AssetImage).assetName,
-      PlayerOutfit.cultist.portrait,
-    );
+    expect(cultistPortrait.asset, PlayerOutfit.cultist.portrait);
 
     await tap(tester, 'pause-outfit-wear');
     expect(outfitsWorn, <PlayerOutfit>[PlayerOutfit.cultist]);

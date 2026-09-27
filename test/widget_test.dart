@@ -8,7 +8,9 @@ import 'package:stepbound/app.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/game_audio.dart';
 import 'package:stepbound/game/audio/sound.dart';
-import 'package:stepbound/game/input/touch_controls.dart';
+import 'package:stepbound/game/input/action_zone.dart';
+import 'package:stepbound/game/input/move_zone.dart';
+import 'package:stepbound/game/input/pinch_zone.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/asset_image.dart';
 import 'package:stepbound/game/render/crucified_zombie_component.dart';
@@ -29,6 +31,7 @@ import 'package:stepbound/ui/blood_splat.dart';
 import 'package:stepbound/ui/gameplay_dialogue.dart';
 import 'package:stepbound/ui/level_map.dart';
 import 'package:stepbound/ui/loading_art.dart';
+import 'package:stepbound/ui/portrait_image.dart';
 import 'package:stepbound/ui/story_intro.dart';
 
 /// Opens the app on the main menu and starts a new game in slot 1.
@@ -560,13 +563,10 @@ void main() {
         StoryLine.mario('La tunica mi sta bene.'),
       ]);
       await tester.pump();
-      final portrait = tester.widget<Image>(
+      final portrait = tester.widget<PortraitImage>(
         find.byKey(const ValueKey<String>('dialogue-portrait-0')),
       );
-      expect(
-        (portrait.image as AssetImage).assetName,
-        PlayerOutfit.cultist.portrait,
-      );
+      expect(portrait.asset, PlayerOutfit.cultist.portrait);
     });
   });
 

@@ -92,10 +92,11 @@ Map<GridPoint, Portal> pairedDoors(
   };
 }
 
-/// The game as the player finds it at the start: the map of every place,
-/// and what each level puts in it (see [LevelContents]).
-WorldState createGameWorld({int seed = 20260920}) {
-  final factory = EntityFactory(BalanceConfig.standard());
+/// The map of the level as the player finds it: every place's tiles on
+/// the shared grid, wall in the gaps between them. Laid out once: the
+/// places never change while the game runs, and every game, every save
+/// and every restore measures itself against these same tiles.
+final ({int width, int height, List<Tile> tiles}) _levelMap = () {
   final width = gamePlaces
       .map((place) => place.bounds.right + 1)
       .reduce(math.max);
@@ -108,17 +109,45 @@ WorldState createGameWorld({int seed = 20260920}) {
       kinds[point.y * width + point.x] = place.kindOf(glyph);
     }
   }
+  return (
+    width: width,
+    height: height,
+    tiles: List<Tile>.unmodifiable(<Tile>[
+      for (final kind in kinds) Tile(kind),
+    ]),
+  );
+}();
+
+/// A fresh copy of the level's map, to be walked on and changed.
+TileMap _levelTileMap() => TileMap(
+  width: _levelMap.width,
+  height: _levelMap.height,
+  tiles: _levelMap.tiles,
+);
+
+/// The level as [createGameWorld] builds it, read and never written: what
+/// a save leaves out (the doors, the travel maps, whoever it does not know
+/// yet) is taken from here, instead of from a world built anew on every
+/// save and every read of a slot. A game to play comes from
+/// [createGameWorld], which builds its own.
+final WorldState _levelWorld = createGameWorld();
+
+/// Its entities, backpacks, doors and travel maps as a save holds them,
+/// encoded once. Only ever read: [restoreGameWorld] hands the same maps
+/// to `WorldState.fromJson`, which copies what it needs out of them.
+final Map<String, Object?> _levelJson = _levelWorld.toJson(includeMap: false);
+
+/// The game as the player finds it at the start: the map of every place,
+/// and what each level puts in it (see [LevelContents]).
+WorldState createGameWorld({int seed = 20260920}) {
+  final factory = EntityFactory(BalanceConfig.standard());
   final levels = <LevelContents>[
     hometownContents(factory),
     trainContents(),
     romeContents(factory),
   ];
   return WorldState(
-    map: TileMap(
-      width: width,
-      height: height,
-      tiles: <Tile>[for (final kind in kinds) Tile(kind)],
-    ),
+    map: _levelTileMap(),
     entities: <Entity>[for (final level in levels) ...level.entities],
     pickups: <Pickup>[for (final level in levels) ...level.pickups],
     alertTriggers: <String, GridRect>{
@@ -141,21 +170,26 @@ WorldState createGameWorld({int seed = 20260920}) {
 /// they were collected, the panels), but of the map only the tiles that
 /// differ from the level's (the lifted shutter): the level rebuilds the
 /// rest. The dark gaps between places made a full map most of a save.
+///
+/// The map is compared tile by tile against the level's, by index: the
+/// grid is over a hundred thousand cells, and this runs at every campfire.
 Map<String, Object?> saveGameWorld(WorldState world) {
-  final level = createGameWorld().map;
   final map = world.map;
+  if (map.width != _levelMap.width || map.height != _levelMap.height) {
+    throw ArgumentError('not the map of the level: ${map.width}x${map.height}');
+  }
+  final level = _levelMap.tiles;
+  final tiles = map.tiles;
   return <String, Object?>{
     ...world.toJson(includeMap: false),
     'mapChanges': <Object?>[
-      for (var y = 0; y < map.height; y++)
-        for (var x = 0; x < map.width; x++)
-          if (level.tileAt(GridPoint(x, y)).kind !=
-              map.tileAt(GridPoint(x, y)).kind)
-            <String, Object?>{
-              'x': x,
-              'y': y,
-              'kind': map.tileAt(GridPoint(x, y)).kind.name,
-            },
+      for (var index = 0; index < tiles.length; index++)
+        if (tiles[index].kind != level[index].kind)
+          <String, Object?>{
+            'x': index % map.width,
+            'y': index ~/ map.width,
+            'kind': tiles[index].kind.name,
+          },
     ],
   };
 }
@@ -163,8 +197,7 @@ Map<String, Object?> saveGameWorld(WorldState world) {
 /// A world resumed from a [saveGameWorld] save: the level's map with
 /// the saved changes, and everything else as it was.
 WorldState restoreGameWorld(Map<String, Object?> json) {
-  final currentLevel = createGameWorld();
-  final map = currentLevel.map;
+  final map = _levelTileMap();
   for (final change
       in (json['mapChanges']! as List<Object?>).cast<Map<String, Object?>>()) {
     map.setTile(
@@ -189,23 +222,26 @@ WorldState restoreGameWorld(Map<String, Object?> json) {
   final savedEntityIds = <String>{
     for (final entity in savedEntities) entity['id']! as String,
   };
-  final currentLevelJson = currentLevel.toJson(includeMap: false);
+  final levelEntities = (_levelJson['entities']! as List<Object?>)
+      .cast<Map<String, Object?>>();
+  final levelPickups = (_levelJson['pickups']! as List<Object?>)
+      .cast<Map<String, Object?>>();
   final migrated = <String, Object?>{
     ...json,
     // Doors between places and travel maps are level structure rather than
     // player state. Taking the current definitions lets older saves enter
     // the newly added train and use its locomotive map.
-    'portals': currentLevelJson['portals'],
-    'travelMaps': currentLevelJson['travelMaps'],
+    'portals': _levelJson['portals'],
+    'travelMaps': _levelJson['travelMaps'],
     'entities': <Object?>[
       ...savedEntities,
-      for (final entity in currentLevel.entities.values)
-        if (!savedEntityIds.contains(entity.id)) entity.toJson(),
+      for (final entity in levelEntities)
+        if (!savedEntityIds.contains(entity['id']! as String)) entity,
     ],
     'pickups': <Object?>[
       ...savedPickups,
-      for (final pickup in currentLevel.pickups.values)
-        if (!savedPickupIds.contains(pickup.id)) pickup.toJson(),
+      for (final pickup in levelPickups)
+        if (!savedPickupIds.contains(pickup['id']! as String)) pickup,
     ],
   };
   return WorldState.fromJson(migrated, map: map);
@@ -217,7 +253,7 @@ bool isInLevel(GridPoint tile, LevelId level) => placeAt(tile)?.level == level;
 /// Every zombie [level] can hold: the ones there from the start and the
 /// ones its story raises, by kind.
 List<EntityKind> levelZombieKinds(LevelId level) => <EntityKind>[
-  for (final entity in createGameWorld().entities.values)
+  for (final entity in _levelWorld.entities.values)
     if (entity.kind != EntityKind.player &&
         isInLevel(entity.component<PositionComponent>().position, level))
       entity.kind,

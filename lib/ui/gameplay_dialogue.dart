@@ -6,6 +6,7 @@ import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/ui/audio_scope.dart';
 import 'package:stepbound/ui/blood_splat.dart';
 import 'package:stepbound/ui/control_demo.dart';
+import 'package:stepbound/ui/portrait_image.dart';
 import 'package:stepbound/ui/story_intro.dart';
 
 /// One line spoken over the gameplay view, with the speaker's portrait
@@ -197,11 +198,10 @@ final class _GameplayDialogueState extends State<GameplayDialogue> {
                     ? null
                     : Transform.flip(
                         flipX: true,
-                        child: Image.asset(
+                        child: PortraitImage(
                           portrait,
                           key: ValueKey<String>('dialogue-portrait-$_index'),
                           height: constraints.maxHeight * 0.66,
-                          fit: BoxFit.contain,
                         ),
                       ),
               ),
