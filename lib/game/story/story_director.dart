@@ -77,9 +77,11 @@ final class StoryLine {
 /// A gesture the tutorial plays over and over on a small screen beside the
 /// text box, while a line explains it.
 enum ControlDemo {
-  /// Holding on the right half raises the pistol, dragging aims and lifting
-  /// fires: once each way, up, right, down and left.
-  shoot,
+  /// Holding on the right half raises whatever Mario has in hand, dragging
+  /// aims and lifting lets it go: once each way, up, right, down and left.
+  /// Only the finger is shown, so the same round teaches the pistol and the
+  /// molotov alike.
+  aim,
 
   /// The pistol comes up with its splash, the finger stays in the ring in
   /// the middle a moment and lifts there: nothing is fired.

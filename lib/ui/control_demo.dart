@@ -107,7 +107,6 @@ final class _Pose {
     this.centre,
     this.thumb,
     this.aiming = false,
-    this.shot,
   });
 
   static const _Pose none = _Pose();
@@ -120,10 +119,6 @@ final class _Pose {
   final Offset? centre;
   final Offset? thumb;
   final bool aiming;
-
-  /// A bullet on its way: where it left from, which way and how far along
-  /// it is, 0 to 1.
-  final (Offset, Offset, double)? shot;
 }
 
 /// A splat the finger leaves [at] seconds into a round.
@@ -143,7 +138,7 @@ abstract base class _Script {
   const _Script();
 
   static _Script of(ControlDemo demo) => switch (demo) {
-    ControlDemo.shoot => const _ShootScript(),
+    ControlDemo.aim => const _AimScript(),
     ControlDemo.cancelShot => const _CancelShotScript(),
     ControlDemo.move => const _MoveScript(),
     ControlDemo.interact => const _InteractScript(),
@@ -180,17 +175,19 @@ abstract base class _Script {
   }
 }
 
-/// Press, hold until the pistol comes up with its splash, drag one way,
-/// lift: the shot flies off and the smear is left behind.
-final class _ShootScript extends _Script {
-  const _ShootScript();
+/// Press, hold until what is in hand comes up with its splash, drag one
+/// way, lift: the finger, the stick and the smear it leaves, nothing that
+/// flies off, so the same round shows the pistol's shot and the molotov's
+/// throw.
+final class _AimScript extends _Script {
+  const _AimScript();
 
   static const double _approach = 0.25;
   static final double _raised =
       _approach + ActionZone.holdToAim.inMicroseconds / 1e6;
   static const double _dragFrom = 0.75;
   static const double _dragTo = 1.25;
-  static const double _fire = 1.75;
+  static const double _release = 1.75;
   static const double _lift = 2.05;
 
   @override
@@ -212,7 +209,7 @@ final class _ShootScript extends _Script {
     if (t < _raised) {
       return _Pose(finger: centre, pressed: true);
     }
-    if (t < _fire) {
+    if (t < _release) {
       final thumb = centre + pull * _Script.ease(_dragFrom, _dragTo, t);
       return _Pose(
         finger: thumb,
@@ -223,11 +220,9 @@ final class _ShootScript extends _Script {
       );
     }
     if (t < _lift) {
-      final gone = (t - _fire) / (_lift - _fire);
       return _Pose(
         finger: centre + pull,
-        fingerAlpha: 1 - gone,
-        shot: (centre + pull, pull / pull.distance, gone),
+        fingerAlpha: 1 - (t - _release) / (_lift - _release),
       );
     }
     return _Pose.none;
@@ -236,7 +231,7 @@ final class _ShootScript extends _Script {
   @override
   List<_Beat> beatsOf(int round) => <_Beat>[
     _Beat(_raised, SplatKind.hold, home(round)),
-    _Beat(_fire, SplatKind.swipe, home(round), _pull(round)),
+    _Beat(_release, SplatKind.swipe, home(round), _pull(round)),
   ];
 }
 
@@ -258,10 +253,10 @@ final class _CancelShotScript extends _Script {
   @override
   _Pose poseAt(int round, double t) {
     final centre = home(round);
-    if (t < _ShootScript._approach) {
-      return _Pose(finger: centre, fingerAlpha: t / _ShootScript._approach);
+    if (t < _AimScript._approach) {
+      return _Pose(finger: centre, fingerAlpha: t / _AimScript._approach);
     }
-    if (t < _ShootScript._raised) {
+    if (t < _AimScript._raised) {
       return _Pose(finger: centre, pressed: true);
     }
     if (t < _lift) {
@@ -284,7 +279,7 @@ final class _CancelShotScript extends _Script {
 
   @override
   List<_Beat> beatsOf(int round) => <_Beat>[
-    _Beat(_ShootScript._raised, SplatKind.hold, home(round)),
+    _Beat(_AimScript._raised, SplatKind.hold, home(round)),
     _Beat(_lift, SplatKind.tap, home(round)),
   ];
 }
@@ -418,7 +413,6 @@ final class _DemoPainter extends CustomPainter {
 
   static const double _cell = BloodSplatPainter.cell;
   static const Color _bone = Color(0xfff2ebdd);
-  static const Color _tracer = Color(0xfff6e7a8);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -456,10 +450,6 @@ final class _DemoPainter extends CustomPainter {
     ];
     BloodSplatPainter(splats: splats, clock: clock).paint(canvas, size);
 
-    final shot = pose.shot;
-    if (shot != null) {
-      _paintShot(canvas, shot);
-    }
     final finger = pose.finger;
     if (finger != null) {
       _paintFinger(canvas, finger, pose);
@@ -506,28 +496,6 @@ final class _DemoPainter extends CustomPainter {
           d > radius - 0.9 ? rim : fill,
         );
       }
-    }
-  }
-
-  /// The bullet streaking off the way the stick pointed.
-  void _paintShot(Canvas canvas, (Offset, Offset, double) shot) {
-    final (from, along, progress) = shot;
-    final head = from + along * (12 + progress * 70);
-    final paint = Paint()..isAntiAlias = false;
-    for (var k = 0; k < 7; k++) {
-      final at = head - along * (k * _cell);
-      paint.color = _tracer.withValues(
-        alpha: (1 - k / 7) * (1 - progress * 0.6),
-      );
-      canvas.drawRect(
-        Rect.fromLTWH(
-          (at.dx / _cell).floorToDouble() * _cell,
-          (at.dy / _cell).floorToDouble() * _cell,
-          _cell,
-          _cell,
-        ),
-        paint,
-      );
     }
   }
 

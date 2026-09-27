@@ -39,15 +39,15 @@ void main() {
 
   testWidgets('the gesture goes with the line that shows it', (tester) async {
     await show(tester, const <DialogueLine>[
-      DialogueLine.tutorial('Prima', demo: ControlDemo.shoot),
+      DialogueLine.tutorial('Prima', demo: ControlDemo.aim),
       DialogueLine.tutorial('Dopo'),
     ]);
-    expect(find.byKey(const ValueKey<String>('control-demo-shoot')), findsOne);
+    expect(find.byKey(const ValueKey<String>('control-demo-aim')), findsOne);
     await tester.tap(find.byKey(const ValueKey<String>('gameplay-dialogue')));
     await tester.pump();
     expect(find.text('Dopo'), findsOneWidget);
     expect(
-      find.byKey(const ValueKey<String>('control-demo-shoot')),
+      find.byKey(const ValueKey<String>('control-demo-aim')),
       findsNothing,
     );
   });

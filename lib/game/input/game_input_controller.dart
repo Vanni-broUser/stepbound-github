@@ -360,19 +360,30 @@ final class GameInputController {
     }
   }
 
-  /// Swaps the pistol for a molotov and back. Only between aims, and only
-  /// with a molotov to take.
-  void toggleWeapon() {
-    if (aiming.value) {
+  /// Puts [choice] in Mario's hand, the other weapon away: one at a time.
+  /// Only between aims, and only a weapon he has: the pistol once found, a
+  /// molotov while there is one left.
+  void selectWeapon(Weapon choice) {
+    if (aiming.value || !hasWeapon(choice)) {
       return;
     }
-    if (weapon.value == Weapon.molotov) {
-      weapon.value = Weapon.pistol;
-    } else if (isUnlocked(HudElement.molotov) &&
-        _mario.component<AmmoComponent>().molotovs > 0) {
-      weapon.value = Weapon.molotov;
-    }
+    weapon.value = choice;
   }
+
+  /// Whether Mario carries [choice] and could take it in hand.
+  bool hasWeapon(Weapon choice) {
+    final ammo = _mario.component<AmmoComponent>();
+    return switch (choice) {
+      Weapon.pistol => ammo.hasGun,
+      Weapon.molotov => isUnlocked(HudElement.molotov) && ammo.molotovs > 0,
+    };
+  }
+
+  /// Swaps the pistol for a molotov and back, from the keyboard.
+  void toggleWeapon() => selectWeapon(switch (weapon.value) {
+    Weapon.pistol => Weapon.molotov,
+    Weapon.molotov => Weapon.pistol,
+  });
 
   /// Lowers the pistol, or the molotov, without shooting.
   void cancelAim() {

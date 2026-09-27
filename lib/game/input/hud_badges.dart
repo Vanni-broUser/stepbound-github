@@ -8,6 +8,7 @@ import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/ui/audio_scope.dart';
 import 'package:stepbound/ui/blood_decor.dart';
+import 'package:stepbound/ui/fire_frame.dart';
 
 /// The badge of the thing Mario carries for [element], or null for the
 /// elements that are buttons and not things: interacting and shooting.
@@ -79,7 +80,9 @@ const ColorFilter _greyed = ColorFilter.matrix(<double>[
 /// count written in blood over the bottom-right corner, spilling past it.
 /// Until the pistol is found the badge is a button nothing can press yet:
 /// greyed out and deaf to taps, though the count keeps up with every round
-/// picked up. With the pistol, a tap tells how many there are.
+/// picked up. With the pistol and molotovs too, a tap takes the pistol in
+/// hand and the one in hand burns round its rim; with the pistol alone, a
+/// tap tells how many rounds there are.
 final class _AmmoBadge extends StatelessWidget {
   const _AmmoBadge({required this.game});
 
@@ -94,20 +97,28 @@ final class _AmmoBadge extends StatelessWidget {
       valueListenable: game.ammoLoaded,
       builder: (context, loaded, _) => ValueListenableBuilder<bool>(
         valueListenable: game.hasGun,
-        builder: (context, hasGun, _) {
-          final isEmpty = loaded == 0;
-          Widget frame = BloodOverlay(
-            painter: const BloodPainter(
-              band: 3,
-              cornerRadius: 8,
-              drips: <BloodDrip>[BloodDrip(0.22, 11, 4), BloodDrip(0.8, 7, 3)],
-            ),
-            child: Container(
+        builder: (context, hasGun, _) => ListenableBuilder(
+          // The flames also follow whether there is a second weapon.
+          listenable: Listenable.merge(<Listenable>[
+            game.input.weapon,
+            game.molotovs,
+          ]),
+          builder: (context, _) {
+            final isEmpty = loaded == 0;
+            // Flames only when there is a choice: the pistol alone is simply
+            // the pistol.
+            final inHand =
+                hasGun &&
+                game.input.weapon.value == Weapon.pistol &&
+                game.input.hasWeapon(Weapon.molotov);
+            final box = Container(
               key: const ValueKey<String>('touch-ammo'),
               width: _badgeSize,
               height: _badgeSize,
               decoration: _frame(
-                rim: !hasGun
+                rim: inHand
+                    ? inHandBorder
+                    : !hasGun
                     ? BloodColors.dried
                     : isEmpty
                     ? BloodColors.bright
@@ -122,53 +133,72 @@ final class _AmmoBadge extends StatelessWidget {
                   painter: ColourPistolIcon(),
                 ),
               ),
-            ),
-          );
-          if (!hasGun) {
-            frame = ColorFiltered(colorFilter: _greyed, child: frame);
-          }
-          return Semantics(
-            button: true,
-            enabled: hasGun,
-            label: hasGun
-                ? 'Pistola, proiettili: $loaded'
-                : 'Pistola da trovare, proiettili: $loaded',
-            child: GestureDetector(
-              onTap: hasGun
-                  ? () {
-                      AudioScope.of(context).play(Sfx.uiClick);
-                      game.inspectAmmo();
-                    }
-                  : null,
-              child: Padding(
-                // Room for the count spilling out, so the row does not lay
-                // the next badge over it.
-                padding: const EdgeInsets.only(right: spill, bottom: spill),
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: <Widget>[
-                    frame,
-                    Positioned(
-                      right: -spill,
-                      bottom: -spill,
-                      child: Opacity(
-                        opacity: hasGun ? 1 : 0.6,
-                        child: _BloodCount(
-                          key: const ValueKey<String>('touch-ammo-count'),
-                          text: '×$loaded',
+            );
+            var frame = inHand
+                ? FireFrame(child: box)
+                : BloodOverlay(
+                    painter: const BloodPainter(
+                      band: 3,
+                      cornerRadius: 8,
+                      drips: <BloodDrip>[
+                        BloodDrip(0.22, 11, 4),
+                        BloodDrip(0.8, 7, 3),
+                      ],
+                    ),
+                    child: box,
+                  );
+            if (!hasGun) {
+              frame = ColorFiltered(colorFilter: _greyed, child: frame);
+            }
+            return Semantics(
+              button: true,
+              enabled: hasGun,
+              selected: inHand,
+              label: !hasGun
+                  ? 'Pistola da trovare, proiettili: $loaded'
+                  : inHand
+                  ? 'Pistola in mano, proiettili: $loaded'
+                  : 'Pistola, proiettili: $loaded, tocca per prenderla',
+              child: GestureDetector(
+                onTap: hasGun
+                    ? () {
+                        AudioScope.of(context).play(Sfx.uiClick);
+                        game.tapWeapon(Weapon.pistol);
+                      }
+                    : null,
+                child: Padding(
+                  // Room for the count spilling out, so the row does not lay
+                  // the next badge over it.
+                  padding: const EdgeInsets.only(right: spill, bottom: spill),
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: <Widget>[
+                      frame,
+                      Positioned(
+                        right: -spill,
+                        bottom: -spill,
+                        child: Opacity(
+                          opacity: hasGun ? 1 : 0.6,
+                          child: _BloodCount(
+                            key: const ValueKey<String>('touch-ammo-count'),
+                            text: '×$loaded',
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
 }
+
+/// The rim of the weapon in hand, under its flames.
+const Color inHandBorder = Color(0xffffa53a);
 
 /// A count written with a finger dipped in blood: thick red strokes gone
 /// dark at the edges, and drops running down from the foot of the figures.
@@ -305,9 +335,10 @@ final class _QuestItemBadge extends StatelessWidget {
   }
 }
 
-/// The molotovs Mario carries, counted like the bullets. A tap puts one
-/// in his hand in place of the pistol, and another puts it back: the
-/// badge in hand is lit, and aiming then picks where it lands.
+/// The molotovs Mario carries, counted like the bullets, shown only while
+/// there is one. A tap puts one in his hand in place of the pistol: the
+/// weapon in hand burns round its rim, and aiming then picks where it
+/// lands.
 final class _MolotovBadge extends StatelessWidget {
   const _MolotovBadge({required this.game});
 
@@ -318,61 +349,48 @@ final class _MolotovBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<int>(
       valueListenable: game.molotovs,
-      builder: (context, count, _) => ValueListenableBuilder<Weapon>(
-        valueListenable: game.input.weapon,
-        builder: (context, weapon, _) {
-          final inHand = weapon == Weapon.molotov;
-          Widget frame = BloodOverlay(
-            painter: const BloodPainter(
-              band: 3,
-              cornerRadius: 8,
-              drips: <BloodDrip>[BloodDrip(0.34, 9, 3), BloodDrip(0.7, 12, 4)],
-            ),
-            child: Container(
-              key: const ValueKey<String>('hud-molotov'),
-              width: _badgeSize,
-              height: _badgeSize,
-              decoration: BoxDecoration(
-                color: inHand
-                    ? const Color(0xcc4a1a0c)
-                    : const Color(0xcc241a1a),
-                border: Border.all(
-                  color: inHand ? const Color(0xffffa53a) : BloodColors.fresh,
-                  width: 2,
-                ),
-                borderRadius: BorderRadius.circular(8),
-                boxShadow: <BoxShadow>[
-                  const BoxShadow(
-                    color: Color(0x99000000),
-                    offset: Offset(2, 2),
-                  ),
-                  if (inHand)
-                    const BoxShadow(color: Color(0x88ff7a1c), blurRadius: 10),
-                ],
-              ),
-              child: const Align(
-                alignment: Alignment(-0.2, -0.2),
-                child: CustomPaint(size: Size(24, 32), painter: MolotovIcon()),
-              ),
+      builder: (context, count, _) => ListenableBuilder(
+        listenable: Listenable.merge(<Listenable>[
+          game.input.weapon,
+          game.hasGun,
+        ]),
+        builder: (context, _) {
+          final inHand =
+              game.input.weapon.value == Weapon.molotov && game.hasGun.value;
+          final box = Container(
+            key: const ValueKey<String>('hud-molotov'),
+            width: _badgeSize,
+            height: _badgeSize,
+            decoration: _frame(rim: inHand ? inHandBorder : BloodColors.fresh),
+            child: const Align(
+              alignment: Alignment(-0.2, -0.2),
+              child: CustomPaint(size: Size(24, 32), painter: MolotovIcon()),
             ),
           );
-          if (count == 0) {
-            frame = ColorFiltered(colorFilter: _greyed, child: frame);
-          }
+          final frame = inHand
+              ? FireFrame(child: box)
+              : BloodOverlay(
+                  painter: const BloodPainter(
+                    band: 3,
+                    cornerRadius: 8,
+                    drips: <BloodDrip>[
+                      BloodDrip(0.34, 9, 3),
+                      BloodDrip(0.7, 12, 4),
+                    ],
+                  ),
+                  child: box,
+                );
           return Semantics(
             button: true,
-            enabled: count > 0,
             selected: inHand,
             label: inHand
                 ? 'Molotov in mano: $count'
                 : 'Molotov: $count, tocca per prenderne una',
             child: GestureDetector(
-              onTap: count > 0 || inHand
-                  ? () {
-                      AudioScope.of(context).play(Sfx.uiClick);
-                      game.input.toggleWeapon();
-                    }
-                  : null,
+              onTap: () {
+                AudioScope.of(context).play(Sfx.uiClick);
+                game.tapWeapon(Weapon.molotov);
+              },
               child: Padding(
                 padding: const EdgeInsets.only(right: spill, bottom: spill),
                 child: Stack(
@@ -382,12 +400,9 @@ final class _MolotovBadge extends StatelessWidget {
                     Positioned(
                       right: -spill,
                       bottom: -spill,
-                      child: Opacity(
-                        opacity: count > 0 ? 1 : 0.6,
-                        child: _BloodCount(
-                          key: const ValueKey<String>('hud-molotov-count'),
-                          text: '×$count',
-                        ),
+                      child: _BloodCount(
+                        key: const ValueKey<String>('hud-molotov-count'),
+                        text: '×$count',
                       ),
                     ),
                   ],
