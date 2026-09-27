@@ -140,4 +140,29 @@ void main() {
       );
     expect(follow.zoom, 1);
   });
+
+  test('walking, Mario stays in the middle of the view, frame by frame', () {
+    // A step north every 0.13 seconds, at 60 frames a second.
+    var mario = middle.clone();
+    for (var frame = 0; frame < 30; frame++) {
+      mario = mario - Vector2(0, 16 / 0.13 / 60);
+      follow.follow(1 / 60, player: mario, place: street);
+      final centre = shown().center;
+      expect(centre.dx, closeTo(mario.x, 0.5));
+      expect(centre.dy, closeTo(mario.y - FollowCamera.bodyHeight, 0.5));
+    }
+  });
+
+  test('a character coming into focus is reached gliding, not jumped '
+      'to', () {
+    final friend = middle + Vector2(160, 0);
+    follow.follow(1 / 60, player: middle, place: street, focus: friend);
+    final moved = shown().center.dx - middle.x;
+    expect(moved, greaterThan(0));
+    expect(moved, lessThanOrEqualTo(FollowCamera.panSpeed / 60 + 0.5));
+    for (var frame = 0; frame < 60; frame++) {
+      follow.follow(1 / 60, player: middle, place: street, focus: friend);
+    }
+    expect(shown().center.dx, closeTo(middle.x + 80, 0.5));
+  });
 }
