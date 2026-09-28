@@ -25,11 +25,29 @@ check_macos_runner:
 build_ios_signed:
   extends: .macos
   stage: build-ios
+  dependencies: []
+  cache: []
   rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: on_success
     - if: '$CI_COMMIT_REF_PROTECTED == "true"'
       when: manual
       allow_failure: true
     - when: never
+  before_script:
+    - |
+      FLUTTER_BIN=$(command -v flutter || true)
+      if [ -n "$FLUTTER_BIN" ]; then
+        FLUTTER_DIR="$(dirname "$(dirname "$(readlink -f "$FLUTTER_BIN" 2>/dev/null || echo "$FLUTTER_BIN")")")"
+        if [ -d "$FLUTTER_DIR/.git" ]; then
+          echo "Allineamento Flutter alla versione 3.44.2..."
+          git -C "$FLUTTER_DIR" fetch --depth 1 origin refs/tags/3.44.2:refs/tags/3.44.2 || true
+          git -C "$FLUTTER_DIR" checkout --quiet 3.44.2 || true
+        fi
+      fi
+    - flutter --version
+    - flutter config --no-analytics
+    - flutter pub get
   script:
     - flutter build ipa --release --build-number="$CI_PIPELINE_IID" --dart-define=VANNI_DEPLOY="${VANNI_DEPLOY:-0}"
   artifacts:
@@ -37,3 +55,5 @@ build_ios_signed:
     paths:
       - build/ios/ipa/*.ipa
     expire_in: 1 month
+
+

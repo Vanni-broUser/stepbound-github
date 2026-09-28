@@ -30,8 +30,11 @@ deploy_play:
     PIP_DISABLE_PIP_VERSION_CHECK: "1"
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
+      when: on_success
+    - if: '$CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE =~ /^(web|schedule|api)$/'
       when: manual
-      allow_failure: true
+      allow_failure: false
+
   before_script:
     - pip install --no-cache-dir -r tools/play/requirements.txt
   script:

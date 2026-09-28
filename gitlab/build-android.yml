@@ -24,11 +24,6 @@ build_android_debug:
     - combusken-docker
   interruptible: false
   resource_group: stepbound-android-release
-  rules:
-    - if: '$CI_COMMIT_REF_PROTECTED == "true"'
-      when: manual
-      allow_failure: true
-    - when: never
   variables:
     GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle-home"
     GRADLE_OPTS: "-Dorg.gradle.daemon=false"
@@ -69,9 +64,17 @@ build_android_debug:
   after_script:
     - rm -f android/app/release-keystore.jks android/key.properties
 
-# AAB firmato per Google Play Store
+# AAB firmato per Google Play Store (automatico su main, parte da solo al merge)
 build_android_signed:
   extends: .android_signed
+  dependencies: []
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: on_success
+    - if: '$CI_COMMIT_REF_PROTECTED == "true"'
+      when: manual
+      allow_failure: true
+    - when: never
   variables:
     ANDROID_PACKAGE: appbundle
   artifacts:
@@ -80,9 +83,15 @@ build_android_signed:
       - build/app/outputs/bundle/release/app-release.aab
     expire_in: 1 month
 
-# APK release firmato per installazione diretta/test su dispositivo fisico
+
+# APK release firmato per installazione diretta/test su dispositivo fisico (manuale)
 build_android_release_apk:
   extends: .android_signed
+  rules:
+    - if: '$CI_COMMIT_REF_PROTECTED == "true"'
+      when: manual
+      allow_failure: true
+    - when: never
   variables:
     ANDROID_PACKAGE: apk
   artifacts:
@@ -90,3 +99,4 @@ build_android_release_apk:
     paths:
       - build/app/outputs/flutter-apk/app-release.apk
     expire_in: 1 month
+

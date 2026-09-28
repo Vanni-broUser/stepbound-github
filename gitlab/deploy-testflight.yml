@@ -18,8 +18,11 @@ deploy_testflight:
   cache: []
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
+      when: on_success
+    - if: '$CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE =~ /^(web|api)$/'
       when: manual
-      allow_failure: true
+      allow_failure: false
+
   before_script: []
   script:
     - |

@@ -1,0 +1,13 @@
+# Range invece di pin esatto: il client Google e' retrocompatibile entro la
+# major e non vogliamo che la pipeline si rompa per una versione ritirata.
+google-api-python-client>=2.100,<3
+google-auth>=2.30,<3
+# Gia' transitive di google-api-python-client, esplicitate perche' upload.py le
+# importa direttamente per allungare il timeout HTTP.
+google-auth-httplib2>=0.2,<1
+# Cap sotto la 0.31: quella linea ha irrigidito la gestione dei redirect e
+# solleva RedirectMissingLocation durante l'upload resumable a Play (edit
+# aperta e poi fallita, pipeline rossa il 29/08/2026 con la 0.32.0 presa dal
+# range aperto + `pip --no-cache-dir`). La 0.22 e' l'ultima buona nota; se una
+# 0.30.x dovesse comunque rompersi, stringere a `==0.22.0`.
+httplib2>=0.20,<0.31
