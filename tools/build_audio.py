@@ -102,6 +102,10 @@ AMBIENCE = [
     ("ambience/fire.mp3", "fireplace", 0.0, None, 1.5, -24, None),
 ]
 
+# A soft pen stroke out of a scratch: no rumble, no hiss, faded in and out.
+PEN_SOFTEN = ("highpass=f=250,lowpass=f=2200,afade=t=in:d=0.03,"
+              "afade=t=out:st=0.16:d=0.16")
+
 # One-shots: (output, source, start, end, peak dBFS, extra filter).
 IMPACT = "Audio/"
 RPG = "Audio/"
@@ -139,11 +143,13 @@ SFX = [
      None, -3, None),
     ("sfx/ui_click.mp3", "ui", "Audio/click3.ogg", None, -8, None),
     ("sfx/dialogue.mp3", "ui", "Audio/switch2.ogg", None, -14, None),
-    # A pen scratched across paper: the two strokes of a mission's cross.
-    ("sfx/pen_stroke_1.mp3", "interface", "Audio/scratch_004.ogg", None, -8,
-     None),
-    ("sfx/pen_stroke_2.mp3", "interface", "Audio/scratch_005.ogg", None, -8,
-     None),
+    # A pen drawn lightly across paper: the two strokes of a mission's
+    # cross. The hiss is taken off the top and the tail eased out, so it
+    # is a soft stroke, not a scratch.
+    ("sfx/pen_stroke_1.mp3", "interface", "Audio/scratch_004.ogg", None, -16,
+     PEN_SOFTEN),
+    ("sfx/pen_stroke_2.mp3", "interface", "Audio/scratch_005.ogg", None, -16,
+     PEN_SOFTEN),
 ]
 
 # One-shots mixed from several sounds: (output, peak dBFS, layers), each
