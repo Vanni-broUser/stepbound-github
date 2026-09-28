@@ -79,4 +79,45 @@ void main() {
     expect(behindHull, greaterThan(0), reason: 'the top of the airliner');
     expect(behindSigns, greaterThan(0), reason: 'road signs, traffic lights');
   });
+
+  test('the columns and statues of the Duomo stand in front of whoever is '
+      'behind them', () async {
+    resetTileAtlasCache();
+    final nave = place(PlaceId.duomo);
+    final (front, width) = await _front(nave);
+    final rows = nave.rows;
+    final tall = <String>{'P', 'M', 'K', 'F', 'V', 'Y', 'G'};
+    var checked = 0;
+    for (var y = 0; y + 1 < rows.length; y++) {
+      for (var x = 0; x < rows[y].length; x++) {
+        final walkable = Tile(nave.kindOf(rows[y][x])).isWalkable;
+        final starts =
+            tall.contains(rows[y + 1][x]) &&
+            (y + 2 >= rows.length || rows[y + 2][x] == rows[y + 1][x]);
+        if (walkable && starts) {
+          checked++;
+          expect(
+            _covered(front, width, x, y),
+            greaterThan(0),
+            reason:
+                'Mario at ($x, $y) would stand over the top of the '
+                '${rows[y + 1][x]} in front of him',
+          );
+        }
+      }
+    }
+    expect(checked, greaterThan(0), reason: 'this test would pass on none');
+  });
+
+  test(
+    'a doorway one walks through covers nobody on the step before it',
+    () async {
+      resetTileAtlasCache();
+      final barracks = place(PlaceId.barracks);
+      final (front, width) = await _front(barracks);
+      final door = barracks.tileOf('E');
+      final local = (door.x - barracks.origin.x, door.y - barracks.origin.y);
+      expect(_covered(front, width, local.$1, local.$2 - 1), 0);
+    },
+  );
 }
