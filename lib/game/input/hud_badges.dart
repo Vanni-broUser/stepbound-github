@@ -77,7 +77,7 @@ const ColorFilter _greyed = ColorFilter.matrix(<double>[
 
 /// The pistol and the bullets Mario carries, in the row of the things he
 /// holds up in the corner: the pistol in colour like the rest, and the
-/// count written in blood over the bottom-right corner, spilling past it.
+/// count written in blood over the bottom-left corner, spilling past it.
 /// Until the pistol is found the badge is a button nothing can press yet:
 /// greyed out and deaf to taps, though the count keeps up with every round
 /// picked up. With the pistol and molotovs too, a tap takes the pistol in
@@ -88,7 +88,7 @@ final class _AmmoBadge extends StatelessWidget {
 
   final StepboundGame game;
 
-  /// How far the count spills past the right and bottom edges.
+  /// How far the count spills past the left and bottom edges.
   static const double spill = 7;
 
   @override
@@ -124,10 +124,10 @@ final class _AmmoBadge extends StatelessWidget {
                     ? BloodColors.bright
                     : BloodColors.fresh,
               ),
-              // A little up and left of the middle, so the count does not
+              // A little up and right of the middle, so the count does not
               // cover the grip.
               child: const Align(
-                alignment: Alignment(-0.2, -0.3),
+                alignment: Alignment(0.2, -0.3),
                 child: CustomPaint(
                   size: Size(34, 23.4),
                   painter: ColourPistolIcon(),
@@ -169,13 +169,13 @@ final class _AmmoBadge extends StatelessWidget {
                 child: Padding(
                   // Room for the count spilling out, so the row does not lay
                   // the next badge over it.
-                  padding: const EdgeInsets.only(right: spill, bottom: spill),
+                  padding: const EdgeInsets.only(left: spill, bottom: spill),
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: <Widget>[
                       frame,
                       Positioned(
-                        right: -spill,
+                        left: -spill,
                         bottom: -spill,
                         child: Opacity(
                           opacity: hasGun ? 1 : 0.6,
@@ -363,7 +363,7 @@ final class _MolotovBadge extends StatelessWidget {
             height: _badgeSize,
             decoration: _frame(rim: inHand ? inHandBorder : BloodColors.fresh),
             child: const Align(
-              alignment: Alignment(-0.2, -0.2),
+              alignment: Alignment(0.2, -0.2),
               child: CustomPaint(size: Size(24, 32), painter: MolotovIcon()),
             ),
           );
@@ -392,13 +392,13 @@ final class _MolotovBadge extends StatelessWidget {
                 game.tapWeapon(Weapon.molotov);
               },
               child: Padding(
-                padding: const EdgeInsets.only(right: spill, bottom: spill),
+                padding: const EdgeInsets.only(left: spill, bottom: spill),
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: <Widget>[
                     frame,
                     Positioned(
-                      right: -spill,
+                      left: -spill,
                       bottom: -spill,
                       child: _BloodCount(
                         key: const ValueKey<String>('hud-molotov-count'),
