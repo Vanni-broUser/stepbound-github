@@ -135,6 +135,12 @@ final class MallScript extends StoryScript {
           memories: const <StoryMemory>{StoryMemory.luigiTrapped},
           onFinished: () {
             progress.missions.give(Mission.freeLuigi);
+            if (_shutterOpen) {
+              // Mario lifted the shutter before walking up to it: Luigi
+              // is already free, and the corner says so before the
+              // reunion.
+              progress.missions.complete(Mission.freeLuigi);
+            }
             director.foundSurvivor();
             _releaseHorde();
           },
@@ -145,7 +151,8 @@ final class MallScript extends StoryScript {
     if (_shutterOpen &&
         !_reunionPlayed &&
         !turnAnimating &&
-        !host.isPromptVisible) {
+        !host.isPromptVisible &&
+        !host.missionsSettling) {
       _reunionPlayed = true;
       host.playCutscene(
         reunionScene,

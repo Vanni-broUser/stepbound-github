@@ -27,6 +27,9 @@ final class _FakeHost implements StoryHost, HometownActions {
   @override
   bool isPromptVisible = false;
 
+  @override
+  bool missionsSettling = false;
+
   /// How many times a queued prompt has held Mario still.
   int stops = 0;
 
@@ -1408,6 +1411,40 @@ void main() {
       expect(progress.missions.done, <Mission>[Mission.freeLuigi]);
       expect(progress.missions.open, <Mission>[Mission.reachLuigi]);
     });
+
+    test('the shutter lifted before his scene: Luigi is free as soon as it '
+        'ends, and the reunion waits for the corner to cross him out', () {
+      // Along the railing, past the shop unheard, to the panel.
+      liftTheShutter();
+      expect(host.cutscenes, isEmpty, reason: 'Luigi has not been seen');
+      expect(progress.missions.open, isEmpty);
+
+      final trigger = luigiSceneTrigger;
+      stepTo(GridPoint(trigger.left + 2, trigger.bottom));
+      // One frame: the fake host does not cover the game while it plays.
+      director.update(0.1, turnAnimating: false);
+      expect(host.cutscenes.single, MallScript.luigiScene);
+      host
+        ..onCutsceneFinished!()
+        ..missionsSettling = true;
+      expect(
+        progress.missions.done,
+        <Mission>[Mission.freeLuigi],
+        reason: 'handed out and done at once, the shutter already up',
+      );
+      expect(progress.missions.isOpen(Mission.freeLuigi), isFalse);
+      settle();
+      expect(host.cutscenes, hasLength(1), reason: 'the corner comes first');
+
+      host.missionsSettling = false;
+      settle();
+      expect(host.cutscenes.last, MallScript.reunionScene);
+      host.onCutsceneFinished!();
+      settle();
+      host.dismiss();
+      expect(progress.missions.done, <Mission>[Mission.freeLuigi]);
+      expect(progress.missions.open, <Mission>[Mission.reachLuigi]);
+    });
   });
 
   group('station', () {
@@ -1939,6 +1976,41 @@ void main() {
         reason: 'crossed out together, the gate counted once',
       );
       expect(progress.missions.open, <Mission>[Mission.findRing]);
+    });
+
+    test('the incense in hand before he asks for it: the gate and the '
+        'incense are crossed out, then the welcome', () {
+      collectIncense();
+      meetThePriest();
+      expect(progress.missions.open, contains(Mission.clearGate));
+      killTheZombiesAtTheGate();
+      walkTo(atTheGate());
+      settle();
+      expect(host.cutscenes.last, PriestScript.dealScene);
+      host.onCutsceneFinished!();
+      settle();
+      expect(host.shown.last.first.text, PriestScript.incenseLine);
+      host.dismiss();
+      expect(
+        progress.missions.done,
+        <Mission>[Mission.clearGate, Mission.findIncense],
+        reason: 'the incense is found the moment it is asked for',
+      );
+      expect(progress.missions.open, isNot(contains(Mission.findIncense)));
+
+      host.missionsSettling = true;
+      settle();
+      expect(host.cutscenes, hasLength(2), reason: 'the corner comes first');
+
+      host.missionsSettling = false;
+      settle();
+      expect(host.cutscenes.last, PriestScript.welcomeScene);
+      host.onCutsceneFinished!();
+      expect(progress.missions.done, <Mission>[
+        Mission.clearGate,
+        Mission.findIncense,
+      ], reason: 'each counted once');
+      expect(progress.missions.open, contains(Mission.findRing));
     });
 
     test('a save after the welcome does not play it again', () {

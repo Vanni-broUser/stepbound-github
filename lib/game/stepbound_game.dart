@@ -15,6 +15,7 @@ import 'package:stepbound/game/audio/soundscape.dart';
 import 'package:stepbound/game/game_cover.dart';
 import 'package:stepbound/game/haptics/game_haptics.dart';
 import 'package:stepbound/game/input/game_input_controller.dart';
+import 'package:stepbound/game/input/mission_board.dart';
 import 'package:stepbound/game/levels/hometown_stage.dart';
 import 'package:stepbound/game/levels/level_stage.dart';
 import 'package:stepbound/game/levels/rome_stage.dart';
@@ -95,6 +96,10 @@ final class StepboundGame extends FlameGame
     molotovs = ValueNotifier<int>(
       simulation.player.component<AmmoComponent>().molotovs,
     );
+    // Where the missions stand as the game is made, not as the corner
+    // first catches up: whatever the story does before that is news.
+    _missionsSeen = this.progress.missions.revision;
+    _doneSeen = this.progress.missions.done.length;
   }
 
   /// The side of a tile on screen: the level grid's own unit, shared
@@ -198,7 +203,19 @@ final class StepboundGame extends FlameGame
         for (final mission in progress.missions.open)
           if (mission.level == progress.level) (mission: mission, done: false),
       ]);
-  late int _missionsSeen = progress.missions.revision;
+  late int _missionsSeen;
+
+  /// How many missions were done when the corner last caught up: those
+  /// done since, handed out and done in the same breath, are new to it.
+  late int _doneSeen;
+
+  /// How long the corner still has, while Mario is free, to cross out the
+  /// missions just done (see [missionsSettling]). Counted here rather than
+  /// by the corner, so that no scene ever waits on a corner not drawn.
+  double _crossOutLeft = 0;
+
+  /// The corner fading back in after a scene, before it starts crossing.
+  static const double _crossOutLead = 0.4;
 
   /// The missions the corner has shown in this game. The corner goes
   /// while something is said and comes back after: only a mission it has
@@ -223,27 +240,46 @@ final class StepboundGame extends FlameGame
     }
   }
 
+  @override
+  bool get missionsSettling =>
+      _crossOutLeft > 0 && missions.value.any((row) => row.done);
+
   /// Brings the corner up to the missions the story has just handed out or
-  /// seen done.
+  /// seen done. One handed out and done in the same breath, because Mario
+  /// had already seen to it (Luigi's shutter lifted before his scene, the
+  /// incense in hand when Don Angelo asks for it), still shows, crossed
+  /// out.
   void _syncMissions() {
     final log = progress.missions;
     if (log.revision == _missionsSeen) {
       return;
     }
     _missionsSeen = log.revision;
+    final justDone = log.done.skip(_doneSeen).toList();
+    _doneSeen = log.done.length;
     final rows = missions.value;
+    bool shown(Mission mission) => rows.any((row) => row.mission == mission);
     final synced = <BoardMission>[
       for (final row in rows)
         if (log.isOpen(row.mission))
           (mission: row.mission, done: false)
         else if (log.isDone(row.mission))
           (mission: row.mission, done: true),
+      for (final mission in justDone)
+        if (mission.level == progress.level && !shown(mission))
+          (mission: mission, done: true),
       for (final mission in log.open)
-        if (mission.level == progress.level &&
-            !rows.any((row) => row.mission == mission))
+        if (mission.level == progress.level && !shown(mission))
           (mission: mission, done: false),
     ];
     if (!listEquals(synced, rows)) {
+      bool crossing(BoardMission row) => row.done;
+      if (synced.where(crossing).length > rows.where(crossing).length) {
+        _crossOutLeft =
+            MissionBoard.crossOut.inMicroseconds /
+                Duration.microsecondsPerSecond +
+            _crossOutLead;
+      }
       missions.value = synced;
     }
   }
@@ -467,6 +503,9 @@ final class StepboundGame extends FlameGame
     }
     _routeNewEvents();
     _updateGameOverCountdown(dt);
+    // What a scene just over did to the missions, before the story looks
+    // at whether the corner has something to cross out.
+    _syncMissions();
     story.update(dt, turnAnimating: presentation.isAnimating);
     for (final stage in _stages) {
       stage.update(dt);
@@ -489,6 +528,9 @@ final class StepboundGame extends FlameGame
         _campfire == null;
     if (freeToMove.value != free) {
       freeToMove.value = free;
+    }
+    if (free && _crossOutLeft > 0) {
+      _crossOutLeft -= dt;
     }
     _camera.follow(
       dt,

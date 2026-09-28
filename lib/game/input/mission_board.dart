@@ -24,6 +24,10 @@ final class MissionBoard extends StatelessWidget {
   static const double textSize = 9;
   static const double boxSize = 10;
 
+  /// A mission done: waiting, crossing, looking at it crossed, folding
+  /// away.
+  static const Duration crossOut = Duration(milliseconds: 2300);
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<List<BoardMission>>(
@@ -136,9 +140,6 @@ final class _MissionRow extends StatefulWidget {
   final VoidCallback onStroke;
   final VoidCallback onGone;
 
-  /// Waiting, crossing, looking at it crossed, folding away.
-  static const Duration crossOut = Duration(milliseconds: 2300);
-
   @override
   State<_MissionRow> createState() => _MissionRowState();
 }
@@ -151,7 +152,7 @@ final class _MissionRowState extends State<_MissionRow>
   );
   late final AnimationController _cross = AnimationController(
     vsync: this,
-    duration: _MissionRow.crossOut,
+    duration: MissionBoard.crossOut,
   );
 
   /// The strokes, then the fold, as parts of [_cross].
