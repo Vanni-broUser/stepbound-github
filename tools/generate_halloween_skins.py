@@ -27,6 +27,7 @@ W, H = 16, 24
 ROOT = Path("assets/characters/mario/sprites")
 PREVIEW = Path("docs/previews/mario_halloween_skins.png")
 ROWS = ("south", "west", "east", "north")
+HEAD_TOP_BASELINES = (4, 3, 3, 3)
 SOURCES = {
     "": "base.png",
     "_gun": "base_gun.png",
@@ -111,6 +112,17 @@ def shade(pixel, light, dark):
     return light if brightness > 105 else dark
 
 
+def head_vertical_shift(source: Image.Image, row: int) -> int:
+    """Tracks pose bobbing so replacement headwear stays attached to the body."""
+    top = min(
+        y
+        for y in range(H)
+        for x in range(W)
+        if visible(source.getpixel((x, y))) and not is_action(source.getpixel((x, y)))
+    )
+    return top - HEAD_TOP_BASELINES[row]
+
+
 def transform_pixels(frame: Image.Image, outfit: str) -> Image.Image:
     out = frame.copy().convert("RGBA")
     px = out.load()
@@ -159,6 +171,7 @@ def draw_ghost(frame: Image.Image, source: Image.Image, row: int) -> None:
             )
 
     draw = ImageDraw.Draw(frame)
+    head_shift = head_vertical_shift(source, row)
     # The skirt joins the legs into a readable draped sheet.
     draw.polygon(
         [
@@ -176,25 +189,43 @@ def draw_ghost(frame: Image.Image, source: Image.Image, row: int) -> None:
         outline=OUTLINE,
     )
     # The sheet hood covers Mario's hair and face.
+    hood = [
+        (5, 2 + head_shift),
+        (10, 2 + head_shift),
+        (12, 5 + head_shift),
+        (12, 10 + head_shift),
+        (10, 14 + head_shift),
+        (5, 14 + head_shift),
+        (3, 10 + head_shift),
+        (3, 5 + head_shift),
+    ]
+    hood_mask = Image.new("1", (W, H), 0)
+    ImageDraw.Draw(hood_mask).polygon(hood, fill=1)
     draw.polygon(
-        [(5, 2), (10, 2), (12, 5), (12, 10), (10, 12), (5, 12), (3, 10), (3, 5)],
+        hood,
         fill=GHOST_LIGHT,
         outline=OUTLINE,
     )
-    draw.line([(5, 3), (4, 7), (5, 11)], fill=GHOST_MID)
-    draw.line([(10, 3), (11, 7), (10, 11)], fill=GHOST_SHADE)
+    draw.line(
+        [(5, 3 + head_shift), (4, 7 + head_shift), (5, 12 + head_shift)],
+        fill=GHOST_MID,
+    )
+    draw.line(
+        [(10, 3 + head_shift), (11, 7 + head_shift), (10, 12 + head_shift)],
+        fill=GHOST_SHADE,
+    )
     if row == 0:
-        draw.rectangle((5, 6, 6, 8), fill=VAMPIRE_SHADE)
-        draw.rectangle((9, 6, 10, 8), fill=VAMPIRE_SHADE)
+        draw.rectangle((5, 6 + head_shift, 6, 8 + head_shift), fill=VAMPIRE_SHADE)
+        draw.rectangle((9, 6 + head_shift, 10, 8 + head_shift), fill=VAMPIRE_SHADE)
     elif row == 1:
-        draw.rectangle((4, 6, 5, 8), fill=VAMPIRE_SHADE)
+        draw.rectangle((4, 6 + head_shift, 5, 8 + head_shift), fill=VAMPIRE_SHADE)
     elif row == 2:
-        draw.rectangle((10, 6, 11, 8), fill=VAMPIRE_SHADE)
+        draw.rectangle((10, 6 + head_shift, 11, 8 + head_shift), fill=VAMPIRE_SHADE)
 
     # Repaint the original hands outside the sleeves.
     for y in range(10, H):
         for x in range(W):
-            if is_skin(source_px[x, y]):
+            if is_skin(source_px[x, y]) and not hood_mask.getpixel((x, y)):
                 px[x, y] = source_px[x, y]
 
     # The hiking backpack and straps sit visibly over the sheet.
@@ -247,49 +278,77 @@ def draw_vampire(frame: Image.Image, row: int) -> Image.Image:
     return composed
 
 
-def draw_pumpkin(frame: Image.Image, row: int) -> None:
+def draw_pumpkin(frame: Image.Image, source: Image.Image, row: int) -> None:
     draw = ImageDraw.Draw(frame)
-    draw.rectangle((2, 1, 13, 11), fill=TRANSPARENT)
-    shift = -1 if row == 1 else 1 if row == 2 else 0
+    y_shift = head_vertical_shift(source, row)
+    head_top = HEAD_TOP_BASELINES[row] + y_shift
+    for y in range(head_top, min(head_top + 10, H)):
+        for x in range(2, 14):
+            pixel = source.getpixel((x, y))
+            if visible(pixel) and not is_action(pixel):
+                frame.putpixel((x, y), TRANSPARENT)
+    draw.rectangle((6, 11 + y_shift, 9, 13 + y_shift), fill=MEDIEVAL_GREEN_DARK)
+    shift = 0
     outer = [
-        (4 + shift, 3),
-        (6 + shift, 1),
-        (10 + shift, 1),
-        (12 + shift, 3),
-        (13 + shift, 6),
-        (12 + shift, 10),
-        (10 + shift, 12),
-        (5 + shift, 11),
-        (3 + shift, 8),
-        (3 + shift, 5),
+        (4 + shift, 3 + y_shift),
+        (6 + shift, 1 + y_shift),
+        (10 + shift, 1 + y_shift),
+        (12 + shift, 3 + y_shift),
+        (13 + shift, 6 + y_shift),
+        (12 + shift, 10 + y_shift),
+        (10 + shift, 12 + y_shift),
+        (5 + shift, 11 + y_shift),
+        (3 + shift, 8 + y_shift),
+        (3 + shift, 5 + y_shift),
     ]
     draw.polygon(outer, fill=PUMPKIN_DARK, outline=OUTLINE)
     inner = [
-        (5 + shift, 3),
-        (7 + shift, 2),
-        (10 + shift, 3),
-        (11 + shift, 5),
-        (11 + shift, 9),
-        (9 + shift, 10),
-        (5 + shift, 9),
-        (4 + shift, 6),
+        (5 + shift, 3 + y_shift),
+        (7 + shift, 2 + y_shift),
+        (10 + shift, 3 + y_shift),
+        (11 + shift, 5 + y_shift),
+        (11 + shift, 9 + y_shift),
+        (9 + shift, 10 + y_shift),
+        (5 + shift, 9 + y_shift),
+        (4 + shift, 6 + y_shift),
     ]
     draw.polygon(inner, fill=PUMPKIN, outline=PUMPKIN_LIGHT)
-    draw.line((7 + shift, 2, 7 + shift, 10), fill=PUMPKIN_LIGHT)
-    draw.line((9 + shift, 2, 10 + shift, 10), fill=PUMPKIN_DARK)
-    draw.rectangle((7 + shift, 0, 8 + shift, 2), fill=MEDIEVAL_GREEN_DARK)
+    draw.line(
+        (7 + shift, 2 + y_shift, 7 + shift, 10 + y_shift),
+        fill=PUMPKIN_LIGHT,
+    )
+    draw.line(
+        (9 + shift, 2 + y_shift, 10 + shift, 10 + y_shift),
+        fill=PUMPKIN_DARK,
+    )
+    draw.rectangle(
+        (7 + shift, y_shift, 8 + shift, 2 + y_shift),
+        fill=MEDIEVAL_GREEN_DARK,
+    )
     if row == 0:
-        draw.polygon([(5, 5), (7, 6), (5, 7)], fill=PUMPKIN_GLOW)
-        draw.polygon([(11, 5), (9, 6), (11, 7)], fill=PUMPKIN_GLOW)
-        draw.line((6, 9, 10, 9), fill=PUMPKIN_GLOW)
-        draw.point((7, 10), fill=PUMPKIN_GLOW)
-        draw.point((9, 10), fill=PUMPKIN_GLOW)
+        draw.polygon(
+            [(5, 5 + y_shift), (7, 6 + y_shift), (5, 7 + y_shift)],
+            fill=PUMPKIN_GLOW,
+        )
+        draw.polygon(
+            [(11, 5 + y_shift), (9, 6 + y_shift), (11, 7 + y_shift)],
+            fill=PUMPKIN_GLOW,
+        )
+        draw.line((6, 9 + y_shift, 10, 9 + y_shift), fill=PUMPKIN_GLOW)
+        draw.point((7, 10 + y_shift), fill=PUMPKIN_GLOW)
+        draw.point((9, 10 + y_shift), fill=PUMPKIN_GLOW)
     elif row == 1:
-        draw.polygon([(3, 5), (6, 6), (4, 7)], fill=PUMPKIN_GLOW)
-        draw.line((4, 9, 7, 9), fill=PUMPKIN_GLOW)
+        draw.polygon(
+            [(3, 5 + y_shift), (6, 6 + y_shift), (4, 7 + y_shift)],
+            fill=PUMPKIN_GLOW,
+        )
+        draw.line((4, 9 + y_shift, 7, 9 + y_shift), fill=PUMPKIN_GLOW)
     elif row == 2:
-        draw.polygon([(13, 5), (10, 6), (12, 7)], fill=PUMPKIN_GLOW)
-        draw.line((9, 9, 12, 9), fill=PUMPKIN_GLOW)
+        draw.polygon(
+            [(13, 5 + y_shift), (10, 6 + y_shift), (12, 7 + y_shift)],
+            fill=PUMPKIN_GLOW,
+        )
+        draw.line((9, 9 + y_shift, 12, 9 + y_shift), fill=PUMPKIN_GLOW)
 
 
 def draw_zombie(frame: Image.Image, row: int, column: int) -> None:
@@ -317,7 +376,7 @@ def make_frame(source: Image.Image, outfit: str, row: int, column: int) -> Image
     if outfit == "vampire":
         return draw_vampire(frame, row)
     if outfit == "jack_o_lantern":
-        draw_pumpkin(frame, row)
+        draw_pumpkin(frame, source, row)
     else:
         draw_zombie(frame, row, column)
     return frame
