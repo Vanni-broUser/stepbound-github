@@ -72,6 +72,7 @@ final class LevelContents {
 /// table laid with food takes the place of one, and saves as the train.
 final Map<GridPoint, String> campfireNames = <GridPoint, String>{
   ...hometownCampfireNames,
+  ...romeCampfireNames,
   ...trainCampfireNames,
 };
 

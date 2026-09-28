@@ -37,10 +37,11 @@ const Legend terminiConcourseLegend = Legend(
 );
 
 /// Rome's streets: Molfetta's outdoor legend, with the front of Termini
-/// `]` a wall.
+/// `]` and Santa Maria Maggiore `"` walls, and the Column of Peace `>`
+/// and the placards `` ` `` obstacles.
 const Legend romeStreetLegend = Legend(
-  walls: 'BHfKMGW#%0_]',
-  obstacles: 'CXUvkDFTSOyJQaAnI~RNbpx*i&!^;/+',
+  walls: 'BHfKMGW#%0_]"',
+  obstacles: 'CXUvkDFTSOyJQaAnI~RNbpx*i&!^;/+>`',
   debris: ':q',
   fire: '?',
 );
@@ -162,6 +163,10 @@ const Map<PlaceId, List<GridPoint>> romeZombieSpots =
         GridPoint(40, 14),
         GridPoint(60, 8),
         GridPoint(34, 24),
+        GridPoint(32, 33),
+        GridPoint(12, 44),
+        GridPoint(36, 45),
+        GridPoint(52, 42),
       ],
       PlaceId.viaMarsala: <GridPoint>[
         GridPoint(15, 9),
@@ -177,6 +182,14 @@ const String terminiRubbishBackpackId = 'termini-rubbish-backpack';
 /// Where it lies, in the far platform's own tile coordinates: on the
 /// rails, between the heap and a clump fallen off it.
 const GridPoint terminiRubbishBackpackSpot = GridPoint(5, 10);
+
+/// The campfire on Piazza dei Cinquecento, in front of Termini.
+final GridPoint piazzaCampfireTile = _piazza.tileOf('S');
+
+/// Rome's campfires, by tile, with the name shown in the save slots.
+final Map<GridPoint, String> romeCampfireNames = <GridPoint, String>{
+  piazzaCampfireTile: 'Piazza dei Cinquecento',
+};
 
 /// The one sprinter of Rome, loose on the piazza.
 const GridPoint piazzaSprinterSpot = GridPoint(22, 12);

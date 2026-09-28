@@ -127,6 +127,14 @@ MALL_NORTH_STOREFRONTS = {
         (41, 5, "gelateria"),
     ],
 }
+# On Piazza dei Cinquecento, in the palazzi west of Termini.
+ROME_PIAZZA_STOREFRONTS = {
+    1: [(4, 6, "souvenir")],
+    # On Piazza di Santa Maria Maggiore, east of Via Cavour, each shop to
+    # whole palazzi and a palazzo with none between them: the bar, the
+    # trattoria across the ground floor of two, the accountants in one.
+    35: [(40, 5, "barroma"), (49, 11, "trattoria"), (64, 6, "studio")],
+}
 HARBOUR_STOREFRONTS = {
     7: [(123, 5, "arcobaleno")],  # up the alley, its door `h` at column 125
     15: [
@@ -499,7 +507,16 @@ SHOPS = {
     "gelateria": ((222, 218, 204), (176, 170, 156), (226, 170, 180), (120, 40, 60), "GELATERIA", ()),
     # Letters in rainbow colours (see paint_storefront), all still there.
     "arcobaleno": ((196, 186, 168), (150, 140, 124), (30, 28, 36), RAINBOW[0], "BAR ARCOBALENO", ()),
+    # Rome: ochre plaster, a red sign with gold letters, the Colosseum on it.
+    "souvenir": ((200, 138, 70), (232, 220, 196), (140, 28, 34), (240, 200, 90), "SOUVENIR", ()),
+    # Rome, on Piazza di Santa Maria Maggiore: the bar, the trattoria of
+    # Roman cooking, the accountants' office.
+    "barroma": ((214, 176, 104), (236, 226, 204), (40, 40, 44), (240, 216, 150), "BAR", ()),
+    "trattoria": ((170, 82, 58), (228, 214, 188), (36, 70, 44), (236, 226, 200), "TRATTORIA ROMANA", ()),
+    "studio": ((222, 196, 150), (240, 232, 214), (30, 40, 70), (226, 226, 220), "COMMERCIALISTA", ()),
 }
+# The shops whose palazzo keeps its own Roman floors above the shop front.
+ROMAN_SHOPS = ("souvenir", "barroma", "trattoria", "studio")
 
 
 def paint_shutter(d, x, y, w, h, drop):
@@ -559,6 +576,22 @@ def paint_icon(d, kind, x, y):
         rect(d, x + 3, y, 1, 8, (170, 170, 170))
         for i, wdt in enumerate((2, 4, 5, 5, 4, 3)):
             rect(d, x + 4 - wdt // 2, y + 1 + i, wdt, 1, (150, 90, 40) if i % 2 else (190, 120, 60))
+    elif kind == "souvenir":  # the Colosseum: two tiers of arches
+        rect(d, x, y + 1, 8, 7, (226, 204, 160))
+        rect(d, x, y + 1, 8, 1, (246, 232, 200))
+        for ax in range(x + 1, x + 8, 2):
+            rect(d, ax, y + 3, 1, 2, (120, 90, 60))
+            rect(d, ax, y + 6, 1, 2, (120, 90, 60))
+        rect(d, x + 6, y, 2, 3, (140, 28, 34))  # its broken end
+    elif kind == "trattoria":  # a plate of pasta and a fork
+        rect(d, x + 1, y + 4, 6, 3, (236, 232, 222))
+        rect(d, x + 2, y + 3, 4, 2, (224, 180, 70))
+        rect(d, x + 3, y + 3, 1, 1, (170, 40, 30))
+        rect(d, x + 7, y, 1, 7, (190, 190, 196))
+    elif kind == "studio":  # a ledger
+        rect(d, x + 1, y + 1, 6, 7, (150, 40, 40))
+        rect(d, x + 2, y + 2, 4, 1, (236, 226, 200))
+        rect(d, x + 2, y + 4, 4, 1, (236, 226, 200))
     elif kind == "pizzeria":
         rect(d, x + 1, y + 1, 6, 6, (230, 190, 90))
         rect(d, x + 2, y + 2, 4, 4, (200, 60, 40))
@@ -614,13 +647,19 @@ def paint_icon(d, kind, x, y):
 
 def paint_storefront(d, rng, px, py0, w, h, kind):
     wall, trim, board, letters, text, missing = SHOPS[kind]
-    rect(d, px, py0, w, h, wall)
-    rect(d, px, py0, w, 3, trim)
-    rect(d, px + w - 1, py0, 1, h, trim)
     shop_top = py0 + h - 17
     sign_top = shop_top - 12
+    # A Roman palazzo keeps its own floors above the shop: only the shop
+    # front is painted, from just over its sign down.
+    roman = kind in ROMAN_SHOPS
+    if roman:
+        rect(d, px, sign_top - 2, w, py0 + h - sign_top + 2, wall)
+    else:
+        rect(d, px, py0, w, h, wall)
+        rect(d, px, py0, w, 3, trim)
+        rect(d, px + w - 1, py0, 1, h, trim)
     # flats upstairs
-    for wy in range(py0 + 8, sign_top - 10, 14):
+    for wy in range(py0 + 8, sign_top - 10, 14) if not roman else ():
         for wx in range(px + 5, px + w - 8, 12):
             roll = rng.random()
             pane = PANE if roll > 0.3 else (PANE_LIT if roll > 0.15 else PANE_BROKEN)
@@ -654,13 +693,28 @@ def paint_storefront(d, rng, px, py0, w, h, kind):
         rect(d, door_x, shop_top + 2, door_w, 15, (12, 10, 12))
         rect(d, door_x, shop_top + 2, 3, 15, (70, 50, 36))  # the door, hanging
         rect(d, door_x + 1, shop_top + 8, 1, 2, (180, 160, 90))
+    elif kind in ("trattoria", "studio"):  # the door boarded up too
+        rect(d, door_x, shop_top + 2, door_w, 15, (46, 32, 24))
+        paint_boarded_door(d, rng, door_x, shop_top + 2, door_w, 15)
     else:
         paint_shutter(d, door_x, shop_top + 2, door_w, 15, 15)
     for wx in (px + 3, door_x + door_w + 1):
-        if kind in ("kebab", "kebab2", "bar", "burger"):
+        if kind in ("kebab", "kebab2", "bar", "burger", "trattoria",
+                    "studio"):
             paint_boards(d, wx, shop_top + 2, window_w, 12)
         elif kind in ("elettronica", "barsport"):
             paint_smashed_display(d, wx, shop_top + 2, window_w, 12)
+        elif kind == "souvenir":
+            # The window smashed, what was in it still on its shelves:
+            # little Colosseums, snow globes, the giallorossi scarves.
+            paint_smashed_display(d, wx, shop_top + 2, window_w, 12)
+            for i in range(3):
+                sx = wx + 1 + i * (window_w - 3) // 3
+                rect(d, sx, shop_top + 8, 3, 3, (226, 204, 160))
+                rect(d, sx + 1, shop_top + 9, 1, 1, (120, 90, 60))
+            rect(d, wx + 1, shop_top + 4, window_w - 2, 2, (200, 150, 40))
+            rect(d, wx + 1 + (window_w - 2) // 2, shop_top + 4,
+                 (window_w - 2) // 2, 2, (150, 30, 34))
         else:
             paint_shutter(d, wx, shop_top + 2, window_w, 12, 8 + rng.randrange(4))
     if kind == "barsport":
@@ -669,7 +723,7 @@ def paint_storefront(d, rng, px, py0, w, h, kind):
             rect(d, px + rng.randrange(2, w - 6), py0 + rng.randrange(4, h - 6),
                  rng.randint(2, 5), rng.randint(1, 3), rng.choice(((60, 48, 40), BLOOD_DARK)))
     # scorch marks licking up from the shop
-    for _ in range(3):
+    for _ in range(0 if roman else 3):
         sx = px + rng.randrange(3, w - 6)
         rect(d, sx, shop_top - 2, 4, 3, (36, 30, 30))
         rect(d, sx + 1, shop_top - 5, 2, 3, (36, 30, 30))

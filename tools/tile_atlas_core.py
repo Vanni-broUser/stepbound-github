@@ -444,6 +444,8 @@ def compose(rows: list[str], place: dict, tiles: list[Image.Image],
     for layer in LAYERS:
         if layer == "objects":
             for obj in place["objects"]:
+                if obj.get("overhead"):
+                    continue
                 sprite = obj["openSprite"] if opened and "openSprite" in obj \
                     else obj["sprite"]
                 if "at" in obj:
@@ -481,4 +483,9 @@ def compose(rows: list[str], place: dict, tiles: list[Image.Image],
                         if tiles_there:
                             draw(tiles_there[v], x + extra["dx"],
                                  y + extra["dy"])
+    # What hangs over everything: a banner strung across a street.
+    for obj in place["objects"]:
+        if obj.get("overhead"):
+            x0, y0 = obj["at"]
+            out.alpha_composite(obj["sprite"], (x0 * TILE, y0 * TILE))
     return out

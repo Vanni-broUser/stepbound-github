@@ -201,6 +201,10 @@ final class TilePlaceComponent extends Component {
     for (final layer in <String>['foreground', 'overhead']) {
       _drawLayer(canvas, loaded, art, grid, layer, front: frontCanvas);
     }
+    // What hangs over everything, the characters too.
+    for (final target in <ui.Canvas>[canvas, frontCanvas]) {
+      _drawObjects(target, loaded, art, grid, opened: opened, overhead: true);
+    }
     Future<ui.Image> image(ui.Picture picture) async {
       final image = await picture.toImage(width, height);
       picture.dispose();
@@ -336,8 +340,12 @@ final class TilePlaceComponent extends Component {
     GlyphGrid grid, {
     required bool opened,
     List<Set<(int, int)>>? behind,
+    bool overhead = false,
   }) {
     for (final (index, object) in art.objects.indexed) {
+      if (object.overhead != overhead) {
+        continue;
+      }
       final glyph = object.glyph;
       final corner =
           object.at ?? (glyph == null ? null : _blockCorner(grid, glyph));
