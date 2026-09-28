@@ -84,8 +84,12 @@ void main() {
   });
 
   group('the missions card', () {
-    LevelStats statsOf(Progress progress) =>
-        LevelStats.of(createGameWorld(), progress, LevelId.hometown);
+    // The results screen comes at the end of the level: its totals show.
+    LevelStats statsOf(Progress progress) => LevelStats.of(
+      createGameWorld(),
+      progress..remember(StoryMemory.luigiAtStation),
+      LevelId.hometown,
+    );
 
     Future<void> pump(
       WidgetTester tester,

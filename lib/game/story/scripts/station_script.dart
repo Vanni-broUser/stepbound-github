@@ -18,7 +18,22 @@ final class StationScript extends StoryScript {
   static const String planScene = 'assets/story/scenes/station_plan.jpg';
   static const String northCapeScene =
       'assets/story/scenes/station_north_cape.jpg';
+  static const String goldenPistolScene =
+      'assets/story/scenes/station_golden_pistol.jpg';
   static const String lockedDoorLine = 'La porta è chiusa';
+
+  /// Luigi finds Mario came all this way with no gun: after the reunion,
+  /// only then (see [SecretMission.unarmedToLuigi]). The memory keeps his
+  /// words; the line on what the pistol does is said once, there.
+  static const CutsceneFrame goldenPistolGift = CutsceneFrame(
+    image: goldenPistolScene,
+    speaker: luigi,
+    text: "Ei ma non hai nessun'arma con te? Tieni prendi questa",
+  );
+  static const CutsceneFrame goldenPistolLesson = CutsceneFrame(
+    image: goldenPistolScene,
+    text: "La pistola d'oro infligge danni doppi",
+  );
 
   /// Luigi leaning out of the cab of the one train still in one piece.
   static const List<CutsceneFrame> reunionScene = <CutsceneFrame>[
@@ -58,6 +73,15 @@ final class StationScript extends StoryScript {
 
   bool _reunionPlayed = false;
   bool _steppedOnPlatform = false;
+
+  /// Whether this attempt ended with the golden pistol handed over: the
+  /// results screen crosses the secret mission out with the level's.
+  bool _goldenPistolGiven = false;
+
+  /// Whether the level just completed from [story] (a save's story state)
+  /// handed the golden pistol over.
+  static bool gaveGoldenPistol(Map<String, Object?> story) =>
+      (story['station'] as Map<String, Object?>?)?['goldenPistol'] == true;
 
   @override
   String get key => 'station';
@@ -104,13 +128,38 @@ final class StationScript extends StoryScript {
       return;
     }
     _reunionPlayed = true;
+    // Here without ever having picked the pistol up: rounds or not, Luigi
+    // hands over his golden one.
+    final unarmed = !world.player.component<AmmoComponent>().hasGun;
     host.playCutscene(
-      reunionScene,
-      memories: const <StoryMemory>{StoryMemory.luigiAtStation},
+      <CutsceneFrame>[
+        ...reunionScene,
+        if (unarmed) ...<CutsceneFrame>[goldenPistolGift, goldenPistolLesson],
+      ],
+      memories: <StoryMemory>{
+        StoryMemory.luigiAtStation,
+        if (unarmed) StoryMemory.goldenPistol,
+      },
       stayBlack: true,
       music: Music.luigi,
-      onFinished: _board,
+      onFinished: () {
+        if (unarmed) {
+          _giveGoldenPistol();
+        }
+        _board();
+      },
     );
+  }
+
+  /// The secret mission done: the pistol is Mario's from now on, golden,
+  /// and so is what it takes to fire it.
+  void _giveGoldenPistol() {
+    _goldenPistolGiven = true;
+    progress.secretMissions.add(SecretMission.unarmedToLuigi);
+    world.player.component<AmmoComponent>().hasGun = true;
+    host
+      ..unlock(HudElement.ammo)
+      ..unlock(HudElement.shoot);
   }
 
   /// Behind the black the scene ends on, Mario gets on the train and
@@ -127,10 +176,14 @@ final class StationScript extends StoryScript {
   }
 
   @override
-  Map<String, Object?> toJson() => <String, Object?>{'reunion': _reunionPlayed};
+  Map<String, Object?> toJson() => <String, Object?>{
+    'reunion': _reunionPlayed,
+    'goldenPistol': _goldenPistolGiven,
+  };
 
   @override
   void restore(Map<String, Object?> json) {
     _reunionPlayed = json['reunion'] as bool? ?? false;
+    _goldenPistolGiven = json['goldenPistol'] as bool? ?? false;
   }
 }

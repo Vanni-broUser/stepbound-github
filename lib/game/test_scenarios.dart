@@ -248,6 +248,10 @@ final TestScenario vanniDeployScenario = TestScenario(
       ..world.map.setTile(duomoUpperLockedDoorTile, const Tile(TileKind.floor))
       ..revive(priestZombiePrefix);
 
+    // The secret mission done too: Luigi's golden pistol in hand, and its
+    // memory among the others below.
+    story.progress.secretMissions.add(SecretMission.unarmedToLuigi);
+
     // Every zombie type of Molfetta met, as the book on the train shows.
     levelZombieKinds(LevelId.hometown).forEach(story.progress.meet);
 

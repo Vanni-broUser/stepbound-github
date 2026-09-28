@@ -57,6 +57,10 @@ final class GameSession {
   /// The skins given to this slot by gift links (see
   /// [SaveRepository.loadGifts]): every game made here can wear them.
   final Set<PlayerOutfit> gifts = <PlayerOutfit>{};
+
+  /// The secret missions done in this slot before Molfetta was started
+  /// over: starting over keeps them, and what they gave.
+  final Set<SecretMission> _keptSecrets = <SecretMission>{};
   Future<void> _storyHistoryWrite = Future<void>.value();
 
   /// What this game had been played for when it was loaded or started, and
@@ -99,6 +103,7 @@ final class GameSession {
   Future<void> startNew(int newSlot) async {
     await _storyHistoryWrite;
     gifts.clear();
+    _keptSecrets.clear();
     if (await saves.read(newSlot) is EmptySave) {
       gifts.addAll(await saves.loadGifts(newSlot));
     } else {
@@ -130,7 +135,8 @@ final class GameSession {
       StoryMemory.outbreakNight,
     });
     final progress = Progress.newGame(openingSaved: false, gifts: gifts)
-      ..addViewedMemories(storyHistory);
+      ..addViewedMemories(storyHistory)
+      ..secretMissions.addAll(_keptSecrets);
     return _build(progress: progress)..inputLocked = true;
   }
 
@@ -181,13 +187,19 @@ final class GameSession {
   }
 
   /// Molfetta from the very start, the first story picture, with nothing
-  /// kept but the hours played (bullets, known zombies, memories all go).
+  /// kept but the hours played and the [secretMissions] done (bullets,
+  /// known zombies, memories all go).
   /// It counts as a save: the slot now holds the start of the level, so
   /// loading it later starts the level over too — but not a campfire one,
   /// so there is nothing to resume from until the next fire. False when
   /// the save could not be written: the level starts over all the same,
   /// and the slot keeps the save it had, with its fire.
-  Future<bool> saveLevelStart() async {
+  Future<bool> saveLevelStart({
+    Set<SecretMission> secretMissions = const <SecretMission>{},
+  }) async {
+    _keptSecrets
+      ..clear()
+      ..addAll(secretMissions);
     try {
       await saves.save(
         SaveGame(
@@ -196,10 +208,11 @@ final class GameSession {
           place: levelStartPlace,
           world: saveGameWorld(createGameWorld()),
           story: const <String, Object?>{},
-          progress: Progress().toJson(),
+          progress: Progress(secretMissions: secretMissions).toJson(),
           hud: const <String>[],
           atCampfire: false,
-          // The hours played are the one thing starting over keeps.
+          // The hours played, and the secrets, are what starting over
+          // keeps.
           played: played,
         ),
       );

@@ -222,12 +222,18 @@ final class MolotovIcon extends CustomPainter {
 /// barrel showing at the front, the hammer cocked at the back, the trigger
 /// in its guard, and the grip in dark walnut.
 final class ColourPistolIcon extends CustomPainter {
-  const ColourPistolIcon();
+  const ColourPistolIcon({this.golden = false});
+
+  /// Luigi's golden pistol: the same gun, its metal all gold.
+  final bool golden;
 
   static const Color _outline = Color(0xff121417);
-  static const Color _steel = Color(0xff66707c);
-  static const Color _steelDark = Color(0xff3c434c);
-  static const Color _steelLight = Color(0xffb4bec9);
+  Color get _steel =>
+      golden ? const Color(0xffd4a22c) : const Color(0xff66707c);
+  Color get _steelDark =>
+      golden ? const Color(0xff8c6414) : const Color(0xff3c434c);
+  Color get _steelLight =>
+      golden ? const Color(0xfffbe38a) : const Color(0xffb4bec9);
   static const Color _wood = Color(0xff8e5a32);
   static const Color _woodDark = Color(0xff5c361c);
   static const Color _woodLight = Color(0xffb47c4a);
@@ -313,5 +319,6 @@ final class ColourPistolIcon extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(ColourPistolIcon oldDelegate) => false;
+  bool shouldRepaint(ColourPistolIcon oldDelegate) =>
+      oldDelegate.golden != golden;
 }

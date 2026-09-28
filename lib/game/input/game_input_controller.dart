@@ -27,6 +27,7 @@ final class GameInputController {
     required this.dropQueuedSteps,
     required this.toggleDebug,
     required this.throwArea,
+    this.goldenPistol,
   });
 
   /// How often a direction held down takes another step.
@@ -56,6 +57,13 @@ final class GameInputController {
   /// The rectangle a molotov may land in: the place Mario stands in, so a
   /// bottle never flies into the next map laid out beside it.
   final GridRect? Function() throwArea;
+
+  /// Whether the pistol is the golden one, which hits twice as hard.
+  final bool Function()? goldenPistol;
+
+  /// A shot from the pistol Mario has.
+  ShootAction get _shot =>
+      ShootAction(damage: (goldenPistol?.call() ?? false) ? 2 : 1);
 
   /// Tiles ahead of Mario a molotov lands when aiming starts.
   static const int throwStart = 3;
@@ -276,7 +284,7 @@ final class GameInputController {
       return;
     }
     if (canAct()) {
-      submit(const ShootAction());
+      submit(_shot);
       cancelAim();
     }
   }
@@ -303,7 +311,7 @@ final class GameInputController {
       return;
     }
     if (_mario.component<AmmoComponent>().loaded == 0) {
-      submit(const ShootAction());
+      submit(_shot);
       return;
     }
     _releaseHeld();
@@ -323,7 +331,7 @@ final class GameInputController {
       return;
     }
     _mario.component<PositionComponent>().facing = direction;
-    submit(const ShootAction());
+    submit(_shot);
     cancelAim();
   }
 

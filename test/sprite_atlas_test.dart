@@ -373,6 +373,49 @@ void main() {
     expect(opaquePixels, greaterThan(0));
     image.dispose();
   });
+
+  test('the pistols are shared layers on the gun poses grid, and no '
+      'outfit holds one of its own', () async {
+    final pistol = await pixelsOf(
+      await loadAsset('assets/objects/pistol_held.png'),
+    );
+    final golden = await pixelsOf(
+      await loadAsset('assets/objects/pistol_gold_held.png'),
+    );
+    expect(pistol.length, 96 * 96 * 4);
+    expect(golden.length, pistol.length);
+    // The same pistol, pixel for pixel, only in gold.
+    for (var index = 3; index < pistol.length; index += 4) {
+      expect(golden[index] > 0, pistol[index] > 0);
+    }
+    const steel = <List<int>>[
+      <int>[38, 40, 46],
+      <int>[74, 78, 88],
+      <int>[136, 142, 152],
+    ];
+    for (final outfit in <String>[
+      'base',
+      'cultist',
+      'ghost',
+      'vampire',
+      'jack_o_lantern',
+      'zombie',
+      'lazio',
+    ]) {
+      final rgba = await pixelsOf(
+        await loadAsset('assets/characters/mario/sprites/${outfit}_gun.png'),
+      );
+      for (var index = 0; index < rgba.length; index += 4) {
+        final colour = <int>[rgba[index], rgba[index + 1], rgba[index + 2]];
+        expect(
+          rgba[index + 3] > 0 &&
+              steel.any((metal) => metal.join() == colour.join()),
+          isFalse,
+          reason: '${outfit}_gun.png still paints a pistol',
+        );
+      }
+    }
+  });
 }
 
 Future<Uint8List> pixelsOf(ui.Image image) async {

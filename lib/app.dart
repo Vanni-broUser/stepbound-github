@@ -11,6 +11,7 @@ import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/game/render/pixel_palette.dart';
 import 'package:stepbound/game/stepbound_game.dart';
+import 'package:stepbound/game/story/scripts/station_script.dart';
 import 'package:stepbound/save/save_game.dart';
 import 'package:stepbound/save/skin_links.dart';
 import 'package:stepbound/ui/audio_scope.dart';
@@ -105,6 +106,9 @@ final class _StepboundAppState extends State<StepboundApp> {
 
   /// The mission the completed level ended on, crossed out on its results.
   Mission? _levelFinale;
+
+  /// A secret mission done as the level ended, crossed out with the rest.
+  SecretMission? _levelSecret;
 
   /// Whether the loading picture fades in from the black a story ended on.
   bool _loadingFadesIn = false;
@@ -286,7 +290,9 @@ final class _StepboundAppState extends State<StepboundApp> {
     // The camp's fire and hushed music stop at once: the story plays.
     _game?.soundscapePaused = true;
     _playStoryAudio();
-    await _session.saveLevelStart();
+    await _session.saveLevelStart(
+      secretMissions: <SecretMission>{...?_game?.progress.secretMissions},
+    );
     if (!mounted) {
       return;
     }
@@ -426,6 +432,9 @@ final class _StepboundAppState extends State<StepboundApp> {
       _completedSnapshot = snapshot;
       _levelStats = stats;
       _levelFinale = Mission.finaleOf(progress.level);
+      _levelSecret = StationScript.gaveGoldenPistol(snapshot.story)
+          ? SecretMission.unarmedToLuigi
+          : null;
       _game = null;
       _phase = _Phase.levelComplete;
     });
@@ -572,6 +581,7 @@ final class _StepboundAppState extends State<StepboundApp> {
                 _Phase.levelComplete => LevelComplete(
                   stats: _levelStats,
                   finale: _levelFinale,
+                  secret: _levelSecret,
                   onContinue: _openLevelMap,
                 ),
                 _Phase.levelMap => LevelMap(

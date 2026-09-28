@@ -16,7 +16,11 @@ enum CharacterAction { none, fire, throwWeapon, hit, bite, death, pickup, rest }
 enum PlayerPoseFamily { locomotion, oneHanded, throwable, pickup }
 
 /// Weapon art shared by all outfits and attached to a pose at runtime.
-enum PlayerWeaponSprite { molotov }
+/// A weapon drawn as a layer of its own over whichever outfit's pose holds
+/// it: the outfit gives the moveset, the weapon its design. The molotov is
+/// one bottle placed per frame; the pistols are a whole sheet on the pose's
+/// own grid (see tools/generate_protagonist_actions.py).
+enum PlayerWeaponSprite { molotov, pistol, goldenPistol }
 
 final class CharacterComponent extends PositionComponent with StandsOnFloor {
   CharacterComponent({
@@ -49,6 +53,13 @@ final class CharacterComponent extends PositionComponent with StandsOnFloor {
   final Map<PlayerWeaponSprite, ui.Image?> _weaponSprites =
       <PlayerWeaponSprite, ui.Image?>{};
   PlayerOutfit playerOutfit;
+
+  /// Whether the pistol in Mario's hand is Luigi's golden one.
+  bool goldenPistol = false;
+
+  PlayerWeaponSprite get _pistol => goldenPistol
+      ? PlayerWeaponSprite.goldenPistol
+      : PlayerWeaponSprite.pistol;
   double animationProgress = 1;
   double _breathElapsed = 0;
   double _alertElapsed = alertDuration;
@@ -114,6 +125,15 @@ final class CharacterComponent extends PositionComponent with StandsOnFloor {
         assets,
         'assets/objects/molotov_held.png',
       );
+      _weaponSprites[PlayerWeaponSprite.pistol] = await _loadOptionalImage(
+        assets,
+        'assets/objects/pistol_held.png',
+      );
+      _weaponSprites[PlayerWeaponSprite.goldenPistol] =
+          await _loadOptionalImage(
+            assets,
+            'assets/objects/pistol_gold_held.png',
+          );
       wearOutfit(playerOutfit);
     } else {
       final name = _atlasName(entity.kind);
@@ -321,11 +341,12 @@ final class CharacterComponent extends PositionComponent with StandsOnFloor {
       case CharacterAction.fire
           when _poseAtlases[PlayerPoseFamily.oneHanded] != null:
         final progress = (_actionElapsed / actionDuration).clamp(0, 1);
-        _drawCell(
+        _drawPlayerPose(
           canvas,
           _poseAtlases[PlayerPoseFamily.oneHanded]!,
           _actionRow,
           3 + (progress * 3).floor().clamp(0, 2),
+          weapon: _pistol,
         );
       case CharacterAction.throwWeapon
           when _poseAtlases[PlayerPoseFamily.throwable] != null:
@@ -420,7 +441,13 @@ final class CharacterComponent extends PositionComponent with StandsOnFloor {
     final poseAtlas = pose == null ? null : _poseAtlases[pose];
     if (poseAtlas != null) {
       final breathe = (_breathElapsed * 1.6).floor() % 3;
-      _drawPlayerPose(canvas, poseAtlas, row, breathe, weapon: aimingWeapon);
+      _drawPlayerPose(
+        canvas,
+        poseAtlas,
+        row,
+        breathe,
+        weapon: pose == PlayerPoseFamily.oneHanded ? _pistol : aimingWeapon,
+      );
       return;
     }
     final atlas = _atlas;
@@ -477,9 +504,10 @@ final class CharacterComponent extends PositionComponent with StandsOnFloor {
     int column, {
     PlayerWeaponSprite? weapon,
   }) {
-    final behind = weapon != null && row == 3 && column == 3;
+    final behind =
+        weapon == PlayerWeaponSprite.molotov && row == 3 && column == 3;
     if (behind) {
-      _drawWeapon(canvas, weapon, row, column);
+      _drawWeapon(canvas, PlayerWeaponSprite.molotov, row, column);
     }
     _drawCell(canvas, poseAtlas, row, column);
     if (weapon != null && !behind) {
@@ -494,6 +522,13 @@ final class CharacterComponent extends PositionComponent with StandsOnFloor {
     int column,
   ) {
     final image = _weaponSprites[weapon];
+    if (weapon != PlayerWeaponSprite.molotov) {
+      // A pistol sheet shares the pose's grid: its cell goes right over.
+      if (image != null) {
+        _drawCell(canvas, image, row, column);
+      }
+      return;
+    }
     final attachment = _throwableAttachments[row][column];
     if (image == null || attachment == null) {
       return;

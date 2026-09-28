@@ -29,6 +29,8 @@ final class LevelStats {
     required this.steps,
     this.doneMissions = const <Mission>[],
     this.missions = const <Mission>[],
+    this.doneSecrets = const <SecretMission>[],
+    this.completed = true,
   });
 
   /// How [level] stands in [world], as far as [progress] has got: only
@@ -73,6 +75,11 @@ final class LevelStats {
           if (mission.level == level) mission,
       ],
       missions: Mission.of(level),
+      doneSecrets: <SecretMission>[
+        for (final mission in progress.secretMissions)
+          if (mission.level == level) mission,
+      ],
+      completed: progress.completed(level),
     );
   }
 
@@ -95,6 +102,17 @@ final class LevelStats {
 
   /// Every mission of the level.
   final List<Mission> missions;
+
+  /// The level's secret missions done: listed with the rest, and counted
+  /// apart, as a bonus over them.
+  final List<SecretMission> doneSecrets;
+
+  /// Whether the level has been played to its end. Until then its totals
+  /// are not given away: each count stands over "???".
+  final bool completed;
+
+  /// Out of [total], or of "???" while the level is not over.
+  String outOf(int count, int total) => '$count / ${completed ? total : '???'}';
 }
 
 /// The black results screen shown between the last story scene and the
@@ -104,6 +122,7 @@ final class LevelComplete extends StatelessWidget {
     required this.stats,
     required this.onContinue,
     this.finale,
+    this.secret,
     super.key,
   });
 
@@ -112,6 +131,9 @@ final class LevelComplete extends StatelessWidget {
 
   /// The mission the level ended on, crossed out here for all to see.
   final Mission? finale;
+
+  /// A secret mission done as the level ended: crossed out with [finale].
+  final SecretMission? secret;
 
   @override
   Widget build(BuildContext context) {
@@ -130,7 +152,12 @@ final class LevelComplete extends StatelessWidget {
                 SizedBox(height: 4 * unit),
                 StatsCard(stats: stats, unit: unit),
                 SizedBox(height: 4 * unit),
-                MissionsCard(stats: stats, unit: unit, finale: finale),
+                MissionsCard(
+                  stats: stats,
+                  unit: unit,
+                  finale: finale,
+                  secret: secret,
+                ),
                 SizedBox(height: 6 * unit),
                 MenuButton(
                   key: const ValueKey<String>('level-complete-continue'),
@@ -167,17 +194,17 @@ final class StatsCard extends StatelessWidget {
             child: _column(unit, <(String, String, String)>[
               (
                 'ZAINI TROVATI',
-                '${stats.foundBackpacks} / ${stats.totalBackpacks}',
+                stats.outOf(stats.foundBackpacks, stats.totalBackpacks),
                 'backpack-stat',
               ),
               (
                 'RICORDI VISSUTI',
-                '${stats.foundMemories} / ${stats.totalMemories}',
+                stats.outOf(stats.foundMemories, stats.totalMemories),
                 'memory-stat',
               ),
               (
                 'FALÒ TROVATI',
-                '${stats.litCampfires} / ${stats.totalCampfires}',
+                stats.outOf(stats.litCampfires, stats.totalCampfires),
                 'campfire-stat',
               ),
             ]),
@@ -187,12 +214,12 @@ final class StatsCard extends StatelessWidget {
             child: _column(unit, <(String, String, String)>[
               (
                 'ZOMBI CONOSCIUTI',
-                '${stats.knownZombieKinds} / ${stats.totalZombieKinds}',
+                stats.outOf(stats.knownZombieKinds, stats.totalZombieKinds),
                 'zombie-kind-stat',
               ),
               (
                 'ZOMBI UCCISI',
-                '${stats.killedZombies} / ${stats.totalZombies}',
+                stats.outOf(stats.killedZombies, stats.totalZombies),
                 'kill-stat',
               ),
               ('PASSI FATTI', '${stats.steps}', 'step-stat'),
@@ -325,17 +352,25 @@ final class _AdventureStatsState extends State<AdventureStats> {
         );
         if (_secrets) {
           return _SecretMissions(
+            progress: widget.progress,
+            level: level,
             unit: unit,
             onBack: () => setState(() => _secrets = false),
           );
         }
+        // The secret missions only of a city played to its end: Molfetta
+        // once Luigi has been reached at the station.
+        final secrets = stats.completed;
+        final buttonWidth = secrets
+            ? AdventureStats.buttonWidth
+            : (StatsCard.cardWidth - AdventureStats.buttonGap) / 2;
         Widget button(String key, String label, VoidCallback onPressed) =>
             MenuButton(
               key: ValueKey<String>(key),
               label: label,
               unit: unit,
               compact: true,
-              width: AdventureStats.buttonWidth,
+              width: buttonWidth,
               onPressed: onPressed,
             );
         return SizedBox.expand(
@@ -384,12 +419,14 @@ final class _AdventureStatsState extends State<AdventureStats> {
                       'RIVIVI I RICORDI',
                       widget.onReplayMemories,
                     ),
-                    SizedBox(width: AdventureStats.buttonGap * unit),
-                    button(
-                      'adventure-stats-secrets',
-                      'MISSIONI SEGRETE',
-                      () => setState(() => _secrets = true),
-                    ),
+                    if (secrets) ...<Widget>[
+                      SizedBox(width: AdventureStats.buttonGap * unit),
+                      button(
+                        'adventure-stats-secrets',
+                        'MISSIONI SEGRETE',
+                        () => setState(() => _secrets = true),
+                      ),
+                    ],
                     SizedBox(width: AdventureStats.buttonGap * unit),
                     button('adventure-stats-close', 'ESCI', widget.onClose),
                   ],
@@ -403,43 +440,91 @@ final class _AdventureStatsState extends State<AdventureStats> {
   }
 }
 
-/// The secret missions, open from the figures in their place. None has
-/// been hidden in the cities yet.
+/// The secret missions, open from the figures in their place: those not
+/// done yet, each dared beside a big empty box. A done one leaves the page
+/// for the missions of its city.
 final class _SecretMissions extends StatelessWidget {
-  const _SecretMissions({required this.unit, required this.onBack});
+  const _SecretMissions({
+    required this.progress,
+    required this.level,
+    required this.unit,
+    required this.onBack,
+  });
 
+  final Progress progress;
+
+  /// The city whose secret missions these are.
+  final LevelId level;
   final double unit;
   final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
+    final open = <SecretMission>[
+      for (final mission in SecretMission.values)
+        if (mission.level == level &&
+            !progress.secretMissions.contains(mission))
+          mission,
+    ];
     return SizedBox.expand(
       key: const ValueKey<String>('secret-missions'),
       child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            BloodyTitle('MISSIONI SEGRETE', fontSize: 20 * unit),
-            SizedBox(height: 6 * unit),
-            MenuPanel(
-              unit: unit,
-              width: StatsCard.cardWidth,
-              child: MenuParagraph(
-                'Nessuna missione segreta scoperta. Guardati intorno: '
-                'qualcuno, in città, ha ancora bisogno di te',
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              BloodyTitle('MISSIONI SEGRETE', fontSize: 20 * unit),
+              SizedBox(height: 6 * unit),
+              MenuPanel(
                 unit: unit,
-                center: true,
+                width: StatsCard.cardWidth,
+                child: open.isEmpty
+                    ? MenuParagraph(
+                        "Nessun'altra missione segreta per ora",
+                        key: const ValueKey<String>('secret-missions-none'),
+                        unit: unit,
+                        center: true,
+                      )
+                    : Column(
+                        children: <Widget>[
+                          for (final mission in open)
+                            Padding(
+                              padding: EdgeInsets.symmetric(vertical: 2 * unit),
+                              child: Row(
+                                key: ValueKey<String>(
+                                  'secret-mission-${mission.name}',
+                                ),
+                                children: <Widget>[
+                                  CustomPaint(
+                                    size: Size.square(14 * unit),
+                                    painter: MissionBoxPainter(
+                                      border: 1.6 * unit,
+                                      seed: 50 + mission.index,
+                                    ),
+                                  ),
+                                  SizedBox(width: 7 * unit),
+                                  Expanded(
+                                    child: Text(
+                                      mission.text,
+                                      style: missionTextStyle(8.5 * unit),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
               ),
-            ),
-            SizedBox(height: 8 * unit),
-            MenuButton(
-              key: const ValueKey<String>('secret-missions-back'),
-              label: 'INDIETRO',
-              unit: unit,
-              compact: true,
-              onPressed: onBack,
-            ),
-          ],
+              SizedBox(height: 8 * unit),
+              MenuButton(
+                key: const ValueKey<String>('secret-missions-back'),
+                label: 'INDIETRO',
+                unit: unit,
+                compact: true,
+                onPressed: onBack,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -457,12 +542,16 @@ final class MissionsCard extends StatefulWidget {
     required this.stats,
     required this.unit,
     this.finale,
+    this.secret,
     super.key,
   });
 
   final LevelStats stats;
   final double unit;
   final Mission? finale;
+
+  /// Crossed out together with [finale], on a row of its own under it.
+  final SecretMission? secret;
 
   /// One mission's row, and how many of them show at once.
   static const double rowHeight = 10;
@@ -500,8 +589,11 @@ final class _MissionsCardState extends State<MissionsCard>
     if (!mounted) {
       return;
     }
-    // Down just far enough for its row to be the last one whole in view.
-    final row = widget.stats.doneMissions.indexOf(_celebrated!);
+    // Down just far enough for its row, and the secret's under it, to be
+    // the last ones whole in view.
+    final row =
+        widget.stats.doneMissions.indexOf(_celebrated!) +
+        (widget.secret == null ? 0 : 1);
     if (_scroll.hasClients) {
       final rowHeight = MissionsCard.rowHeight * widget.unit;
       final target = (row + 1 - MissionsCard.visibleRows.floor()) * rowHeight;
@@ -533,6 +625,7 @@ final class _MissionsCardState extends State<MissionsCard>
     final unit = widget.unit;
     final stats = widget.stats;
     final celebrated = _celebrated;
+    final celebratedSecret = celebrated == null ? null : widget.secret;
     final undone = <Mission>[
       for (final mission in stats.missions)
         if (!stats.doneMissions.contains(mission)) mission,
@@ -552,6 +645,9 @@ final class _MissionsCardState extends State<MissionsCard>
           );
           final landed = celebrated == null || strokes >= 1;
           final done = stats.doneMissions.length - (landed ? 0 : 1);
+          final secrets =
+              stats.doneSecrets.length -
+              (celebratedSecret != null && !landed ? 1 : 0);
           final swell = celebrated == null
               ? 0.0
               : math.sin(math.pi * ((_finale.value - 0.55) / 0.45).clamp(0, 1));
@@ -570,6 +666,14 @@ final class _MissionsCardState extends State<MissionsCard>
                           mission,
                           crossed: mission == celebrated ? strokes : 1,
                           boxScale: mission == celebrated ? 1 + swell * 0.5 : 1,
+                        ),
+                      for (final secret in stats.doneSecrets)
+                        _secretRow(
+                          secret,
+                          crossed: secret == celebratedSecret ? strokes : 1,
+                          boxScale: secret == celebratedSecret
+                              ? 1 + swell * 0.5
+                              : 1,
                         ),
                       for (final mission in undone) _row(mission, crossed: 0),
                     ],
@@ -599,25 +703,47 @@ final class _MissionsCardState extends State<MissionsCard>
                       ),
                     ),
                     SizedBox(height: 3 * unit),
-                    Transform.scale(
-                      scale: 1 + swell * 0.35,
-                      child: Text(
-                        '$done / ${stats.missions.length}',
-                        key: const ValueKey<String>('mission-stat'),
-                        style: TextStyle(
-                          color: swell > 0.05
-                              ? Color.lerp(
-                                  menuTextColour,
-                                  BloodColors.bright,
-                                  swell,
-                                )
-                              : menuTextColour,
-                          fontFamily: 'monospace',
-                          fontSize: 14 * unit,
-                          fontWeight: FontWeight.w900,
-                          decoration: TextDecoration.none,
+                    // The secrets as a bonus over the count, in blood,
+                    // scrawled on at a slant past its top right corner:
+                    // laid over it, so the count keeps its room.
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: <Widget>[
+                        Transform.scale(
+                          scale: 1 + swell * 0.35,
+                          child: Text(
+                            stats.outOf(done, stats.missions.length),
+                            key: const ValueKey<String>('mission-stat'),
+                            style: TextStyle(
+                              color: swell > 0.05
+                                  ? Color.lerp(
+                                      menuTextColour,
+                                      BloodColors.bright,
+                                      swell,
+                                    )
+                                  : menuTextColour,
+                              fontFamily: 'monospace',
+                              fontSize: 14 * unit,
+                              fontWeight: FontWeight.w900,
+                              decoration: TextDecoration.none,
+                            ),
+                          ),
                         ),
-                      ),
+                        if (secrets > 0)
+                          Positioned(
+                            right: -20 * unit,
+                            top: -6 * unit,
+                            // Tilted down to the right.
+                            child: Transform.rotate(
+                              angle: 0.28,
+                              child: BloodyTitle(
+                                '+$secrets',
+                                key: const ValueKey<String>('secret-stat'),
+                                fontSize: 13 * unit,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ],
                 ),
@@ -629,11 +755,44 @@ final class _MissionsCardState extends State<MissionsCard>
     );
   }
 
-  Widget _row(Mission mission, {required double crossed, double boxScale = 1}) {
+  Widget _row(
+    Mission mission, {
+    required double crossed,
+    double boxScale = 1,
+  }) => _line(
+    key: 'mission-row-${mission.name}',
+    text: mission.text,
+    seed: mission.index,
+    crossed: crossed,
+    boxScale: boxScale,
+  );
+
+  /// A secret mission among the level's, said to be one.
+  Widget _secretRow(
+    SecretMission mission, {
+    required double crossed,
+    double boxScale = 1,
+  }) => _line(
+    key: 'secret-row-${mission.name}',
+    text: 'Segreta: ${mission.short}',
+    seed: 50 + mission.index,
+    crossed: crossed,
+    boxScale: boxScale,
+    colour: BloodColors.bright,
+  );
+
+  Widget _line({
+    required String key,
+    required String text,
+    required int seed,
+    required double crossed,
+    double boxScale = 1,
+    Color? colour,
+  }) {
     final unit = widget.unit;
     final box = 7 * unit;
     return SizedBox(
-      key: ValueKey<String>('mission-row-${mission.name}'),
+      key: ValueKey<String>(key),
       height: MissionsCard.rowHeight * unit,
       child: Row(
         children: <Widget>[
@@ -645,7 +804,7 @@ final class _MissionsCardState extends State<MissionsCard>
               painter: MissionBoxPainter(
                 crossed: crossed,
                 border: unit,
-                seed: mission.index,
+                seed: seed,
               ),
             ),
           ),
@@ -654,11 +813,13 @@ final class _MissionsCardState extends State<MissionsCard>
             child: Opacity(
               opacity: crossed > 0 ? 1 : 0.62,
               child: Text(
-                mission.text,
+                text,
                 maxLines: 1,
                 overflow: TextOverflow.fade,
                 softWrap: false,
-                style: missionTextStyle(7 * unit),
+                style: colour == null
+                    ? missionTextStyle(7 * unit)
+                    : missionTextStyle(7 * unit).copyWith(color: colour),
               ),
             ),
           ),
