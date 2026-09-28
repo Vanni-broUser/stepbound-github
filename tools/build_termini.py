@@ -731,3 +731,378 @@ def paint_wall_breach(d, rng, px, py, first):
         rect(d, px + rng.randrange(TILE - 3), py + TILE - 5 +
              rng.randrange(4), rng.randint(2, 4), 2,
              rng.choice(station.RUBBLE))
+
+
+# ------------------------------------------------ Santa Maria Maggiore
+
+
+SMM_STONE = (222, 210, 182)
+SMM_STONE_SHADE = (184, 170, 142)
+SMM_STONE_DARK = (138, 126, 104)
+SMM_ROOF = (170, 84, 56)
+SMM_ROOF_DARK = (130, 62, 42)
+SMM_DOME = (112, 118, 122)
+SMM_DOME_LIGHT = (150, 156, 160)
+SMM_BRICK = (150, 84, 60)
+SMM_BRICK_DARK = (112, 60, 42)
+SMM_MAJOLICA = (40, 110, 140)
+SMM_GOLD = (200, 164, 70)
+SMM_HOLE = (20, 16, 18)
+BASILICA = '"'
+COLUMN = ">"
+
+
+def _tiles(d, x, y, w, h, c):
+    """Terracotta tiles in courses, their ridges catching the light."""
+    rect(d, x, y, w, h, c)
+    for cy in range(y, y + h, 4):
+        shift = 2 if ((cy - y) // 4) % 2 else 0
+        for cx in range(x - shift, x + w, 4):
+            rect(d, max(cx, x), cy, 1, 3, shade(c, 22))
+        rect(d, x, cy + 3, w, 1, shade(c, -34))
+
+
+def _dome(d, cx, cy, r, broken, rng):
+    """A chapel's dome, lead over its drum, a lantern on top; broken open
+    if `broken`, the dark of the chapel below through the hole."""
+    rect(d, cx - r, cy, 2 * r, 10, SMM_STONE_SHADE)  # the drum
+    for wx in range(cx - r + 4, cx + r - 4, 8):
+        rect(d, wx, cy + 3, 3, 5, SMM_HOLE)
+    for dy in range(r):
+        half = int(math.sqrt(r * r - (r - dy) ** 2))
+        rect(d, cx - half, cy - r + dy, 2 * half, 1,
+             SMM_DOME_LIGHT if dy < r // 3 else SMM_DOME)
+        rect(d, cx - half, cy - r + dy, max(1, half // 3), 1, SMM_DOME_LIGHT)
+    for rib in range(-r + 5, r - 4, 7):
+        depth = int(math.sqrt(max(0, r * r - rib * rib)))
+        rect(d, cx + rib, cy - depth + 2, 1, max(1, depth - 2),
+             shade(SMM_DOME, -20))
+    rect(d, cx - 3, cy - r - 8, 6, 8, SMM_STONE)  # the lantern
+    rect(d, cx - 1, cy - r - 12, 2, 4, SMM_GOLD)
+    if broken:
+        d.polygon([(cx - 6, cy - r + 3), (cx + 9, cy - r + 6),
+                   (cx + 12, cy - 4), (cx + 2, cy - 1), (cx - 8, cy - 6)],
+                  fill=SMM_HOLE)
+        for _ in range(8):
+            rect(d, cx - 8 + rng.randrange(20), cy - r + 3 + rng.randrange(16),
+                 2, 1, SMM_BRICK)
+
+
+def _campanile(d, rng, x, top, w, bottom):
+    """The Romanesque bell tower, the tallest in Rome: brick in storeys
+    parted by white string courses, arched double windows on each and the
+    blue majolica discs between them. Its spire has come down, the top of
+    the tower broken off ragged."""
+    rect(d, x + w, top + 8, 5, bottom - top - 8, (40, 30, 30))  # its shadow
+    rect(d, x, top, w, bottom - top, SMM_BRICK)
+    for _ in range((bottom - top) * w // 18):
+        rect(d, x + rng.randrange(w - 2), top + rng.randrange(bottom - top),
+             2, 1, SMM_BRICK_DARK)
+    rect(d, x + w - 3, top, 3, bottom - top, SMM_BRICK_DARK)
+    for sy in range(top + 14, bottom - 10, 22):
+        rect(d, x, sy, w, 2, SMM_STONE)
+        for wx in (x + 5, x + w - 12):
+            rect(d, wx, sy + 5, 7, 11, SMM_STONE)
+            rect(d, wx + 1, sy + 6, 2, 10, SMM_HOLE)
+            rect(d, wx + 4, sy + 6, 2, 10, SMM_HOLE)
+        rect(d, x + w // 2 - 2, sy + 17, 4, 4, SMM_MAJOLICA)
+        rect(d, x + w // 2 - 1, sy + 18, 2, 2, (140, 200, 220))
+    # The broken top: ragged brick where the spire was.
+    bites = [6, 9, 4, 11, 7, 3, 10, 5]
+    for i in range(w):
+        rect(d, x + i, top, 1, bites[i * 8 // w], TRANSPARENT)
+    for i in range(0, w, 3):
+        rect(d, x + i, top + bites[i * 8 // w], 3, 1, SMM_BRICK_DARK)
+
+
+def _runs(level, glyph):
+    """The runs of `glyph` along the rows, each (x, y, width)."""
+    out = []
+    for y in range(level.height):
+        x = 0
+        while x < level.width:
+            if level.at(x, y) == glyph:
+                w = 1
+                while level.at(x + w, y) == glyph:
+                    w += 1
+                out.append((x, y, w))
+                x += w
+            else:
+                x += 1
+    return out
+
+
+def paint_santa_maria_maggiore(d, rng, level):
+    """Santa Maria Maggiore, `"`, on the north side of its square, and the
+    Column of Peace, `>`, in front of it: the basilica as Rome knows it,
+    and as the end of the world left it. Behind, the long roof of the nave
+    between the domes of its two great chapels, the one on the right
+    staved in, and the Romanesque bell tower, its spire fallen. In front,
+    Fuga's facade between its two palazzi: the portico of five arches
+    below, the loggia of three above it, the balustrade with its saints
+    along the top; and the right half of the loggia come down, its rubble
+    heaped over the portico and out across the pavement (the `"` past the
+    front), the saints toppled, the portal blown in, the stone scorched
+    and tagged, and a bedsheet hung from the loggia with the word painted
+    on it in red. The column's Madonna lies at its foot."""
+    cells = [(x, y) for y in range(level.height) for x in range(level.width)
+             if level.at(x, y) == BASILICA]
+    if not cells:
+        return
+    # The basilica proper: the rows where the whole block is `"`.
+    widths = {}
+    for x, y in cells:
+        widths.setdefault(y, []).append(x)
+    full = max(len(xs) for xs in widths.values())
+    rows = sorted(y for y, xs in widths.items() if len(xs) == full)
+    xs = widths[rows[0]]
+    X0, X1 = min(xs) * TILE, (max(xs) + 1) * TILE
+    Y0, B = rows[0] * TILE, (rows[-1] + 1) * TILE
+    W = X1 - X0
+    cx = X0 + W // 2
+
+    front_top = B - 78
+    fx0, fx1 = cx - 92, cx + 92
+    # The roofs, as a basilica's lie: the canonry's all round, low; the
+    # nave's long gabled roof down the middle from the facade back to the
+    # half-dome of the apse, its ridge catching the light; the aisles
+    # lower either side of it; and the domes of the two great chapels
+    # rising off the aisles halfway along, facing each other across the
+    # nave.
+    _tiles(d, X0, Y0, W, B - Y0, SMM_ROOF_DARK)
+    nave_top = Y0 + 20
+    for side, (ax0, ax1) in ((-1, (cx - 64, cx - 40)), (1, (cx + 40,
+                                                           cx + 64))):
+        _tiles(d, ax0, nave_top + 8, ax1 - ax0, front_top - nave_top - 8,
+               shade(SMM_ROOF, -8))
+        edge = ax0 if side < 0 else ax1 - 1
+        rect(d, edge, nave_top + 8, 1, front_top - nave_top - 8,
+             SMM_ROOF_DARK)
+    _tiles(d, cx - 40, nave_top, 40, front_top - nave_top,
+           shade(SMM_ROOF, 12))
+    _tiles(d, cx, nave_top, 40, front_top - nave_top, shade(SMM_ROOF, -14))
+    rect(d, cx - 1, nave_top, 3, front_top - nave_top, shade(SMM_ROOF, 46))
+    rect(d, cx - 41, nave_top, 1, front_top - nave_top, SMM_ROOF_DARK)
+    rect(d, cx + 40, nave_top, 1, front_top - nave_top, SMM_ROOF_DARK)
+    # The apse: a half-dome of tiles closing the nave at the back.
+    for dy in range(26):
+        half = int(math.sqrt(max(0, 40 * 40 - (26 - dy) ** 2 * 2.4)))
+        rect(d, cx - half, nave_top - 26 + dy, 2 * half, 1,
+             shade(SMM_ROOF, 6 - dy // 3))
+    for rib in (-24, -12, 0, 12, 24):
+        rect(d, cx + rib, nave_top - 18, 1, 18, SMM_ROOF_DARK)
+    dome_y = nave_top + (front_top - nave_top) // 2 + 6
+    _dome(d, cx - 86, dome_y, 22, False, rng)
+    _dome(d, cx + 86, dome_y, 22, True, rng)
+    # The bell tower, on the side of the street, standing up above every
+    # roof round it: whoever comes down the street sees it first.
+    # A column of the canonry's roof still between it and the street.
+    tower_x = X1 - TILE - 36
+    _campanile(d, rng, tower_x, Y0 - 112, 30, front_top + 12)
+    # From its top, a sheet hung down the tower: LA FINE.
+    tx = tower_x + 2
+    rect(d, tx, Y0 - 88, 26, 44, (226, 222, 206))
+    for fold in range(tx + 4, tx + 26, 7):
+        rect(d, fold, Y0 - 88, 1, 44, (196, 190, 172))
+    paint_text(d, tx + 5, Y0 - 82, "LA", (150, 24, 24))
+    paint_text(d, tx + 3, Y0 - 72, "FINE", (150, 24, 24))
+    rect(d, tx + 8, Y0 - 66, 1, 6, (150, 24, 24))
+    rect(d, tx + 17, Y0 - 66, 1, 9, (150, 24, 24))
+
+    # The facade: the palazzi either side, the church front between them.
+    for wx0, wx1 in ((X0, fx0), (fx1, X1)):
+        rect(d, wx0, front_top + 10, wx1 - wx0, B - front_top - 10,
+             (214, 184, 136))
+        rect(d, wx0, front_top + 10, wx1 - wx0, 4, SMM_STONE)
+        for wy in range(front_top + 20, B - 16, 18):
+            for wx in range(wx0 + 6, wx1 - 10, 14):
+                rect(d, wx - 1, wy - 1, 8, 12, SMM_STONE)
+                rect(d, wx, wy, 6, 10, (34, 40, 56)
+                     if rng.random() > 0.3 else SMM_HOLE)
+        rect(d, wx0, B - 14, wx1 - wx0, 14, SMM_STONE_SHADE)
+        for gx in range(wx0 + 8, wx1 - 8, 22):
+            rect(d, gx, B - 12, 10, 12, (58, 38, 28))
+    # The church front: two storeys of travertine.
+    rect(d, fx0, front_top, fx1 - fx0, B - front_top, SMM_STONE)
+    rect(d, fx0, front_top, fx1 - fx0, 3, (240, 232, 214))
+    mid = front_top + 36
+    rect(d, fx0, mid - 3, fx1 - fx0, 4, SMM_STONE_SHADE)  # the cornice
+    # The pediment over the middle of the loggia.
+    for dy in range(16):
+        half = 30 * dy // 15
+        rect(d, cx - half, front_top - 16 + dy, 2 * half, 1, SMM_STONE)
+    rect(d, cx - 30, front_top - 1, 60, 2, SMM_STONE_SHADE)
+    # The balustrade and its saints, most of them fallen.
+    rect(d, fx0, front_top - 4, fx1 - fx0, 4, SMM_STONE_SHADE)
+    for i, sx in enumerate(range(fx0 + 6, fx1 - 4, 18)):
+        if i % 3 != 1:
+            rect(d, sx, front_top - 12, 4, 8, SMM_STONE_DARK)
+            rect(d, sx + 1, front_top - 15, 2, 3, SMM_STONE_DARK)
+    # The loggia: three arches, the mosaics glinting gold in the dark.
+    for ax in (cx - 66, cx - 18, cx + 30):
+        rect(d, ax, mid - 30, 36, 26, SMM_STONE_SHADE)
+        rect(d, ax + 3, mid - 24, 30, 20, SMM_HOLE)
+        d.ellipse([ax + 3, mid - 32, ax + 32, mid - 18], fill=SMM_HOLE)
+        for _ in range(10):
+            rect(d, ax + 5 + rng.randrange(24), mid - 28 + rng.randrange(10),
+                 2, 1, SMM_GOLD)
+    # The portico: five arches, every one of them shut against whatever
+    # is out on the square -- a site barrier across it and planks nailed
+    # over the dark behind -- and the last on the right buried to its
+    # crown in the rubble of the loggia.
+    arches = list(range(fx0 + 10, fx1 - 30, 34))
+    for i, ax in enumerate(arches):
+        rect(d, ax, mid + 8, 28, B - mid - 8, SMM_STONE_SHADE)
+        rect(d, ax + 3, mid + 14, 22, B - mid - 14, SMM_HOLE)
+        d.ellipse([ax + 3, mid + 5, ax + 24, mid + 22], fill=SMM_HOLE)
+        if i == len(arches) - 1:
+            for _ in range(60):
+                w, h = rng.randint(3, 7), rng.randint(2, 4)
+                rect(d, ax + 1 + rng.randrange(24), mid + 6 +
+                     rng.randrange(B - mid - 8), w, h,
+                     rng.choice((SMM_STONE, SMM_STONE_SHADE, SMM_STONE_DARK,
+                                 SMM_BRICK)))
+            continue
+        for k, by in enumerate(range(mid + 16, B - 4, 6)):  # the planks
+            tilt = rng.choice((-2, -1, 1, 2))
+            wood = (122, 92, 60) if k % 2 == 0 else (98, 72, 46)
+            for bx in range(22):
+                rect(d, ax + 3 + bx, by + tilt * bx // 22, 1, 3, wood)
+            rect(d, ax + 4, by + 1, 1, 1, (40, 36, 34))
+            rect(d, ax + 23, by + 1 + tilt, 1, 1, (40, 36, 34))
+        by = B - 14  # the site barrier across the foot
+        rect(d, ax - 2, by, 32, 5, (236, 232, 222))
+        for sx in range(ax - 2, ax + 30, 8):
+            rect(d, sx, by, 4, 5, (206, 40, 36))
+        for leg in (ax, ax + 24):
+            rect(d, leg, by + 5, 2, 9, (70, 70, 74))
+    for px in range(fx0 + 6, fx1 - 4, 34):  # pilasters
+        rect(d, px, mid + 4, 4, B - mid - 4, (236, 228, 208))
+    # The right half of the loggia, fallen: a ragged breach through the
+    # front down into the portico, the dark of the nave inside it, the
+    # beams of the roof hanging broken across it, the torn edges of the
+    # stone and the brick behind them, and the stone come down in a slide
+    # over the portico's arches.
+    hole = [(cx + 12, front_top - 2), (cx + 26, front_top - 8),
+            (cx + 40, front_top + 1), (cx + 52, front_top - 6),
+            (cx + 66, front_top + 4), (cx + 78, front_top + 2),
+            (fx1 - 4, mid + 2), (cx + 70, mid + 14), (cx + 56, mid + 8),
+            (cx + 42, mid + 18), (cx + 30, mid + 6), (cx + 18, mid + 10),
+            (cx + 10, mid - 6)]
+    d.polygon(hole, fill=SMM_HOLE)
+    for i in range(len(hole)):  # the torn edge: stone, then brick
+        a, b = hole[i], hole[(i + 1) % len(hole)]
+        d.line([a, b], fill=SMM_STONE_DARK, width=3)
+        d.line([(a[0], a[1] + 2), (b[0], b[1] + 2)], fill=SMM_BRICK, width=1)
+    for bx0, by0, bx1, by1 in ((cx + 16, front_top + 4, cx + 54, front_top + 22),
+                               (cx + 48, front_top + 2, cx + 74, front_top + 16),
+                               (cx + 30, front_top + 14, cx + 62, front_top + 8)):
+        d.line([(bx0, by0), (bx1, by1)], fill=(70, 46, 30), width=3)
+        d.line([(bx0, by0 - 1), (bx1, by1 - 1)], fill=(104, 70, 44))
+    for _ in range(40):  # the slide of stone over the portico
+        w, h = rng.randint(3, 8), rng.randint(2, 5)
+        sx = cx + 14 + rng.randrange(fx1 - cx - 22)
+        sy = mid + 6 + rng.randrange(B - mid - 8)
+        rect(d, sx, sy, w, h, rng.choice((SMM_STONE, SMM_STONE_SHADE,
+                                          SMM_STONE_DARK, SMM_BRICK)))
+    for _ in range(6):  # stone blocks jutting from the torn edge
+        a = hole[rng.randrange(len(hole))]
+        rect(d, a[0] - 2, a[1] - 2, rng.randint(4, 7), rng.randint(3, 5),
+             SMM_STONE)
+    # Scorch licking up from the portico, the tags on the stone.
+    for _ in range(9):
+        sx = fx0 + rng.randrange(fx1 - fx0 - 10)
+        for k in range(4):
+            rect(d, sx + k, B - 26 - k * 4, 8 - k, 4, (40, 34, 32))
+    for _ in range(6):
+        gx = fx0 + rng.randrange(fx1 - fx0 - 16)
+        colour = rng.choice(((200, 60, 150), (60, 170, 190), (230, 200, 60),
+                             (240, 240, 240)))
+        for i in range(0, 14, 2):
+            rect(d, gx + i, B - 8 + (i % 4) // 2, 2, 1, colour)
+    # Words daubed on the two wings in red, running.
+    def daub(x, y, text, scale):
+        paint_text(d, x, y, text, (160, 20, 20), scale=scale)
+        for i in range(0, text_width(text) * scale, 5):
+            rect(d, x + i, y + 5 * scale, 1, rng.randint(2, 7),
+                 (160, 20, 20))
+
+    daub(fx1 + 8, B - 44, "PECCATORI", 2)
+    daub(X0 + 10, B - 48, "LA FINE", 1)
+    daub(X0 + 10, B - 38, "DEL MONDO", 1)
+
+    # The bedsheet from the loggia: PENTITEVI.
+    bx, by = cx - 64, mid - 25
+    rect(d, bx, by, 46, 22, (226, 222, 206))
+    for fold in range(bx + 6, bx + 44, 9):
+        rect(d, fold, by, 1, 22, (196, 190, 172))
+    paint_text(d, bx + 5, by + 8, "PENTITEVI", (150, 24, 24))
+    rect(d, bx + 12, by + 14, 1, 5, (150, 24, 24))
+    rect(d, bx + 30, by + 14, 1, 7, (150, 24, 24))
+
+    # The rubble fallen from the loggia, heaped against the portico and
+    # spilt past the front over the pavement.
+    for x, y in cells:
+        if y * TILE < B:
+            continue
+        for _ in range(12):
+            w, h = rng.randint(3, 7), rng.randint(2, 4)
+            rect(d, x * TILE + rng.randrange(TILE - w + 1),
+                 y * TILE - 6 + rng.randrange(TILE - h + 6), w, h,
+                 rng.choice((SMM_STONE, SMM_STONE_SHADE, SMM_STONE_DARK,
+                             SMM_BRICK)))
+        if rng.random() < 0.5:  # a saint in the heap, on his back
+            sx, sy = x * TILE + 3, y * TILE + 5
+            rect(d, sx, sy, 10, 4, SMM_STONE_DARK)
+            rect(d, sx + 10, sy, 3, 3, SMM_STONE_DARK)
+
+    # The placards stuck up on the square: boards on two posts.
+    for x, y, w in _runs(level, "`"):
+        px, py = x * TILE, y * TILE
+        for post in (px + 5, px + w * TILE - 7):
+            rect(d, post, py - 4, 2, 18, (92, 66, 44))
+        rect(d, px + 1, py - 14, w * TILE - 2, 14, (206, 196, 170))
+        rect(d, px + 1, py - 14, w * TILE - 2, 1, (230, 222, 200))
+        words = "PECCATORI"
+        paint_text(d, px + (w * TILE - text_width(words)) // 2, py - 10,
+                   words, (150, 24, 24))
+        rect(d, px + 3, py + 12, w * TILE - 4, 3, (36, 34, 34))
+
+    # The Column of Peace, its Madonna thrown down at its foot.
+    col = [(x, y) for y in range(level.height) for x in range(level.width)
+           if level.at(x, y) == COLUMN]
+    if col:
+        (x, y), = col
+        ccx, base = x * TILE + TILE // 2, (y + 1) * TILE - 2
+        rect(d, ccx - 6, base - 8, 18, 8, (30, 28, 30))  # its shadow
+        rect(d, ccx - 8, base - 12, 16, 12, SMM_STONE_SHADE)
+        rect(d, ccx - 8, base - 12, 16, 2, SMM_STONE)
+        rect(d, ccx - 4, base - 92, 8, 80, SMM_STONE)
+        for fl in (ccx - 2, ccx + 1):
+            rect(d, fl, base - 90, 1, 76, SMM_STONE_SHADE)
+        rect(d, ccx + 3, base - 92, 1, 80, SMM_STONE_DARK)
+        rect(d, ccx - 6, base - 96, 12, 5, SMM_STONE)  # the capital
+        rect(d, ccx - 3, base - 99, 6, 3, (70, 60, 50))  # the empty plinth
+        rect(d, ccx + 8, base - 4, 11, 4, (70, 60, 50))  # the Madonna, down
+        rect(d, ccx + 18, base - 5, 3, 3, (70, 60, 50))
+        rect(d, ccx + 9, base - 5, 9, 1, (110, 96, 76))
+
+
+def paint_street_banner(d, px, py, w, text):
+    """A sheet strung across a street between the roofs, sagging in the
+    middle, the words painted on it in red: the end of the world
+    announced to whoever walks under it."""
+    for i in range(w):
+        sag = int(4 * math.sin(math.pi * i / max(1, w - 1)))
+        rect(d, px + i, py + sag, 1, 1, (60, 56, 54))  # the rope
+    left, right = px + 14, px + w - 14
+    for i in range(left, right):
+        sag = int(4 * math.sin(math.pi * (i - px) / max(1, w - 1)))
+        rect(d, i, py + 2 + sag, 1, 12, (226, 222, 206))
+        if (i - left) % 9 == 0:
+            rect(d, i, py + 2 + sag, 1, 12, (196, 190, 172))
+    mid = int(4 * math.sin(math.pi / 2))
+    tx = px + (w - text_width(text)) // 2
+    paint_text(d, tx, py + 6 + mid - 1, text, (150, 24, 24))
+    for i in range(0, text_width(text), 6):
+        rect(d, tx + i, py + 11 + mid, 1, 3, (150, 24, 24))

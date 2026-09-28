@@ -581,6 +581,7 @@ final class TileObject {
     this.at,
     this.under,
     this.underAt,
+    this.overhead = false,
   });
 
   factory TileObject.fromJson(Map<String, Object?> json) => TileObject(
@@ -595,6 +596,7 @@ final class TileObject {
         row! as String,
     ],
     underAt: _pair(json['underAt']),
+    overhead: json['overhead'] == true,
   );
 
   /// The glyph whose run it is drawn over, unless it says [at].
@@ -623,6 +625,10 @@ final class TileObject {
 
   /// A second image, for when the story has opened it.
   final String? whenOpen;
+
+  /// Whether it hangs over everything, the characters too: a banner
+  /// strung across a street, walked under.
+  final bool overhead;
 }
 
 /// Everything the renderer needs for one converted place.

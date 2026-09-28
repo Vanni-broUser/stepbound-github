@@ -50,7 +50,7 @@ from tile_atlas_core import (  # noqa: E402
 )
 
 ROAD = "".join(sorted(sl.ROAD_GLYPHS))
-BUILDINGS = "BHfKMGW#%0]"
+BUILDINGS = "BHfKMGW#%0]\""
 FACADE = "Hf"
 
 GROUND = ground_config(
@@ -1269,6 +1269,14 @@ def city_place(atlas: Atlas, rng, name: str, marker, storefront_table,
             1)]))
         rules.append(rule("structures", "{", [atlas.bucket(lambda: tile_of(
             lambda d: rect(d, 0, 0, TILE, TILE, (18, 18, 22))), 1)]))
+    if '"' in glyphs:
+        # Under Santa Maria Maggiore, which is its own picture, and the
+        # shadow at the foot of its column.
+        rules.append(rule("structures", '"', [atlas.bucket(lambda: tile_of(
+            lambda d: rect(d, 0, 0, TILE, TILE, termini.SMM_ROOF_DARK)),
+            1)]))
+        rules.append(rule("structures", ">`", [atlas.bucket(lambda: tile_of(
+            lambda d: rect(d, 3, 10, 12, 5, (40, 38, 40))), 1)]))
     if "}" in glyphs:
         rules.append(rule("structures", "}", [
             atlas.bucket(lambda f=first: tile_of(
@@ -1300,6 +1308,8 @@ def city_place(atlas: Atlas, rng, name: str, marker, storefront_table,
         ("#(", "church", lambda d, lv: sl.paint_small_church(d, rng, lv)),
         ("_+[", "airliner", lambda d, lv: sl.paint_airliner(d, rng, lv)),
         ("]{", "termini", lambda d, lv: termini.paint_termini_front(
+            d, rng, lv)),
+        ('">`', "basilica", lambda d, lv: termini.paint_santa_maria_maggiore(
             d, rng, lv)),
     )
     for marks, what, paint in specials:
@@ -1381,9 +1391,133 @@ def mall_north_street(atlas: Atlas, rng) -> dict:
                       sl.MALL_NORTH_STOREFRONTS, one_roof=(rear, 50))
 
 
+BRICK = (150, 84, 60)
+BRICK_DARK = (108, 58, 42)
+MORTAR = (176, 160, 136)
+
+
+def paint_ruined_fronts(d, rng, rows, x0, x1, y0, y1):
+    """The palazzi east of Termini, gone worst: plaster fallen away in
+    sheets down to the brick, cracks running from the windows, blood
+    thrown across the fronts and run down them, hands dragged through it,
+    and windows and doorways boarded up by whoever held out inside. Laid
+    over the fronts the rules paint, so it keeps to their windows and
+    doors: a window on every floor over the street, a door on the columns
+    the pattern puts one (`STARTS` shifted, as `street_level` reads it)."""
+    T = TILE
+
+    def at(x, y):
+        return ((x - x0) * T, (y - y0) * T)
+
+    # Plaster fallen off, the brick under it.
+    for _ in range((x1 - x0 + 1) // 2):
+        x, y = rng.randint(x0, x1), rng.randint(y0, y1 - 1)
+        px, py = at(x, y)
+        px += rng.randrange(-6, 8)
+        py += rng.randrange(0, 8)
+        w, h = rng.randint(8, 18), rng.randint(6, 12)
+        pts = [(px, py + 2), (px + w // 3, py), (px + w, py + 3),
+               (px + w - 2, py + h), (px + w // 2, py + h - 2), (px + 1, py + h)]
+        d.polygon(pts, fill=BRICK)
+        for by in range(py + 2, py + h, 3):
+            d.line([(px + 1, by), (px + w - 2, by)], fill=MORTAR)
+            for bx in range(px + (by // 3 % 2) * 3, px + w - 2, 6):
+                d.point((bx, by + 1), fill=MORTAR)
+        d.line(pts[:3], fill=shade(BRICK, 50))
+    # Cracks from the corners of the windows.
+    for _ in range((x1 - x0 + 1) // 2):
+        px, py = at(rng.randint(x0, x1), rng.randint(y0, y1 - 1))
+        cx, cy = px + rng.choice((3, 12)), py + rng.choice((3, 14))
+        for _ in range(rng.randint(4, 9)):
+            nx, ny = cx + rng.randint(-3, 3), cy + rng.randint(1, 3)
+            d.line([(cx, cy), (nx, ny)], fill=(60, 44, 36))
+            cx, cy = nx, ny
+    # Windows boarded up, some of them, on every floor over the street.
+    for y in range(y0, y1):
+        for x in range(x0, x1 + 1):
+            if rows[y][x] not in FACADE or rng.random() > 0.2:
+                continue
+            px, py = at(x, y)
+            # Three planks nailed across the frame, crooked, the dark of
+            # the room between them.
+            rect(d, px + 5, py + 4, 6, 10, (16, 14, 16))
+            for i, by in enumerate((py + 4, py + 8, py + 11)):
+                tilt = rng.choice((-1, 0, 1))
+                wood = (122, 92, 60) if i % 2 == 0 else (98, 72, 46)
+                for bx in range(-1, 9):
+                    rect(d, px + 4 + bx, by + (tilt * bx) // 8, 1, 2, wood)
+                rect(d, px + 4, by, 1, 1, (40, 36, 34))
+                rect(d, px + 11, by + tilt, 1, 1, (40, 36, 34))
+    # The doorways on the street, barricaded: planks and a wardrobe's back.
+    for x in range(x0, x1 + 1):
+        if x % SPAN not in (1, 6, 12) or rows[y1][x] not in FACADE:
+            continue
+        px, py = at(x, y1)
+        rect(d, px + 3, py + 2, 10, 14, (46, 32, 24))
+        sl.paint_boarded_door(d, rng, px + 3, py + 2, 10, 14)
+    # Blood: thrown across the fronts, run down in drips, hands smeared.
+    for _ in range(x1 - x0 + 1):
+        px, py = at(rng.randint(x0, x1), rng.randint(y0, y1))
+        cx, cy = px + rng.randrange(T), py + rng.randrange(4, T)
+        colour = rng.choice((sl.BLOOD, sl.BLOOD_DARK, (120, 20, 20)))
+        r = rng.randint(1, 3)
+        d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=colour)
+        for _ in range(rng.randint(3, 7)):
+            rect(d, cx + rng.randint(-6, 6), cy + rng.randint(-5, 5), 1, 1,
+                 colour)
+        for _ in range(rng.randint(1, 3)):
+            dx = cx + rng.randint(-r, r)
+            rect(d, dx, cy, 1, rng.randint(4, 12), colour)
+    for _ in range(max(2, (x1 - x0 + 1) // 5)):
+        px, py = at(rng.randint(x0, x1), y1)
+        hx, hy = px + rng.randrange(2, 10), py + rng.randrange(1, 6) - 6
+        for i in range(4):  # the fingers dragged down
+            rect(d, hx + i * 2, hy, 1, rng.randint(6, 10), sl.BLOOD)
+        rect(d, hx, hy + 5, 8, 3, sl.BLOOD)
+
+
 def piazza_cinquecento(atlas: Atlas, rng) -> dict:
-    return city_place(atlas, rng, "piazzaCinquecento",
-                      "piazza-cinquecento-rows", {}, rome=True)
+    place = city_place(atlas, rng, "piazzaCinquecento",
+                       "piazza-cinquecento-rows", sl.ROME_PIAZZA_STOREFRONTS,
+                       rome=True)
+    # The palazzi east of the station: their whole band of fronts.
+    rows = sl.read_rows("piazza-cinquecento-rows")
+    east = max(x for row in rows for x, glyph in enumerate(row)
+               if glyph == "]") + 1
+    cells = [(x, y) for y, row in enumerate(rows)
+             for x, glyph in enumerate(row) if glyph in FACADE and x >= east]
+    # Only the band beside the station, not the palazzi further down.
+    y0 = min(y for _, y in cells)
+    y1 = y0
+    while any((x, y1 + 1) in set(cells) for x, _ in cells):
+        y1 += 1
+    cells = [(x, y) for x, y in cells if y <= y1]
+    x0, x1 = min(x for x, _ in cells), max(x for x, _ in cells)
+    ruin = random.Random(f"{SEED}/city/piazzaCinquecento/ruin")
+    sprite = Image.new("RGBA", ((x1 - x0 + 1) * TILE, (y1 - y0 + 1) * TILE),
+                       TRANSPARENT)
+    paint_ruined_fronts(ImageDraw.Draw(sprite), ruin, rows, x0, x1, y0, y1)
+    # The sheet strung across Via Cavour, over whoever walks down it.
+    road = [x for x, glyph in enumerate(rows[21]) if glyph not in "B"]
+    bx0, bx1 = road[0] - 1, road[-1] + 1
+    banner = Image.new("RGBA", ((bx1 - bx0 + 1) * TILE, TILE), TRANSPARENT)
+    termini.paint_street_banner(ImageDraw.Draw(banner), 0, 0, banner.width,
+                                "LA FINE DEL MONDO")
+    place["objects"].append({
+        "image": "piazzaCinquecento_banner.png",
+        "sprite": banner,
+        # Over the cars and whoever walks down the street under it.
+        "overhead": True,
+        "at": [bx0, 21],
+        "under": [rows[21][bx0:bx1 + 1]],
+    })
+    place["objects"].append({
+        "image": "piazzaCinquecento_ruined_fronts.png",
+        "sprite": sprite,
+        "at": [x0, y0],
+        "under": [row[x0:x1 + 1] for row in rows[y0:y1 + 1]],
+    })
+    return place
 
 
 def via_marsala(atlas: Atlas, rng) -> dict:
