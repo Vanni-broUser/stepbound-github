@@ -22,7 +22,7 @@ final class _FakeHost implements StoryHost, HometownActions {
   final List<Entity> spawned = <Entity>[];
   void Function()? _onDismissed;
   int pickupAnimations = 0;
-  String? focus;
+  int wholeViews = 0;
 
   @override
   bool isPromptVisible = false;
@@ -61,7 +61,7 @@ final class _FakeHost implements StoryHost, HometownActions {
   void walkPlayer(Direction direction) => walked.add(direction);
 
   @override
-  void focusOn(String? entityId) => focus = entityId;
+  void showWholeView() => wholeViews++;
 
   @override
   void spawnZombie(Entity zombie) => spawned.add(zombie);
@@ -656,15 +656,14 @@ void main() {
     expect(host.shown, isEmpty);
   });
 
-  test('the zombie lesson follows its alert, framing the zombie', () {
+  test('the zombie lesson follows its alert, the camera still', () {
     director
       ..onEvents(<WorldEvent>[
         AlertedEvent(entityId: tutorialZombieId, at: zombiePosition()),
       ])
       ..update(0.1, turnAnimating: false);
-    expect(host.shown, isEmpty, reason: 'the balloon shows first');
-    expect(host.focus, tutorialZombieId);
-    settle();
+    expect(host.shown, hasLength(1), reason: 'straight away, no pan first');
+    expect(host.wholeViews, 1, reason: 'a zoomed view is let go');
     final lines = host.shown.single;
     expect(lines.map((line) => line.text), <String>[
       zombieLore[EntityKind.wanderer]!.lesson,
@@ -673,8 +672,6 @@ void main() {
     expect(lines.first.portrait, zombieLore[EntityKind.wanderer]!.portrait);
     expect(lines.last.speaker, 'Mario Rossi', reason: 'he says it himself');
     expect(lines.last.portrait, isNotNull);
-    host.dismiss();
-    expect(host.focus, isNull);
   });
 
   test('the first carabiniere to notice the player gets its own lesson', () {
@@ -687,7 +684,7 @@ void main() {
       at: zombie.component<PositionComponent>().position,
     );
     director.onEvents(<WorldEvent>[alert(zombies.first)]);
-    expect(host.focus, zombies.first.id);
+    expect(host.wholeViews, 1);
     settle();
     final line = host.shown.single.single;
     expect(line.text, zombieLore[EntityKind.carabiniere]!.lesson);
@@ -707,7 +704,7 @@ void main() {
     // Papers underfoot: it hears him and comes, with no alert raised.
     zombie.component<HearingComponent>().lastHeard = const GridPoint(0, 0);
     settle();
-    expect(host.focus, zombie.id);
+    expect(host.wholeViews, 1);
     expect(
       host.shown.single.single.text,
       zombieLore[EntityKind.carabiniere]!.lesson,
@@ -731,7 +728,7 @@ void main() {
     ]);
     settle();
     expect(host.shown, isEmpty);
-    expect(host.focus, isNull);
+    expect(host.wholeViews, 0);
   });
 
   test('the zombie types met are recorded in the progress', () {
@@ -1076,7 +1073,7 @@ void main() {
     expect((saved['street']! as Map<String, Object?>)['zombieLesson'], isTrue);
   });
 
-  test('the first sprinter in sight is framed and its pace explained', () {
+  test('the first sprinter in sight has its pace explained', () {
     final sprinter = world.entities.values.firstWhere(
       (entity) => entity.kind == EntityKind.sprinter,
     );
@@ -1085,13 +1082,12 @@ void main() {
     expect(host.shown, isEmpty);
     host.visible.add(at);
     settle();
-    expect(host.focus, sprinter.id);
+    expect(host.wholeViews, 1);
     final line = host.shown.single.single;
     expect(line.text, zombieLore[EntityKind.sprinter]!.lesson);
     expect(line.portrait, zombieLore[EntityKind.sprinter]!.portrait);
     expect(line.speaker, isNull);
     host.dismiss();
-    expect(host.focus, isNull);
     settle();
     expect(host.shown, hasLength(1), reason: 'the lesson is given once');
   });
@@ -1104,7 +1100,7 @@ void main() {
     GridPoint at(Entity zombie) =>
         zombie.component<PositionComponent>().position;
 
-    test('the first mutilated in sight is framed, introduced with its '
+    test('the first mutilated in sight is introduced with its '
         'portrait and entered in the book', () {
       final zombies = mutilated();
       expect(zombies, isNotEmpty);
@@ -1114,16 +1110,14 @@ void main() {
 
       host.visible.add(at(zombies.first));
       director.update(0.1, turnAnimating: false);
-      expect(host.focus, zombies.first.id);
+      expect(host.wholeViews, 1);
       expect(progress.knownZombies, contains(EntityKind.mutilated));
-      expect(host.shown, isEmpty, reason: 'the camera pans first');
-      settle();
+      expect(host.shown, hasLength(1), reason: 'straight away, no pan first');
       final line = host.shown.single.single;
       expect(line.text, zombieLore[EntityKind.mutilated]!.lesson);
       expect(line.portrait, zombieLore[EntityKind.mutilated]!.portrait);
       expect(line.speaker, isNull);
       host.dismiss();
-      expect(host.focus, isNull);
 
       // The others in sight later say nothing more.
       host.visible.addAll(zombies.map(at));
@@ -1135,7 +1129,7 @@ void main() {
       final zombie = world.entities[rooftopBurningZombieId]!;
       host.visible.add(at(zombie));
       settle();
-      expect(host.focus, zombie.id);
+      expect(host.wholeViews, 1);
       expect(progress.knownZombies, contains(EntityKind.burning));
       final line = host.shown.single.single;
       expect(line.text, zombieLore[EntityKind.burning]!.lesson);
@@ -1148,7 +1142,7 @@ void main() {
       expect(place(PlaceId.barArcobaleno).bounds.contains(at(zombie)), isTrue);
       host.visible.add(at(zombie));
       settle();
-      expect(host.focus, zombie.id);
+      expect(host.wholeViews, 1);
       expect(progress.knownZombies, contains(EntityKind.drunk));
       final line = host.shown.single.single;
       expect(line.text, zombieLore[EntityKind.drunk]!.lesson);
@@ -1176,7 +1170,7 @@ void main() {
         known.update(0.1, turnAnimating: false);
       }
       expect(host.shown, isEmpty);
-      expect(host.focus, isNull);
+      expect(host.wholeViews, 0);
     });
 
     test('it survives a save through the progress, not the story scripts', () {
@@ -1195,7 +1189,7 @@ void main() {
     });
 
     test('two new types in sight at once are introduced one after the '
-        'other, each framed in turn', () {
+        'other', () {
       final sprinter = world.entities.values.firstWhere(
         (entity) => entity.kind == EntityKind.sprinter,
       );
@@ -1205,12 +1199,9 @@ void main() {
         ..add(at(zombie));
       settle();
       expect(host.shown, hasLength(1));
-      final first = host.focus;
       host.dismiss();
       settle();
       expect(host.shown, hasLength(2));
-      expect(host.focus, isNot(first));
-      expect(<String?>{first, host.focus}, <String>{sprinter.id, zombie.id});
       expect(
         <String>{for (final lines in host.shown) lines.single.text},
         <String>{
@@ -1224,7 +1215,7 @@ void main() {
       host.showPrompt(const <StoryLine>[StoryLine('...')]);
       host.visible.add(at(mutilated().first));
       settle();
-      expect(host.focus, isNull, reason: 'the camera stays on Mario');
+      expect(host.wholeViews, 0, reason: 'nothing to show yet');
       expect(progress.knownZombies, isNot(contains(EntityKind.mutilated)));
       host.dismiss();
       settle();

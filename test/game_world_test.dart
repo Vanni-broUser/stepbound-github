@@ -312,8 +312,9 @@ void main() {
     expect(zombies, hasLength(1));
     expect(zombies.single.id, tutorialZombieId);
     final position = zombies.single.component<PositionComponent>().position;
-    // The view is 24 tiles wide and starts clamped to the west end.
-    expect(position.x, greaterThanOrEqualTo(24));
+    // Past the crossroads, close enough to be in the view wherever it
+    // notices Mario from (see zombie_framing_test.dart).
+    expect(position.x, greaterThan(tutorialZombieTrigger.left + 6));
   });
 
   String northGlyph(GridPoint point) =>
@@ -2745,11 +2746,11 @@ void main() {
     final world = createGameWorld();
     // Mario a few steps past the front door, where the carabinieri come out.
     world.player.component<PositionComponent>().position = GridPoint(
-      place(PlaceId.barracks).origin.x + 10,
+      place(PlaceId.barracks).origin.x + 12,
       place(PlaceId.barracks).origin.y + 11,
     );
     final spawn = carabiniereSpawns.firstWhere(
-      (tile) => tile.x == place(PlaceId.barracks).origin.x + 10,
+      (tile) => tile.x == place(PlaceId.barracks).origin.x + 12,
     );
     final carabiniere = createCarabiniere('carabiniere-0', spawn);
     world.addEntity(carabiniere);

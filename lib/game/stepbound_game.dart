@@ -353,7 +353,6 @@ final class StepboundGame extends FlameGame
   final Map<String, Object?>? _storyState;
 
   bool _acceptsInput = false;
-  String? _focusId;
   double _gameOverCountdown = 0;
   bool _levelCompleted = false;
 
@@ -550,12 +549,7 @@ final class StepboundGame extends FlameGame
     if (free && _crossOutLeft > 0) {
       _crossOutLeft -= dt;
     }
-    _camera.follow(
-      dt,
-      player: _playerFeet,
-      place: _placeShown,
-      focus: _characters[_focusId ?? '']?.position,
-    );
+    _camera.follow(player: _playerFeet, place: _placeShown);
     _places.cull(camera.visibleWorldRect);
     _cullOffscreen();
     final shown = _placeShown;
@@ -1082,7 +1076,7 @@ final class StepboundGame extends FlameGame
   }
 
   @override
-  void focusOn(String? entityId) => _focusId = entityId;
+  void showWholeView() => _camera.showWholeView();
 
   @override
   void playPickupAnimation() {
@@ -1211,10 +1205,8 @@ final class StepboundGame extends FlameGame
     );
     final view = camera.visibleWorldRect.inflate(cullMargin);
     for (final entry in _characters.entries) {
-      // Mario drives the camera and the followed one is what it is panning
-      // to, so those two are always kept up to date.
-      final followed = entry.key == playerId || entry.key == _focusId;
-      if (!followed && !_isInView(view, entry.key)) {
+      // Mario drives the camera, so he is always kept up to date.
+      if (entry.key != playerId && !_isInView(view, entry.key)) {
         entry.value.onScreen = false;
         continue;
       }

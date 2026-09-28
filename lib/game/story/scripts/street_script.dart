@@ -2,8 +2,8 @@ import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/story/story_director.dart';
 
 /// The first street: the zombie east of the crossroads spots Mario and
-/// steps closer, framed with him, then the wanderers' pace is explained
-/// and Mario decides to get away from it.
+/// steps closer, then the wanderers' pace is explained and Mario decides
+/// to get away from it.
 final class StreetScript extends StoryScript {
   StreetScript(super.director);
 
@@ -20,8 +20,6 @@ final class StreetScript extends StoryScript {
       entityId: tutorialZombieId,
     ) when !_zombieLessonGiven) {
       _zombieLessonGiven = true;
-      // The framing pans so the alert balloon and the zombie's step are on
-      // screen.
       director.introduceZombie(
         world.entities[tutorialZombieId]!,
         then: const <StoryLine>[StoryLine.mario(zombieSpotted)],

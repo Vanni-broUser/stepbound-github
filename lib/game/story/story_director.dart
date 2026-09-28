@@ -152,9 +152,9 @@ abstract interface class StoryHost {
   /// player has the controls back only once it is over.
   void walkPlayer(Direction direction);
 
-  /// Frames the player together with [entityId]; null follows the player
-  /// alone again.
-  void focusOn(String? entityId);
+  /// Brings a view zoomed in with two fingers back to the whole view,
+  /// around the player as always.
+  void showWholeView();
 
   /// Adds a zombie that comes out of the dark.
   void spawnZombie(Entity zombie);
@@ -296,9 +296,6 @@ final class StoryDirector {
     ];
   }
 
-  /// Leaves time for the camera to pan to a zombie and for its balloon.
-  static const double focusDelay = 0.7;
-
   /// Leaves time for a new sight to register before the text covers it.
   static const double reactionDelay = 0.45;
 
@@ -317,23 +314,24 @@ final class StoryDirector {
   bool get isIdle => _queue.isEmpty && !host.isPromptVisible;
 
   /// The first meeting with [zombie]'s type, the same for every type (see
-  /// [ZombieLore]): the type is known from now on, and the book lists it;
-  /// the camera frames the zombie with Mario while its lesson is shown with
-  /// its portrait, and goes back to Mario alone once it is dismissed.
-  /// [then] is said after the lesson, the zombie still framed.
+  /// [ZombieLore]): the type is known from now on, and the book lists it,
+  /// and its lesson is shown straight away with its portrait. The camera
+  /// does not move: every zombie met is placed so that it is already in the
+  /// whole view when it notices Mario (or he sees it), on any screen; a
+  /// view zoomed in only goes back to the whole view. [then] is said after
+  /// the lesson.
   void introduceZombie(
     Entity zombie, {
     List<StoryLine> then = const <StoryLine>[],
   }) {
     final lore = zombieLore[zombie.kind]!;
     progress.meet(zombie.kind);
-    host.focusOn(zombie.id);
+    host.showWholeView();
     queue(
-      StoryPrompt(
-        <StoryLine>[StoryLine(lore.lesson, portrait: lore.portrait), ...then],
-        delay: focusDelay,
-        onDismissed: () => host.focusOn(null),
-      ),
+      StoryPrompt(<StoryLine>[
+        StoryLine(lore.lesson, portrait: lore.portrait),
+        ...then,
+      ]),
     );
   }
 
