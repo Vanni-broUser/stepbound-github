@@ -75,9 +75,6 @@ final class SilentStoryHost implements StoryHost, HometownActions {
   void openWardrobe() {}
 
   @override
-  void replayMemories() {}
-
-  @override
   HometownActions get hometown => this;
 
   @override

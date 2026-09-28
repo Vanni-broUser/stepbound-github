@@ -5,6 +5,7 @@ import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/game/zombie_lore.dart';
+import 'package:stepbound/ui/letterbox.dart';
 import 'package:stepbound/ui/main_menu.dart';
 import 'package:stepbound/ui/portrait_image.dart';
 import 'package:stepbound/ui/story_intro.dart';
@@ -168,7 +169,7 @@ final class ZombieBook extends StatefulWidget {
   final VoidCallback onClose;
 
   /// Dims the whole screen behind the book, the world still in view.
-  static const Color backdrop = Color(0xc2180e0c);
+  static const Color backdrop = Letterbox.veil;
 
   @override
   State<ZombieBook> createState() => _ZombieBookState();

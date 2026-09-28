@@ -196,9 +196,6 @@ abstract interface class StoryHost {
   /// Opens the outfits to choose from, as the menu's page of them does.
   void openWardrobe();
 
-  /// Plays again every story scene seen so far.
-  void replayMemories();
-
   /// Molfetta's stage, for what its story moves: Don Angelo, his
   /// community, Luigi.
   HometownActions get hometown;

@@ -23,12 +23,10 @@ final class TrainScript extends StoryScript {
     StoryLine.luigi('Cosa? Dici che l’avevo già detto?'),
   ];
 
-  /// What the cot says before the memories play: only those of the city
-  /// the train stands in, each city its own.
-  static String memoriesLine(LevelId level) => switch (level) {
-    LevelId.hometown => 'Rivedi i ricordi della città natale',
-    LevelId.rome => 'Rivedi i ricordi di Roma',
-  };
+  /// What the cot says before the figures of the adventure open, from
+  /// which the memories can be lived again.
+  static const String cotLine =
+      "Ripensa all'avventura: statistiche, missioni e ricordi";
 
   static const String ammoRefilled =
       'Munizioni ricaricate. Torna qui in qualsiasi momento se hai meno di '
@@ -43,10 +41,6 @@ final class TrainScript extends StoryScript {
 
   /// What the wardrobe says before the outfits show.
   static const String wardrobeLine = 'Scegli quale abbigliamento indossare';
-
-  /// What the abacus and the calculator say before the figures show.
-  static const String adventureFigures =
-      "Osserva le statistiche e i progressi dell'avventura";
 
   @override
   String get key => 'train';
@@ -75,17 +69,11 @@ final class TrainScript extends StoryScript {
           StoryLine(wardrobeLine),
         ], onDismissed: host.openWardrobe),
       );
-    } else if (trainStatsTiles.contains(event.at)) {
-      say(
-        StoryPrompt(const <StoryLine>[
-          StoryLine(adventureFigures),
-        ], onDismissed: host.openAdventureStats),
-      );
     } else if (trainCotTiles.contains(event.at)) {
       say(
-        StoryPrompt(<StoryLine>[
-          StoryLine(memoriesLine(progress.level)),
-        ], onDismissed: host.replayMemories),
+        StoryPrompt(const <StoryLine>[
+          StoryLine(cotLine),
+        ], onDismissed: host.openAdventureStats),
       );
     } else if (trainAmmoTiles.contains(event.at)) {
       _refill();

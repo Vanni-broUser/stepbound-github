@@ -79,14 +79,11 @@ final GridPoint trainLuigiTile = _train.tileOf('l');
 /// The open books on Mario's desk: the zombie types met so far.
 final List<GridPoint> trainBookTiles = _train.tilesOf('k');
 
-/// The abacus and the calculator at the left end of Mario's desk: the
-/// figures of the adventure, city by city.
-final List<GridPoint> trainStatsTiles = _train.tilesOf('K');
-
 /// Mario's wardrobe, a rail with his clothes on it: what to wear.
 final List<GridPoint> trainWardrobeTiles = _train.tilesOf('R');
 
-/// Mario's cot, where the memories come back.
+/// Mario's cot: the figures of the adventure, city by city, and from them
+/// the memories.
 final List<GridPoint> trainCotTiles = _train.tilesOf('B');
 
 /// Mario's ammunition crate by his cot: interacting with it brings his
@@ -134,7 +131,6 @@ LevelContents trainContents() => LevelContents(
   lookouts: <GridPoint>[
     trainLuigiTile,
     ...trainBookTiles,
-    ...trainStatsTiles,
     ...trainWardrobeTiles,
     ...trainCotTiles,
     ...trainAmmoTiles,

@@ -6,6 +6,7 @@ import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/ui/blood_decor.dart';
+import 'package:stepbound/ui/letterbox.dart';
 import 'package:stepbound/ui/main_menu.dart';
 import 'package:stepbound/ui/mission_marks.dart';
 import 'package:stepbound/ui/story_intro.dart';
@@ -280,7 +281,7 @@ final class AdventureStats extends StatefulWidget {
   static const double buttonWidth = (StatsCard.cardWidth - 2 * buttonGap) / 3;
 
   /// Dims the whole screen behind the figures, the world still in view.
-  static const Color backdrop = Color(0xe0100a08);
+  static const Color backdrop = Letterbox.veil;
 
   /// What each city is called over its figures.
   static String cityName(LevelId level) => switch (level) {

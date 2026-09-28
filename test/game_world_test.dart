@@ -2189,7 +2189,6 @@ void main() {
       final things = <GridPoint>[
         trainLuigiTile,
         ...trainBookTiles,
-        ...trainStatsTiles,
         ...trainWardrobeTiles,
         ...trainCotTiles,
         ...trainAmmoTiles,
