@@ -716,20 +716,14 @@ final class _StepboundAppState extends State<StepboundApp> {
               },
             ),
           );
-          // The menu's picture, and the loading one behind the results,
-          // spread over the bands too.
-          final backdrop = switch (_phase) {
-            _Phase.menu => const MenuBackdrop(),
-            _Phase.levelComplete => const LoadingBackdrop(),
-            _ => null,
-          };
-          if (backdrop == null) {
-            return picture;
+          // The menu's picture spreads over the bands too.
+          if (_phase == _Phase.menu) {
+            return Stack(
+              fit: StackFit.expand,
+              children: <Widget>[const MenuBackdrop(), picture],
+            );
           }
-          return Stack(
-            fit: StackFit.expand,
-            children: <Widget>[backdrop, picture],
-          );
+          return picture;
         },
       ),
     );

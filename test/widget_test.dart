@@ -2467,10 +2467,6 @@ void main() {
         find.byKey(const ValueKey<String>('level-complete')),
         findsOneWidget,
       );
-      expect(
-        find.byKey(const ValueKey<String>('loading-backdrop')),
-        findsOneWidget,
-      );
       expect(find.text(LevelComplete.saveFailedLine), findsOneWidget);
       await tester.tap(
         find.byKey(const ValueKey<String>('level-complete-share')),

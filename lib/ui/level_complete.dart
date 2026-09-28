@@ -115,9 +115,8 @@ final class LevelStats {
   String outOf(int count, int total) => '$count / ${completed ? total : '???'}';
 }
 
-/// The results screen shown between the last story scene and the Europe
-/// map, laid over the loading picture (the app puts a `LoadingBackdrop`
-/// behind it, across the bands too).
+/// The black results screen shown between the last story scene and the
+/// Europe map.
 final class LevelComplete extends StatelessWidget {
   const LevelComplete({
     required this.stats,
@@ -158,8 +157,9 @@ final class LevelComplete extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return KeyedSubtree(
+    return ColoredBox(
       key: const ValueKey<String>('level-complete'),
+      color: Colors.black,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final unit =
