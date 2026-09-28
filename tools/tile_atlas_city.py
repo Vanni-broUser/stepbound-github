@@ -596,7 +596,8 @@ def paint_shop(d, px, py, c, rng):
 
 def paint_street_door(d, px, py, c, door, rng):
     """The street level of a short building: its door on the middle tile,
-    boarded up or kicked in more often than not; the rest of the front
+    boarded up more often than not, else shut; never kicked in, which
+    would look like a way in where there is none. The rest of the front
     tagged, or an air conditioner hanging off it."""
     wall, trim = c
     if door:
@@ -604,12 +605,8 @@ def paint_street_door(d, px, py, c, door, rng):
         rect(d, door_x - 1, door_y - 1, 14, 15, trim)
         rect(d, door_x, door_y, 12, 14, (50, 36, 30))
         rect(d, door_x + 2, door_y + 2, 8, 1, (80, 60, 50))
-        roll = rng.random()
-        if roll < 0.65:
+        if rng.random() < 0.65:
             sl.paint_boarded_door(d, rng, door_x, door_y, 12, 14)
-        elif roll < 0.8:
-            rect(d, door_x + 1, door_y + 1, 10, 13, (16, 12, 14))
-            rect(d, door_x + 9, door_y + 1, 3, 13, (70, 50, 40))
         return
     roll = rng.random()
     if roll < 0.3:
