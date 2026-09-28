@@ -4,11 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:stepbound/app.dart';
 import 'package:stepbound/game/audio/player_audio.dart';
+import 'package:stepbound/report/error_report.dart';
+import 'package:stepbound/report/share_report.dart';
 import 'package:stepbound/save/save_game.dart';
 import 'package:stepbound/save/vanni_deploy.dart';
+import 'package:stepbound/ui/crash_guard.dart';
 
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // First of all: an error anywhere below, or later in the game, ends on
+  // the error screen with a report to share, instead of in a console
+  // nobody reads (lib/report/error_report.dart).
+  final reporter = ErrorReporter()..install();
   // Instantiate the listener before startup work so a cold-start link cannot
   // be missed while orientation and system UI are being configured.
   final skinLinks = AppLinks().uriLinkStream;
@@ -37,11 +44,18 @@ Future<void> bootstrap() async {
     }
   }
   // In the browser, where the game is only tested, it starts silent.
+  final audio = PlayerAudio(startMuted: kIsWeb);
   runApp(
-    StepboundApp(
-      saves: saves,
-      audio: PlayerAudio(startMuted: kIsWeb),
-      skinLinks: skinLinks,
+    CrashGuard(
+      reporter: reporter,
+      audio: audio,
+      share: shareReportFile,
+      child: StepboundApp(
+        saves: saves,
+        audio: audio,
+        skinLinks: skinLinks,
+        reporter: reporter,
+      ),
     ),
   );
 }

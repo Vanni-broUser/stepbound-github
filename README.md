@@ -100,6 +100,12 @@ new-game flow remain available. GitLab passes the `VANNI_DEPLOY` CI variable
 to every build job, and GitHub Actions does the same with the repository
 Actions variable.
 
+An error nobody caught ends on an error screen (`lib/ui/crash_guard.dart`)
+with a report the player can share as a text file: build, phone, error,
+the slot's save and the last things the game did (`lib/report/`). CI passes
+`--dart-define=STEPBOUND_COMMIT=<short sha>` so the report names the commit
+it came from; a local build says `build locale`.
+
 GitLab CI runs formatting, static analysis, and tests with Flutter 3.44.2. Signed release builds belong on a protected local runner; signing secrets must never be committed.
 
 ## Architecture

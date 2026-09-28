@@ -37,6 +37,7 @@ import 'package:stepbound/game/render/throw_preview_component.dart';
 import 'package:stepbound/game/render/tile_place_component.dart';
 import 'package:stepbound/game/render/torch_component.dart';
 import 'package:stepbound/game/story/story_director.dart';
+import 'package:stepbound/report/breadcrumbs.dart';
 
 export 'package:stepbound/game/game_cover.dart';
 
@@ -533,11 +534,41 @@ final class StepboundGame extends FlameGame
     return null;
   }
 
+  /// The place the trail last named.
+  String? _crumbPlace;
+
+  /// Writes the turn's events into the trail an error report ends with
+  /// (see [Breadcrumbs]), and the place whenever it changes. Steps, waits,
+  /// bumps and noises are left out: with a whole cast moving every turn
+  /// they would bury everything else within seconds.
+  void _leaveBreadcrumbs(List<WorldEvent> events) {
+    final trail = Breadcrumbs.shared;
+    final place = placeName;
+    if (place != _crumbPlace) {
+      _crumbPlace = place;
+      trail.add('posto: $place (turno ${presentation.turnCount})');
+    }
+    for (final event in events) {
+      switch (event) {
+        case MovedEvent() ||
+            WaitedEvent() ||
+            BlockedEvent() ||
+            NoInteractionEvent() ||
+            NoiseEvent() ||
+            NoiseHeardEvent():
+          continue;
+        default:
+          trail.add('evento: ${event.description}');
+      }
+    }
+  }
+
   void _routeNewEvents() {
     if (presentation.turnCount == _processedTurn) {
       return;
     }
     _processedTurn = presentation.turnCount;
+    _leaveBreadcrumbs(presentation.lastEvents);
     story.onEvents(presentation.lastEvents);
     haptics.onEvents(presentation.lastEvents, playerId: playerId);
     for (final cue in <SfxCue>[
@@ -648,13 +679,25 @@ final class StepboundGame extends FlameGame
   void stopWalking() => input.stopWalking();
 
   @override
-  void showPrompt(List<StoryLine> lines, {void Function()? onDismissed}) =>
-      _cover(
-        PromptCover(
-          List<StoryLine>.unmodifiable(lines),
-          onDismissed: onDismissed,
-        ),
+  void showPrompt(List<StoryLine> lines, {void Function()? onDismissed}) {
+    if (lines.isNotEmpty) {
+      final first = lines.first;
+      final more = lines.length > 1 ? ' (+${lines.length - 1})' : '';
+      Breadcrumbs.shared.add(
+        'battuta: ${first.speaker ?? '—'}: ${_clip(first.text)}$more',
       );
+    }
+    _cover(
+      PromptCover(
+        List<StoryLine>.unmodifiable(lines),
+        onDismissed: onDismissed,
+      ),
+    );
+  }
+
+  /// Enough of a line to know which one it is.
+  static String _clip(String text) =>
+      text.length <= 60 ? text : '${text.substring(0, 57)}...';
 
   /// Called by the dialogue overlay after the last line.
   void dismissPrompt() {

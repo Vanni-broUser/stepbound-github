@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
@@ -12,6 +13,8 @@ import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/game/render/pixel_palette.dart';
 import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/game/story/scripts/station_script.dart';
+import 'package:stepbound/report/breadcrumbs.dart';
+import 'package:stepbound/report/error_report.dart';
 import 'package:stepbound/save/save_game.dart';
 import 'package:stepbound/save/skin_links.dart';
 import 'package:stepbound/ui/audio_scope.dart';
@@ -53,11 +56,16 @@ final class StepboundApp extends StatefulWidget {
     this.skinLinks = const Stream<Uri>.empty(),
     this.audio,
     this.clock = DateTime.now,
+    this.reporter,
     super.key,
   });
 
   /// Where the four save slots live; the device storage when null.
   final SaveRepository? saves;
+
+  /// Where an uncaught error ends up (see `CrashGuard`): the app tells it
+  /// what to put in the report about the game in play.
+  final ErrorReporter? reporter;
 
   /// Gift links (see `lib/save/skin_links.dart`) the app was opened with,
   /// cold or warm, as the platform delivers them.
@@ -125,7 +133,49 @@ final class _StepboundAppState extends State<StepboundApp> {
     // it, or the game over sting plays on over whatever comes next, and
     // all of them stop the clock.
     _lifecycle = AppLifecycleListener(onStateChange: _onLifecycle);
+    widget.reporter?.context = _reportSections;
+    Breadcrumbs.shared.add('app: menù principale');
     _audio.playMusic(Music.menu);
+  }
+
+  /// What an error report says about the game in play: the slot, the
+  /// phase, where Mario is, and the save the menu would offer for that
+  /// slot, to load and play the error back. Nothing here may throw.
+  Future<List<ReportSection>> _reportSections() async {
+    final game = _game;
+    final slot = _session.slot;
+    final sections = <ReportSection>[
+      ReportSection(
+        'Partita',
+        'slot: $slot\n'
+            'fase: ${_phase.name}\n'
+            'posto: ${game == null ? 'nessuno' : _placeOf(game)}',
+      ),
+    ];
+    try {
+      final read = await _saves.read(slot);
+      sections.add(
+        ReportSection('Salvataggio dello slot $slot', switch (read) {
+          LoadedSave(:final game) => jsonEncode(game.toJson()),
+          DamagedSave(:final reason) => 'danneggiato: $reason',
+          _ => 'vuoto',
+        }),
+      );
+    } on Object catch (error) {
+      sections.add(
+        ReportSection('Salvataggio dello slot $slot', 'illeggibile: $error'),
+      );
+    }
+    return sections;
+  }
+
+  /// The game may be the very thing that broke.
+  String _placeOf(StepboundGame game) {
+    try {
+      return game.placeName;
+    } on Object catch (error) {
+      return 'sconosciuto ($error)';
+    }
   }
 
   /// A gift link gives its skin to all four slots, whatever they hold,
@@ -213,10 +263,14 @@ final class _StepboundAppState extends State<StepboundApp> {
   void dispose() {
     unawaited(_skinLinkSubscription?.cancel());
     _lifecycle.dispose();
+    if (widget.reporter?.context == _reportSections) {
+      widget.reporter?.context = null;
+    }
     super.dispose();
   }
 
   Future<void> _newGame(int slot) async {
+    Breadcrumbs.shared.add('app: nuova partita nello slot $slot');
     await _session.startNew(slot);
     if (!mounted) {
       return;
@@ -230,6 +284,10 @@ final class _StepboundAppState extends State<StepboundApp> {
   }
 
   Future<void> _loadGame(SaveGame save) async {
+    Breadcrumbs.shared.add(
+      'app: carica lo slot ${save.slot} (${save.place}, formato '
+      '${SaveGame.format})',
+    );
     final game = await _session.load(save);
     if (!mounted) {
       return;
@@ -247,6 +305,7 @@ final class _StepboundAppState extends State<StepboundApp> {
   }
 
   void _finishOutbreak() {
+    Breadcrumbs.shared.add('app: la storia finisce, il gioco comincia');
     setState(() {
       _phase = _Phase.dialogue;
       _game = _session.newGame();
@@ -265,6 +324,7 @@ final class _StepboundAppState extends State<StepboundApp> {
   /// gone missing anyway, the level starts over rather than leaving the
   /// player stuck.
   Future<void> _resumeFromCamp() async {
+    Breadcrumbs.shared.add('app: torna all’ultimo salvataggio');
     final game = await _session.resumeFromCheckpoint();
     if (!mounted) {
       return;
@@ -283,6 +343,7 @@ final class _StepboundAppState extends State<StepboundApp> {
   /// The level from the very start: Molfetta from the first story picture,
   /// any other level from where Mario arrived in it (see [GameSession]).
   Future<void> _restartLevel() async {
+    Breadcrumbs.shared.add('app: ricomincia il livello');
     if (_session.levelStart case final start?) {
       await _restartFrom(start);
       return;
@@ -423,6 +484,7 @@ final class _StepboundAppState extends State<StepboundApp> {
   };
 
   void _completeLevel(GameSnapshot snapshot) {
+    Breadcrumbs.shared.add('app: livello completato, risultati');
     final world = restoreGameWorld(snapshot.world);
     final progress = Progress.fromJson(snapshot.progress);
     final stats = LevelStats.of(world, progress, progress.level);
@@ -466,12 +528,14 @@ final class _StepboundAppState extends State<StepboundApp> {
   }
 
   void _startHometown() {
+    Breadcrumbs.shared.add('app: parte la città natale');
     _loadingFadesIn = false;
     _startLevel(LevelId.hometown);
   }
 
   /// The first time, Rome's story plays before the city loads.
   void _startRome() {
+    Breadcrumbs.shared.add('app: parte Roma');
     final snapshot = _completedSnapshot;
     if (snapshot == null) {
       return;
@@ -498,6 +562,7 @@ final class _StepboundAppState extends State<StepboundApp> {
   /// again as it was. The pictures of its places, kept for a game
   /// started over at once, go: the menu can stay open a long while.
   void _backToMenu({LinkNotice? linkNotice}) {
+    Breadcrumbs.shared.add('app: al menù principale');
     unawaited(_suspend());
     _audio
       ..silenceAmbience()
