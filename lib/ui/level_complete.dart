@@ -257,18 +257,27 @@ final class StatsCard extends StatelessWidget {
 /// its name written in blood above them. The arrows go from one city to
 /// the next, and show only once there is more than one: Rome is there
 /// once the train has taken him there. It opens on the city the train
-/// stands in.
+/// stands in. Under the figures, beside the way out, the memories to live
+/// again and the secret missions.
 final class AdventureStats extends StatefulWidget {
   const AdventureStats({
     required this.world,
     required this.progress,
     required this.onClose,
+    required this.onReplayMemories,
     super.key,
   });
 
   final WorldState world;
   final Progress progress;
   final VoidCallback onClose;
+
+  /// The memories of the level, as the cot plays them.
+  final VoidCallback onReplayMemories;
+
+  /// The three buttons under the figures share the cards' width.
+  static const double buttonGap = 6;
+  static const double buttonWidth = (StatsCard.cardWidth - 2 * buttonGap) / 3;
 
   /// Dims the whole screen behind the figures, the world still in view.
   static const Color backdrop = Color(0xe0100a08);
@@ -290,6 +299,9 @@ final class _AdventureStatsState extends State<AdventureStats> {
   ];
   late int _index = _cities.indexOf(widget.progress.level).clamp(0, 99);
 
+  /// Whether the secret missions are open in place of the figures.
+  bool _secrets = false;
+
   void _turn(int by) => setState(() => _index = (_index + by) % _cities.length);
 
   @override
@@ -310,6 +322,21 @@ final class _AdventureStatsState extends State<AdventureStats> {
           width: 22,
           onPressed: () => _turn(by),
         );
+        if (_secrets) {
+          return _SecretMissions(
+            unit: unit,
+            onBack: () => setState(() => _secrets = false),
+          );
+        }
+        Widget button(String key, String label, VoidCallback onPressed) =>
+            MenuButton(
+              key: ValueKey<String>(key),
+              label: label,
+              unit: unit,
+              compact: true,
+              width: AdventureStats.buttonWidth,
+              onPressed: onPressed,
+            );
         return SizedBox.expand(
           key: const ValueKey<String>('adventure-stats'),
           child: Center(
@@ -348,18 +375,72 @@ final class _AdventureStatsState extends State<AdventureStats> {
                   ],
                 ),
                 SizedBox(height: 8 * unit),
-                MenuButton(
-                  key: const ValueKey<String>('adventure-stats-close'),
-                  label: 'ESCI',
-                  unit: unit,
-                  compact: true,
-                  onPressed: widget.onClose,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    button(
+                      'adventure-stats-memories',
+                      'RIVIVI I RICORDI',
+                      widget.onReplayMemories,
+                    ),
+                    SizedBox(width: AdventureStats.buttonGap * unit),
+                    button(
+                      'adventure-stats-secrets',
+                      'MISSIONI SEGRETE',
+                      () => setState(() => _secrets = true),
+                    ),
+                    SizedBox(width: AdventureStats.buttonGap * unit),
+                    button('adventure-stats-close', 'ESCI', widget.onClose),
+                  ],
                 ),
               ],
             ),
           ),
         );
       },
+    );
+  }
+}
+
+/// The secret missions, open from the figures in their place. None has
+/// been hidden in the cities yet.
+final class _SecretMissions extends StatelessWidget {
+  const _SecretMissions({required this.unit, required this.onBack});
+
+  final double unit;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox.expand(
+      key: const ValueKey<String>('secret-missions'),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            BloodyTitle('MISSIONI SEGRETE', fontSize: 20 * unit),
+            SizedBox(height: 6 * unit),
+            MenuPanel(
+              unit: unit,
+              width: StatsCard.cardWidth,
+              child: MenuParagraph(
+                'Nessuna missione segreta scoperta. Guardati intorno: '
+                'qualcuno, in città, ha ancora bisogno di te',
+                unit: unit,
+                center: true,
+              ),
+            ),
+            SizedBox(height: 8 * unit),
+            MenuButton(
+              key: const ValueKey<String>('secret-missions-back'),
+              label: 'INDIETRO',
+              unit: unit,
+              compact: true,
+              onPressed: onBack,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

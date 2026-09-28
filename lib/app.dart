@@ -357,6 +357,7 @@ final class _StepboundAppState extends State<StepboundApp> {
         world: game.simulation,
         progress: game.progress,
         onClose: game.closeAdventureStats,
+        onReplayMemories: game.replayMemories,
       ),
     ),
     ZombieBookCover() => Letterbox(

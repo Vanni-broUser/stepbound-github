@@ -6,9 +6,11 @@ import 'package:stepbound/ui/level_complete.dart';
 
 void main() {
   late int closes;
+  late int replays;
 
   Future<void> pumpStats(WidgetTester tester, Progress progress) async {
     closes = 0;
+    replays = 0;
     tester.view.physicalSize = const Size(768, 432);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -18,6 +20,7 @@ void main() {
           world: createGameWorld(),
           progress: progress,
           onClose: () => closes++,
+          onReplayMemories: () => replays++,
         ),
       ),
     );
@@ -85,5 +88,21 @@ void main() {
     expect(city(LevelId.hometown), findsOneWidget);
     await tap(tester, 'adventure-stats-next');
     expect(city(LevelId.rome), findsOneWidget);
+  });
+
+  testWidgets('beside the way out, the memories to live again and the '
+      'secret missions, which open in place of the figures', (tester) async {
+    await pumpStats(tester, Progress());
+
+    await tap(tester, 'adventure-stats-memories');
+    expect(replays, 1);
+
+    await tap(tester, 'adventure-stats-secrets');
+    expect(find.byKey(const ValueKey<String>('secret-missions')), findsOne);
+    expect(city(LevelId.hometown), findsNothing);
+
+    await tap(tester, 'secret-missions-back');
+    expect(city(LevelId.hometown), findsOneWidget);
+    expect(closes, 0);
   });
 }
