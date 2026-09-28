@@ -101,7 +101,7 @@ OUTLINE = (16, 12, 14)
 # They are decorations: every one is wrecked and shut. The rest of a band
 # with shops gets ordinary houses.
 STREET_STOREFRONTS = {
-    38: [
+    28: [
         (4, 5, "kebab"),
         (9, 4, "alimentari"),
         (20, 5, "pizzeria"),

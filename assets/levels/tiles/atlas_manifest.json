@@ -10139,6 +10139,72 @@
       ],
       "objects": [
         {
+          "image": "hometown/street_shop_4_28.png",
+          "at": [4, 28],
+          "under": [
+            "HHHHH",
+            "HHHHf",
+            "HHHHH",
+            "HHHHH",
+            "HHHHH"
+          ]
+        },
+        {
+          "image": "hometown/street_shop_9_28.png",
+          "at": [9, 28],
+          "under": [
+            "HHHH",
+            "HHHH",
+            "HHHH",
+            "HHHH",
+            "HHHH"
+          ]
+        },
+        {
+          "image": "hometown/street_shop_20_28.png",
+          "at": [20, 28],
+          "under": [
+            "HHHHH",
+            "HHHHf",
+            "HHHHH",
+            "HHHHH",
+            "HHHHH"
+          ]
+        },
+        {
+          "image": "hometown/street_shop_25_28.png",
+          "at": [25, 28],
+          "under": [
+            "HHHH",
+            "HHHH",
+            "HHHH",
+            "HHHH",
+            "HHHH"
+          ]
+        },
+        {
+          "image": "hometown/street_shop_29_28.png",
+          "at": [29, 28],
+          "under": [
+            "HHHHH",
+            "HHHHH",
+            "HfHHH",
+            "HHHHH",
+            "HHHHH"
+          ]
+        },
+        {
+          "image": "hometown/street_shop_34_28.png",
+          "at": [34, 28],
+          "under": [
+            "HHHHHH",
+            "HHHHHH",
+            "HHHHHH",
+            "HHHHHH",
+            "HHHHHH"
+          ]
+        },
+        {
           "image": "hometown/street_barracks.png",
           "at": [11, 3],
           "underAt": [11, 3],
