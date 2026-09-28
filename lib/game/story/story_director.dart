@@ -8,6 +8,7 @@ import 'package:stepbound/game/story/scripts/barracks_script.dart';
 import 'package:stepbound/game/story/scripts/duomo_script.dart';
 import 'package:stepbound/game/story/scripts/journey_script.dart';
 import 'package:stepbound/game/story/scripts/mall_script.dart';
+import 'package:stepbound/game/story/scripts/maranza_script.dart';
 import 'package:stepbound/game/story/scripts/north_district_script.dart';
 import 'package:stepbound/game/story/scripts/priest_script.dart';
 import 'package:stepbound/game/story/scripts/roadblock_fire_script.dart';
@@ -25,6 +26,7 @@ export 'package:stepbound/game/story/scripts/barracks_script.dart';
 export 'package:stepbound/game/story/scripts/duomo_script.dart';
 export 'package:stepbound/game/story/scripts/journey_script.dart';
 export 'package:stepbound/game/story/scripts/mall_script.dart';
+export 'package:stepbound/game/story/scripts/maranza_script.dart';
 export 'package:stepbound/game/story/scripts/north_district_script.dart';
 export 'package:stepbound/game/story/scripts/priest_script.dart';
 export 'package:stepbound/game/story/scripts/roadblock_fire_script.dart';
@@ -138,6 +140,10 @@ abstract interface class StoryHost {
 
   /// Mario's crouch-and-grab, played when a backpack is collected.
   void playPickupAnimation();
+
+  /// Mario takes one step [direction], like any step of his, and the
+  /// player has the controls back only once it is over.
+  void walkPlayer(Direction direction);
 
   /// Frames the player together with [entityId]; null follows the player
   /// alone again.
@@ -276,6 +282,7 @@ final class StoryDirector {
       RooftopsScript(this),
       RoadblockFireScript(this),
       RomeScript(this),
+      MaranzaScript(this),
       JourneyScript(this),
       ZombieSightingsScript(this),
     ];

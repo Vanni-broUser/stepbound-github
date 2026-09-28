@@ -44,7 +44,7 @@ const List<String> piazzaCinquecentoRows = <String>[
   '------------------------------------------------------------------------',
   '..................d......XX...............................CC............',
   '....................................................:...................',
-  '===============================ZZZZZZ===================================',
+  '===============================VVVVVV===================================',
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=..|...=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=..|..v=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=..|..v=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',

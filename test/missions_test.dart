@@ -78,6 +78,7 @@ void main() {
       );
       expect(Mission.of(LevelId.rome).map((mission) => mission.text), <String>[
         'Trova delle provviste',
+        'Cerca qualcosa di prezioso per avanzare',
       ]);
       expect(Mission.finaleOf(LevelId.hometown), Mission.reachLuigi);
     });

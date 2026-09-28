@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/story/story_director.dart';
@@ -118,6 +120,32 @@ final class ScenarioBuilder {
   /// there would have rested at.
   void restNearest(GridPoint target) => restAt(nearestFire(target));
 
+  /// The train takes Mario to [level], as the travel map does: his rounds
+  /// and molotovs stay in the level he leaves, the new level's missions
+  /// are handed out, and he is aboard at the map table. Starting the level
+  /// over comes back to this very point.
+  void travelTo(LevelId level) {
+    final ammo = world.player.component<AmmoComponent>();
+    ammo
+      ..molotovs = progress.swapMolotovs(level, molotovs: ammo.molotovs)
+      ..loaded = progress.travel(level, rounds: ammo.loaded);
+    if (level == LevelId.rome) {
+      remember(StoryMemory.presidentFled);
+    }
+    aboardTrain();
+    _levelStart = LevelStart(
+      world: saveGameWorld(world),
+      story: _copy(_scripts),
+      progress: progress.toJson(),
+      hud: <String>[for (final element in _hud) element.name],
+    );
+  }
+
+  LevelStart? _levelStart;
+
+  static Map<String, Object?> _copy(Map<String, Object?> json) =>
+      jsonDecode(jsonEncode(json)) as Map<String, Object?>;
+
   /// Saved aboard the train, the way the level ends: at the map table.
   void aboardTrain() {
     world.player.component<PositionComponent>()
@@ -205,7 +233,57 @@ final class ScenarioBuilder {
       story: _scripts,
       progress: progress.toJson(),
       hud: <String>[for (final element in _hud) element.name],
+      levelStart: _levelStart,
     );
+  }
+}
+
+/// Molfetta played to the end, everything found on the way, the train
+/// about to leave: where the saves after the level start from.
+void _molfettaDone(ScenarioBuilder story) {
+  _luigiFree(story);
+  _afterTheMass(story);
+
+  // A useful end-of-Molfetta save: the ammunition really comes from
+  // backpacks in the level, and the molotov has been found too.
+  <String>[
+    ammoBackpackId,
+    accidentBackpackId,
+    parkingBackpackId,
+    stationBackpackId,
+  ].forEach(story.collect);
+  story
+    ..collect(molotovBackpackId)
+    ..unlock(HudElement.molotov)
+    ..remember(StoryMemory.luigiAtStation)
+    ..missions(done: const <Mission>[Mission.reachLuigi])
+    ..script('station', <String, Object?>{'reunion': true});
+  story.world.player.component<AmmoComponent>()
+    ..loaded = 10
+    ..molotovs = molotovBackpackCount;
+
+  // The key found by Don Angelo's body, used up on the door upstairs: the
+  // way to the bell tower stands open, as the memories up there say.
+  //
+  // Nobody killed on the way: the gate's two zombies stay where they
+  // stood, so the level's count starts from zero.
+  story
+    ..collect(duomoKeyPickupId)
+    ..world.map.setTile(duomoUpperLockedDoorTile, const Tile(TileKind.floor))
+    ..revive(priestZombiePrefix);
+
+  // The secret mission done too: Luigi's golden pistol in hand, and its
+  // memory among the others below.
+  story.progress.secretMissions.add(SecretMission.unarmedToLuigi);
+
+  // Every zombie type of Molfetta met, as the book on the train shows.
+  levelZombieKinds(LevelId.hometown).forEach(story.progress.meet);
+
+  // Keep this scenario complete when another Molfetta memory is added.
+  for (final memory in StoryMemory.values) {
+    if (memory.level == LevelId.hometown) {
+      story.remember(memory);
+    }
   }
 }
 
@@ -213,51 +291,36 @@ final class ScenarioBuilder {
 /// Each one builds on the ones before it, and is saved where a player
 /// would have saved on the way: at the fire nearest the place it is
 /// about, or aboard the train once the level is over.
-final TestScenario vanniDeployScenario = TestScenario(
+final TestScenario _molfettaEnd = TestScenario(
   'Treno, dopo la fine del livello',
   (story) {
-    _luigiFree(story);
-    _afterTheMass(story);
+    _molfettaDone(story);
+    story.aboardTrain();
+  },
+);
 
-    // A useful end-of-Molfetta save: the ammunition really comes from
-    // backpacks in the level, and the molotov has been found too.
-    <String>[
-      ammoBackpackId,
-      accidentBackpackId,
-      parkingBackpackId,
-      stationBackpackId,
-    ].forEach(story.collect);
-    story
-      ..collect(molotovBackpackId)
-      ..unlock(HudElement.molotov)
-      ..remember(StoryMemory.luigiAtStation)
-      ..missions(done: const <Mission>[Mission.reachLuigi])
-      ..script('station', <String, Object?>{'reunion': true})
-      ..aboardTrain();
+/// The save a VANNI_DEPLOY build owns: Molfetta done, and Rome as far as
+/// its story goes for now, aboard the train at Termini. Every memory of
+/// both cities is there to watch again, and Tonino and Marcello have
+/// already asked for something of value: the missions are the last ones.
+/// Test supplies on top of what the travel rules leave him.
+final TestScenario vanniDeployScenario = TestScenario(
+  'Roma, sul treno a Termini (VANNI_DEPLOY)',
+  (story) {
+    _molfettaDone(story);
+    story.travelTo(LevelId.rome);
     story.world.player.component<AmmoComponent>()
       ..loaded = 10
       ..molotovs = molotovBackpackCount;
-
-    // The key found by Don Angelo's body, used up on the door upstairs: the
-    // way to the bell tower stands open, as the memories up there say.
-    //
-    // Nobody killed on the way: the gate's two zombies stay where they
-    // stood, so the level's count starts from zero.
     story
-      ..collect(duomoKeyPickupId)
-      ..world.map.setTile(duomoUpperLockedDoorTile, const Tile(TileKind.floor))
-      ..revive(priestZombiePrefix);
-
-    // The secret mission done too: Luigi's golden pistol in hand, and its
-    // memory among the others below.
-    story.progress.secretMissions.add(SecretMission.unarmedToLuigi);
-
-    // Every zombie type of Molfetta met, as the book on the train shows.
-    levelZombieKinds(LevelId.hometown).forEach(story.progress.meet);
-
-    // Keep this scenario complete when another Molfetta memory is added.
+      ..script('rome', <String, Object?>{'welcomed': true})
+      ..script('journey', <String, Object?>{'taught': true})
+      ..script('maranza', <String, Object?>{'met': true})
+      ..missions(given: const <Mission>[Mission.findValuable])
+      ..aboardTrain();
+    // Keep this scenario complete when another Rome memory is added.
     for (final memory in StoryMemory.values) {
-      if (memory.level == LevelId.hometown) {
+      if (memory.level == LevelId.rome) {
         story.remember(memory);
       }
     }
@@ -281,7 +344,7 @@ final List<TestScenario> testScenarios = <TestScenario>[
     _luigiFree(story);
     story.restNearest(stationWestDoor.first);
   }),
-  vanniDeployScenario,
+  _molfettaEnd,
   TestScenario('Porto, Don Angelo al cancello', (story) {
     _armed(story);
     story.restAt(harbourRoadCampfireTile);
@@ -325,6 +388,15 @@ final List<TestScenario> testScenarios = <TestScenario>[
     _luigiFree(story);
     story.restNearest(airlinerTear.first);
   }),
+  TestScenario('Roma, Piazza dei Cinquecento', (story) {
+    _molfettaDone(story);
+    story
+      ..travelTo(LevelId.rome)
+      ..script('rome', <String, Object?>{'welcomed': true})
+      ..script('journey', <String, Object?>{'taught': true})
+      ..restAt(piazzaCampfireTile);
+  }),
+  vanniDeployScenario,
 ];
 
 /// The mass over: Mario in the robe, Don Angelo dead and the four mutated

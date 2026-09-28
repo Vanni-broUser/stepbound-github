@@ -86,22 +86,29 @@ void main() {
     expect(() => nowhere.save(_slot), throwsStateError);
   });
 
-  test('the VANNI_DEPLOY save completes Molfetta with test supplies', () {
+  test('the VANNI_DEPLOY save is Rome as far as it goes, with test '
+      'supplies', () {
     final save = vanniDeployScenario.save(_slot);
     final world = restoreGameWorld(save.world);
     final ammo = world.player.component<AmmoComponent>();
     final progress = Progress.fromJson(save.progress);
 
     expect(save.place, trainPlaceName);
+    expect(progress.level, LevelId.rome);
     expect(ammo.loaded, 10);
     expect(ammo.molotovs, molotovBackpackCount);
     expect(save.hud, contains(HudElement.molotov.name));
     expect(world.pickups[molotovBackpackId]!.collected, isTrue);
+    expect(progress.memories, containsAll(StoryMemory.values));
+    expect(progress.missions.open, <Mission>[
+      Mission.findSupplies,
+      Mission.findValuable,
+    ]);
+    expect(save.story['maranza'], containsPair('met', true));
     expect(
-      progress.memories.where((memory) => memory.level == LevelId.hometown),
-      containsAll(
-        StoryMemory.values.where((memory) => memory.level == LevelId.hometown),
-      ),
+      Progress.fromJson(save.levelStart!.progress).level,
+      LevelId.rome,
+      reason: 'starting over stays in Rome',
     );
   });
 
