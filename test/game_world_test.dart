@@ -2172,10 +2172,15 @@ void main() {
       expect(train.lit, isTrue);
       expect(
         gamePlaces.where((place) => place.lit).map((place) => place.id),
-        unorderedEquals(<PlaceId>[PlaceId.trainInterior, PlaceId.duomoUpper]),
+        unorderedEquals(<PlaceId>[
+          PlaceId.trainInterior,
+          PlaceId.duomoUpper,
+          PlaceId.terminiConcourse,
+        ]),
         reason:
             'every other room stays in the dark but the upper floor of '
-            'the Duomo, where the community lives',
+            'the Duomo, where the community lives, and the concourse of '
+            'Termini, under its glass',
       );
     });
 
@@ -2777,7 +2782,7 @@ void main() {
     expect(count(street, FireKind.car), 2);
     expect(count(street, FireKind.bin), 2);
     expect(count(street, FireKind.window), 3);
-    final all = outdoorFireSpots;
+    final all = hometownFireSpots;
     final behindMall = place(PlaceId.mallNorthStreet).bounds;
     expect(
       all.where(
@@ -2851,7 +2856,8 @@ void main() {
     test('store what changed, not the whole map: a few kilobytes', () {
       final world = createGameWorld();
       final save = jsonEncode(saveGameWorld(world));
-      expect(save.length, lessThan(48 * 1024));
+      // Every zombie of every level is in it, Rome's streets' too.
+      expect(save.length, lessThan(56 * 1024));
       expect(saveGameWorld(world).containsKey('map'), isFalse);
       expect(saveGameWorld(world)['mapChanges'], isEmpty);
     });
@@ -3046,7 +3052,7 @@ void main() {
   });
 
   test('the train door opens onto the station of the level it stands in, '
-      'and Termini leads nowhere but back aboard', () {
+      'and Termini leads only back aboard and up to the overpass', () {
     final world = createGameWorld();
     expect(
       world.portals[trainExitTile]!.to,
@@ -3065,12 +3071,19 @@ void main() {
     );
     expect(world.map.tileAt(terminiTrainDoorTile).isWalkable, isTrue);
     final termini = place(PlaceId.romeTermini);
+    final overpass = place(PlaceId.terminiOverpass);
     for (final portal in world.portals.entries) {
       if (termini.bounds.contains(portal.key)) {
-        expect(portal.key, terminiTrainDoorTile);
+        expect(<GridPoint>[
+          terminiTrainDoorTile,
+          ...terminiStairsTiles,
+        ], contains(portal.key));
       }
       if (termini.bounds.contains(portal.value.to)) {
-        expect(portal.key, trainExitTile);
+        expect(
+          portal.key == trainExitTile || overpass.bounds.contains(portal.key),
+          isTrue,
+        );
       }
     }
     parkTrain(world, LevelId.hometown);
@@ -3084,7 +3097,11 @@ void main() {
       'own fires', () {
     final hometown = levelZombieKinds(LevelId.hometown);
     final rome = levelZombieKinds(LevelId.rome);
-    expect(rome, hasLength(terminiZombieSpots.length));
+    // Rome's wanderers, and the one sprinter on the piazza.
+    expect(
+      rome,
+      hasLength(romeZombieSpots.values.expand((spots) => spots).length + 1),
+    );
     final atStart = createGameWorld().entities.values
         .where((entity) => entity.kind != EntityKind.player)
         .length;
@@ -3115,8 +3132,8 @@ void main() {
       final at = zombie.component<PositionComponent>().position;
       expect(termini.bounds.contains(at), isTrue);
     }
-    expect(terminiExitTiles, isNotEmpty);
-    for (final tile in terminiExitTiles) {
+    expect(terminiStairsTiles, isNotEmpty);
+    for (final tile in terminiStairsTiles) {
       expect(world.map.tileAt(tile).isWalkable, isTrue);
     }
     // As on Molfetta's far platform, the train fills the track from edge

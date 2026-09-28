@@ -76,7 +76,10 @@ final Map<GridPoint, String> campfireNames = <GridPoint, String>{
 };
 
 /// Every fire burning out of doors, which the game animates.
-List<FireSpot> get outdoorFireSpots => hometownFireSpots;
+List<FireSpot> get outdoorFireSpots => <FireSpot>[
+  ...hometownFireSpots,
+  ...romeFireSpots,
+];
 
 /// Doors [from] one place [to] another, tile by tile in order: stepping on
 /// a tile of [from] lands on the tile of [to] one step towards [facing].
