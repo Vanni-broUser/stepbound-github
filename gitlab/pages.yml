@@ -1,6 +1,8 @@
 # Pubblica la privacy policy solo quando l'utente avvia esplicitamente il job
-# sulla branch predefinita. Prima della pubblicazione vanno sostituiti i dati
-# di contatto segnaposto in privacy/index.html.
+# sulla branch predefinita: fa parte del rituale di pubblicazione
+# (docs/save_policy.md, "Quando una build diventa pubblica"). I dati
+# dell'editore in privacy/index.html sono compilati; il grep sotto ferma il
+# job se torna un segnaposto.
 privacy_policy_pages:
   stage: deploy
   image: alpine:3.22
