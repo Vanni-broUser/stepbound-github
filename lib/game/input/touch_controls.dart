@@ -71,7 +71,8 @@ final class TouchControls extends StatelessWidget {
                   ),
                   // What Mario carries, in the order he picked it up: the
                   // bullets counted, then whatever the story has him hold
-                  // for someone. One row from the bottom-left corner.
+                  // for someone. One row from the bottom-right corner,
+                  // the first thing he found against the edge.
                   if (badges.isNotEmpty)
                     Positioned(
                       left: 0,
@@ -79,6 +80,7 @@ final class TouchControls extends StatelessWidget {
                       bottom: 0,
                       child: _WhileFree(
                         game: game,
+                        alignment: Alignment.centerRight,
                         // The molotovs only while there is one: the last
                         // thrown, the badge goes, and comes back with the
                         // next found.
@@ -86,6 +88,9 @@ final class TouchControls extends StatelessWidget {
                           valueListenable: game.molotovs,
                           builder: (context, molotovs, _) => Wrap(
                             key: const ValueKey<String>('hud-carried'),
+                            // Laid out from the right; each badge still
+                            // reads left to right.
+                            textDirection: TextDirection.rtl,
                             spacing: 8,
                             runSpacing: 8,
                             children: <Widget>[
@@ -112,10 +117,17 @@ final class TouchControls extends StatelessWidget {
 /// something is about to be said or a story holds him, and back in once
 /// he has the game again.
 final class _WhileFree extends StatelessWidget {
-  const _WhileFree({required this.game, required this.child});
+  const _WhileFree({
+    required this.game,
+    required this.child,
+    this.alignment = Alignment.centerLeft,
+  });
 
   final StepboundGame game;
   final Widget child;
+
+  /// Where what it shows starts: the edge it is kept to.
+  final Alignment alignment;
 
   static const Duration fade = Duration(milliseconds: 220);
 
@@ -125,9 +137,8 @@ final class _WhileFree extends StatelessWidget {
       valueListenable: game.freeToMove,
       builder: (context, free, _) => AnimatedSwitcher(
         duration: fade,
-        // Kept to the left edge, as everything it shows starts there.
         layoutBuilder: (current, previous) => Stack(
-          alignment: Alignment.centerLeft,
+          alignment: alignment,
           children: <Widget>[...previous, ?current],
         ),
         child: free ? child : const SizedBox.shrink(),

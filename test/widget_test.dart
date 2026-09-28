@@ -354,16 +354,16 @@ void main() {
       game.update(1 / 60);
       await tester.pump();
 
-      // The count is written over the bottom-right corner, spilling past it.
+      // The count is written over the bottom-left corner, spilling past it.
       final box = tester.getRect(
         find.byKey(const ValueKey<String>('touch-ammo')),
       );
       final count = tester.getRect(
         find.byKey(const ValueKey<String>('touch-ammo-count')),
       );
-      expect(count.right, greaterThan(box.right));
+      expect(count.left, lessThan(box.left));
       expect(count.bottom, greaterThan(box.bottom));
-      expect(count.left, lessThan(box.right));
+      expect(count.right, greaterThan(box.left));
       expect(count.top, lessThan(box.bottom));
 
       // The pistol found, the badge wakes up; the only weapon, it does
@@ -385,14 +385,14 @@ void main() {
       game.dismissPrompt();
       await tester.pump();
 
-      // One row, left to right in the order things were picked up.
+      // One row, from the right edge in the order things were picked up.
       final bullets = tester.getRect(
         find.byKey(const ValueKey<String>('touch-ammo')),
       );
       final incense = tester.getRect(
         find.byKey(const ValueKey<String>('hud-incense')),
       );
-      expect(bullets.right, lessThanOrEqualTo(incense.left));
+      expect(incense.right, lessThanOrEqualTo(bullets.left));
       expect(bullets.top, incense.top);
     });
   });
@@ -2789,12 +2789,12 @@ void main() {
     expect(act.left, moreOrLessEquals(screen / 2));
     expect(act.right, moreOrLessEquals(screen));
     // The missions in the top-left corner, what Mario carries in the
-    // bottom-left one, the menu in the top-right one.
+    // bottom-right one, the menu in the top-right one.
     final height =
         tester.view.physicalSize.height / tester.view.devicePixelRatio;
     expect(rectOf('mission-board').left, lessThan(screen * 0.1));
     expect(rectOf('mission-board').top, lessThan(height / 4));
-    expect(rectOf('touch-ammo').left, lessThan(screen * 0.1));
+    expect(rectOf('touch-ammo').right, greaterThan(screen * 0.9));
     expect(rectOf('touch-ammo').center.dy, greaterThan(height * 0.75));
     expect(rectOf('touch-menu').right, greaterThan(screen * 0.9));
     expect(rectOf('touch-menu').center.dy, lessThan(height / 4));
@@ -2859,18 +2859,17 @@ void main() {
       );
 
       // The camera cutout is on the left; the right edge keeps the same
-      // gap, so the HUD looks the same from either side. The missions and
-      // what Mario carries start on the left, the menu ends the top on the
-      // right, and all keep that mirrored gap.
-      for (final key in <String>['mission-board', 'touch-ammo']) {
-        final left = rectOf(tester, key).left;
-        expect(left, moreOrLessEquals(cutout), reason: 'same gap both sides');
-        expect(left, lessThan(band), reason: 'out by the edge of the screen');
+      // gap, so the HUD looks the same from either side. The missions
+      // start on the left, the menu ends the top and what Mario carries the
+      // bottom on the right, and all keep that mirrored gap.
+      final missions = rectOf(tester, 'mission-board').left;
+      expect(missions, moreOrLessEquals(cutout), reason: 'same gap both sides');
+      expect(missions, lessThan(band), reason: 'out by the edge of the screen');
+      for (final key in <String>['touch-menu', 'touch-ammo']) {
+        final right = screen.width - rectOf(tester, key).right;
+        expect(right, moreOrLessEquals(cutout), reason: 'same gap both sides');
+        expect(right, lessThan(band), reason: 'out by the edge of the screen');
       }
-      expect(
-        screen.width - rectOf(tester, 'touch-menu').right,
-        moreOrLessEquals(cutout),
-      );
       // The gesture halves cover the whole screen, bands included.
       expect(rectOf(tester, 'touch-move').left, 0);
       expect(rectOf(tester, 'touch-act').right, moreOrLessEquals(screen.width));
