@@ -44,6 +44,9 @@ SOURCES = {
                   "Kevin MacLeod (incompetech.com)", "CC BY 4.0"),
     "rites": (INCOMPETECH + "Rites.mp3", "Rites",
               "Kevin MacLeod (incompetech.com)", "CC BY 4.0"),
+    "basic_implosion": (INCOMPETECH + "Basic%20Implosion.mp3",
+                        "Basic Implosion",
+                        "Kevin MacLeod (incompetech.com)", "CC BY 4.0"),
     "lurking": (SOUNDIMAGE + "2014/03/Lurking-in-the-Shadows.mp3",
                 "Lurking in the Shadows", "Eric Matyas (soundimage.org)",
                 "Free with attribution"),
@@ -98,6 +101,11 @@ MUSIC = [
     ("music/luigi.mp3", "at_launch", 1.0, 180.0, 4.0, -20),
     # Chords like Gregorian chant under a cold organ and a lone harp: Rome.
     ("music/rome.mp3", "rites", 0.0, 119.0, 6.0, -21),
+    # A catchy beat to rap over, all swagger: Tonino and Marcello. The
+    # piece repeats itself 40 bars (101.05 s) on, so the beat at 152.55 s
+    # lands on the one at 51.5 s: the loop is cut there, with a short
+    # crossfade that keeps the kicks sharp.
+    ("music/maranza.mp3", "basic_implosion", 51.5, 153.05, 0.5, -20),
 ]
 
 AMBIENCE = [

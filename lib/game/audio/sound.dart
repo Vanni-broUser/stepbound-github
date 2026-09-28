@@ -18,7 +18,11 @@ enum Music {
 
   /// Chords like Gregorian chant under a cold organ, a harp plucking
   /// alone: Rome, from Termini out into its streets.
-  rome('music/rome.mp3');
+  rome('music/rome.mp3'),
+
+  /// A catchy beat to rap over, all swagger: Tonino and Marcello, in
+  /// their scenes and whenever they come into view once they are known.
+  maranza('music/maranza.mp3');
 
   const Music(this.file);
 
@@ -142,6 +146,11 @@ const List<SoundCredit> musicCredits = <SoundCredit>[
   ),
   (
     title: 'Rites',
+    author: 'Kevin MacLeod (incompetech.com)',
+    licence: 'CC BY 4.0',
+  ),
+  (
+    title: 'Basic Implosion',
     author: 'Kevin MacLeod (incompetech.com)',
     licence: 'CC BY 4.0',
   ),

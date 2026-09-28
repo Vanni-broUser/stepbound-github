@@ -1,4 +1,5 @@
 import 'package:stepbound/core/core.dart';
+import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/story/story_director.dart';
 
@@ -99,6 +100,7 @@ final class MaranzaScript extends StoryScript {
           ..playCutscene(
             meetingScene,
             memories: const <StoryMemory>{StoryMemory.maranzaMet},
+            music: Music.maranza,
             onFinished: () => progress.missions.give(Mission.findValuable),
           );
       }

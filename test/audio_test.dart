@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math';
 
+import 'package:flame/components.dart' show Vector2;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/app.dart';
@@ -12,6 +13,7 @@ import 'package:stepbound/game/levels/rome_stage.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/save/save_game.dart';
+import 'package:stepbound/ui/zombie_book.dart';
 
 import 'test_world.dart';
 
@@ -54,6 +56,36 @@ void main() {
         reason: '${place.id}',
       );
     }
+  });
+
+  test('once met, Tonino and Marcello bring their music into view', () {
+    final progress = Progress();
+    final game = StepboundGame(world: createGameWorld(), progress: progress)
+      ..onGameResize(Vector2(768, 432));
+    final stage = RomeStage(game);
+    void lookAt(GridPoint tile) =>
+        game.camera.viewfinder.position = Vector2(tile.x * 16.0, tile.y * 16);
+    final far = GridPoint(marcelloTile.x, marcelloTile.y - 60);
+
+    lookAt(marcelloTile);
+    expect(
+      stage.musicOf(PlaceId.piazzaCinquecento),
+      Music.rome,
+      reason: 'strangers still',
+    );
+
+    progress.view(StoryMemory.maranzaMet);
+    expect(stage.musicOf(PlaceId.piazzaCinquecento), Music.maranza);
+    lookAt(far);
+    expect(stage.musicOf(PlaceId.piazzaCinquecento), Music.rome);
+  });
+
+  test('their meeting and its memory play their music', () {
+    expect(
+      memoryScenes[StoryMemory.maranzaMet]!.map((scene) => scene.music),
+      everyElement(Music.maranza),
+    );
+    expect(File('assets/audio/${Music.maranza.file}').existsSync(), isTrue);
   });
 
   group('Soundscape', () {
