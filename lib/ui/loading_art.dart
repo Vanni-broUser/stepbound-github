@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
+import 'package:stepbound/ui/letterbox.dart';
 import 'package:stepbound/ui/main_menu.dart';
 import 'package:stepbound/ui/screen_caption.dart';
 
@@ -50,6 +51,26 @@ final class LoadingArt extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+/// The loading picture across the whole screen, bands and all, dimmed by
+/// the [Letterbox.veil] so words and buttons laid over it stay readable:
+/// behind the screens that stand on their own, away from the game, such
+/// as the error screen.
+final class LoadingBackdrop extends StatelessWidget {
+  const LoadingBackdrop({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      key: const ValueKey<String>('loading-backdrop'),
+      fit: StackFit.expand,
+      children: <Widget>[
+        Image.asset(LoadingArt.image, fit: BoxFit.cover, gaplessPlayback: true),
+        const ColoredBox(color: Letterbox.veil),
+      ],
     );
   }
 }

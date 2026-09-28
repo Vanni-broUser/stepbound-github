@@ -64,6 +64,11 @@ void main() {
       );
       expect(find.text(ErrorScreen.title), findsOneWidget);
       expect(find.text('Bad state: il mondo è rotto'), findsOneWidget);
+      // On the loading picture, not on black.
+      expect(
+        find.byKey(const ValueKey<String>('loading-backdrop')),
+        findsOneWidget,
+      );
       expect(audio.paused, isTrue);
       // Everything fits the phone's screen: nothing to scroll for.
       for (final key in <String>['error-share', 'error-menu']) {
