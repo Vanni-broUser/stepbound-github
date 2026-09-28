@@ -25,9 +25,11 @@ check_macos_runner:
 build_ios_signed:
   extends: .macos
   stage: build-ios
+  needs: []
   dependencies: []
   cache: []
   rules:
+
     - if: '$CI_COMMIT_BRANCH == "main"'
       when: on_success
     - if: '$CI_COMMIT_REF_PROTECTED == "true"'
