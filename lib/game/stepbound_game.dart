@@ -290,8 +290,11 @@ final class StepboundGame extends FlameGame
   /// the train when the level ends; completes with whether it was written.
   final Future<bool> Function(GameSnapshot snapshot)? onRest;
 
-  /// Leaves gameplay for the results screen after the final cutscene.
-  final void Function(GameSnapshot snapshot)? onLevelCompleted;
+  /// Leaves gameplay for the results screen after the final cutscene,
+  /// once the train's save is written; `saved` is false when it could
+  /// not be, and the results say so.
+  final void Function(GameSnapshot snapshot, {required bool saved})?
+  onLevelCompleted;
 
   /// Leaves gameplay directly for the destination map from the train.
   final void Function(GameSnapshot snapshot)? onTravelMapRequested;
@@ -770,8 +773,20 @@ final class StepboundGame extends FlameGame
     inputLocked = true;
     soundscapePaused = true;
     final aboard = snapshot(place: trainPlaceName, confirmStory: true);
-    unawaited(onRest?.call(aboard));
-    onLevelCompleted?.call(aboard);
+    unawaited(_finishLevel(aboard));
+  }
+
+  /// Saves the game aboard the train, then hands the level's end over:
+  /// the results come after the save, and know whether it was written.
+  Future<void> _finishLevel(GameSnapshot aboard) async {
+    var saved = true;
+    try {
+      saved = await onRest?.call(aboard) ?? true;
+    } on Object catch (error) {
+      debugPrint('save: $error');
+      saved = false;
+    }
+    onLevelCompleted?.call(aboard, saved: saved);
   }
 
   @override
@@ -947,15 +962,28 @@ final class StepboundGame extends FlameGame
       debugPrint('save: $error');
       saved = false;
     }
-    showPrompt(<StoryLine>[
-      StoryLine(
-        saved
-            ? savedLine
-            : _atTable
-            ? mealSaveFailedLine
-            : saveFailedLine,
+    if (saved) {
+      showPrompt(<StoryLine>[
+        const StoryLine(savedLine),
+      ], onDismissed: () => _campfire = null);
+      return;
+    }
+    Breadcrumbs.shared.add('salvataggio non riuscito: $placeName');
+    _cover(
+      SaveFailedCover(
+        _atTable ? mealSaveFailedLine : saveFailedLine,
+        onDismissed: () => _campfire = null,
       ),
-    ], onDismissed: () => _campfire = null);
+    );
+  }
+
+  /// Called by the notice of a failed save once the player goes on.
+  void dismissSaveFailed() {
+    final notice = cover.value;
+    if (notice is SaveFailedCover) {
+      cover.value = null;
+      notice.onDismissed?.call();
+    }
   }
 
   // -------------------------------------------------------- pause menu

@@ -21,6 +21,7 @@ import 'package:stepbound/ui/audio_scope.dart';
 import 'package:stepbound/ui/black_fade.dart';
 import 'package:stepbound/ui/blood_decor.dart';
 import 'package:stepbound/ui/blood_splat.dart';
+import 'package:stepbound/ui/crash_guard.dart';
 import 'package:stepbound/ui/diagnostics_overlay.dart';
 import 'package:stepbound/ui/game_cutscene.dart';
 import 'package:stepbound/ui/gameplay_dialogue.dart';
@@ -32,6 +33,7 @@ import 'package:stepbound/ui/location_card.dart';
 import 'package:stepbound/ui/main_menu.dart';
 import 'package:stepbound/ui/pause_menu.dart';
 import 'package:stepbound/ui/rome_placeholder.dart';
+import 'package:stepbound/ui/save_failed_notice.dart';
 import 'package:stepbound/ui/screen_wide_layer.dart';
 import 'package:stepbound/ui/story_intro.dart';
 import 'package:stepbound/ui/zombie_book.dart';
@@ -57,8 +59,13 @@ final class StepboundApp extends StatefulWidget {
     this.audio,
     this.clock = DateTime.now,
     this.reporter,
+    this.share,
     super.key,
   });
+
+  /// How the report of a failed save leaves the phone (see `CrashGuard`,
+  /// which shares the report of an error the same way); nowhere when
+  /// null.
 
   /// Where the four save slots live; the device storage when null.
   final SaveRepository? saves;
@@ -66,6 +73,7 @@ final class StepboundApp extends StatefulWidget {
   /// Where an uncaught error ends up (see `CrashGuard`): the app tells it
   /// what to put in the report about the game in play.
   final ErrorReporter? reporter;
+  final ShareReport? share;
 
   /// Gift links (see `lib/save/skin_links.dart`) the app was opened with,
   /// cold or warm, as the platform delivers them.
@@ -118,6 +126,10 @@ final class _StepboundAppState extends State<StepboundApp> {
   /// A secret mission done as the level ended, crossed out with the rest.
   SecretMission? _levelSecret;
 
+  /// Whether the save aboard the train could not be written: the results
+  /// say so, and the slot still holds the campfire before.
+  bool _levelSaveFailed = false;
+
   /// Whether the loading picture fades in from the black a story ended on.
   bool _loadingFadesIn = false;
 
@@ -167,6 +179,30 @@ final class _StepboundAppState extends State<StepboundApp> {
       );
     }
     return sections;
+  }
+
+  /// The report of the last save that could not be written, to send like
+  /// the one of an error: the same text, the failure in the error's place.
+  Future<void> _shareSaveFailure() async {
+    final failure = _session.lastSaveFailure;
+    final share = widget.share;
+    if (failure == null || share == null) {
+      return;
+    }
+    Breadcrumbs.shared.add('app: rapporto del salvataggio condiviso');
+    final reporter = (widget.reporter ?? ErrorReporter())
+      ..context ??= _reportSections;
+    final report = ErrorReport(
+      error: failure.error,
+      stack: failure.stack,
+      source: 'salvataggio: ${failure.place}',
+      at: failure.at,
+    );
+    try {
+      await share(reporter.fileNameFor(report), await reporter.render(report));
+    } on Object catch (error) {
+      debugPrint('report: could not share ($error)');
+    }
   }
 
   /// The game may be the very thing that broke.
@@ -445,6 +481,12 @@ final class _StepboundAppState extends State<StepboundApp> {
         onExit: game.closeMemories,
       ),
     ),
+    SaveFailedCover(:final line) => SaveFailedNotice(
+      key: ObjectKey(cover),
+      line: line,
+      onShare: () => unawaited(_shareSaveFailure()),
+      onContinue: game.dismissSaveFailed,
+    ),
     EndOfDemoCover() => Letterbox(
       color: Colors.black,
       child: RomePlaceholder(
@@ -484,8 +526,11 @@ final class _StepboundAppState extends State<StepboundApp> {
     ),
   };
 
-  void _completeLevel(GameSnapshot snapshot) {
-    Breadcrumbs.shared.add('app: livello completato, risultati');
+  void _completeLevel(GameSnapshot snapshot, {required bool saved}) {
+    Breadcrumbs.shared.add(
+      'app: livello completato, risultati'
+      '${saved ? '' : ' (salvataggio sul treno non riuscito)'}',
+    );
     final world = restoreGameWorld(snapshot.world);
     final progress = Progress.fromJson(snapshot.progress);
     final stats = LevelStats.of(world, progress, progress.level);
@@ -498,6 +543,7 @@ final class _StepboundAppState extends State<StepboundApp> {
       _levelSecret = StationScript.gaveGoldenPistol(snapshot.story)
           ? SecretMission.unarmedToLuigi
           : null;
+      _levelSaveFailed = !saved;
       _game = null;
       _phase = _Phase.levelComplete;
     });
@@ -648,6 +694,8 @@ final class _StepboundAppState extends State<StepboundApp> {
                   stats: _levelStats,
                   finale: _levelFinale,
                   secret: _levelSecret,
+                  saveFailed: _levelSaveFailed,
+                  onShareReport: () => unawaited(_shareSaveFailure()),
                   onContinue: _openLevelMap,
                 ),
                 _Phase.levelMap => LevelMap(

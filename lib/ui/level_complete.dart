@@ -123,11 +123,27 @@ final class LevelComplete extends StatelessWidget {
     required this.onContinue,
     this.finale,
     this.secret,
+    this.saveFailed = false,
+    this.onShareReport,
     super.key,
   });
 
+  /// Shares the report of the failed save; the button shows only with
+  /// [saveFailed].
+  final VoidCallback? onShareReport;
+
+  static const String shareLabel = 'CONDIVIDI IL RAPPORTO';
+
   final LevelStats stats;
   final VoidCallback onContinue;
+
+  /// Whether the save aboard the train could not be written: said here,
+  /// once, since the slot goes on holding the campfire before it.
+  final bool saveFailed;
+
+  static const String saveFailedLine =
+      'Salvataggio non riuscito: la partita riprenderà dall’ultimo falò, '
+      'non dal treno.';
 
   /// The mission the level ended on, crossed out here for all to see.
   final Mission? finale;
@@ -144,28 +160,65 @@ final class LevelComplete extends StatelessWidget {
         builder: (context, constraints) {
           final unit =
               constraints.maxHeight / IntegerResolutionViewport.virtualHeight;
+          // The failed-save line can push the column past the picture:
+          // then, and only then, it all shrinks a little rather than
+          // scroll. Without it the screen is laid out as it always was.
           return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                BloodyTitle('LIVELLO COMPLETATO', fontSize: 20 * unit),
-                SizedBox(height: 4 * unit),
-                StatsCard(stats: stats, unit: unit),
-                SizedBox(height: 4 * unit),
-                MissionsCard(
-                  stats: stats,
-                  unit: unit,
-                  finale: finale,
-                  secret: secret,
-                ),
-                SizedBox(height: 6 * unit),
-                MenuButton(
-                  key: const ValueKey<String>('level-complete-continue'),
-                  label: 'CONTINUA',
-                  unit: unit,
-                  onPressed: onContinue,
-                ),
-              ],
+            child: FittedBox(
+              fit: saveFailed ? BoxFit.scaleDown : BoxFit.none,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  BloodyTitle('LIVELLO COMPLETATO', fontSize: 20 * unit),
+                  SizedBox(height: 4 * unit),
+                  StatsCard(stats: stats, unit: unit),
+                  SizedBox(height: 4 * unit),
+                  MissionsCard(
+                    stats: stats,
+                    unit: unit,
+                    finale: finale,
+                    secret: secret,
+                  ),
+                  if (saveFailed) ...<Widget>[
+                    SizedBox(height: 3 * unit),
+                    SizedBox(
+                      width: StatsCard.cardWidth * unit,
+                      child: Text(
+                        saveFailedLine,
+                        key: const ValueKey<String>(
+                          'level-complete-save-failed',
+                        ),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: BloodColors.bright,
+                          fontFamily: 'monospace',
+                          fontSize: 7 * unit,
+                          height: 1.3,
+                          decoration: TextDecoration.none,
+                        ),
+                      ),
+                    ),
+                    if (onShareReport case final share?) ...<Widget>[
+                      SizedBox(height: 3 * unit),
+                      MenuButton(
+                        key: const ValueKey<String>('level-complete-share'),
+                        label: shareLabel,
+                        unit: unit,
+                        width: 120,
+                        compact: true,
+                        onPressed: share,
+                      ),
+                    ],
+                  ],
+                  SizedBox(height: 6 * unit),
+                  MenuButton(
+                    key: const ValueKey<String>('level-complete-continue'),
+                    label: 'CONTINUA',
+                    unit: unit,
+                    onPressed: onContinue,
+                  ),
+                ],
+              ),
             ),
           );
         },

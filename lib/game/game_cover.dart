@@ -17,6 +17,15 @@ final class PromptCover extends GameCover {
   final void Function()? onDismissed;
 }
 
+/// A save at a campfire or at the train's table that could not be
+/// written: the line saying so, with the report to share.
+final class SaveFailedCover extends GameCover {
+  const SaveFailedCover(this.line, {this.onDismissed});
+
+  final String line;
+  final void Function()? onDismissed;
+}
+
 /// A story scene: pictures and lines between two fades to black.
 final class CutsceneCover extends GameCover {
   CutsceneCover(

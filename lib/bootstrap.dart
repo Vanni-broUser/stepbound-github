@@ -55,6 +55,7 @@ Future<void> bootstrap() async {
         audio: audio,
         skinLinks: skinLinks,
         reporter: reporter,
+        share: shareReportFile,
       ),
     ),
   );

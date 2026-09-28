@@ -18,7 +18,7 @@ void main() {
     session = GameSession(
       saves: saves,
       audio: SilentAudio(),
-      onLevelCompleted: completed.add,
+      onLevelCompleted: (snapshot, {required saved}) => completed.add(snapshot),
       onTravelMapRequested: completed.add,
     );
   });
@@ -234,6 +234,17 @@ void main() {
       );
     },
   );
+
+  test('a save that cannot be written is kept for the report', () async {
+    expect(session.lastSaveFailure, isNull);
+    saves.failWrites = true;
+    expect(await session.store(snapshot(place: 'Zona nord')), isFalse);
+    final failure = session.lastSaveFailure!;
+    expect(failure.place, 'Zona nord');
+    expect(failure.error, isA<SaveWriteException>());
+    expect('${failure.error}', contains('storage full'));
+    expect(failure.at.year, greaterThanOrEqualTo(2026));
+  });
 
   test('story scenes watched are written down for the slot at once', () async {
     session
