@@ -6,23 +6,20 @@ import 'package:stepbound/ui/level_complete.dart';
 
 void main() {
   group('the missions log', () {
-    test('a new game opens with the survivors to find, and Rome with the '
-        'supplies once the train gets there', () {
+    test('a new game opens with the survivors to find, handed out once '
+        'however often the train comes back; Rome waits for Luigi', () {
       final progress = Progress.newGame();
       expect(progress.missions.open, <Mission>[Mission.findSurvivors]);
       progress.travel(LevelId.rome, rounds: 3);
-      expect(progress.missions.open, <Mission>[
-        Mission.findSurvivors,
-        Mission.findSupplies,
-      ]);
+      expect(
+        progress.missions.open,
+        <Mission>[Mission.findSurvivors],
+        reason: 'the supplies come with the end of his welcome',
+      );
       progress
         ..travel(LevelId.hometown, rounds: 3)
         ..travel(LevelId.rome, rounds: 3);
-      expect(
-        progress.missions.open.where((mission) => mission.fromStart),
-        hasLength(2),
-        reason: 'handed out once, however often the train comes back',
-      );
+      expect(progress.missions.open, <Mission>[Mission.findSurvivors]);
     });
 
     test('done ones keep the order they were done in, and one handed out '

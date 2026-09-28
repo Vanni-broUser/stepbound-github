@@ -11,7 +11,7 @@ enum Mission {
   findIncense(LevelId.hometown, "Trova dell'incenso"),
   findRing(LevelId.hometown, "Trova l'anello episcopale"),
   initiation(LevelId.hometown, 'Partecipa alla cerimonia di iniziazione'),
-  findSupplies(LevelId.rome, 'Trova delle provviste', fromStart: true),
+  findSupplies(LevelId.rome, 'Trova delle provviste'),
   findValuable(LevelId.rome, 'Cerca qualcosa di prezioso per avanzare');
 
   const Mission(this.level, this.text, {this.fromStart = false});

@@ -1,8 +1,10 @@
 import 'package:stepbound/core/core.dart';
+import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/story/story_director.dart';
 
 /// The start of the Rome level. As soon as the city has loaded, before
-/// Mario can move, Luigi says why they stop here. The ends of the streets
+/// Mario can move, Luigi says why they stop here, and the supplies are the
+/// mission once he has. The ends of the streets
 /// round Termini are as far as the game goes for now: they say so, and
 /// Mario is back a step inside the street, facing into it, once that is
 /// tapped away.
@@ -33,7 +35,14 @@ final class RomeScript extends StoryScript {
     }
     _welcomed = true;
     host.stopWalking();
-    say(StoryPrompt(arrivalLines, delay: arrivalDelay, holdsInput: true));
+    say(
+      StoryPrompt(
+        arrivalLines,
+        delay: arrivalDelay,
+        holdsInput: true,
+        onDismissed: () => progress.missions.give(Mission.findSupplies),
+      ),
+    );
   }
 
   @override

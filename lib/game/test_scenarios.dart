@@ -316,7 +316,9 @@ final TestScenario vanniDeployScenario = TestScenario(
       ..script('rome', <String, Object?>{'welcomed': true})
       ..script('journey', <String, Object?>{'taught': true})
       ..script('maranza', <String, Object?>{'met': true})
-      ..missions(given: const <Mission>[Mission.findValuable])
+      ..missions(
+        given: const <Mission>[Mission.findSupplies, Mission.findValuable],
+      )
       ..aboardTrain();
     // Keep this scenario complete when another Rome memory is added.
     for (final memory in StoryMemory.values) {
@@ -393,6 +395,7 @@ final List<TestScenario> testScenarios = <TestScenario>[
     story
       ..travelTo(LevelId.rome)
       ..script('rome', <String, Object?>{'welcomed': true})
+      ..missions(given: const <Mission>[Mission.findSupplies])
       ..script('journey', <String, Object?>{'taught': true})
       ..restAt(piazzaCampfireTile);
   }),

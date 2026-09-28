@@ -1994,6 +1994,17 @@ void main() {
     });
   });
 
+  test('in Rome the supplies are the mission once Luigi has said his last '
+      'word of welcome, not before', () {
+    progress.travel(LevelId.rome, rounds: 3);
+    settle();
+    expect(host.shown.first.first.speaker, 'Luigi Rovaga');
+    expect(progress.missions.isOpen(Mission.findSupplies), isFalse);
+
+    host.dismiss();
+    expect(progress.missions.open, contains(Mission.findSupplies));
+  });
+
   group('Tonino and Marcello at the bottom of Via Cavour', () {
     MaranzaScript script() => director.scripts.whereType<MaranzaScript>().first;
 
