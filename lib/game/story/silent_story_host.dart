@@ -20,6 +20,9 @@ final class SilentStoryHost implements StoryHost, HometownActions {
   bool get isPromptVisible => false;
 
   @override
+  bool get missionsSettling => false;
+
+  @override
   void stopWalking() {}
 
   @override

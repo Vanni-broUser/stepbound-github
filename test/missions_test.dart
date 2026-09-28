@@ -142,6 +142,28 @@ void main() {
       );
     });
 
+    testWidgets('the gate, cleared twice, is one mission done', (tester) async {
+      final progress = Progress.newGame();
+      progress.missions
+        ..give(Mission.clearGate)
+        ..complete(Mission.clearGate)
+        ..give(Mission.findIncense)
+        ..give(Mission.clearGate)
+        ..complete(Mission.clearGate)
+        ..complete(Mission.findIncense);
+      final stats = statsOf(progress);
+      expect(stats.doneMissions, <Mission>[
+        Mission.clearGate,
+        Mission.findIncense,
+      ]);
+      await pump(tester, stats);
+      expect(score(tester), '2 / 7');
+      expect(
+        find.byKey(ValueKey<String>('mission-row-${Mission.clearGate.name}')),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('the finale is crossed out in front of the player, the '
         'score going up with it', (tester) async {
       final progress = Progress.newGame();

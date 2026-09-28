@@ -136,6 +136,11 @@ abstract interface class StoryHost {
   /// prompts wait for it to go.
   bool get isPromptVisible;
 
+  /// True while the missions in the corner still have one to cross out: a
+  /// scene that follows straight on from a mission done waits for it, so
+  /// that the player sees it ticked off in between.
+  bool get missionsSettling;
+
   /// Drops the steps queued and the arrow held, so that a prompt about to
   /// show finds Mario where it was triggered.
   void stopWalking();

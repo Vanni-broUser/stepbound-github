@@ -160,6 +160,11 @@ final class PriestScript extends StoryScript {
       }
       return;
     }
+    // A scene straight after a mission done waits for the corner to have
+    // crossed it out: the gate cleared, the incense already in hand.
+    if (host.missionsSettling) {
+      return;
+    }
     if (_clearAsked && !_dealPlayed && _gateIsClear(position)) {
       _dealPlayed = true;
       host.playCutscene(
@@ -240,7 +245,9 @@ final class PriestScript extends StoryScript {
     );
   }
 
-  /// Back in the open world again, the errand itself.
+  /// Back in the open world again, the errand itself. Asked with the
+  /// incense already in Mario's pocket, it is found as soon as it is
+  /// handed out: the welcome follows once the corner has crossed it out.
   void _askForIncense() {
     say(
       StoryPrompt(
@@ -254,6 +261,9 @@ final class PriestScript extends StoryScript {
           progress.missions
             ..complete(Mission.clearGate)
             ..give(Mission.findIncense);
+          if (host.isUnlocked(HudElement.incense)) {
+            progress.missions.complete(Mission.findIncense);
+          }
         },
       ),
     );

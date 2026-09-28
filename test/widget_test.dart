@@ -2266,6 +2266,45 @@ void main() {
     });
   });
 
+  testWidgets('a mission handed out and done at once still shows, crossed '
+      'out, and the story waits for it', (tester) {
+    return tester.runAsync(() async {
+      final game = await _pumpReadyGame(tester, audio: SilentAudio());
+      final text = find.byKey(
+        ValueKey<String>('mission-text-${Mission.freeLuigi.name}'),
+      );
+      Future<void> frame([double dt = 1 / 60]) async {
+        game.update(dt);
+        await tester.pump();
+      }
+
+      await frame();
+      expect(game.freeToMove.value, isTrue);
+      expect(game.missionsSettling, isFalse);
+
+      // Luigi's shutter lifted before his scene.
+      game.progress.missions
+        ..give(Mission.freeLuigi)
+        ..complete(Mission.freeLuigi);
+      await frame();
+      expect(
+        game.missions.value,
+        contains((mission: Mission.freeLuigi, done: true)),
+      );
+      expect(game.missionsSettling, isTrue);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(text, findsOneWidget, reason: 'the corner shows it');
+
+      for (var i = 0; i < 12; i++) {
+        await frame(0.25);
+        await tester.pump(const Duration(milliseconds: 250));
+      }
+      expect(text, findsNothing, reason: 'crossed out, and gone');
+      expect(game.missionsSettling, isFalse);
+      expect(game.progress.missions.done, contains(Mission.freeLuigi));
+    });
+  });
+
   testWidgets('the controls disappear while a text box is on screen', (
     tester,
   ) async {
