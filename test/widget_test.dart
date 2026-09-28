@@ -2111,7 +2111,20 @@ void main() {
   testWidgets('the missions and what Mario carries show only while he is '
       'free to move, and a mission done is crossed out and goes', (tester) {
     return tester.runAsync(() async {
-      final game = await _pumpReadyGame(tester);
+      final audio = SilentAudio();
+      final game = await _pumpReadyGame(tester, audio: audio);
+      double opacityOf(Mission mission) => tester
+          .widget<Opacity>(
+            find
+                .ancestor(
+                  of: find.byKey(
+                    ValueKey<String>('mission-text-${mission.name}'),
+                  ),
+                  matching: find.byType(Opacity),
+                )
+                .first,
+          )
+          .opacity;
       final board = find.byKey(const ValueKey<String>('mission-board'));
       Finder mission(Mission mission) =>
           find.byKey(ValueKey<String>('mission-text-${mission.name}'));
@@ -2146,8 +2159,15 @@ void main() {
         game.update(0.05);
       }
       await tester.pump();
-      game.dismissPrompt();
-      await frame();
+      game
+        ..dismissPrompt()
+        ..update(1 / 60);
+      await tester.pump();
+      // Back after the dialogue: the mission it already showed is just
+      // there, only the new one fades in.
+      expect(opacityOf(Mission.findSurvivors), 1);
+      expect(opacityOf(Mission.freeLuigi), lessThan(1));
+      await tester.pump(const Duration(milliseconds: 300));
       expect(board, findsOneWidget);
       expect(mission(Mission.findSurvivors), findsOneWidget);
       expect(mission(Mission.freeLuigi), findsOneWidget);
@@ -2156,6 +2176,8 @@ void main() {
       }
       expect(mission(Mission.findSurvivors), findsNothing);
       expect(mission(Mission.freeLuigi), findsOneWidget);
+      // A pen scratch for each stroke of the cross.
+      expect(audio.played.where((sfx) => sfx == Sfx.penStroke), hasLength(2));
       expect(game.missions.value, <BoardMission>[
         (mission: Mission.freeLuigi, done: false),
       ]);
