@@ -1,0 +1,45 @@
+# Pubblicazione su Apple TestFlight.
+#
+# Carica l'.ipa prodotto da build_ios_signed su App Store Connect / TestFlight
+# tramite xcrun altool con API Key App Store Connect.
+#
+# Variabili CI richieste (Settings > CI/CD > Variables):
+#   ASC_KEY_ID       identificativo della chiave API App Store Connect
+#   ASC_ISSUER_ID    issuer ID dell'account Apple Developer
+#   ASC_KEY_P8       tipo File, chiave privata .p8
+
+deploy_testflight:
+  extends: .macos
+  stage: deploy
+  needs:
+    - job: build_ios_signed
+      artifacts: true
+  interruptible: false
+  cache: []
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: manual
+      allow_failure: true
+  before_script: []
+  script:
+    - |
+      set -eu
+      for v in ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8; do
+        eval "val=\${$v:-}"
+        if [ -z "$val" ]; then
+          echo "ERRORE: variabile CI $v non impostata." >&2
+          exit 1
+        fi
+      done
+      mkdir -p "$HOME/private_keys"
+      cp "$ASC_KEY_P8" "$HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+      IPA=$(ls build/ios/ipa/*.ipa 2>/dev/null | head -n1 || true)
+      if [ -z "$IPA" ] || [ ! -f "$IPA" ]; then
+        echo "ERRORE: nessun file .ipa trovato in build/ios/ipa/." >&2
+        exit 1
+      fi
+      echo "Upload di $IPA su App Store Connect / TestFlight..."
+      xcrun altool --upload-app --type ios --file "$IPA" \
+        --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
+  after_script:
+    - rm -rf "$HOME/private_keys" || true
