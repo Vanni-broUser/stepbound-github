@@ -5,6 +5,7 @@ import 'package:stepbound/game/levels/hometown_stage.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/game/zombie_lore.dart';
+import 'package:stepbound/ui/zombie_book.dart';
 
 /// The game, and Molfetta's stage with it.
 final class _FakeHost implements StoryHost, HometownActions {
@@ -1411,6 +1412,7 @@ void main() {
 
     test('after Luigi is rescued, his meeting waits for the first step', () {
       progress.remember(StoryMemory.luigiRescued);
+      world.player.component<AmmoComponent>().hasGun = true;
       world.player.component<PositionComponent>().position = onTheFarPlatform();
       settle();
       expect(
@@ -1470,6 +1472,53 @@ void main() {
         host.cutscenes,
         hasLength(1),
         reason: 'walking the platform again does not play it twice',
+      );
+    });
+
+    test('reaching Luigi without ever picking the pistol up, rounds or '
+        'not, he hands over the golden one: the secret mission is done', () {
+      progress.remember(StoryMemory.luigiRescued);
+      world.player.component<AmmoComponent>()
+        ..hasGun = false
+        ..loaded = 3;
+      takeAPlatformStep();
+
+      final scene = host.cutscenes.single;
+      expect(scene, <CutsceneFrame>[
+        ...StationScript.reunionScene,
+        StationScript.goldenPistolGift,
+        StationScript.goldenPistolLesson,
+      ]);
+      expect(StationScript.goldenPistolGift.speaker, 'Luigi Rovaga');
+      expect(
+        StationScript.goldenPistolGift.text,
+        "Ei ma non hai nessun'arma con te? Tieni prendi questa",
+      );
+      expect(StationScript.goldenPistolLesson.speaker, isNull);
+      expect(
+        StationScript.goldenPistolLesson.text,
+        "La pistola d'oro infligge danni doppi",
+      );
+      expect(progress.hasExperienced(StoryMemory.goldenPistol), isTrue);
+      expect(progress.hasGoldenPistol, isFalse, reason: 'not before the end');
+
+      host.onCutsceneFinished?.call();
+      expect(progress.hasGoldenPistol, isTrue);
+      expect(world.player.component<AmmoComponent>().hasGun, isTrue);
+      expect(
+        host.unlocked,
+        containsAll(<HudElement>[HudElement.ammo, HudElement.shoot]),
+      );
+      expect(host.levelsCompleted, 1);
+      expect(
+        StationScript.gaveGoldenPistol(director.toJson()),
+        isTrue,
+        reason: 'the results screen crosses the secret out',
+      );
+      // Its memory keeps Luigi's words, not the line on the pistol.
+      expect(
+        memoryScenes[StoryMemory.goldenPistol]!.map((scene) => scene.text),
+        <String>[StationScript.goldenPistolGift.text],
       );
     });
 

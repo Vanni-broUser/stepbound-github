@@ -82,7 +82,36 @@ enum StoryMemory {
   priestMass,
   priestMassacre,
   luigiAtStation,
+
+  /// Luigi at the station handing Mario the golden pistol: only when he
+  /// got there without one (see [SecretMission.unarmedToLuigi]).
+  goldenPistol,
   presidentFled,
+}
+
+/// What is never asked of Mario, only dared, on the secret missions page
+/// of the figures of the adventure. Done once, it stays done for the slot,
+/// through starting the level over.
+enum SecretMission {
+  /// Luigi freed and reached at the station without ever picking the
+  /// pistol up: he hands over the golden one.
+  unarmedToLuigi(
+    'Se hai il coraggio ricomincia il livello completando la trama di '
+    'Luigi senza raccogliere la pistola',
+    short: 'da Luigi senza la pistola',
+    level: LevelId.hometown,
+  );
+
+  const SecretMission(this.text, {required this.short, required this.level});
+
+  /// The city it is done in: its figures list it among their missions.
+  final LevelId level;
+
+  /// As the secret missions page dares it.
+  final String text;
+
+  /// On one line, among the level's missions when it is done.
+  final String short;
 }
 
 extension StoryMemoryLevel on StoryMemory {
@@ -112,7 +141,9 @@ final class Progress {
     Map<LevelId, int> roundsLeft = const <LevelId, int>{},
     Map<LevelId, int> molotovsLeft = const <LevelId, int>{},
     MissionLog? missions,
+    Iterable<SecretMission> secretMissions = const <SecretMission>[],
   }) : missions = missions ?? MissionLog(),
+       secretMissions = Set<SecretMission>.of(secretMissions),
        steps = Map<LevelId, int>.of(steps),
        roundsLeft = Map<LevelId, int>.of(roundsLeft),
        molotovsLeft = Map<LevelId, int>.of(molotovsLeft),
@@ -193,6 +224,11 @@ final class Progress {
           LevelId.values.byName(key): value! as int,
       },
       missions: MissionLog.fromJson(json['missions']! as Map<String, Object?>),
+      secretMissions: <SecretMission>[
+        for (final name
+            in (json['secretMissions']! as List<Object?>).cast<String>())
+          SecretMission.values.byName(name),
+      ],
     );
   }
 
@@ -241,6 +277,15 @@ final class Progress {
   /// What Mario has been asked to do, open and done, in every level.
   final MissionLog missions;
 
+  /// The secret missions done, in the order they were.
+  final Set<SecretMission> secretMissions;
+
+  /// Whether Mario's pistol is the golden one, which Luigi hands over for
+  /// [SecretMission.unarmedToLuigi]: it does twice the damage, and stays
+  /// his wherever he goes and whenever the level starts over.
+  bool get hasGoldenPistol =>
+      secretMissions.contains(SecretMission.unarmedToLuigi);
+
   /// Whether the train has taken Mario anywhere yet, from the Europe map.
   bool get hasTravelled => roundsLeft.isNotEmpty;
 
@@ -278,6 +323,12 @@ final class Progress {
   /// Whether Molfetta is behind them: Mario has reached the train with
   /// Luigi, whatever backpacks and memories are still to be found there.
   bool get hometownCompleted => memories.contains(StoryMemory.luigiAtStation);
+
+  /// Whether [level] has been played to its end. Rome has no end yet.
+  bool completed(LevelId level) => switch (level) {
+    LevelId.hometown => hometownCompleted,
+    LevelId.rome => false,
+  };
 
   void meet(EntityKind kind) => knownZombies.add(kind);
 
@@ -345,5 +396,8 @@ final class Progress {
         key.name: value,
     },
     'missions': missions.toJson(),
+    'secretMissions': <String>[
+      for (final mission in secretMissions) mission.name,
+    ],
   };
 }

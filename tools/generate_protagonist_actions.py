@@ -6,9 +6,12 @@ art; action frames drawn from scratch looked blocky next to it. This script
 starts from the idle frames themselves and only adds what each action needs,
 so every frame shares the same head, jacket, backpack and proportions:
 
-  base_gun.png            aim_0 (raising), aim_1/aim_2 (hold, breathing),
+  <outfit>_gun.png        aim_0 (raising), aim_1/aim_2 (hold, breathing),
                           fire_0 (flash + recoil), fire_1 (fading flash),
-                          fire_2 (smoke)
+                          fire_2 (smoke): the empty-handed moveset
+  pistol_held.png         the pistol alone on the same grid, drawn over any
+  pistol_gold_held.png    outfit's gun pose at runtime; the golden one is
+                          Luigi's (see SecretMission.unarmedToLuigi)
   base_pickup.png         pick_0 bend, pick_1 crouch, pick_2 reach,
                           pick_3 grab, pick_4 rise with the bag, pick_5 stand
   <outfit>_throwable.png  aim_0/aim_1/aim_2 (hold), throw_0 (wind-up),
@@ -37,6 +40,9 @@ OUTLINE = (14, 10, 12, 255)
 METAL_DARK = (38, 40, 46, 255)
 METAL = (74, 78, 88, 255)
 METAL_LIGHT = (136, 142, 152, 255)
+# A pistol's metal: dark, mid, light.
+STEEL = (METAL_DARK, METAL, METAL_LIGHT)
+GOLD = ((140, 100, 20, 255), (212, 162, 44, 255), (251, 227, 138, 255))
 FLASH_CORE = (255, 248, 214, 255)
 FLASH = (255, 206, 90, 255)
 FLASH_EDGE = (238, 120, 40, 255)
@@ -112,8 +118,12 @@ def hide_hanging_hands(frame: Image.Image, pal, from_row: int = 15) -> None:
 # ------------------------------------------------------------------- gun
 
 
-def arm_east(frame, pal, lift: int = 0, raised: bool = True) -> tuple[int, int]:
-    """Arm stretched towards the east; returns the muzzle position."""
+def arm_east(
+    frame, pal, gun, metal=STEEL, lift: int = 0, raised: bool = True
+) -> tuple[int, int]:
+    """Arm stretched towards the east, the pistol drawn on [gun]; returns
+    the muzzle position."""
+    dark, mid, light = metal
     if raised:
         y = 13 - lift
         for x in range(8, 11):
@@ -127,20 +137,20 @@ def arm_east(frame, pal, lift: int = 0, raised: bool = True) -> tuple[int, int]:
         put(frame, 11, y + 2, OUTLINE)
         # pistol: slide, barrel and grip under the hand
         for x in (12, 13, 14):
-            put(frame, x, y - 1, OUTLINE)
-            put(frame, x, y, METAL)
-            put(frame, x, y + 1, METAL_DARK)
-        put(frame, 13, y, METAL_LIGHT)
-        put(frame, 12, y + 2, METAL_DARK)
-        put(frame, 12, y + 3, OUTLINE)
+            put(gun, x, y - 1, OUTLINE)
+            put(gun, x, y, mid)
+            put(gun, x, y + 1, dark)
+        put(gun, 13, y, light)
+        put(gun, 12, y + 2, dark)
+        put(gun, 12, y + 3, OUTLINE)
         return 15, y
     # half-raised: arm angled down, pistol pointing at the ground ahead
     put(frame, 8, 14, pal["jacket"])
     put(frame, 9, 15, pal["jacket"])
     put(frame, 10, 16, pal["skin"])
     for x, yy in ((11, 16), (12, 17)):
-        put(frame, x, yy, METAL)
-        put(frame, x, yy + 1, METAL_DARK)
+        put(gun, x, yy, mid)
+        put(gun, x, yy + 1, dark)
     return 13, 18
 
 
@@ -154,22 +164,25 @@ def flash_east(frame, mx: int, my: int, big: bool) -> None:
         put(frame, mx - 1, my + 3, FLASH_EDGE)
 
 
-def gun_south(frame, pal, lift: int = 0, raised: bool = True) -> tuple[int, int]:
+def gun_south(
+    frame, pal, gun, metal=STEEL, lift: int = 0, raised: bool = True
+) -> tuple[int, int]:
+    dark, mid, light = metal
     y = 14 - lift
     for x in (4, 5, 10, 11):
         put(frame, x, y, pal["jacket"])
     put(frame, 6, y + 1, pal["skin"])
     put(frame, 9, y + 1, pal["skin"])
     if not raised:
-        put(frame, 7, y + 2, METAL)
-        put(frame, 8, y + 2, METAL)
+        put(gun, 7, y + 2, mid)
+        put(gun, 8, y + 2, mid)
         return 7, y + 2
     for x in (6, 7, 8, 9):
-        put(frame, x, y - 1, OUTLINE)
-    put(frame, 7, y, METAL_LIGHT)
-    put(frame, 8, y, METAL)
-    put(frame, 7, y + 1, METAL_DARK)
-    put(frame, 8, y + 1, OUTLINE)  # the muzzle, seen head-on
+        put(gun, x, y - 1, OUTLINE)
+    put(gun, 7, y, light)
+    put(gun, 8, y, mid)
+    put(gun, 7, y + 1, dark)
+    put(gun, 8, y + 1, OUTLINE)  # the muzzle, seen head-on
     return 8, y + 1
 
 
@@ -208,22 +221,28 @@ def flash_north(frame, mx: int, my: int, big: bool) -> None:
         put(frame, mx + 1, my, FLASH_EDGE)
 
 
-def gun_frames(idle, pal, direction: str) -> list[Image.Image]:
-    """aim_0, aim_1, aim_2, fire_0, fire_1, fire_2 for one direction."""
+def gun_frames(
+    idle, pal, direction: str, metal=STEEL
+) -> tuple[list[Image.Image], list[Image.Image]]:
+    """aim_0, aim_1, aim_2, fire_0, fire_1, fire_2 for one direction: the
+    empty-handed poses, and the pistol alone, frame by frame, to be drawn
+    over them."""
     base_name = "east" if direction == "west" else direction
     frames = []
+    guns = []
     for index in range(6):
         breathe = 1 if index == 2 else 0
         frame = idle[base_name][breathe].copy()
+        gun = Image.new("RGBA", (W, H), (0, 0, 0, 0))
         hide_hanging_hands(frame, pal)
         raised = index != 0
         recoil = 1 if index == 3 else 0
         if base_name == "east":
-            mx, my = arm_east(frame, pal, lift=recoil, raised=raised)
+            mx, my = arm_east(frame, pal, gun, metal, lift=recoil, raised=raised)
             if index in (3, 4):
                 flash_east(frame, mx, my, big=index == 3)
         elif base_name == "south":
-            mx, my = gun_south(frame, pal, lift=recoil, raised=raised)
+            mx, my = gun_south(frame, pal, gun, metal, lift=recoil, raised=raised)
             if index in (3, 4):
                 flash_south(frame, mx, my, big=index == 3)
         else:
@@ -236,8 +255,10 @@ def gun_frames(idle, pal, direction: str) -> list[Image.Image]:
             put(frame, sx - 1, sy - 1, SMOKE)
         if direction == "west":
             frame = frame.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+            gun = gun.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
         frames.append(frame)
-    return frames
+        guns.append(gun)
+    return frames, guns
 
 
 # ------------------------------------------------------------ throwable
@@ -553,9 +574,17 @@ def main() -> None:
     missing = [name for name, colour in pal.items() if colour is None]
     if missing:
         raise SystemExit(f"could not find colours: {missing}")
-    sheet([gun_frames(idle, pal, d) for d in ROWS]).save(
-        os.path.join(SPRITES, "base_gun.png")
-    )
+    for outfit in OUTFITS:
+        outfit_idle = load_idle(outfit)
+        outfit_pal = palette(outfit_idle, outfit)
+        sheet([gun_frames(outfit_idle, outfit_pal, d)[0] for d in ROWS]).save(
+            os.path.join(SPRITES, f"{outfit}_gun.png")
+        )
+    os.makedirs(OBJECTS, exist_ok=True)
+    for name, metal in (("pistol_held", STEEL), ("pistol_gold_held", GOLD)):
+        sheet([gun_frames(idle, pal, d, metal)[1] for d in ROWS]).save(
+            os.path.join(OBJECTS, f"{name}.png")
+        )
     sheet([pickup_frames(idle, pal, d) for d in ROWS]).save(
         os.path.join(SPRITES, "base_pickup.png")
     )
@@ -571,8 +600,9 @@ def main() -> None:
     backpack(pal).save(os.path.join(OBJECTS, "backpack.png"))
     held_molotov().save(os.path.join(OBJECTS, "molotov_held.png"))
     print(
-        "wrote base_gun.png, base_pickup.png, throwable outfit sheets, "
-        "assets/objects/backpack.png and assets/objects/molotov_held.png"
+        "wrote the gun and throwable outfit sheets, base_pickup.png, "
+        "assets/objects/backpack.png, molotov_held.png, pistol_held.png "
+        "and pistol_gold_held.png"
     )
 
 

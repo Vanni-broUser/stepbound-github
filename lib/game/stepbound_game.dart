@@ -134,6 +134,7 @@ final class StepboundGame extends FlameGame
     throwArea: () => placeAt(
       simulation.player.component<PositionComponent>().position,
     )?.bounds,
+    goldenPistol: () => progress.hasGoldenPistol,
   );
   late final FollowCamera _camera = FollowCamera(camera);
   late final PlaceLayers _places = PlaceLayers(
@@ -1140,7 +1141,8 @@ final class StepboundGame extends FlameGame
             : PlayerPoseFamily.oneHanded
         ..aimingWeapon = entry.key == playerId && input.throwing
             ? PlayerWeaponSprite.molotov
-            : null;
+            : null
+        ..goldenPistol = entry.key == playerId && progress.hasGoldenPistol;
     }
   }
 

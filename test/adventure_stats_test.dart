@@ -90,13 +90,22 @@ void main() {
     expect(city(LevelId.rome), findsOneWidget);
   });
 
-  testWidgets('beside the way out, the memories to live again and the '
-      'secret missions, which open in place of the figures', (tester) async {
+  testWidgets('beside the way out, the memories to live again and, once '
+      'the city is played to its end, the secret missions, which open in '
+      'place of the figures', (tester) async {
     await pumpStats(tester, Progress());
-
     await tap(tester, 'adventure-stats-memories');
     expect(replays, 1);
+    expect(
+      find.byKey(const ValueKey<String>('adventure-stats-secrets')),
+      findsNothing,
+      reason: 'Molfetta is not over yet',
+    );
 
+    await pumpStats(
+      tester,
+      Progress(memories: const <StoryMemory>[StoryMemory.luigiAtStation]),
+    );
     await tap(tester, 'adventure-stats-secrets');
     expect(find.byKey(const ValueKey<String>('secret-missions')), findsOne);
     expect(city(LevelId.hometown), findsNothing);
@@ -104,5 +113,44 @@ void main() {
     await tap(tester, 'secret-missions-back');
     expect(city(LevelId.hometown), findsOneWidget);
     expect(closes, 0);
+  });
+
+  testWidgets('while a city is being played its totals are not given away', (
+    tester,
+  ) async {
+    await pumpStats(tester, Progress());
+    expect(find.textContaining('/ ???'), findsWidgets);
+
+    await pumpStats(
+      tester,
+      Progress(memories: const <StoryMemory>[StoryMemory.luigiAtStation]),
+    );
+    expect(find.textContaining('/ ???'), findsNothing);
+  });
+
+  testWidgets('a secret mission is dared on its page until done; then it '
+      'is listed with its city missions and counted apart', (tester) async {
+    final progress = Progress(
+      memories: const <StoryMemory>[StoryMemory.luigiAtStation],
+    );
+    await pumpStats(tester, progress);
+    await tap(tester, 'adventure-stats-secrets');
+    expect(
+      find.byKey(const ValueKey<String>('secret-mission-unarmedToLuigi')),
+      findsOneWidget,
+    );
+    expect(find.text(SecretMission.unarmedToLuigi.text), findsOneWidget);
+    await tap(tester, 'secret-missions-back');
+    expect(find.byKey(const ValueKey<String>('secret-stat')), findsNothing);
+
+    progress.secretMissions.add(SecretMission.unarmedToLuigi);
+    await pumpStats(tester, progress);
+    expect(find.byKey(const ValueKey<String>('secret-stat')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('secret-row-unarmedToLuigi')),
+      findsOneWidget,
+    );
+    await tap(tester, 'adventure-stats-secrets');
+    expect(find.text("Nessun'altra missione segreta per ora"), findsOneWidget);
   });
 }

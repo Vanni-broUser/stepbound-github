@@ -167,6 +167,28 @@ void main() {
     },
   );
 
+  test('starting Molfetta over keeps the secret missions done, and the '
+      'golden pistol with them', () async {
+    session.slot = 2;
+    await session.store(snapshot());
+    expect(
+      await session.saveLevelStart(
+        secretMissions: const <SecretMission>{SecretMission.unarmedToLuigi},
+      ),
+      isTrue,
+    );
+    final start = Progress.fromJson((await saves.load(2))!.progress);
+    expect(start.hasGoldenPistol, isTrue);
+    expect(session.newGame().progress.hasGoldenPistol, isTrue);
+
+    await session.startNew(2);
+    expect(
+      session.newGame().progress.hasGoldenPistol,
+      isFalse,
+      reason: 'a new game in the slot starts with nothing',
+    );
+  });
+
   test('another level starts over where Mario arrived in it', () async {
     session.slot = 2;
     final start = LevelStart(

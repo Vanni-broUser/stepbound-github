@@ -147,6 +147,15 @@ final Map<StoryMemory, List<StoryScene>> memoryScenes =
             music: Music.luigi,
           ),
       ],
+      // Luigi's words only: what the pistol does was said once, there.
+      StoryMemory.goldenPistol: <StoryScene>[
+        StoryScene(
+          image: StationScript.goldenPistolGift.image,
+          speaker: StationScript.goldenPistolGift.speaker,
+          text: StationScript.goldenPistolGift.text,
+          music: Music.luigi,
+        ),
+      ],
     };
 
 /// Every story scene seen so far, one after the other, in the order they

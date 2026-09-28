@@ -105,6 +105,8 @@ final class _AmmoBadge extends StatelessWidget {
           ]),
           builder: (context, _) {
             final isEmpty = loaded == 0;
+            final golden = game.progress.hasGoldenPistol;
+            final pistol = golden ? "Pistola d'oro" : 'Pistola';
             // Flames only when there is a choice: the pistol alone is simply
             // the pistol.
             final inHand =
@@ -126,12 +128,12 @@ final class _AmmoBadge extends StatelessWidget {
               ),
               // A little up and right of the middle, so the count does not
               // cover the grip.
-              child: const Align(
-                alignment: Alignment(0.2, -0.3),
+              child: Align(
+                alignment: const Alignment(0.2, -0.3),
                 child: _Mirrored(
                   CustomPaint(
-                    size: Size(34, 23.4),
-                    painter: ColourPistolIcon(),
+                    size: const Size(34, 23.4),
+                    painter: ColourPistolIcon(golden: golden),
                   ),
                 ),
               ),
@@ -157,10 +159,10 @@ final class _AmmoBadge extends StatelessWidget {
               enabled: hasGun,
               selected: inHand,
               label: !hasGun
-                  ? 'Pistola da trovare, proiettili: $loaded'
+                  ? '$pistol da trovare, proiettili: $loaded'
                   : inHand
-                  ? 'Pistola in mano, proiettili: $loaded'
-                  : 'Pistola, proiettili: $loaded, tocca per prenderla',
+                  ? '$pistol in mano, proiettili: $loaded'
+                  : '$pistol, proiettili: $loaded, tocca per prenderla',
               child: GestureDetector(
                 onTap: hasGun
                     ? () {

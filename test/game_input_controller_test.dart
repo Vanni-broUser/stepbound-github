@@ -19,8 +19,11 @@ final class _Harness {
       dropQueuedSteps: () => dropped++,
       toggleDebug: () => debugToggles++,
       throwArea: () => null,
+      goldenPistol: () => golden,
     );
   }
+
+  bool golden = false;
 
   final WorldState world = playerOnlyWorld();
   final List<PlayerAction> submitted = <PlayerAction>[];
@@ -115,6 +118,19 @@ void main() {
       expect(h.facing, Direction.north);
       expect(h.submitted.single, isA<ShootAction>());
       expect(h.input.aiming.value, isFalse);
+    });
+
+    test('the golden pistol hits twice as hard as the plain one', () {
+      final h = _Harness();
+      h.input
+        ..beginAim()
+        ..pressDirection(Direction.north);
+      expect((h.submitted.last as ShootAction).damage, 1);
+      h.golden = true;
+      h.input
+        ..beginAim()
+        ..pressDirection(Direction.north);
+      expect((h.submitted.last as ShootAction).damage, 2);
     });
 
     test('with nothing loaded aiming only clicks', () {

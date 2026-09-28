@@ -30,6 +30,8 @@ void main() {
     expect(world.map.tileAt(duomoUpperLockedDoorTile).isWalkable, isTrue);
     expect(world.pickups[duomoKeyPickupId]!.collected, isTrue);
     final progress = Progress.fromJson(save.progress);
+    expect(progress.hasGoldenPistol, isTrue);
+    expect(progress.memories, contains(StoryMemory.goldenPistol));
     expect(
       progress.knownZombies,
       containsAll(levelZombieKinds(LevelId.hometown).toSet()),
