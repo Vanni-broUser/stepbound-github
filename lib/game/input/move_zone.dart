@@ -58,6 +58,9 @@ final class _MoveZoneState extends State<MoveZone> {
   void dispose() {
     widget.game.pinching.removeListener(_onPinch);
     _stop();
+    // A thumb still down when a text box takes the controls away keeps
+    // sending its moves here: forgotten, they are ignored.
+    _pointer = null;
     super.dispose();
   }
 
