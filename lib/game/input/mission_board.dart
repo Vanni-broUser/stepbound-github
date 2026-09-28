@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/ui/blood_decor.dart';
@@ -62,6 +63,8 @@ final class MissionBoard extends StatelessWidget {
                         key: ValueKey<Mission>(row.mission),
                         mission: row.mission,
                         done: row.done,
+                        isNew: game.showsMissionFirst,
+                        onStroke: () => game.audio.play(Sfx.penStroke),
                         onGone: () => game.missionCrossedOut(row.mission),
                       ),
                   ],
@@ -111,19 +114,28 @@ final class _CityHeading extends StatelessWidget {
   }
 }
 
-/// One mission and its box. It fades in when handed out; once [done], it
-/// waits a moment, is crossed out stroke by stroke, stays crossed a moment
-/// and folds away, then [onGone].
+/// One mission and its box. It fades in when handed out ([isNew]), and
+/// is simply there when the corner comes back after a dialogue; once
+/// [done], it waits a moment, is crossed out stroke by stroke, each with
+/// the scratch of a pen ([onStroke]), stays crossed a moment and folds
+/// away, then [onGone].
 final class _MissionRow extends StatefulWidget {
   const _MissionRow({
     required this.mission,
     required this.done,
+    required this.isNew,
+    required this.onStroke,
     required this.onGone,
     super.key,
   });
 
   final Mission mission;
   final bool done;
+
+  /// Asked once, when the row first shows: whether the mission is new to
+  /// the corner.
+  final bool Function(Mission mission) isNew;
+  final VoidCallback onStroke;
   final VoidCallback onGone;
 
   /// Waiting, crossing, looking at it crossed, folding away.
@@ -154,14 +166,34 @@ final class _MissionRowState extends State<_MissionRow>
     curve: const Interval(0.78, 1, curve: Curves.easeInCubic),
   );
 
+  /// The strokes of the cross heard so far.
+  int _strokesHeard = 0;
+
   @override
   void initState() {
     super.initState();
+    _cross.addListener(_hearStrokes);
+    final isNew = widget.isNew(widget.mission);
     if (widget.done) {
       _appear.value = 1;
       unawaited(_crossOut());
-    } else {
+    } else if (isNew) {
       unawaited(_appear.forward());
+    } else {
+      _appear.value = 1;
+    }
+  }
+
+  /// Each stroke is heard as the pen starts it.
+  void _hearStrokes() {
+    final strokes = _strokes.value > 0.5
+        ? 2
+        : _strokes.value > 0
+        ? 1
+        : 0;
+    while (_strokesHeard < strokes) {
+      _strokesHeard++;
+      widget.onStroke();
     }
   }
 
@@ -173,10 +205,12 @@ final class _MissionRowState extends State<_MissionRow>
     } else if (!widget.done && oldWidget.done) {
       // Handed out again before it was gone.
       _cross.value = 0;
+      _strokesHeard = 0;
     }
   }
 
   Future<void> _crossOut() async {
+    _strokesHeard = 0;
     try {
       await _cross.forward(from: 0).orCancel;
     } on TickerCanceled {

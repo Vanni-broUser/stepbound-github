@@ -75,6 +75,12 @@ enum Sfx {
   playerFall(<String>['sfx/player_fall.mp3']),
   gameOver(<String>['sfx/game_over.mp3'], voices: 1, lingers: true),
   uiClick(<String>['sfx/ui_click.mp3'], volume: 0.6),
+
+  /// A pen scratched across paper: one stroke of a mission's cross.
+  penStroke(<String>[
+    'sfx/pen_stroke_1.mp3',
+    'sfx/pen_stroke_2.mp3',
+  ], volume: 0.8),
   dialogue(<String>['sfx/dialogue.mp3'], volume: 0.5);
 
   const Sfx(

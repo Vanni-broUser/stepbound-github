@@ -76,6 +76,9 @@ SOURCES = {
             "RPG Audio", "Kenney.nl", "CC0"),
     "ui": (KENNEY + "ui-audio/490d233f68-1677590494/kenney_ui-audio.zip",
            "UI Audio", "Kenney.nl", "CC0"),
+    "interface": (KENNEY + "interface-sounds/fa43c1dd4d-1677589452/"
+                  "kenney_interface-sounds.zip", "Interface Sounds",
+                  "Kenney.nl", "CC0"),
 }
 
 # Loops: (output, source, start s, end s, crossfade s, loudness LUFS).
@@ -136,6 +139,11 @@ SFX = [
      None, -3, None),
     ("sfx/ui_click.mp3", "ui", "Audio/click3.ogg", None, -8, None),
     ("sfx/dialogue.mp3", "ui", "Audio/switch2.ogg", None, -14, None),
+    # A pen scratched across paper: the two strokes of a mission's cross.
+    ("sfx/pen_stroke_1.mp3", "interface", "Audio/scratch_004.ogg", None, -8,
+     None),
+    ("sfx/pen_stroke_2.mp3", "interface", "Audio/scratch_005.ogg", None, -8,
+     None),
 ]
 
 # One-shots mixed from several sounds: (output, peak dBFS, layers), each

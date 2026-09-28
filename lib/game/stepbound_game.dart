@@ -192,6 +192,18 @@ final class StepboundGame extends FlameGame
       ]);
   late int _missionsSeen = progress.missions.revision;
 
+  /// The missions the corner has shown in this game. The corner goes
+  /// while something is said and comes back after: only a mission it has
+  /// never shown fades in, the others are just there, like the rest of
+  /// the controls. Those open when the game is loaded count as shown.
+  late final Set<Mission> _missionsShown = <Mission>{
+    for (final row in missions.value) row.mission,
+  };
+
+  /// Whether the corner is showing [mission] for the first time: true
+  /// once, then false.
+  bool showsMissionFirst(Mission mission) => _missionsShown.add(mission);
+
   /// The corner has crossed [mission] out: its row goes.
   void missionCrossedOut(Mission mission) {
     final rows = missions.value;
