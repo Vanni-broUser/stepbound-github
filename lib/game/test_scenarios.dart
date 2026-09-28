@@ -78,6 +78,17 @@ final class ScenarioBuilder {
     }
   }
 
+  /// Every zombie whose id starts with [prefix] is back on its feet, where
+  /// the level put it.
+  void revive(String prefix) {
+    for (final entity in world.entities.values) {
+      if (entity.id.startsWith(prefix)) {
+        final health = entity.component<HealthComponent>();
+        health.current = health.maximum;
+      }
+    }
+  }
+
   String? _savedAt;
 
   /// Saved at [fire], as a game is: Mario beside it, facing it, the slot
@@ -226,6 +237,13 @@ final TestScenario vanniDeployScenario = TestScenario(
     story.world.player.component<AmmoComponent>()
       ..loaded = 10
       ..molotovs = molotovBackpackCount;
+
+    // Nobody killed on the way: the gate's two zombies stay where they
+    // stood, so the level's count starts from zero.
+    story.revive(priestZombiePrefix);
+
+    // Every zombie type of Molfetta met, as the book on the train shows.
+    levelZombieKinds(LevelId.hometown).forEach(story.progress.meet);
 
     // Keep this scenario complete when another Molfetta memory is added.
     for (final memory in StoryMemory.values) {
