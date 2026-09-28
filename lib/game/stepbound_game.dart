@@ -825,23 +825,23 @@ final class StepboundGame extends FlameGame
     }
   }
 
-  /// The memories, played from the figures of the adventure with the
-  /// story's sound; the game's comes back when they end.
-  void replayMemories() {
+  /// The memories of [level], played from the figures of the adventure
+  /// with the story's sound; the game's comes back when they end.
+  void replayMemories(LevelId level) {
     soundscapePaused = true;
     audio
       ..silenceAmbience()
       ..setMusicLevel(1)
       ..playMusic(Music.story);
-    _cover(const MemoriesCover());
+    _cover(MemoriesCover(level));
   }
 
-  /// Called once the memories are over, or left: back to the figures
-  /// they were played from.
+  /// Called once the memories are over, or left: back to the figures of
+  /// the city they were played from.
   void closeMemories() {
-    if (cover.value is MemoriesCover) {
+    if (cover.value case MemoriesCover(:final level)) {
       soundscapePaused = false;
-      cover.value = const AdventureStatsCover();
+      cover.value = AdventureStatsCover(level: level);
     }
   }
 

@@ -418,10 +418,11 @@ final class _StepboundAppState extends State<StepboundApp> {
       onBlack: game.placeCardBlack,
       onFinished: game.dismissPlaceCard,
     ),
-    AdventureStatsCover() => Letterbox(
+    AdventureStatsCover(:final level) => Letterbox(
       color: AdventureStats.backdrop,
       child: AdventureStats(
         world: game.simulation,
+        level: level,
         progress: game.progress,
         onClose: game.closeAdventureStats,
         onReplayMemories: game.replayMemories,
@@ -431,11 +432,11 @@ final class _StepboundAppState extends State<StepboundApp> {
       color: ZombieBook.backdrop,
       child: ZombieBook(progress: game.progress, onClose: game.closeZombieBook),
     ),
-    MemoriesCover() => Letterbox(
+    MemoriesCover(:final level) => Letterbox(
       color: Colors.black,
       child: StoryIntro(
         key: const ValueKey<String>('train-memories-story'),
-        scenes: seenScenes(game.progress, game.progress.level),
+        scenes: seenScenes(game.progress, level),
         allowBackNavigation: true,
         // Each memory with the music it was lived with, the rest with the
         // story's.

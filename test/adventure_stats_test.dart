@@ -6,11 +6,15 @@ import 'package:stepbound/ui/level_complete.dart';
 
 void main() {
   late int closes;
-  late int replays;
+  late List<LevelId> replays;
 
-  Future<void> pumpStats(WidgetTester tester, Progress progress) async {
+  Future<void> pumpStats(
+    WidgetTester tester,
+    Progress progress, {
+    LevelId? level,
+  }) async {
     closes = 0;
-    replays = 0;
+    replays = <LevelId>[];
     tester.view.physicalSize = const Size(768, 432);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -19,8 +23,9 @@ void main() {
         home: AdventureStats(
           world: createGameWorld(),
           progress: progress,
+          level: level,
           onClose: () => closes++,
-          onReplayMemories: () => replays++,
+          onReplayMemories: replays.add,
         ),
       ),
     );
@@ -79,6 +84,27 @@ void main() {
     expect(city(LevelId.rome), findsOneWidget);
   });
 
+  testWidgets('the memories lived again are those of the city shown', (
+    tester,
+  ) async {
+    await pumpStats(tester, Progress()..travel(LevelId.rome, rounds: 3));
+    await tap(tester, 'adventure-stats-memories');
+    await tap(tester, 'adventure-stats-next');
+    await tap(tester, 'adventure-stats-memories');
+    expect(replays, <LevelId>[LevelId.rome, LevelId.hometown]);
+  });
+
+  testWidgets('back from the memories it opens on the city they were of', (
+    tester,
+  ) async {
+    await pumpStats(
+      tester,
+      Progress()..travel(LevelId.rome, rounds: 3),
+      level: LevelId.hometown,
+    );
+    expect(city(LevelId.hometown), findsOneWidget);
+  });
+
   testWidgets('back in Molfetta after Rome, it opens on Molfetta, with the '
       'arrows to Rome', (tester) async {
     final progress = Progress()
@@ -95,7 +121,7 @@ void main() {
       'place of the figures', (tester) async {
     await pumpStats(tester, Progress());
     await tap(tester, 'adventure-stats-memories');
-    expect(replays, 1);
+    expect(replays, <LevelId>[LevelId.hometown]);
     expect(
       find.byKey(const ValueKey<String>('adventure-stats-secrets')),
       findsNothing,
