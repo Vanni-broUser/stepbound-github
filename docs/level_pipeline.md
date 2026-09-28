@@ -4,20 +4,14 @@ Ogni posto del gioco e dipinto a runtime dalle sue righe ASCII, con l'atlas
 di `assets/levels/tiles` generato da `tools/build_tile_atlas.py` (interni) e
 `tools/tile_atlas_city.py` (citta). Restano da fare:
 
-## Verifica sul dispositivo minimo
+## Confronto a schermo con la versione precedente
 
-Nessuna conversione e stata guardata su un telefono: i confronti sono stati
-fatti pixel per pixel e a occhio sulle anteprime
-(`python tools/build_tile_atlas.py --preview DIR`). Sul dispositivo minimo
-di `docs/target_devices.md` vanno fatti:
-
-- **il confronto a schermo** dei posti con la versione precedente, per
-  primi i quattro della citta, dove tetti e facciate sono cambiati;
-- **il tempo di caricamento**: un posto della citta si compone in 170-300 ms
-  nella VM dei test, una volta all'avvio della partita. Va misurato in
-  release;
-- **il frame rate**, che non dovrebbe cambiare (a ogni frame resta
-  un'immagine per posto, come prima) ma va confermato.
+Tempi di caricamento e frame rate dei posti dipinti a runtime sono stati
+misurati su un telefono (`docs/device_measurements.md`), e citta, caserma,
+porto e Duomo sono risultati disegnati come nelle anteprime
+(`python tools/build_tile_atlas.py --preview DIR`). Resta il confronto
+fianco a fianco con la versione precedente alla conversione, per primi i
+quattro posti della citta, dove tetti e facciate sono cambiati.
 
 ## Dividere i file troppo grandi
 

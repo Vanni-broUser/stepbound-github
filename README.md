@@ -138,6 +138,7 @@ JSON asset, and the generator's own list of kinds.
 
 See `CONTRIBUTING.md` for the GitLab workflow,
 `docs/target_devices.md` for the physical-device matrix,
+`docs/device_measurements.md` for the figures measured on real phones,
 `docs/save_policy.md` for which save formats a build must still load, and
 `docs/maintainability_and_scalability_backlog.md` for the prioritised technical
 improvement backlog.

@@ -7,34 +7,8 @@ What has been dealt with leaves the list: the commits say what was done
 and why. The figures quoted were measured on the development machine with
 a throwaway script over `lib/core`; a Go phone is five to ten times slower.
 
-Suggested order: measure a release build on the minimum phone, then settle
-the save policy, then the rest.
-
-## P1 — Measure a release build on the minimum phone
-
-Nothing has been measured outside the test VM, and debug builds say nothing
-about performance: Dart runs JIT-compiled, asserts are on and the APK is
-several times the size. The minimum device in `docs/target_devices.md` is an
-Android Go phone with 2 GB of RAM.
-
-- Install a release APK on the minimum phone and on the mid-range one: the
-  GitLab job `build_android_release_apk`, run with
-  `STEPBOUND_DIAGNOSTICS=1`, shows frame rate, the slowest frame, the
-  game's load time and the last area's over the game.
-- Measure the time from "Continua" to the first frame of play, the time an
-  area takes to compose, and the frame rate in the city and in the Duomo.
-- Confirm the frame rate indoors: `LightingComponent` now draws the
-  darkness with its steady lamps from an image composed once, and cuts
-  only the flickering lamps, the torches and Mario's halo live, each in
-  a layer no bigger than its pool. It was designed for the Go phone's
-  GPU, not measured on it. Nothing in the simulation comes close: a turn
-  with every zombie hunting costs 0.06 ms on the development machine.
-- Compare the places on screen with the previous version (see
-  `docs/level_pipeline.md`).
-- Record device, build, commit and figures in the merge request, as for the
-  F0 smoke test.
-
-The numbers decide how urgent the memory items below are.
+Suggested order: settle the save policy, then the rest. Figures from real
+phones live in `docs/device_measurements.md`.
 
 ## P1 — A save policy for the public demo
 
@@ -55,10 +29,12 @@ data: `docs/save_policy.md` says which save formats a build must still load.
 ## P2 — What is left of loading the places by area
 
 - An area's places are composed one at a time as Mario walks into it
-  (`PlaceLayers`), so a frame carries at most one picture; whether the
-  harbour's, 2304×992 (8.7 MB) plus a front layer of the same size, is
-  still a hitch on the minimum phone is for the P1 figures to say. The
-  harbour area holds about 28 MB of place images, the town about 29 MB.
+  (`PlaceLayers`), so a frame carries at most one picture. On a Redmi 9
+  the harbour's, 2304×992 (8.7 MB) plus a front layer of the same size,
+  composes in 257 ms with no visible hitch (`docs/device_measurements.md`);
+  that phone has 6 GB, though. The harbour area holds about 28 MB of place
+  images, the town about 29 MB: whether that fits a 2 GB phone is still
+  unmeasured.
 - New areas as the levels grow: a place's `area` decides what is loaded
   with it, so a big new district wants an area of its own.
 - The simulation grid is still whole: 1902×62, 117,924 `Tile` objects
