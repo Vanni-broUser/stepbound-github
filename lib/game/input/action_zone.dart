@@ -82,6 +82,9 @@ final class _ActionZoneState extends State<ActionZone> {
   void dispose() {
     _game.pinching.removeListener(_onPinch);
     _hold?.cancel();
+    // A finger still down when a text box takes the controls away keeps
+    // sending its moves and its lift here: forgotten, they are ignored.
+    _pointer = null;
     super.dispose();
   }
 

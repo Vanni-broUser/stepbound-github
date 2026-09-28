@@ -2255,6 +2255,38 @@ void main() {
     }
   });
 
+  testWidgets('thumbs still down when a text box takes the controls away '
+      'move and lift without touching the controls that are gone', (tester) {
+    return tester.runAsync(() async {
+      final game = await _pumpReadyGame(tester);
+      // Far enough apart in time not to be taken for a pinch.
+      final left = await tester.createGesture(pointer: 1);
+      await left.down(
+        tester.getCenter(find.byKey(const ValueKey<String>('touch-move'))),
+      );
+      final right = await tester.createGesture(pointer: 2);
+      await right.down(
+        tester.getCenter(find.byKey(const ValueKey<String>('touch-act'))),
+        timeStamp: const Duration(seconds: 1),
+      );
+      await left.moveBy(const Offset(0, -30));
+      await right.moveBy(const Offset(4, 0));
+      expect(game.pinching.value, isFalse);
+
+      game.showPrompt(const <StoryLine>[StoryLine('Un messaggio')]);
+      await tester.pump();
+      expect(find.byKey(const ValueKey<String>('touch-move')), findsNothing);
+
+      // The same fingers keep going over the text box, then lift.
+      await left.moveBy(const Offset(10, -10));
+      await right.moveBy(const Offset(-10, 10));
+      await left.up();
+      await right.up();
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   testWidgets('a story line over a picture already seen comes up with the '
       'tap that turns to it', (tester) async {
     const same = 'assets/story/scenes/mario_luigi_reunion.jpg';
