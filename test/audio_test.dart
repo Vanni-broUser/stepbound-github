@@ -8,6 +8,9 @@ import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/game_audio.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/audio/soundscape.dart';
+import 'package:stepbound/game/levels/rome_stage.dart';
+import 'package:stepbound/game/progress.dart';
+import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/save/save_game.dart';
 
 import 'test_world.dart';
@@ -40,6 +43,19 @@ void _hunt(WorldState world) =>
         const GridPoint(1, 1);
 
 void main() {
+  test('Rome has its own music, in the station and the streets alike', () {
+    final stage = RomeStage(
+      StepboundGame(world: createGameWorld(), progress: Progress()),
+    );
+    for (final place in gamePlaces) {
+      expect(
+        stage.musicOf(place.id),
+        place.level == LevelId.rome ? Music.rome : isNull,
+        reason: '${place.id}',
+      );
+    }
+  });
+
   group('Soundscape', () {
     test('plays the street outdoors and the barracks theme indoors', () {
       final soundscape = Soundscape(world: _corridor(), fires: const []);
