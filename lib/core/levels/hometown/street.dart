@@ -90,7 +90,7 @@ const List<String> streetLevelRows = <String>[
   'BBBB==========VVVVVT==:=====F===========BBBB',
   'BBBB.....CC..Z.....Z..............UU....BBBB',
   'BBBB........:Z.....Z..........XX........BBBB',
-  'BBBB-.-@-.-.-Z.....Z-:-.w.-.-.-.-.-.-D-.BBBB',
+  'BBBB-.-@-.-.-Z.....Z-:w.-.-.-.-.-.-.-D-.BBBB',
   'BBBB..:......Z.....Z.............d.2....BBBB',
   'BBBB.........Z.....Z......:...........d.BBBB',
   'BBBB=========T==========================BBBB',

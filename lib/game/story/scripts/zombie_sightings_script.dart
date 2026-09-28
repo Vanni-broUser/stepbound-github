@@ -18,9 +18,8 @@ final class ZombieSightingsScript extends StoryScript {
 
   @override
   void update({required bool turnAnimating}) {
-    // The camera can frame one zombie at a time: a new type waits for
-    // whatever is being said to be over, two in sight at once come one
-    // after the other.
+    // One lesson at a time: a new type waits for whatever is being said to
+    // be over, two in sight at once come one after the other.
     if (!director.isIdle) {
       return;
     }

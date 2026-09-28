@@ -113,18 +113,18 @@ void main() {
       ..pinch(2, Offset.zero);
     // Well to the south-east, where the zoom did not go.
     final mario = middle + Vector2(40, 28);
-    follow.follow(1 / 30, player: mario, place: street);
+    follow.follow(player: mario, place: street);
     final view = shown().deflate(FollowCamera.zoomMargin - 0.01);
     expect(view.contains(Offset(mario.x, mario.y)), isTrue);
   });
 
-  test('changing place, or a character to frame, brings the whole view '
-      'back', () {
+  test('changing place, or a zombie met for the first time, brings the '
+      'whole view back', () {
     follow
       ..beginPinch(const Offset(0.5, 0.5))
       ..pinch(2, const Offset(0.5, 0.5))
       ..endPinch()
-      ..follow(1 / 30, player: middle, place: place(PlaceId.barracks));
+      ..follow(player: middle, place: place(PlaceId.barracks));
     expect(follow.zoom, 1);
     expect(camera.viewfinder.zoom, 1);
 
@@ -132,13 +132,9 @@ void main() {
       ..beginPinch(const Offset(0.5, 0.5))
       ..pinch(2, const Offset(0.5, 0.5))
       ..endPinch()
-      ..follow(
-        1 / 30,
-        player: middle,
-        place: place(PlaceId.barracks),
-        focus: middle + Vector2(32, 0),
-      );
+      ..showWholeView();
     expect(follow.zoom, 1);
+    expect(camera.viewfinder.zoom, 1);
   });
 
   test('walking, Mario stays in the middle of the view, frame by frame', () {
@@ -146,23 +142,10 @@ void main() {
     var mario = middle.clone();
     for (var frame = 0; frame < 30; frame++) {
       mario = mario - Vector2(0, 16 / 0.13 / 60);
-      follow.follow(1 / 60, player: mario, place: street);
+      follow.follow(player: mario, place: street);
       final centre = shown().center;
       expect(centre.dx, closeTo(mario.x, 0.5));
       expect(centre.dy, closeTo(mario.y - FollowCamera.bodyHeight, 0.5));
     }
-  });
-
-  test('a character coming into focus is reached gliding, not jumped '
-      'to', () {
-    final friend = middle + Vector2(160, 0);
-    follow.follow(1 / 60, player: middle, place: street, focus: friend);
-    final moved = shown().center.dx - middle.x;
-    expect(moved, greaterThan(0));
-    expect(moved, lessThanOrEqualTo(FollowCamera.panSpeed / 60 + 0.5));
-    for (var frame = 0; frame < 60; frame++) {
-      follow.follow(1 / 60, player: middle, place: street, focus: friend);
-    }
-    expect(shown().center.dx, closeTo(middle.x + 80, 0.5));
   });
 }

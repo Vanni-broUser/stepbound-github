@@ -13,29 +13,19 @@ Rect pixelRect(GridRect bounds, {double tileSize = 16}) => Rect.fromLTRB(
   (bounds.bottom + 1) * tileSize,
 );
 
-/// Keeps Mario in the middle of the view, step by step as he walks,
-/// inside the place he is in; while a character is in focus it frames the
-/// two together. A target further than [glideDistance] away (focus coming
-/// or going) is reached gliding, so the view never jumps, but it snaps
-/// when Mario changes place. A place smaller than the view sits centred on
-/// the dark background.
+/// Keeps Mario in the middle of the view, frame by frame as he walks,
+/// inside the place he is in. A place smaller than the view sits centred
+/// on the dark background.
 ///
 /// Two fingers can bring the view closer (see [beginPinch]): it zooms
 /// toward the point they were pinched on and stays there, it does not
-/// pan. Changing place, or a character coming into focus, puts it back.
+/// pan. Changing place puts it back, and so does [showWholeView].
 final class FollowCamera {
   FollowCamera(this.camera);
 
   /// How far above his feet the middle of Mario is: that is what the view
   /// centres on, not his feet, or he would stand in its upper half.
   static const double bodyHeight = 12;
-
-  /// Closer than this the view keeps up with its target frame by frame; a
-  /// step is 16 pixels, so walking never falls behind.
-  static const double glideDistance = 24;
-
-  /// How fast the view glides to a target further than [glideDistance].
-  static const double panSpeed = 320;
 
   /// How close two fingers can bring the view.
   static const double maxZoom = 2;
@@ -112,6 +102,13 @@ final class FollowCamera {
     _show(_player);
   }
 
+  /// Back to the whole view, still around Mario: a zombie met for the first
+  /// time is framed in it wherever it is noticed from.
+  void showWholeView() {
+    _zoom = 1;
+    _show(_player);
+  }
+
   /// The fingers have lifted: nearly the whole view is the whole view.
   void endPinch() {
     if (_zoom < snapBackZoom) {
@@ -128,55 +125,24 @@ final class FollowCamera {
   void snapTo(Vector2 player, Place place) {
     _place = place;
     _zoom = 1;
-    _gliding = false;
     _centre = _rounded(_body(player));
     _clamp(place);
     _show(player);
   }
-
-  /// Still on the way to a target that was further than [glideDistance]:
-  /// it glides all the way there, it does not jump the last stretch.
-  bool _gliding = false;
 
   static Vector2 _body(Vector2 feet) => Vector2(feet.x, feet.y - bodyHeight);
 
   static Vector2 _rounded(Vector2 point) =>
       Vector2(point.x.roundToDouble(), point.y.roundToDouble());
 
-  /// One frame of following [player], framed with [focus] if there is one.
-  void follow(
-    double dt, {
-    required Vector2 player,
-    required Place place,
-    Vector2? focus,
-  }) {
+  /// One frame of following [player]: a new place is snapped to, with the
+  /// whole view, like the first one.
+  void follow({required Vector2 player, required Place place}) {
     if (place != _place) {
       snapTo(player, place);
       return;
     }
-    var target = _body(player);
-    if (focus != null) {
-      // Both have to be in the picture.
-      _zoom = 1;
-      target = (target + _body(focus))..scale(0.5);
-    }
-    // Where the view can go: a target past the edge of the place would
-    // otherwise look far away while the view already stands still.
-    final current = _centre.clone();
-    _centre = target;
-    _clamp(place);
-    target = _centre;
-    final offset = target - current;
-    if (offset.length > glideDistance) {
-      _gliding = true;
-    }
-    final maxStep = panSpeed * dt;
-    if (_gliding && offset.length > maxStep) {
-      offset.scaleTo(maxStep);
-    } else {
-      _gliding = false;
-    }
-    _centre = _rounded(current + offset);
+    _centre = _rounded(_body(player));
     _clamp(place);
     _show(player);
   }

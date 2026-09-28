@@ -32,7 +32,7 @@ final class SilentStoryHost implements StoryHost, HometownActions {
   void walkPlayer(Direction direction) {}
 
   @override
-  void focusOn(String? entityId) {}
+  void showWholeView() {}
 
   @override
   void spawnZombie(Entity zombie) {}
