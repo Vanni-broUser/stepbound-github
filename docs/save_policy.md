@@ -45,6 +45,15 @@ un'altra in coda.
    Cancella e riscrive `test/saves/published/`.
 3. Si committano insieme i due file e i salvataggi, nello stesso commit
    della build pubblicata.
+4. Il commit di `main` da cui si fa la build prende un tag (`v<versione>`,
+   la versione di `pubspec.yaml`): ogni build che arriva su un telefono
+   fuori dal team deve poter essere ricondotta al suo commit.
+5. Si pubblica la pagina privacy: il job manuale `privacy_policy_pages`
+   sulla branch predefinita (`docs/ci-pipeline.md`).
+
+Tutti e cinque i passi si fanno nel momento in cui la build esce, non
+prima: finche' non c'e' una build pubblica non c'e' niente da congelare
+ne' da taggare.
 
 ## Dopo, a ogni cambiamento del formato
 

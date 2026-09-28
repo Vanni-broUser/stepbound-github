@@ -14,44 +14,25 @@ held, dependencies at the newest resolvable versions, 36 merge requests
 landed in the two days since the previous check. The project is in good
 shape; nearly everything below is about the moment it goes public.
 
-Suggested order: the publication ritual (save policy, tags, privacy
-page), then the rest. The release key has its copy outside GitLab
-(2026-09-28), and the level-end save is awaited and reported.
+Suggested order: the publication ritual when the first build goes out,
+then the rest. The release key has its copy outside GitLab (2026-09-28),
+and the level-end save is awaited and reported.
 
-## P1 — A save policy for the public demo
+## P1 — The publication ritual, for the day of the first public build
 
-Once the demo is out, an update installs over the old one and keeps its
-data: `docs/save_policy.md` says which save formats a build must still load.
-`publishedSaveFormat` is still `null` and `SaveGame.format` is at 35: the
-mechanism and its test (`test/published_save_test.dart`) are ready, the
-first public build has to flip the switch. With `deploy_play` now able to
-put an App Bundle on a Play track (`gitlab/deploy-play.yml`), and main
-taking eighteen merges a day, the risk is a format bump right after the
-public build without the freeze commit. The ritual belongs in one place, in
-this order, all in the commit the build is made from:
-
-1. `publishedSaveFormat` takes `SaveGame.format`, the frozen saves are
-   rewritten (`flutter test tools/freeze_published_saves.dart`);
-2. the commit is tagged. There is no tag in the repository yet, and
-   `docs/device_measurements.md` had to guess which commit build 402 was
-   ("con ogni probabilità"): every build that reaches a phone outside the
-   team gets a tag;
-3. the privacy page is published (`privacy_policy_pages` is a manual job;
-   `privacy/index.html` still heads its filled-in publisher details with
-   "to complete before publication").
-
-Two rules already in the policy, restated:
-
-- The progress between levels (zombies met, memories, outfits, steps,
-  fires lit) is its own object in the save, `progress`, apart from the
-  game in progress: a migration that cannot carry the game keeps it and
-  puts the level back at its start (`docs/save_policy.md`, "Cosa una
-  migrazione tiene"). That is the rule; the first migration will be the
-  first to apply it.
-- The game put down (`docs/save_policy.md`, "Il salvataggio sospeso") is
-  written whenever the app leaves the front or the player leaves for the
-  menu, never in the middle of a story line or a scene: if a script ever
-  holds Mario for long without a prompt up, that stretch goes unsaved.
+Nothing to do before the build itself: the mechanism is ready and its
+switch is off. `publishedSaveFormat` is `null`, `SaveGame.format` moves
+freely, and `test/published_save_test.dart` checks that nothing is frozen
+while it is so. The ritual is written in one place,
+`docs/save_policy.md` ("Quando una build diventa pubblica"), and runs in
+the commit the build is made from: the format is fixed and the saves
+frozen, the commit on `main` is tagged (the first tag of the repository;
+`docs/device_measurements.md` had to guess which commit build 402 was),
+the manual `privacy_policy_pages` job publishes the privacy page, whose
+publisher details are already filled in. With `deploy_play` able to put
+an App Bundle on a Play track and main taking eighteen merges a day, the
+one risk is a build that reaches the public without that commit: tags
+start with it, and every later build that leaves the team gets one.
 
 ## P1 — Errors in the field
 
@@ -95,14 +76,6 @@ used.
 - The report says nothing about what the player was doing with their
   fingers: if touch input turns out to matter, the trail can take the
   input controller's actions too.
-
-## P2 — `deploy_play` cannot start
-
-`gitlab/deploy-play.yml` installs `tools/play/requirements.txt` before
-running `tools/play/upload.py`, and only the script is in the repository:
-the job fails at `before_script`. The script imports
-`google-api-python-client`, `google-auth` and `google-auth-httplib2`; pin
-them in that file.
 
 ## P2 — What is left of loading the places by area
 

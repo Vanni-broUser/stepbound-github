@@ -48,11 +48,13 @@ e `deploy`, per la pubblicazione su Google Play (`deploy_play`), TestFlight
 - `deploy_testflight`: carica l'IPA su TestFlight via `xcrun altool`. Richiede
   `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8`.
 - `privacy_policy_pages`: job manuale disponibile solo sulla branch predefinita.
-  Pubblica `privacy/index.html` come pagina GitLab Pages. Prima di avviarlo,
-  sostituire nella pagina i segnaposto `REPLACE_BEFORE_PUBLICATION` con la
-  denominazione legale dell'editore e un indirizzo email privacy monitorato.
-  L'URL effettivo si trova in **Deploy > Pages** dopo il completamento del job;
-  verificare che sia accessibile senza login prima di inserirlo in Play Console.
+  Pubblica `privacy/index.html` come pagina GitLab Pages; e' l'ultimo passo
+  del rituale di pubblicazione (`docs/save_policy.md`, "Quando una build
+  diventa pubblica"). La pagina porta gia' denominazione legale e contatto
+  privacy dell'editore; il job si ferma se nella pagina ricompare un
+  segnaposto `REPLACE_BEFORE_PUBLICATION`. L'URL effettivo si trova in
+  **Deploy > Pages** dopo il completamento del job; verificare che sia
+  accessibile senza login prima di inserirlo in Play Console.
 
 Il web non ha un job: non distribuiamo il gioco sul browser, lo usiamo solo
 per provarlo in locale con `flutter build web` o `flutter run -d chrome`, e
