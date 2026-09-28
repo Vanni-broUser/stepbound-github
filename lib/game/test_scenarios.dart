@@ -238,9 +238,15 @@ final TestScenario vanniDeployScenario = TestScenario(
       ..loaded = 10
       ..molotovs = molotovBackpackCount;
 
+    // The key found by Don Angelo's body, used up on the door upstairs: the
+    // way to the bell tower stands open, as the memories up there say.
+    //
     // Nobody killed on the way: the gate's two zombies stay where they
     // stood, so the level's count starts from zero.
-    story.revive(priestZombiePrefix);
+    story
+      ..collect(duomoKeyPickupId)
+      ..world.map.setTile(duomoUpperLockedDoorTile, const Tile(TileKind.floor))
+      ..revive(priestZombiePrefix);
 
     // Every zombie type of Molfetta met, as the book on the train shows.
     levelZombieKinds(LevelId.hometown).forEach(story.progress.meet);
@@ -430,6 +436,8 @@ void _ringFound(ScenarioBuilder story) {
   _welcomed(story);
   story.world.map.setTile(barLockedDoorTile, const Tile(TileKind.floor));
   story
+    // Used up on the storeroom door, as the game does.
+    ..putAway(HudElement.barKey)
     ..collect(episcopalRingPickupId)
     ..unlock(HudElement.episcopalRing);
 }
