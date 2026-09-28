@@ -27,9 +27,6 @@ deploy_testflight:
   script:
     - |
       set -eu
-      echo "=== Diagnostica Ambiente ==="
-      echo "Data/ora Mac (UTC): $(date -u)"
-
       for v in ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8; do
         eval "val=\${$v:-}"
         if [ -z "$val" ]; then
@@ -41,9 +38,6 @@ deploy_testflight:
       KEY_ID=$(echo "$ASC_KEY_ID" | tr -d '[:space:]')
       ISSUER_ID=$(echo "$ASC_ISSUER_ID" | tr -d '[:space:]')
 
-      echo "Key ID: ${KEY_ID:0:3}...${KEY_ID: -3} (totale: ${#KEY_ID} car)"
-      echo "Issuer ID: ${ISSUER_ID:0:4}...${ISSUER_ID: -4} (totale: ${#ISSUER_ID} car)"
-
       mkdir -p "$HOME/private_keys" "$HOME/.private_keys" "$HOME/.appstoreconnect/private_keys"
 
       KEY_FILE="$HOME/private_keys/AuthKey_${KEY_ID}.p8"
@@ -52,47 +46,6 @@ deploy_testflight:
 
       cp "$KEY_FILE" "$HOME/.private_keys/AuthKey_${KEY_ID}.p8"
       cp "$KEY_FILE" "$HOME/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8"
-
-      echo "Dimensione file chiave: $(wc -c < "$KEY_FILE") byte, righe: $(wc -l < "$KEY_FILE")"
-
-      # Test validazione e verifica autenticazione diretta con l'API Apple
-      ruby - "$KEY_FILE" "$KEY_ID" "$ISSUER_ID" <<'EOF'
-      require "openssl"
-      require "base64"
-      require "json"
-      require "net/http"
-
-      key_file, key_id, issuer_id = ARGV
-
-      begin
-        key = OpenSSL::PKey::EC.new(File.read(key_file))
-        puts "OpenSSL: Chiave EC valida (curva: #{key.group.curve_name})"
-      rescue => e
-        puts "ERRORE critico: lettura chiave fallita: #{e}"
-        exit 1
-      end
-
-      def b64(str)
-        Base64.urlsafe_encode64(str, padding: false)
-      end
-
-      h = b64(JSON.generate({ alg: "ES256", kid: key_id, typ: "JWT" }))
-      p = b64(JSON.generate({ iss: issuer_id, iat: Time.now.to_i, exp: Time.now.to_i + 1200, aud: "appstoreconnect-v1" }))
-      msg = "#{h}.#{p}"
-      digest = OpenSSL::Digest::SHA256.digest(msg)
-      asn1_sig = key.dsa_sign_asn1(digest)
-      asn1 = OpenSSL::ASN1.decode(asn1_sig)
-      r = asn1.value[0].value.to_s(2).rjust(32, "\x00")
-      s = asn1.value[1].value.to_s(2).rjust(32, "\x00")
-      jwt = "#{msg}.#{b64(r + s)}"
-
-      uri = URI("https://api.appstoreconnect.apple.com/v1/apps")
-      req = Net::HTTP::Get.new(uri)
-      req["Authorization"] = "Bearer #{jwt}"
-      res = Net::HTTP.start(uri.hostname, uri.port, use_ssl: true) { |http| http.request(req) }
-      puts "Verifica diretta API Apple Store Connect: HTTP #{res.code}"
-      puts "Dettagli risposta Apple: #{res.body}"
-      EOF
 
       IPA=$(ls build/ios/ipa/*.ipa 2>/dev/null | head -n1 || true)
       if [ -z "$IPA" ] || [ ! -f "$IPA" ]; then
