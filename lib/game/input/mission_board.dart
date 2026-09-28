@@ -11,7 +11,8 @@ import 'package:stepbound/ui/mission_marks.dart';
 /// What Mario has to do, in the top-left corner: the city's name written
 /// in blood and underlined by hand, then the open missions one under the
 /// other, each beside its box. One just done is crossed out in blood and
-/// goes. With nothing to do, the corner is empty.
+/// goes. With nothing to do, aboard the train once a city is over, the
+/// city's name is there alone.
 final class MissionBoard extends StatelessWidget {
   const MissionBoard({required this.game, super.key});
 
@@ -28,9 +29,6 @@ final class MissionBoard extends StatelessWidget {
     return ValueListenableBuilder<List<BoardMission>>(
       valueListenable: game.missions,
       builder: (context, rows, _) {
-        if (rows.isEmpty) {
-          return const SizedBox.shrink();
-        }
         return ConstrainedBox(
           key: const ValueKey<String>('mission-board'),
           constraints: const BoxConstraints(maxWidth: maxWidth),
