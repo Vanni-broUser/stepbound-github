@@ -3486,8 +3486,8 @@ def paint_train_papers(d, rng, px, py):
 
 
 def paint_train_books(d, px, py, first):
-    """A crate for a desk, with books on it: on the first half one open
-    face up beside a closed one, on the second a pile of hardbacks and a
+    """A crate for a desk, with books on it: on its left end one open
+    face up beside a closed one, otherwise a pile of hardbacks and a
     row of them standing, their spines out."""
     rect(d, px, py + 3, TILE, 12, TR_CRATE_DARK)
     rect(d, px, py + 3, TILE, 10, TR_CRATE)
@@ -3520,7 +3520,7 @@ def _train_desk(d, px, py):
 
 
 def paint_train_abacus(d, px, py):
-    """The left end of the desk: a wooden abacus, its beads in red and
+    """The middle of the desk: a wooden abacus, its beads in red and
     cream on three wires, and beside it a grey pocket calculator with its
     green display and rows of keys."""
     _train_desk(d, px, py)
@@ -3871,9 +3871,9 @@ def train_interior(atlas: Atlas, rng) -> dict:
     rules.append(rule("structures", "u", one(paint_train_bag)))
     rules.append(rule("structures", "o", randomly(paint_train_litter)))
     rules.append(rule("structures", "f", randomly(paint_train_papers)))
-    rules.append(rule("structures", "k", one(
+    rules.append(rule("structures", "K", one(
         lambda d, px, py: paint_train_books(d, px, py, True))))
-    rules.append(rule("structures", "K", one(paint_train_abacus)))
+    rules.append(rule("structures", "k", one(paint_train_abacus)))
     rules.append(rule("structures", "q", one(paint_train_mug)))
 
     table = Image.new("RGBA", tuple(n * TILE for n in TR_MAP_TABLE_TILES),

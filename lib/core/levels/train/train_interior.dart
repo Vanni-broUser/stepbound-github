@@ -9,9 +9,9 @@
 ///
 /// The locomotive is where the two of them live. Its back half is split
 /// by the aisle: Mario above it, his cot `B` and a crate for a desk three
-/// cells long: on its left end the abacus and the calculator `K`, in the
-/// middle the open books `k` (the zombie types met so far), and on the
-/// right end `q` his mug and a candle; more
+/// cells long: on its left end the open books `K`, in the middle the
+/// abacus and the calculator `k` (where he reads up on the zombie types met
+/// so far), and on the right end `q` his mug and a candle; more
 /// books and notes `f` all round, and beside the cot his weapons table
 /// `a`, with the shotgun, the pistol and the boxes of rounds: whenever he
 /// comes back to it with fewer than five rounds, he loads up to five.
