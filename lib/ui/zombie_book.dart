@@ -177,8 +177,19 @@ final class ZombieBook extends StatefulWidget {
 final class _ZombieBookState extends State<ZombieBook> {
   int _selectedZombie = 0;
 
-  bool _known(ZombieCard card) =>
-      card.kind != null && widget.progress.knownZombies.contains(card.kind);
+  /// The book's pages: first the types met, in the order they were, then
+  /// as many blank ones as are left, null, whether the game has those types
+  /// or not yet -- a page does not tell which.
+  List<ZombieCard?> get _pages {
+    final met = <ZombieCard>[
+      for (final kind in widget.progress.knownZombies)
+        ...zombieCards.where((card) => card.kind == kind),
+    ];
+    return <ZombieCard?>[
+      ...met,
+      for (var i = met.length; i < zombieCards.length; i++) null,
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -199,8 +210,8 @@ final class _ZombieBookState extends State<ZombieBook> {
   /// The list of cards on the left, the selected one's portrait and
   /// description on the right.
   Widget _zombies(double unit) {
-    final card = zombieCards[_selectedZombie];
-    final known = _known(card);
+    final pages = _pages;
+    final card = pages[_selectedZombie];
     return Column(
       key: const ValueKey<String>('zombie-book-page'),
       children: <Widget>[
@@ -211,14 +222,14 @@ final class _ZombieBookState extends State<ZombieBook> {
               SizedBox(
                 width: 96 * unit,
                 child: ListView.builder(
-                  itemCount: zombieCards.length,
+                  itemCount: pages.length,
                   itemBuilder: (context, index) {
-                    final entry = zombieCards[index];
+                    final entry = pages[index];
                     return Padding(
                       padding: EdgeInsets.only(bottom: 3 * unit),
                       child: MenuButton(
                         key: ValueKey<String>('zombie-book-$index'),
-                        label: _known(entry) ? entry.name.toUpperCase() : '???',
+                        label: entry?.name.toUpperCase() ?? '???',
                         unit: unit,
                         compact: true,
                         warning: index == _selectedZombie,
@@ -238,25 +249,26 @@ final class _ZombieBookState extends State<ZombieBook> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
                       Expanded(
-                        child: known
+                        child: card != null
                             ? PortraitImage(
                                 card.portrait,
                                 key: ValueKey<String>(
                                   'zombie-book-portrait-$_selectedZombie',
                                 ),
                               )
-                            // Unknown: just a black shape.
-                            : ColorFiltered(
-                                colorFilter: const ColorFilter.mode(
+                            // Unknown: the black shape of a wanderer,
+                            // whatever it will turn out to be.
+                            : const ColorFiltered(
+                                colorFilter: ColorFilter.mode(
                                   Color(0xff050303),
                                   BlendMode.srcIn,
                                 ),
-                                child: PortraitImage(card.portrait),
+                                child: PortraitImage(_unknownPortrait),
                               ),
                       ),
                       SizedBox(height: 4 * unit),
                       Text(
-                        known ? card.name.toUpperCase() : '???',
+                        card?.name.toUpperCase() ?? '???',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: menuTextColour,
@@ -268,9 +280,8 @@ final class _ZombieBookState extends State<ZombieBook> {
                       ),
                       SizedBox(height: 2 * unit),
                       MenuParagraph(
-                        known
-                            ? card.description
-                            : 'Non hai ancora incontrato questo zombi.',
+                        card?.description ??
+                            'Non hai ancora incontrato questo zombi.',
                         key: const ValueKey<String>('zombie-book-description'),
                         unit: unit,
                       ),

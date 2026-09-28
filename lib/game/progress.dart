@@ -120,16 +120,26 @@ final class Progress {
        knownZombies = Set<EntityKind>.of(knownZombies),
        memories = Set<StoryMemory>.of(memories),
        _viewedMemories = Set<StoryMemory>.of(viewedMemories),
-       unlockedOutfits = Set<PlayerOutfit>.of(unlockedOutfits) {
-    this.unlockedOutfits
-      ..add(PlayerOutfit.base)
-      ..add(activeOutfit);
+       // Mario has his own clothes from the start: first, unless something
+       // was already his before the game began.
+       unlockedOutfits = <PlayerOutfit>{
+         if (!unlockedOutfits.contains(PlayerOutfit.base)) PlayerOutfit.base,
+         ...unlockedOutfits,
+       } {
+    this.unlockedOutfits.add(activeOutfit);
   }
 
   /// A new game after the opening story. Until its first real save, the
-  /// opening memories can remain pending instead of known.
-  factory Progress.newGame({bool openingSaved = true}) {
-    final progress = Progress();
+  /// opening memories can remain pending instead of known. [gifts] are the
+  /// skins the slot was given before the game began: Mario had them before
+  /// his own clothes, so they come before them.
+  factory Progress.newGame({
+    bool openingSaved = true,
+    Iterable<PlayerOutfit> gifts = const <PlayerOutfit>[],
+  }) {
+    final progress = Progress(
+      unlockedOutfits: <PlayerOutfit>[...gifts, PlayerOutfit.base],
+    );
     progress.missions.arriveIn(progress.level);
     final opening = <StoryMemory>{
       StoryMemory.newsBroadcast,
@@ -186,6 +196,7 @@ final class Progress {
     );
   }
 
+  /// The zombie types met, in the order they were: the book lists them so.
   final Set<EntityKind> knownZombies;
 
   /// The scenes seen so far, in the order they were lived: a `Set` keeps
@@ -203,7 +214,8 @@ final class Progress {
   /// it never unlocks gameplay or counts as a known memory.
   final Set<StoryMemory> _viewedMemories;
 
-  /// Clothes found in the world and the one Mario is currently wearing.
+  /// Clothes found in the world, in the order they became Mario's, and
+  /// the one he is currently wearing.
   final Set<PlayerOutfit> unlockedOutfits;
   PlayerOutfit activeOutfit;
 

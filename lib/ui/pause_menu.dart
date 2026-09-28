@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
@@ -95,7 +97,11 @@ final class _PauseMenuState extends State<PauseMenu> {
   late _PausePage _page = widget.wardrobe
       ? _PausePage.outfits
       : _PausePage.home;
-  int _selectedOutfit = 0;
+
+  /// Opens on what Mario is wearing: a gift can come before it.
+  late int _selectedOutfit = widget.progress.unlockedOutfits.toList().indexOf(
+    widget.progress.activeOutfit,
+  );
 
   void _open(_PausePage page) => setState(() => _page = page);
 
@@ -157,18 +163,20 @@ final class _PauseMenuState extends State<PauseMenu> {
       compact: true,
       onPressed: widget.onClose,
     ),
+    // Leaving the Duomo after the massacre is when the story introduces
+    // changing clothes. Finding the robe or a linked skin is not enough.
+    // First, once there, and set apart: the one thing here that is not a
+    // way out of the game being played.
+    leading: widget.progress.hasExperienced(StoryMemory.priestMassacre)
+        ? MenuButton(
+            key: const ValueKey<String>('pause-outfits'),
+            label: 'CAMBIA ABBIGLIAMENTO',
+            unit: unit,
+            compact: true,
+            onPressed: () => _open(_PausePage.outfits),
+          )
+        : null,
     children: <Widget>[
-      // Leaving the Duomo after the massacre is when the story introduces
-      // changing clothes. Finding the robe or a linked skin is not enough.
-      // First, once there: the one thing here that is not a way out.
-      if (widget.progress.hasExperienced(StoryMemory.priestMassacre))
-        MenuButton(
-          key: const ValueKey<String>('pause-outfits'),
-          label: 'CAMBIA ABBIGLIAMENTO',
-          unit: unit,
-          compact: true,
-          onPressed: () => _open(_PausePage.outfits),
-        ),
       if (widget.resumePoint case final point?)
         MenuButton(
           key: const ValueKey<String>('pause-resume'),
@@ -236,16 +244,21 @@ final class _PauseMenuState extends State<PauseMenu> {
     );
   }
 
-  /// The outfit in [slot], null for the places still to come.
-  static PlayerOutfit? _outfitAt(int slot) =>
-      slot < PlayerOutfit.values.length ? PlayerOutfit.values[slot] : null;
+  /// The outfit in [slot], null for the places still to come: first the
+  /// ones Mario has, in the order they became his, then the rest, all
+  /// alike whether the game has them or not yet.
+  PlayerOutfit? _outfitAt(int slot) {
+    final owned = widget.progress.unlockedOutfits;
+    return slot < owned.length ? owned.elementAt(slot) : null;
+  }
 
   bool _unlocked(PlayerOutfit? outfit) =>
       outfit != null && widget.progress.unlockedOutfits.contains(outfit);
 
   /// The same catalogue layout as the known-zombie page: choices on the
   /// left, portrait on the right and a wear button in place of a description.
-  /// Outfits not found yet are "???" and a black shape.
+  /// Outfits not found yet are "???" and the black shape of the base
+  /// clothes, whichever they are.
   Widget _outfits(double unit) {
     final outfit = _outfitAt(_selectedOutfit);
     final unlocked = _unlocked(outfit);
@@ -265,7 +278,7 @@ final class _PauseMenuState extends State<PauseMenu> {
               SizedBox(
                 width: 96 * unit,
                 child: ListView.builder(
-                  itemCount: outfitSlots,
+                  itemCount: math.max(outfitSlots, PlayerOutfit.values.length),
                   itemBuilder: (context, index) {
                     final entry = _outfitAt(index);
                     return Padding(
