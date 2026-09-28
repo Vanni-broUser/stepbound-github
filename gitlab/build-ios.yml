@@ -1,11 +1,11 @@
 # Build iOS: diagnostica runner e generazione IPA firmato.
-# Gira su runner macOS self-hosted (tag: stepbound-local-macos).
+# Gira su runner macOS self-hosted (tag: macos).
 
 .macos:
   tags:
     - macos
   interruptible: false
-  resource_group: stepbound-ios-release
+  resource_group: macos
 
 check_macos_runner:
   extends: .macos
@@ -21,6 +21,7 @@ check_macos_runner:
     - pod --version
     - flutter --version
     - flutter doctor -v
+    - security list-keychains
 
 build_ios_signed:
   extends: .macos
@@ -28,8 +29,12 @@ build_ios_signed:
   needs: []
   dependencies: []
   cache: []
+  variables:
+    EXPORT_METHOD: "app-store"
+    KEYCHAIN_NAME: "stepbound-ci.keychain-db"
+    ARCHIVE_PATH: "$CI_PROJECT_DIR/build/ios/Runner.xcarchive"
+    IOS_EXPORT_BUNDLE_ID: "com.genericlab.stepbound"
   rules:
-
     - if: '$CI_COMMIT_BRANCH == "main"'
       when: on_success
     - if: '$CI_COMMIT_REF_PROTECTED == "true"'
@@ -47,15 +52,96 @@ build_ios_signed:
           git -C "$FLUTTER_DIR" checkout --quiet 3.44.2 || true
         fi
       fi
+    - |
+      set -eu
+      missing=""
+      for v in IOS_P12_BASE64 IOS_P12_PASSWORD IOS_KEYCHAIN_PASSWORD \
+               IOS_PROVISION_BASE64 IOS_TEAM_ID IOS_PROFILE_NAME; do
+        eval "val=\${$v:-}"
+        if [ -z "$val" ]; then missing="$missing $v"; fi
+      done
+      if [ -n "$missing" ]; then
+        echo "ERRORE: variabili CI mancanti:$missing" >&2
+        exit 1
+      fi
     - flutter --version
     - flutter config --no-analytics
     - flutter pub get
+    - |
+      set -euo pipefail
+      # 1) portachiavi temporaneo, distrutto in after_script
+      security create-keychain -p "$IOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_NAME"
+      security set-keychain-settings -lut 3600 "$KEYCHAIN_NAME"
+      security unlock-keychain -p "$IOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_NAME"
+      security list-keychains -d user -s "$KEYCHAIN_NAME" $(security list-keychains -d user | tr -d '"')
+
+      # 2) certificato di firma
+      echo "$IOS_P12_BASE64" | base64 --decode > "$CI_PROJECT_DIR/.cert.p12"
+      security import "$CI_PROJECT_DIR/.cert.p12" -k "$KEYCHAIN_NAME" \
+        -P "$IOS_P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security -A
+      security set-key-partition-list -S apple-tool:,apple:,codesign: \
+        -s -k "$IOS_KEYCHAIN_PASSWORD" "$KEYCHAIN_NAME" > /dev/null
+      rm -f "$CI_PROJECT_DIR/.cert.p12"
+      security find-identity -v -p codesigning "$KEYCHAIN_NAME"
+
+      # 3) profilo di provisioning
+      mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles"
+      echo "$IOS_PROVISION_BASE64" | base64 --decode \
+        > "$HOME/Library/MobileDevice/Provisioning Profiles/stepbound-ci.mobileprovision"
+
+      # 4) opzioni di export per firma manuale
+      cat > "$CI_PROJECT_DIR/ExportOptions.plist" <<PLIST
+      <?xml version="1.0" encoding="UTF-8"?>
+      <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+      <plist version="1.0">
+      <dict>
+        <key>method</key><string>${EXPORT_METHOD}</string>
+        <key>teamID</key><string>${IOS_TEAM_ID}</string>
+        <key>signingStyle</key><string>manual</string>
+        <key>provisioningProfiles</key>
+        <dict>
+          <key>${IOS_EXPORT_BUNDLE_ID}</key><string>${IOS_PROFILE_NAME}</string>
+        </dict>
+        <key>stripSwiftSymbols</key><true/>
+        <key>uploadSymbols</key><true/>
+        <key>compileBitcode</key><false/>
+      </dict>
+      </plist>
+      PLIST
   script:
-    - flutter build ipa --release --build-number="$CI_PIPELINE_IID" --dart-define=VANNI_DEPLOY="${VANNI_DEPLOY:-0}" --dart-define=STEPBOUND_COMMIT="$CI_COMMIT_SHORT_SHA"
+    - flutter build ios --release --no-codesign --dart-define=VANNI_DEPLOY="${VANNI_DEPLOY:-0}" --dart-define=STEPBOUND_COMMIT="$CI_COMMIT_SHORT_SHA" --build-number="$CI_PIPELINE_IID"
+    - |
+      cat >> ios/Flutter/Release.xcconfig <<XCCONFIG
+
+      CODE_SIGN_STYLE = Manual
+      DEVELOPMENT_TEAM = ${IOS_TEAM_ID}
+      PROVISIONING_PROFILE_SPECIFIER = ${IOS_PROFILE_NAME}
+      CODE_SIGN_IDENTITY = Apple Distribution
+      CODE_SIGN_IDENTITY[sdk=iphoneos*] = Apple Distribution
+      XCCONFIG
+      echo "--- ios/Flutter/Release.xcconfig ---"
+      cat ios/Flutter/Release.xcconfig
+    - |
+      xcodebuild archive \
+        -workspace ios/Runner.xcworkspace \
+        -scheme Runner \
+        -configuration Release \
+        -destination 'generic/platform=iOS' \
+        -archivePath "$ARCHIVE_PATH" \
+        OTHER_CODE_SIGN_FLAGS="--keychain=$HOME/Library/Keychains/$KEYCHAIN_NAME"
+    - |
+      xcodebuild -exportArchive \
+        -archivePath "$ARCHIVE_PATH" \
+        -exportOptionsPlist "$CI_PROJECT_DIR/ExportOptions.plist" \
+        -exportPath "$CI_PROJECT_DIR/build/ios/ipa"
+    - ls -lh build/ios/ipa
+  after_script:
+    - git checkout -- ios/Flutter/Release.xcconfig || true
+    - security delete-keychain "$KEYCHAIN_NAME" || true
+    - rm -f "$HOME/Library/MobileDevice/Provisioning Profiles/stepbound-ci.mobileprovision" || true
+    - rm -f "$CI_PROJECT_DIR/.cert.p12" "$CI_PROJECT_DIR/ExportOptions.plist" || true
   artifacts:
     name: "stepbound-ipa-$CI_COMMIT_SHORT_SHA"
     paths:
       - build/ios/ipa/*.ipa
     expire_in: 1 month
-
-
