@@ -57,11 +57,11 @@
         "$ANDROID_STORE_PASSWORD" "$ANDROID_KEY_PASSWORD" "$ANDROID_KEY_ALIAS" \
         > android/key.properties
   # The build's outcome waits until what it installed is in the cache.
-  # STEPBOUND_DIAGNOSTICS=true, set when running the job, shows frame rate
+  # STEPBOUND_DIAGNOSTICS=1, set when running the job, shows frame rate
   # and load times over the game (lib/ui/diagnostics_overlay.dart).
   script:
     - status=0
-    - flutter build "$ANDROID_PACKAGE" --release --build-number="$CI_PIPELINE_IID" --dart-define=STEPBOUND_DIAGNOSTICS="${STEPBOUND_DIAGNOSTICS:-false}" --dart-define=VANNI_DEPLOY="${VANNI_DEPLOY:-0}" || status=$?
+    - flutter build "$ANDROID_PACKAGE" --release --build-number="$CI_PIPELINE_IID" --dart-define=STEPBOUND_DIAGNOSTICS="${STEPBOUND_DIAGNOSTICS:-0}" --dart-define=VANNI_DEPLOY="${VANNI_DEPLOY:-0}" || status=$?
     - sh gitlab/android_sdk_cache.sh save
     - exit "$status"
   after_script:

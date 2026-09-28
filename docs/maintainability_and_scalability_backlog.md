@@ -19,7 +19,7 @@ Android Go phone with 2 GB of RAM.
 
 - Install a release APK on the minimum phone and on the mid-range one: the
   GitLab job `build_android_release_apk`, run with
-  `STEPBOUND_DIAGNOSTICS=true`, shows frame rate, the slowest frame, the
+  `STEPBOUND_DIAGNOSTICS=1`, shows frame rate, the slowest frame, the
   game's load time and the last area's over the game.
 - Measure the time from "Continua" to the first frame of play, the time an
   area takes to compose, and the frame rate in the city and in the Duomo.
