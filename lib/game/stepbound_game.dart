@@ -808,13 +808,13 @@ final class StepboundGame extends FlameGame
   }
 
   @override
-  void showEndOfDemo({void Function()? onClosed}) =>
-      _cover(EndOfDemoCover(onClosed: onClosed));
+  void showWorkInProgress({void Function()? onClosed}) =>
+      _cover(WorkInProgressCover(onClosed: onClosed));
 
-  /// Called by the end-of-demo screen once it is tapped away.
-  void closeEndOfDemo() {
+  /// Called by the work-in-progress screen once it is tapped away.
+  void closeWorkInProgress() {
     final end = cover.value;
-    if (end is EndOfDemoCover) {
+    if (end is WorkInProgressCover) {
       cover.value = null;
       end.onClosed?.call();
     }

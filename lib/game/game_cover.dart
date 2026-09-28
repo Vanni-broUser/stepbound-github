@@ -91,10 +91,11 @@ final class PauseCover extends GameCover {
   final bool wardrobe;
 }
 
-/// The end of what is playable so far, reached at the way out of Termini.
-/// [onClosed] runs once it is tapped away.
-final class EndOfDemoCover extends GameCover {
-  const EndOfDemoCover({this.onClosed});
+/// The end of what is playable so far, reached at the edge of a map with
+/// no next map (`workInProgressEnds`). [onClosed] runs once it is tapped
+/// away.
+final class WorkInProgressCover extends GameCover {
+  const WorkInProgressCover({this.onClosed});
 
   final void Function()? onClosed;
 }

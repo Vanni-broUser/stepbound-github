@@ -1,7 +1,6 @@
 import 'package:stepbound/core/entities/entity.dart';
 import 'package:stepbound/core/entities/entity_factory.dart';
 import 'package:stepbound/core/grid/grid_point.dart';
-import 'package:stepbound/core/grid/tile.dart';
 import 'package:stepbound/core/items/pickup.dart';
 import 'package:stepbound/core/levels/game_world.dart';
 import 'package:stepbound/core/levels/place.dart';
@@ -116,25 +115,6 @@ final List<GridPoint> terminiFarFlightTiles = _overpass.tilesOf('U');
 
 /// The breach in the far platform's back wall, out onto Via Marsala.
 final List<GridPoint> terminiBreachTiles = _farPlatform.tilesOf('J');
-
-/// Where Rome ends for now: every tile at the map's edge where one of its
-/// streets runs off it, with the way back into the street. Stepping on
-/// one ends the demo.
-final Map<GridPoint, Direction> romeStreetEnds = <GridPoint, Direction>{
-  for (final street in <Place>[_piazza, _marsala]) ..._endsOf(street),
-};
-
-Map<GridPoint, Direction> _endsOf(Place street) => <GridPoint, Direction>{
-  for (final tile in street.walkableRow(street.height - 1))
-    tile: Direction.north,
-  for (var y = 0; y < street.height; y++)
-    for (final (x, back) in <(int, Direction)>[
-      (0, Direction.east),
-      (street.width - 1, Direction.west),
-    ])
-      if (Tile(street.kindOf(street.rows[y][x])).isWalkable)
-        GridPoint(street.origin.x + x, street.origin.y + y): back,
-};
 
 /// The wanderers of Rome, in each place's own tile coordinates: the art
 /// has no glyph for them.

@@ -2331,6 +2331,49 @@ void main() {
     });
   });
 
+  testWidgets('walking off a map with no next map, thumb still down, '
+      'brings up the work-in-progress screen and nothing breaks', (tester) {
+    return tester.runAsync(() async {
+      final game = await _pumpReadyGame(tester);
+      // West of Termini, two steps from where the piazza runs off the map.
+      final piazza = place(PlaceId.piazzaCinquecento);
+      final mario = game.simulation.player.component<PositionComponent>()
+        ..position = GridPoint(piazza.origin.x + 2, piazza.origin.y + 8);
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final thumb = await tester.createGesture(pointer: 1);
+      await thumb.down(
+        tester.getCenter(find.byKey(const ValueKey<String>('touch-move'))),
+      );
+      for (var i = 0; i < 6; i++) {
+        await thumb.moveBy(const Offset(-10, 0));
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      final screen = find.byKey(const ValueKey<String>('work-in-progress'));
+      for (var i = 0; i < 40 && screen.evaluate().isEmpty; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
+      expect(screen, findsOneWidget);
+      expect(mario.position, GridPoint(piazza.origin.x, piazza.origin.y + 8));
+      expect(find.byKey(const ValueKey<String>('touch-move')), findsNothing);
+
+      // The thumb goes on over the screen, then lifts.
+      await thumb.moveBy(const Offset(-10, 5));
+      await thumb.up();
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+
+      await tester.tap(screen);
+      await tester.pump();
+      expect(screen, findsNothing);
+      expect(
+        mario.position,
+        GridPoint(piazza.origin.x + 1, piazza.origin.y + 8),
+      );
+      expect(mario.facing, Direction.east);
+    });
+  });
+
   testWidgets('a story line over a picture already seen comes up with the '
       'tap that turns to it', (tester) async {
     const same = 'assets/story/scenes/mario_luigi_reunion.jpg';

@@ -66,7 +66,7 @@ final class SilentStoryHost implements StoryHost, HometownActions {
   void openTravelMap() {}
 
   @override
-  void showEndOfDemo({void Function()? onClosed}) {}
+  void showWorkInProgress({void Function()? onClosed}) {}
 
   @override
   void openZombieBook() {}

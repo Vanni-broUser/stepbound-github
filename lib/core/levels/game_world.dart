@@ -136,6 +136,22 @@ TileMap _levelTileMap() => TileMap(
 /// [createGameWorld], which builds its own.
 final WorldState _levelWorld = createGameWorld();
 
+/// Where the game goes no further yet: every walkable tile at the edge of
+/// any place, in any level, that is not a door to another place, with the
+/// way back into its place. A street, a platform or a track that runs off
+/// its map has no next map to lead to, so stepping on its last tile shows
+/// the work-in-progress screen (`WorkInProgressScript`) and puts Mario
+/// back a step inside. Nothing needs listing: a new place gets it for its
+/// open edges, and a new map joined to one of them by a door takes it
+/// away. Edges that are shut (walls, wrecks, fire) are not walkable and
+/// are not in it; a closed-off pocket past a fire is, harmlessly, until
+/// someone gets there.
+final Map<GridPoint, Direction> workInProgressEnds = <GridPoint, Direction>{
+  for (final place in gamePlaces)
+    for (final MapEntry(key: tile, value: back) in place.edgeEnds.entries)
+      if (!_levelWorld.portals.containsKey(tile)) tile: back,
+};
+
 /// Its entities, backpacks, doors and travel maps as a save holds them,
 /// encoded once. Only ever read: [restoreGameWorld] hands the same maps
 /// to `WorldState.fromJson`, which copies what it needs out of them.

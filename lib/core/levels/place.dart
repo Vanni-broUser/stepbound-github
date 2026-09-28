@@ -270,6 +270,47 @@ final class Place {
         GridPoint(origin.x + x, origin.y + y),
   ];
 
+  /// The walkable tiles on the place's outer edge, each with the way back
+  /// into the place: where a street, a platform or a track runs off the
+  /// map. Past them there is only the wall between places, so each one is
+  /// a way that goes nowhere yet (see `workInProgressEnds`).
+  ///
+  /// The way back is to a walkable tile off the edge, straight in if it
+  /// can be. A tile with none, shut in by wrecks or fire, is left out:
+  /// nobody gets there but along the edge, through a tile that is in.
+  late final Map<GridPoint, Direction> edgeEnds = () {
+    bool walkable(int x, int y) =>
+        x >= 0 &&
+        y >= 0 &&
+        x < width &&
+        y < height &&
+        Tile(kindOf(rows[y][x])).isWalkable;
+    bool onEdge(int x, int y) =>
+        x == 0 || y == 0 || x == width - 1 || y == height - 1;
+    final ends = <GridPoint, Direction>{};
+    for (var y = 0; y < height; y++) {
+      for (var x = 0; x < width; x++) {
+        if (!onEdge(x, y) || !walkable(x, y)) {
+          continue;
+        }
+        final inward = <Direction>[
+          if (x == 0) Direction.east,
+          if (x == width - 1) Direction.west,
+          if (y == 0) Direction.south,
+          if (y == height - 1) Direction.north,
+        ];
+        for (final back in <Direction>[...inward, ...Direction.values]) {
+          final (dx, dy) = (back.dx, back.dy);
+          if (walkable(x + dx, y + dy) && !onEdge(x + dx, y + dy)) {
+            ends[GridPoint(origin.x + x, origin.y + y)] = back;
+            break;
+          }
+        }
+      }
+    }
+    return Map<GridPoint, Direction>.unmodifiable(ends);
+  }();
+
   /// Indoors, the lamps and the daylight at the doors; none outdoors.
   late final List<LightSpot> lights = <LightSpot>[
     if (indoor)
