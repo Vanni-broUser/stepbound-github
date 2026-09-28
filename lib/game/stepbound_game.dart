@@ -472,6 +472,7 @@ final class StepboundGame extends FlameGame
       stage.update(dt);
     }
     _updateRest(dt);
+    _keepPutDownCopy(dt);
     if (_entranceHoldLeft > 0) {
       _entranceHoldLeft -= dt;
     }
@@ -646,6 +647,9 @@ final class StepboundGame extends FlameGame
         case DamagedEvent(entityId: final target, sourceEntityId: _):
           _characters[target]?.playHit(_facingOf(target));
         case DiedEvent(entityId: final victim) when victim == playerId:
+          // Dead is not a state to pick up again, nor is the moment
+          // before it: the way back is the game over's.
+          _putDownCopy = null;
           _acceptsInput = false;
           input.stop();
           _gameOverCountdown = CharacterComponent.deathDuration + 0.45;
@@ -781,7 +785,7 @@ final class StepboundGame extends FlameGame
   Future<void> _finishLevel(GameSnapshot aboard) async {
     var saved = true;
     try {
-      saved = await onRest?.call(aboard) ?? true;
+      saved = await _storeCheckpoint(aboard) ?? true;
     } on Object catch (error) {
       debugPrint('save: $error');
       saved = false;
@@ -954,7 +958,7 @@ final class StepboundGame extends FlameGame
     var saved = true;
     try {
       saved =
-          await onRest?.call(
+          await _storeCheckpoint(
             snapshot(place: campfireNames[_campfire] ?? '', confirmStory: true),
           ) ??
           true;
@@ -1024,6 +1028,43 @@ final class StepboundGame extends FlameGame
         !story.holdsInput &&
         !_stages.any((stage) => stage.holdsMario) &&
         (scene == null || scene is PauseCover);
+  }
+
+  /// How often, while the game can be put down, a copy of it is kept for
+  /// when the app leaves at a moment it cannot (see [putDownSnapshot]).
+  static const double putDownCopyInterval = 3;
+
+  /// The game as it last was when it could be put down: taken as soon as
+  /// it can be again, and every [putDownCopyInterval] seconds after.
+  GameSnapshot? _putDownCopy;
+  double _sincePutDownCopy = 0;
+  bool _couldBePutDown = false;
+
+  void _keepPutDownCopy(double dt) {
+    if (!canBeSuspended) {
+      _couldBePutDown = false;
+      return;
+    }
+    _sincePutDownCopy += dt;
+    if (!_couldBePutDown || _sincePutDownCopy >= putDownCopyInterval) {
+      _putDownCopy = snapshot(place: placeName);
+      _sincePutDownCopy = 0;
+    }
+    _couldBePutDown = true;
+  }
+
+  /// What to write when the app leaves: the game as it is when it can be
+  /// put down, or else the copy of the last moment it could, a few steps
+  /// back (a story line, a place card, a scene is on); null when there is
+  /// none, such as once Mario is dead or a fire's save is newer.
+  GameSnapshot? get putDownSnapshot =>
+      canBeSuspended ? snapshot(place: placeName) : _putDownCopy;
+
+  /// A save of the slot's own, at a fire or aboard the train: whatever was
+  /// copied before it is older, and never written over it.
+  Future<bool>? _storeCheckpoint(GameSnapshot checkpoint) {
+    _putDownCopy = null;
+    return onRest?.call(checkpoint);
   }
 
   /// The name of where Mario is, for the slot list: the place's own, or

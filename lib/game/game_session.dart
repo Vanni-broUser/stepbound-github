@@ -313,12 +313,10 @@ final class GameSession {
     return true;
   }
 
-  /// Writes [game] as it is beside the slot's save, to be picked up from
-  /// the menu; the campfire's save stays the one to go back to. The app
-  /// asks first whether the game is in a state it can come back to (see
-  /// [StepboundGame.canBeSuspended]).
-  Future<void> suspend(StepboundGame game) async {
-    final snapshot = game.snapshot(place: game.placeName);
+  /// Writes [snapshot], the game as it was put down, beside the slot's
+  /// save, to be picked up from the menu; the campfire's save stays the
+  /// one to go back to (see [StepboundGame.putDownSnapshot]).
+  Future<void> suspend(GameSnapshot snapshot) async {
     try {
       await saves.suspend(
         SaveGame(
