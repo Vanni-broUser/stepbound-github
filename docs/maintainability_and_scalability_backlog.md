@@ -101,26 +101,6 @@ used.
   or the save size ask for it: a save only stores the tiles that differ,
   and the most advanced test scenarios save in about 79 KB.
 
-## P2 — Split application and game orchestration
-
-`StepboundApp` combines application phases, persistence, audio lifecycle,
-restart behaviour and widget composition. `StepboundGame` combines story
-hosting, event presentation, camera, audio, place transitions, rendering and
-save snapshots. They are also the most frequently changed source files in
-the current history: `lib/app.dart` went from 976 lines at `1b0261a` to
-1043 at `7319a9e` and down to 908 at `de39a1b`, once `GameSession` took
-what a save records; `lib/game/stepbound_game.dart` came down from 1465
-to 1000 and is back at 1205, missions, props and the weapon in hand having
-gone in within a day. (The touch controls, once the largest file of the
-game, are split under `lib/game/input/` by zone, stick, badges and icons.)
-
-Extract the rest as small framework-free collaborators too, rather than
-adding a broad state management framework:
-
-- `AppFlowController` for menu, story, title and playing phases;
-- `WorldEventPresenter` for event-to-animation/audio routing;
-- `PlaceTransitionController` for portals, location cards and camera hand-off.
-
 ## P2 — Make asset generation reproducible
 
 The Python asset tools had no pinned Python/Pillow environment, the largest

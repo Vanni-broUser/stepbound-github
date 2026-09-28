@@ -19,6 +19,7 @@ import 'package:stepbound/game/levels/hometown_stage.dart';
 import 'package:stepbound/game/levels/level_stage.dart';
 import 'package:stepbound/game/levels/rome_stage.dart';
 import 'package:stepbound/game/levels/train_stage.dart';
+import 'package:stepbound/game/place_transition_controller.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/aim_line_component.dart';
 import 'package:stepbound/game/render/burning_ground_component.dart';
@@ -37,9 +38,11 @@ import 'package:stepbound/game/render/throw_preview_component.dart';
 import 'package:stepbound/game/render/tile_place_component.dart';
 import 'package:stepbound/game/render/torch_component.dart';
 import 'package:stepbound/game/story/story_director.dart';
+import 'package:stepbound/game/world_event_presenter.dart';
 import 'package:stepbound/report/breadcrumbs.dart';
 
 export 'package:stepbound/game/game_cover.dart';
+export 'package:stepbound/game/world_event_presenter.dart' show CharacterCue;
 
 /// What a save stores: the simulation, the story's scripts, the
 /// player's progress, the unlocked controls and the name of the place.
@@ -54,10 +57,12 @@ typedef GameSnapshot = ({
 /// The game: the simulation, drawn and animated, played with the keyboard
 /// or the touch controls. Whatever covers it (a text box, a story scene, a
 /// place card, the books on the train, game over) is a [GameCover] the app
-/// draws.
+/// draws. The turn's events are presented by a [WorldEventPresenter], for
+/// which the game is the [EventStage]; the way from place to place is a
+/// [PlaceTransitionController]'s.
 final class StepboundGame extends FlameGame
     with KeyboardEvents
-    implements StoryHost {
+    implements StoryHost, EventStage {
   /// A new game, or one resumed from a save: [world], `storyState` and
   /// [progress] come from `SaveGame`, [unlocked] lists the touch controls
   /// already earned. [onRest] stores the snapshot taken at a campfire, and
@@ -106,9 +111,10 @@ final class StepboundGame extends FlameGame
   /// walk animation leans into the tile it came from.
   static const double cullMargin = 3 * tileSize;
 
-  /// How long Mario stands still on the threshold of a building, so the
-  /// place he has just walked into can sink in.
-  static const double entranceHoldSeconds = 2.2;
+  /// How long Mario stands still on the threshold of a building (see
+  /// [PlaceTransitionController]).
+  static const double entranceHoldSeconds =
+      PlaceTransitionController.entranceHoldSeconds;
 
   final WorldState simulation;
 
@@ -138,6 +144,16 @@ final class StepboundGame extends FlameGame
     goldenPistol: () => progress.hasGoldenPistol,
   );
   late final FollowCamera _camera = FollowCamera(camera);
+  late final PlaceTransitionController _transitions = PlaceTransitionController(
+    cover: cover,
+    show: _cover,
+    fadeScreen: fadeScreen,
+    stopInput: input.stop,
+  );
+
+  /// What the turn's events become on the stage; made once the story is,
+  /// in [onLoad].
+  late final WorldEventPresenter _events;
   late final PlaceLayers _places = PlaceLayers(
     places: gamePlaces,
     playerFeet: () => _characters[playerId]!.position,
@@ -301,10 +317,8 @@ final class StepboundGame extends FlameGame
   final Map<String, Object?>? _storyState;
 
   bool _acceptsInput = false;
-  int _processedTurn = 0;
   String? _focusId;
   double _gameOverCountdown = 0;
-  double _entranceHoldLeft = 0;
   bool _levelCompleted = false;
 
   /// True while Mario takes a step the story makes him take.
@@ -315,9 +329,7 @@ final class StepboundGame extends FlameGame
   double _restLeft = 0;
   bool _restSaving = false;
 
-  /// Where Mario is drawn while a place card fades to black, if one does.
-  GridPoint? _cardThreshold;
-
+  @override
   String get playerId => simulation.playerId;
 
   @override
@@ -329,6 +341,14 @@ final class StepboundGame extends FlameGame
     await super.onLoad();
     presentation = TurnPresentationController(world: simulation);
     story = StoryDirector(world: simulation, host: this, progress: progress);
+    _events = WorldEventPresenter(
+      stage: this,
+      audio: audio,
+      soundscape: soundscape,
+      haptics: haptics,
+      progress: progress,
+      onStoryEvents: story.onEvents,
+    );
     final storyState = _storyState;
     if (storyState != null) {
       story.restore(storyState);
@@ -465,7 +485,7 @@ final class StepboundGame extends FlameGame
     if (_storyStep && !presentation.isAnimating) {
       _storyStep = false;
     }
-    _routeNewEvents();
+    _events.present(presentation.turnCount, presentation.lastEvents);
     _updateGameOverCountdown(dt);
     story.update(dt, turnAnimating: presentation.isAnimating);
     for (final stage in _stages) {
@@ -473,9 +493,7 @@ final class StepboundGame extends FlameGame
     }
     _updateRest(dt);
     _keepPutDownCopy(dt);
-    if (_entranceHoldLeft > 0) {
-      _entranceHoldLeft -= dt;
-    }
+    _transitions.update(dt);
     input.update(dt);
     _syncPresentation();
     _syncMissions();
@@ -545,129 +563,80 @@ final class StepboundGame extends FlameGame
     return null;
   }
 
-  /// The place the trail last named.
-  String? _crumbPlace;
+  // -------------------------------------------------------- event stage
 
-  /// Writes the turn's events into the trail an error report ends with
-  /// (see [Breadcrumbs]), and the place whenever it changes. Steps, waits,
-  /// bumps and noises are left out: with a whole cast moving every turn
-  /// they would bury everything else within seconds.
-  void _leaveBreadcrumbs(List<WorldEvent> events) {
-    final trail = Breadcrumbs.shared;
-    final place = placeName;
-    if (place != _crumbPlace) {
-      _crumbPlace = place;
-      trail.add('posto: $place (turno ${presentation.turnCount})');
+  @override
+  void play(String entityId, CharacterCue cue) {
+    final character = _characters[entityId];
+    if (character == null) {
+      return;
     }
-    for (final event in events) {
-      switch (event) {
-        case MovedEvent() ||
-            WaitedEvent() ||
-            BlockedEvent() ||
-            NoInteractionEvent() ||
-            NoiseEvent() ||
-            NoiseHeardEvent():
-          continue;
-        default:
-          trail.add('evento: ${event.description}');
-      }
+    final facing = _facingOf(entityId);
+    switch (cue) {
+      case CharacterCue.fire:
+        character.playFire(facing);
+      case CharacterCue.throwWeapon:
+        character.playThrow(facing);
+      case CharacterCue.hit:
+        character.playHit(facing);
+      case CharacterCue.bite:
+        character.playBite(facing);
+      case CharacterCue.death:
+        character.playDeath(facing);
+      case CharacterCue.alert:
+        character.playAlert();
     }
   }
 
-  void _routeNewEvents() {
-    if (presentation.turnCount == _processedTurn) {
-      return;
-    }
-    _processedTurn = presentation.turnCount;
-    _leaveBreadcrumbs(presentation.lastEvents);
-    story.onEvents(presentation.lastEvents);
-    haptics.onEvents(presentation.lastEvents, playerId: playerId);
-    for (final cue in <SfxCue>[
-      ...soundscape.soundsFor(presentation.lastEvents),
-      ...soundscape.idleMoans(),
-    ]) {
-      audio.play(cue.sfx, volume: cue.volume);
-    }
-    // The hits of a molotov show once the bottle has landed, not as it
-    // leaves Mario's hand: they follow its event in the same turn.
-    var blastDelay = 0.0;
-    for (final event in presentation.lastEvents) {
-      switch (event) {
-        case MolotovThrownEvent(:final origin, :final target):
-          _characters[playerId]?.playThrow(_facingOf(playerId));
-          blastDelay =
-              CharacterComponent.throwReleaseDelay +
-              MolotovBlastComponent.flightSeconds;
-          _later(
-            CharacterComponent.throwReleaseDelay,
-            () => addToWorld(
-              MolotovBlastComponent(
-                origin: origin,
-                target: target,
-                onLanded: () => audio.play(Sfx.molotov),
-              ),
-            ),
-          );
-        case DamagedEvent(entityId: final target, sourceEntityId: final source)
-            when source == playerId && blastDelay > 0:
-          _later(
-            blastDelay,
-            () => _characters[target]?.playHit(_facingOf(target)),
-          );
-        case DiedEvent(entityId: final victim)
-            when victim != playerId && blastDelay > 0:
-          _characters[victim]?.deathPending = true;
-          _later(
-            blastDelay,
-            () => _characters[victim]?.playDeath(_facingOf(victim)),
-          );
-        case CampfireUsedEvent(:final at):
-          _startRest(at);
-        case MovedEvent(:final entityId) when entityId == playerId:
-          progress.countStep();
-        case TeleportedEvent(:final from, :final to):
-          _goThrough(from: from, to: to);
-        case AlertedEvent(entityId: final spotter):
-          _characters[spotter]?.playAlert();
-        case FireStartedEvent(:final at):
-          // Only in a place that is loaded: one that is not scans its
-          // map for burning tiles when it comes in.
-          final place = placeAt(at);
-          final props = place == null ? null : _props[place];
-          if (props != null) {
-            final ground = burningGround(at);
-            props.addAll(ground);
-            unawaited(world.addAll(ground));
-          }
-        case ShotEvent(entityId: final shooter) when shooter == playerId:
-          _characters[playerId]?.playFire(_facingOf(playerId));
-        case DamagedEvent(entityId: final target, sourceEntityId: final source)
-            when target == playerId:
-          _characters[source]?.playBite(_facingOf(source));
-        case DamagedEvent(entityId: final target, sourceEntityId: _):
-          _characters[target]?.playHit(_facingOf(target));
-        case DiedEvent(entityId: final victim) when victim == playerId:
-          // Dead is not a state to pick up again, nor is the moment
-          // before it: the way back is the game over's.
-          _putDownCopy = null;
-          _acceptsInput = false;
-          input.stop();
-          _gameOverCountdown = CharacterComponent.deathDuration + 0.45;
-        case DiedEvent(entityId: final victim):
-          _characters[victim]?.playDeath(_facingOf(victim));
-        case _:
-          break;
-      }
-    }
+  @override
+  void holdDeath(String entityId) {
+    _characters[entityId]?.deathPending = true;
   }
 
   /// Runs [then] [seconds] from now, on the game's own clock.
-  void _later(double seconds, void Function() then) {
+  @override
+  void later(double seconds, void Function() then) {
     unawaited(
       world.addAll(<Component>[
         TimerComponent(period: seconds, removeOnFinish: true, onTick: then),
       ]),
     );
+  }
+
+  @override
+  void launchMolotov({
+    required GridPoint origin,
+    required GridPoint target,
+    required void Function() onLanded,
+  }) => addToWorld(
+    MolotovBlastComponent(origin: origin, target: target, onLanded: onLanded),
+  );
+
+  @override
+  void goThrough({required GridPoint from, required GridPoint to}) =>
+      _transitions.goThrough(from: from, to: to);
+
+  /// Only in a place that is loaded: one that is not scans its map for
+  /// burning tiles when it comes in.
+  @override
+  void groundCaughtFire(GridPoint at) {
+    final place = placeAt(at);
+    final props = place == null ? null : _props[place];
+    if (props != null) {
+      final ground = burningGround(at);
+      props.addAll(ground);
+      unawaited(world.addAll(ground));
+    }
+  }
+
+  @override
+  void playerDied() {
+    // Dead is not a state to pick up again, nor is the moment before it:
+    // the way back is the game over's.
+    _putDownCopy = null;
+    _acceptsInput = false;
+    input.stop();
+    _gameOverCountdown = CharacterComponent.deathDuration + 0.45;
   }
 
   // ------------------------------------------------------------ covers
@@ -680,7 +649,7 @@ final class StepboundGame extends FlameGame
       !story.holdsInput &&
       cover.value == null &&
       _campfire == null &&
-      _entranceHoldLeft <= 0;
+      !_transitions.holdsMario;
 
   void _cover(GameCover what) {
     input.stop();
@@ -864,58 +833,20 @@ final class StepboundGame extends FlameGame
     }
   }
 
-  /// A door or a road into another place: a short fade to black (a slower
-  /// one into a building, where Mario then stands still a moment), or, into
-  /// a place with a card, its picture and name. The card only announces a
-  /// place reached by road: coming back out of one of its own buildings is
-  /// no arrival. Until the card's fade has gone black Mario is still drawn
-  /// on the [from] threshold, so the camera keeps showing the place he is
-  /// leaving.
-  void _goThrough({required GridPoint from, required GridPoint to}) {
-    final destination = placeAt(to);
-    final origin = placeAt(from);
-    if (destination?.cardImage != null &&
-        destination != origin &&
-        !(origin?.indoor ?? false)) {
-      _cardThreshold = from;
-      _cover(
-        PlaceCardCover(
-          name: destination!.name ?? '',
-          image: destination.cardImage!,
-        ),
-      );
-      return;
-    }
-    final entering = destination?.indoor ?? false;
-    fadeScreen(
-      fadeIn: entering
-          ? ScreenFadeComponent.slowFadeIn
-          : ScreenFadeComponent.defaultFadeIn,
-    );
-    if (entering) {
-      input.stop();
-      _entranceHoldLeft = entranceHoldSeconds;
-    }
-  }
-
   /// Called by the card overlay once the screen is black: Mario moves to
   /// the new place behind it.
-  void placeCardBlack() => _cardThreshold = null;
+  void placeCardBlack() => _transitions.cardBlack();
 
   /// Called by the card overlay once the new place has faded in.
-  void dismissPlaceCard() {
-    _cardThreshold = null;
-    if (cover.value is PlaceCardCover) {
-      cover.value = null;
-    }
-  }
+  void dismissPlaceCard() => _transitions.dismissCard();
 
   // ------------------------------------------------------------- camps
 
   /// Mario kneels by the fire, which roars up, or stops at the table
   /// aboard for a bite; when the moment is over the game is saved, and a
   /// line says so.
-  void _startRest(GridPoint campfire) {
+  @override
+  void restAt(GridPoint campfire) {
     input.stop();
     _campfire = campfire;
     if (campfireNames[campfire] case final name?
@@ -1024,7 +955,7 @@ final class StepboundGame extends FlameGame
         _acceptsInput &&
         !_levelCompleted &&
         _campfire == null &&
-        _cardThreshold == null &&
+        !_transitions.inTransit &&
         !story.holdsInput &&
         !_stages.any((stage) => stage.holdsMario) &&
         (scene == null || scene is PauseCover);
@@ -1069,6 +1000,7 @@ final class StepboundGame extends FlameGame
 
   /// The name of where Mario is, for the slot list: the place's own, or
   /// the level's where a place has none.
+  @override
   String get placeName =>
       _placeShown.name ??
       switch (progress.level) {
@@ -1218,14 +1150,7 @@ final class StepboundGame extends FlameGame
 
   /// The place Mario is drawn in (it changes once the step through a door
   /// has finished playing).
-  Place get _placeShown {
-    final feet = _playerFeet;
-    final tile = GridPoint(
-      (feet.x / tileSize).floor(),
-      ((feet.y - 1) / tileSize).floor(),
-    );
-    return placeAt(tile) ?? place(PlaceId.street);
-  }
+  Place get _placeShown => _transitions.placeShown(_playerFeet);
 
   /// Stops drawing the fires, the torches and the burning ground the
   /// camera cannot see.
@@ -1239,7 +1164,9 @@ final class StepboundGame extends FlameGame
   }
 
   void _syncPresentation() {
-    final threshold = _cardThreshold;
+    final threshold = _transitions.drawnAt(
+      playerMoving: presentation.isEntityMoving(playerId),
+    );
     final view = camera.visibleWorldRect.inflate(cullMargin);
     for (final entry in _characters.entries) {
       // Mario drives the camera and the followed one is what it is panning
@@ -1249,10 +1176,7 @@ final class StepboundGame extends FlameGame
         entry.value.onScreen = false;
         continue;
       }
-      final visual =
-          entry.key == playerId &&
-              threshold != null &&
-              !presentation.isEntityMoving(playerId)
+      final visual = entry.key == playerId && threshold != null
           ? VisualPosition(threshold.x.toDouble(), threshold.y.toDouble())
           : presentation.visualPositionFor(entry.key);
       entry.value
