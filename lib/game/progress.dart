@@ -87,6 +87,10 @@ enum StoryMemory {
   /// got there without one (see [SecretMission.unarmedToLuigi]).
   goldenPistol,
   presidentFled,
+
+  /// Tonino and Marcello at the bottom of Via Cavour, who want something
+  /// of value before they let Mario onto their square.
+  maranzaMet,
 }
 
 /// What is never asked of Mario, only dared, on the secret missions page
@@ -118,7 +122,7 @@ extension StoryMemoryLevel on StoryMemory {
   /// The level the scene belongs to: Rome's story is not one of the
   /// memories left to find in Molfetta.
   LevelId get level => switch (this) {
-    StoryMemory.presidentFled => LevelId.rome,
+    StoryMemory.presidentFled || StoryMemory.maranzaMet => LevelId.rome,
     _ => LevelId.hometown,
   };
 }

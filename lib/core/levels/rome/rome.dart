@@ -280,3 +280,44 @@ GridPoint _onGrid(PlaceId id, GridPoint spot) {
   final origin = place(id).origin;
   return GridPoint(origin.x + spot.x, origin.y + spot.y);
 }
+
+/// Where Via Cavour comes out on Piazza di Santa Maria Maggiore, in the
+/// piazza's own tile coordinates: the pavement of the square's north side,
+/// the row past the last one the street runs between the blocks.
+const int _cavourEnd = 39;
+
+/// Marcello er Criminale, the Lazio lad, and Tonino Cacio e Pepe, the Roma
+/// one, side by side on the square right where Via Cavour comes out,
+/// facing up it towards Termini: nobody gets onto the square past them.
+final GridPoint marcelloTile = _onGrid(
+  PlaceId.piazzaCinquecento,
+  const GridPoint(33, _cavourEnd),
+);
+final GridPoint toninoTile = _onGrid(
+  PlaceId.piazzaCinquecento,
+  const GridPoint(34, _cavourEnd),
+);
+
+/// The last stretch of Via Cavour, the two of them in full view at the
+/// bottom of it: walking into it plays the meeting.
+final GridRect maranzaSceneTrigger = _rectOnGrid(
+  PlaceId.piazzaCinquecento,
+  const GridRect(30, _cavourEnd - 5, 37, _cavourEnd - 1),
+);
+
+/// Two steps from them and on, the whole square included: once they have
+/// had their say, stepping in here gets Mario sent back up the street.
+final GridRect maranzaTurf = _rectOnGrid(
+  PlaceId.piazzaCinquecento,
+  GridRect(0, _cavourEnd - 2, _piazza.width - 1, _piazza.height - 1),
+);
+
+GridRect _rectOnGrid(PlaceId id, GridRect rect) {
+  final origin = place(id).origin;
+  return GridRect(
+    origin.x + rect.left,
+    origin.y + rect.top,
+    origin.x + rect.right,
+    origin.y + rect.bottom,
+  );
+}

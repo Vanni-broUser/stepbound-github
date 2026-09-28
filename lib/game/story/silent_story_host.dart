@@ -26,6 +26,9 @@ final class SilentStoryHost implements StoryHost, HometownActions {
   void playPickupAnimation() {}
 
   @override
+  void walkPlayer(Direction direction) {}
+
+  @override
   void focusOn(String? entityId) {}
 
   @override

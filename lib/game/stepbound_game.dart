@@ -304,6 +304,9 @@ final class StepboundGame extends FlameGame
   double _entranceHoldLeft = 0;
   bool _levelCompleted = false;
 
+  /// True while Mario takes a step the story makes him take.
+  bool _storyStep = false;
+
   /// The campfire Mario is resting at (kneeling, then saving).
   GridPoint? _campfire;
   double _restLeft = 0;
@@ -456,6 +459,9 @@ final class StepboundGame extends FlameGame
   void update(double dt) {
     super.update(dt);
     presentation.update(dt);
+    if (_storyStep && !presentation.isAnimating) {
+      _storyStep = false;
+    }
     _routeNewEvents();
     _updateGameOverCountdown(dt);
     story.update(dt, turnAnimating: presentation.isAnimating);
@@ -473,6 +479,7 @@ final class StepboundGame extends FlameGame
         _acceptsInput &&
         !inputLocked &&
         !_levelCompleted &&
+        !_storyStep &&
         !_stages.any((stage) => stage.holdsMario) &&
         story.isIdle &&
         _campfire == null;
@@ -661,6 +668,7 @@ final class StepboundGame extends FlameGame
   bool get _canAct =>
       _acceptsInput &&
       !inputLocked &&
+      !_storyStep &&
       !_stages.any((stage) => stage.holdsMario) &&
       !story.holdsInput &&
       cover.value == null &&
@@ -1036,6 +1044,15 @@ final class StepboundGame extends FlameGame
   @override
   void playPickupAnimation() {
     _characters[playerId]?.playPickup(_facingOf(playerId));
+  }
+
+  @override
+  void walkPlayer(Direction direction) {
+    input.stop();
+    presentation
+      ..clearBuffer()
+      ..submit(MoveAction(direction));
+    _storyStep = presentation.isAnimating;
   }
 
   @override
