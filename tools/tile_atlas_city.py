@@ -67,6 +67,9 @@ GROUND = ground_config(
 # buildings the objects stand on.
 VOID = "#%02x%02x%02x" % sl.ASPHALT
 
+# The roof of the barracks, a pale concrete a shade warmer than the city's.
+BARRACKS_ROOF = (104, 98, 90)
+
 # Where one building ends and the next begins, along a band of them: every
 # 15 columns, buildings 4, 6 and 5 wide, and every 4 rows down a block.
 SPAN = 15
@@ -313,6 +316,51 @@ def segment_of(first: bool, second: bool) -> int:
     return 0 if first else 1 if second else 2
 
 
+def roof_fill(d, c, r):
+    """A roof's tile in its colour `c`, with grit."""
+    rect(d, 0, 0, TILE, TILE, c)
+    dark = tuple(max(0, v - 20) for v in c)
+    for _ in range(4):
+        rect(d, r.randrange(TILE), r.randrange(TILE), 1, 1, dark)
+
+
+def roof_unit(d, r):
+    """What the baker scattered over a roof, one of them to a tile."""
+    roll = r.random()
+    ax, ay = r.randrange(3, 5), r.randrange(3, 6)
+    if roll < 0.55:
+        rect(d, ax, ay, 9, 6, (120, 120, 116))
+        rect(d, ax + 1, ay + 1, 7, 1, (150, 150, 144))
+        rect(d, ax, ay + 6, 9, 1, (46, 42, 40))
+    elif roll < 0.8:
+        rect(d, ax, ay, 4, 4, (90, 90, 88))
+        rect(d, ax + 1, ay + 1, 2, 2, (40, 40, 42))
+    else:
+        rect(d, ax, ay, 10, 8, (50, 62, 76))
+        rect(d, ax + 1, ay + 1, 8, 1, (90, 110, 130))
+
+
+def roof_side(d, side, c):
+    """The parapet along one side of a roof tile, "n", "w", "e" or "s"."""
+    light = tuple(min(255, v + 24) for v in c)
+    dark = tuple(max(0, v - 20) for v in c)
+    if side == "n":
+        rect(d, 0, 0, TILE, 2, light)
+        rect(d, 0, 2, TILE, 1, dark)
+    elif side == "w":
+        rect(d, 0, 0, 2, TILE, light)
+        rect(d, 2, 2, 1, TILE - 2, dark)
+    elif side == "e":
+        rect(d, TILE - 2, 0, 2, TILE, light)
+    else:
+        rect(d, 0, TILE - 2, TILE, 2, light)
+
+
+def roof_street_side(d, c):
+    """The top of the wall of a roof's side that faces the street."""
+    rect(d, 0, TILE - 3, TILE, 3, tuple(min(255, v + 24) for v in c))
+
+
 def roof_rules(atlas: Atlas, rng, palette, region=None) -> list[dict]:
     """Every `B` is the roof of a building: a colour of `palette` to each
     building, grit on it, a unit or a skylight here and there, and a
@@ -334,36 +382,16 @@ def roof_rules(atlas: Atlas, rng, palette, region=None) -> list[dict]:
         s = segment_of(first, second)
         return palette[(s + 3 * odd_band + 2 * odd_block) % len(palette)]
 
-    def paint_fill(d, c, r):
-        rect(d, 0, 0, TILE, TILE, c)
-        dark = tuple(max(0, v - 20) for v in c)
-        for _ in range(4):
-            rect(d, r.randrange(TILE), r.randrange(TILE), 1, 1, dark)
-
     count = 2 ** (len(colour_keys) + len(region))
     fills = []
     for index in range(count):
         c = colour(index)
         fills.append([] if c is None else atlas.bucket(
-            lambda c=c: tile_of(lambda d: paint_fill(d, c, rng))))
+            lambda c=c: tile_of(lambda d: roof_fill(d, c, rng))))
     rules = [rule("structures", "B", fills, colour_keys + region)]
 
-    def paint_unit(d, r):
-        """What the baker scattered over a roof, one of them to a tile."""
-        roll = r.random()
-        ax, ay = r.randrange(3, 5), r.randrange(3, 6)
-        if roll < 0.55:
-            rect(d, ax, ay, 9, 6, (120, 120, 116))
-            rect(d, ax + 1, ay + 1, 7, 1, (150, 150, 144))
-            rect(d, ax, ay + 6, 9, 1, (46, 42, 40))
-        elif roll < 0.8:
-            rect(d, ax, ay, 4, 4, (90, 90, 88))
-            rect(d, ax + 1, ay + 1, 2, 2, (40, 40, 42))
-        else:
-            rect(d, ax, ay, 10, 8, (50, 62, 76))
-            rect(d, ax + 1, ay + 1, 8, 1, (90, 110, 130))
     rules.append(rule("structures", "B", [atlas.odds(lambda: tile_of(
-        lambda d: paint_unit(d, rng) if rng.random() < 0.17 else None), 24)]))
+        lambda d: roof_unit(d, rng) if rng.random() < 0.17 else None), 24)]))
 
     # The parapet, one side at a time. Each side's edge is the end of the
     # roofs or the start of the next building by the pattern -- except in
@@ -379,20 +407,6 @@ def roof_rules(atlas: Atlas, rng, palette, region=None) -> list[dict]:
          pattern_key(0, 1, BLOCK_ROWS, BLOCK_ROWS - 1)),
     )
 
-    def paint_side(d, side, c):
-        light = tuple(min(255, v + 24) for v in c)
-        dark = tuple(max(0, v - 20) for v in c)
-        if side == "n":
-            rect(d, 0, 0, TILE, 2, light)
-            rect(d, 0, 2, TILE, 1, dark)
-        elif side == "w":
-            rect(d, 0, 0, 2, TILE, light)
-            rect(d, 2, 2, 1, TILE - 2, dark)
-        elif side == "e":
-            rect(d, TILE - 2, 0, 2, TILE, light)
-        else:
-            rect(d, 0, TILE - 2, TILE, 2, light)
-
     keys_n = len(colour_keys) + len(region)
     for side, roof_there, split in sides:
         buckets = []
@@ -402,7 +416,7 @@ def roof_rules(atlas: Atlas, rng, palette, region=None) -> list[dict]:
             in_region = region and not any(bits(index >> 4, len(region)))
             edge = not more or (split_here and not in_region)
             buckets.append([] if c is None or not edge else atlas.bucket(
-                lambda s=side, c=c: tile_of(lambda d: paint_side(d, s, c)),
+                lambda s=side, c=c: tile_of(lambda d: roof_side(d, s, c)),
                 1))
         rules.append(rule("structures", "B", buckets,
                           colour_keys + region + [roof_there, split]))
@@ -415,9 +429,7 @@ def roof_rules(atlas: Atlas, rng, palette, region=None) -> list[dict]:
         c = colour(index & (2 ** keys_n - 1))
         building_below = bits(index >> keys_n, 1)[0]
         street.append([] if c is None or building_below else atlas.bucket(
-            lambda c=c: tile_of(lambda d: rect(
-                d, 0, TILE - 3, TILE, 3,
-                tuple(min(255, v + 24) for v in c))), 1))
+            lambda c=c: tile_of(lambda d: roof_street_side(d, c)), 1))
     rules.append(rule("structures", "B", street,
                       colour_keys + region
                       + [neighbour_key(0, 1, BUILDINGS)]))
@@ -975,6 +987,115 @@ def shared(atlas: Atlas, name: str, make) -> list[dict]:
     return _shared[key]
 
 
+def building_start(x: int) -> int:
+    """The first column of the building of the roof pattern `x` is in."""
+    return x - x % SPAN + max(s for s in STARTS if s <= x % SPAN)
+
+
+def building_end(x: int) -> int:
+    """The last column of the building of the roof pattern `x` is in."""
+    return x - x % SPAN + min(e for e in ENDS if e >= x % SPAN)
+
+
+def barracks_lots(rows: list[str]) -> list[tuple[tuple, tuple]]:
+    """The buildings round the barracks, as (left, top, right, bottom) and
+    colour: the pattern of the roofs would cut slivers of them against its
+    front. The barracks has its roof behind its front and nowhere else;
+    either side of it, the building the pattern puts there reaches up to
+    it, in a band as tall as the roof behind and another as tall as the
+    front; and the buildings under it rise to the forecourt's row, one row
+    above where the pattern starts them, so nothing is left between."""
+    cells = [(x, y) for y, row in enumerate(rows)
+             for x, glyph in enumerate(row) if glyph == "K"]
+    left = min(x for x, _ in cells)
+    right = max(x for x, _ in cells)
+    top = min(y for _, y in cells)
+    bottom = max(y for _, y in cells)
+    west = building_start(left - 2)
+    east = building_end(right + 4)
+    palette = sl.ROOFS
+    lots = [
+        ((left, 0, right, top - 1), BARRACKS_ROOF),
+        ((west, 0, left - 1, top), palette[0]),
+        ((west, top + 1, left - 1, bottom), palette[2]),
+        ((right + 1, 0, east, top), palette[3]),
+        ((right + 1, top + 1, east, bottom), palette[1]),
+    ]
+    # Under it, the roofs of the next block, cut where the pattern cuts
+    # them and where the road runs between them, each in a colour neither
+    # the building above it nor the one before it has.
+    under = bottom + 2
+    low = under - under % BLOCK_ROWS + BLOCK_ROWS - 1
+
+    def colour_under(x, end):
+        above = {c for (l, _, r, b), c in lots
+                 if b == bottom and l <= end and r >= x}
+        before = {c for (_, t, r, _), c in lots if t == bottom + 1
+                  and r == x - 1}
+        return next(c for c in palette if c not in above | before)
+
+    x = west
+    while x <= east:
+        if rows[under][x] != "B":
+            x += 1
+            continue
+        end = x
+        while (end + 1 <= east and rows[under][end + 1] == "B"
+               and building_start(end + 1) != end + 1):
+            end += 1
+        lots.append(((x, bottom + 1, end, low), colour_under(x, end)))
+        x = end + 1
+    return lots
+
+
+def barracks_block(rows: list[str], name: str) -> dict:
+    """The roofs round the barracks, painted as one picture over the
+    pattern's: see `barracks_lots`. Each keeps the grit, the units and the
+    parapets of any roof, the parapets along its own edges."""
+    lots = barracks_lots(rows)
+    rng = random.Random(f"{SEED}/city/{name}/barracks-block")
+    x0 = min(box[0] for box, _ in lots)
+    y0 = min(box[1] for box, _ in lots)
+    x1 = max(box[2] for box, _ in lots)
+    y1 = max(box[3] for box, _ in lots)
+    sprite = Image.new("RGBA", ((x1 - x0 + 1) * TILE, (y1 - y0 + 1) * TILE),
+                       TRANSPARENT)
+
+    def glyph(x, y):
+        if 0 <= y < len(rows) and 0 <= x < len(rows[0]):
+            return rows[y][x]
+        return "B"
+
+    for (left, top, right, bottom), c in lots:
+        def inside(x, y, box=(left, top, right, bottom)):
+            return box[0] <= x <= box[2] and box[1] <= y <= box[3]
+
+        for y in range(top, bottom + 1):
+            for x in range(left, right + 1):
+                if glyph(x, y) != "B":
+                    continue
+                tile = tile_of(lambda d: None)
+                d = ImageDraw.Draw(tile)
+                roof_fill(d, c, rng)
+                if rng.random() < 0.17:
+                    roof_unit(d, rng)
+                for side, (dx, dy) in (("n", (0, -1)), ("w", (-1, 0)),
+                                       ("e", (1, 0)), ("s", (0, 1))):
+                    if not inside(x + dx, y + dy) or \
+                            glyph(x + dx, y + dy) != "B":
+                        roof_side(d, side, c)
+                if glyph(x, y + 1) not in BUILDINGS:
+                    roof_street_side(d, c)
+                sprite.alpha_composite(tile, ((x - x0) * TILE,
+                                              (y - y0) * TILE))
+    return {
+        "image": f"{name}_barracks_block.png",
+        "sprite": sprite,
+        "at": [x0, y0],
+        "under": [row[x0:x1 + 1] for row in rows[y0:y1 + 1]],
+    }
+
+
 def city_place(atlas: Atlas, rng, name: str, marker, storefront_table,
                old_town=False, one_roof=None) -> dict:
     rows = sl.read_rows(marker) if marker else sl.read_rows()
@@ -1010,6 +1131,8 @@ def city_place(atlas: Atlas, rng, name: str, marker, storefront_table,
     rules += shared(atlas, "overhead", lambda r: overhead_rules(atlas, r))
 
     objects = storefronts(rows, level, name, rng)
+    if "K" in glyphs:
+        objects.insert(0, barracks_block(rows, name))
     specials = (
         ("KE", "barracks", lambda d, lv: sl.paint_barracks(d, lv)),
         ("Mm", "hypermarket", lambda d, lv: sl.paint_hypermarket(d, rng, lv)),

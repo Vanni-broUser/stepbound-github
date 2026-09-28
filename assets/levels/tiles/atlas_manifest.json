@@ -10139,6 +10139,24 @@
       ],
       "objects": [
         {
+          "image": "hometown/street_barracks_block.png",
+          "at": [4, 0],
+          "under": [
+            "BBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "BBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "BBBBBBBBBBBBBBBBBBBBBBBBBB",
+            "BBBBBBBKKKKKKKKKKKBBBBBBBB",
+            "BBBBBBBKKKKKKKKKKKBBBBBBBB",
+            "BBBBBBBKKKKKKKKKKKBBBBBBBB",
+            "BBBBBBBKKKKKEKKKKKBBBBBBBB",
+            "BBBBBBBBB======IBBBBBBBBBB",
+            "BBBBBBBBB=..|..=BBBBBBBBBB",
+            "BBBBBBBBB=:....=BBBBBBBBBB",
+            "BBBBBBBBB=..|..=BBBBBBBBBB",
+            "BBBBBBBBB=.v...=BBBBBBBBBB"
+          ]
+        },
+        {
           "image": "hometown/street_shop_4_28.png",
           "at": [4, 28],
           "under": [
