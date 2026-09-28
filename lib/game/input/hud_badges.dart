@@ -128,9 +128,11 @@ final class _AmmoBadge extends StatelessWidget {
               // cover the grip.
               child: const Align(
                 alignment: Alignment(0.2, -0.3),
-                child: CustomPaint(
-                  size: Size(34, 23.4),
-                  painter: ColourPistolIcon(),
+                child: _Mirrored(
+                  CustomPaint(
+                    size: Size(34, 23.4),
+                    painter: ColourPistolIcon(),
+                  ),
                 ),
               ),
             );
@@ -288,6 +290,18 @@ final class _BloodRunPainter extends CustomPainter {
       oldDelegate.figures != figures;
 }
 
+/// An item's picture turned to face the other way: the row of things
+/// Mario carries starts from the right, and they face into it.
+final class _Mirrored extends StatelessWidget {
+  const _Mirrored(this.child);
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) =>
+      Transform.flip(flipX: true, child: child);
+}
+
 /// Something Mario carries for someone, hanging in the top corner for as
 /// long as he does: the errand he is on, always in sight. A tap names it,
 /// as [name], or as [label] when the two are the same.
@@ -327,7 +341,7 @@ final class _QuestItemBadge extends StatelessWidget {
             width: _badgeSize,
             height: _badgeSize,
             decoration: _frame(),
-            child: Center(child: icon),
+            child: Center(child: _Mirrored(icon)),
           ),
         ),
       ),
@@ -364,7 +378,9 @@ final class _MolotovBadge extends StatelessWidget {
             decoration: _frame(rim: inHand ? inHandBorder : BloodColors.fresh),
             child: const Align(
               alignment: Alignment(0.2, -0.2),
-              child: CustomPaint(size: Size(24, 32), painter: MolotovIcon()),
+              child: _Mirrored(
+                CustomPaint(size: Size(24, 32), painter: MolotovIcon()),
+              ),
             ),
           );
           final frame = inHand
