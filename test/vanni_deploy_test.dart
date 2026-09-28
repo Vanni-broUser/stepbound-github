@@ -21,6 +21,18 @@ void main() {
       10,
     );
     expect(Progress.fromJson(save.progress).hometownCompleted, isTrue);
+    final progress = Progress.fromJson(save.progress);
+    expect(
+      progress.knownZombies,
+      containsAll(levelZombieKinds(LevelId.hometown).toSet()),
+    );
+    expect(
+      restoreGameWorld(save.world).entities.values.where(
+        (entity) => entity.kind != EntityKind.player && !entity.isAlive,
+      ),
+      isEmpty,
+      reason: 'nobody killed: the level count starts from zero',
+    );
     expect(
       saves.values,
       isNot(contains(StoredSaveRepository.backupKey(vanniDeploySlot))),

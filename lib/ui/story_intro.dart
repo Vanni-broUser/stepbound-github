@@ -388,6 +388,11 @@ final class StoryTextBox extends StatelessWidget {
 
   static const double portraitTuck = 4;
 
+  /// Below the box, and below the text inside it, at the 384x216 base
+  /// resolution.
+  static const double bottomMargin = 8;
+  static const double textBottom = 8;
+
   /// Font sizes at the 384x216 base resolution; they grow with the view so
   /// text keeps the same share of the screen on phones and monitors.
   static const double speakerFontSize = 12;
@@ -412,7 +417,9 @@ final class StoryTextBox extends StatelessWidget {
   Widget _layout(double unit) {
     final portrait = this.portrait;
     return Padding(
-      padding: const EdgeInsets.all(10),
+      // Kept off the screen's bottom edge by a share of the screen, not a
+      // fixed few pixels, so on a phone it does not sit against the rim.
+      padding: EdgeInsets.fromLTRB(10, 10, 10, bottomMargin * unit),
       child: Column(
         mainAxisSize: portrait == null ? MainAxisSize.min : MainAxisSize.max,
         mainAxisAlignment: MainAxisAlignment.end,
@@ -446,7 +453,7 @@ final class StoryTextBox extends StatelessWidget {
       child: Container(
         key: const ValueKey<String>('story-text'),
         width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(12, 20, 26, 12),
+        padding: EdgeInsets.fromLTRB(12, 20, 26, textBottom * unit),
         decoration: BoxDecoration(
           color: const Color(0xe0140c0c),
           border: Border.all(color: BloodColors.fresh, width: 2),
