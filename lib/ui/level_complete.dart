@@ -175,7 +175,7 @@ final class LevelComplete extends StatelessWidget {
 }
 
 /// The figures of a level on a dark plate, in two columns: what the end
-/// of a level shows, and what the abacus aboard the train shows again.
+/// of a level shows, and what the cot aboard the train shows again.
 final class StatsCard extends StatelessWidget {
   const StatsCard({required this.stats, required this.unit, super.key});
 
@@ -280,19 +280,20 @@ final class StatsCard extends StatelessWidget {
   }
 }
 
-/// The abacus and the calculator on Mario's desk aboard the train: the
-/// same figures as at the end of a level, for any city Mario has been to,
-/// its name written in blood above them. The arrows go from one city to
-/// the next, and show only once there is more than one: Rome is there
-/// once the train has taken him there. It opens on the city the train
-/// stands in. Under the figures, beside the way out, the memories to live
-/// again and the secret missions.
+/// Mario's cot aboard the train: the same figures as at the end of a
+/// level, for any city Mario has been to, its name written in blood above
+/// them. The arrows go from one city to the next, and show only once there
+/// is more than one: Rome is there once the train has taken him there. It
+/// opens on [level] or, without one, on the city the train stands in.
+/// Under the figures, beside the way out, the memories of the city shown
+/// to live again and its secret missions.
 final class AdventureStats extends StatefulWidget {
   const AdventureStats({
     required this.world,
     required this.progress,
     required this.onClose,
     required this.onReplayMemories,
+    this.level,
     super.key,
   });
 
@@ -300,8 +301,11 @@ final class AdventureStats extends StatefulWidget {
   final Progress progress;
   final VoidCallback onClose;
 
-  /// The memories of the level, as the cot plays them.
-  final VoidCallback onReplayMemories;
+  /// The memories of the city shown, played again.
+  final ValueChanged<LevelId> onReplayMemories;
+
+  /// The city to open on, if not the one the train stands in.
+  final LevelId? level;
 
   /// The three buttons under the figures share the cards' width.
   static const double buttonGap = 6;
@@ -325,7 +329,9 @@ final class _AdventureStatsState extends State<AdventureStats> {
     for (final level in LevelId.values)
       if (widget.progress.visited(level)) level,
   ];
-  late int _index = _cities.indexOf(widget.progress.level).clamp(0, 99);
+  late int _index = _cities
+      .indexOf(widget.level ?? widget.progress.level)
+      .clamp(0, 99);
 
   /// Whether the secret missions are open in place of the figures.
   bool _secrets = false;
@@ -417,7 +423,7 @@ final class _AdventureStatsState extends State<AdventureStats> {
                     button(
                       'adventure-stats-memories',
                       'RIVIVI I RICORDI',
-                      widget.onReplayMemories,
+                      () => widget.onReplayMemories(level),
                     ),
                     if (secrets) ...<Widget>[
                       SizedBox(width: AdventureStats.buttonGap * unit),

@@ -1,3 +1,4 @@
+import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/story/story_director.dart';
 
@@ -55,15 +56,21 @@ final class ZombieBookCover extends GameCover {
   const ZombieBookCover();
 }
 
-/// The abacus and the calculator on Mario's desk aboard: the figures of
-/// the adventure, the same as at the end of a level, city by city.
+/// Mario's cot aboard: the figures of the adventure, the same as at the
+/// end of a level, city by city, open on [level] or, without one, on the
+/// city the train stands in.
 final class AdventureStatsCover extends GameCover {
-  const AdventureStatsCover();
+  const AdventureStatsCover({this.level});
+
+  final LevelId? level;
 }
 
-/// Mario's cot on the train: the story scenes seen so far, played again.
+/// The story scenes of [level] seen so far, played again from the figures
+/// of the adventure.
 final class MemoriesCover extends GameCover {
-  const MemoriesCover();
+  const MemoriesCover(this.level);
+
+  final LevelId level;
 }
 
 /// The menu the corner button opens, mid-game: back to the last save,

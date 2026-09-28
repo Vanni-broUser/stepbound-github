@@ -2,12 +2,11 @@ import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/story/story_director.dart';
 
 /// Mario and Luigi's home in the locomotive: talking to Luigi, the books by
-/// Mario's cot (the zombie types met so far), the abacus and calculator
-/// beside them (the figures of the adventure, city by city), the wardrobe
-/// (what to wear), the cot
-/// itself (the memories of the city the train stands in) and the
-/// ammunition crate beside it,
-/// which loads Mario up to [trainAmmoRefill] rounds whenever he has fewer.
+/// Mario's cot (the zombie types met so far), the wardrobe (what to wear),
+/// the cot itself (the figures of the adventure city by city, their
+/// missions and their memories to live again) and the ammunition crate
+/// beside it, which loads Mario up to [trainAmmoRefill] rounds whenever he
+/// has fewer.
 /// Each says a line first, so Mario always knows what he is using. None of
 /// it is used up, so each can be come back to.
 final class TrainScript extends StoryScript {

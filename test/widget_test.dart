@@ -1841,7 +1841,7 @@ void main() {
       await tester.pump();
       expect(game.cover.value, isNull);
 
-      game.replayMemories();
+      game.replayMemories(LevelId.hometown);
       await tester.pump();
       expect(game.soundscapePaused, isTrue, reason: "the story's sound");
       final story = tester.widget<StoryIntro>(
@@ -1850,7 +1850,15 @@ void main() {
       expect(story.scenes.length, introScenes.length + outbreakScenes.length);
       await tester.tap(find.byKey(const ValueKey<String>('story-exit')));
       await tester.pump();
-      expect(game.cover.value, isA<AdventureStatsCover>());
+      expect(
+        game.cover.value,
+        isA<AdventureStatsCover>().having(
+          (cover) => cover.level,
+          'level',
+          LevelId.hometown,
+        ),
+        reason: 'back to the city the memories were played from',
+      );
       expect(game.soundscapePaused, isFalse, reason: "the game's is back");
     });
   });
