@@ -14,17 +14,9 @@ held, dependencies at the newest resolvable versions, 36 merge requests
 landed in the two days since the previous check. The project is in good
 shape; nearly everything below is about the moment it goes public.
 
-Suggested order: the release key's backup, the level-end save, then the
-publication ritual (save policy, tags, privacy page), then the rest.
-
-## P1 — Before the first player: the release key
-
-The release key is in CI's protected variables and has already signed a
-build (pipeline 402). Android only updates an app with an APK signed by the
-same key: lose it and the published app can never be updated again.
-`docs/ci-pipeline.md` says to keep a copy outside GitLab; the repository
-cannot show whether that copy exists. If it does not, it is the first thing
-to do.
+Suggested order: the publication ritual (save policy, tags, privacy
+page), then the rest. The release key has its copy outside GitLab
+(2026-09-28), and the level-end save is awaited and reported.
 
 ## P1 — A save policy for the public demo
 
@@ -103,16 +95,6 @@ used.
 - The report says nothing about what the player was doing with their
   fingers: if touch input turns out to matter, the trail can take the
   input controller's actions too.
-
-## P2 — The level-end save is fire-and-forget
-
-`StepboundGame.completeLevel` (`lib/game/stepbound_game.dart`) calls
-`onRest` unawaited and hands the snapshot to the results screen at once:
-a save that fails aboard the train is logged (`GameSession.store`) and
-nothing tells the player, whose level completion is not on disk. For a demo
-whose end is that very train, this is the save that matters most. Await it
-and say on the results screen when it failed; the next campfire writes it
-anyway.
 
 ## P2 — `deploy_play` cannot start
 
@@ -201,8 +183,9 @@ debug key no longer conflicts with the release one. What remains:
 
 Slots are now read as a typed result, damaged ones fall back on the save they
 replaced, failed writes never leave the game stuck, and a slot is only
-offered once its world, progress and story scripts have been rebuilt. One
-corner remains besides the level-end save above:
+offered once its world, progress and story scripts have been rebuilt, and
+the train's save at the end of the level is awaited, with the results
+saying when it failed. One corner remains:
 
 - `_onLifecycle` (`lib/app.dart`) raises `_putDown` as soon as the app
   goes inactive, even when `_suspend` wrote nothing because the game was

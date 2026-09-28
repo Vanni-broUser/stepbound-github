@@ -15,6 +15,22 @@ import 'package:stepbound/ui/pause_menu.dart';
 /// to, where the level starts over, the hours played and the story scenes
 /// watched. The app decides what is on screen; this decides what is in the
 /// slot.
+/// A save that could not be written, kept for the report the player can
+/// share: what failed, where the game was, when.
+final class SaveFailure {
+  const SaveFailure({
+    required this.error,
+    required this.stack,
+    required this.place,
+    required this.at,
+  });
+
+  final Object error;
+  final StackTrace stack;
+  final String place;
+  final DateTime at;
+}
+
 final class GameSession {
   GameSession({
     required this.saves,
@@ -32,8 +48,14 @@ final class GameSession {
   /// The sound of the games made here.
   final GameAudio audio;
 
-  /// Leaves gameplay for the results screen after the final cutscene.
-  final void Function(GameSnapshot snapshot) onLevelCompleted;
+  /// The last save that could not be written, campfire, table or train,
+  /// for the report; null until one fails.
+  SaveFailure? lastSaveFailure;
+
+  /// Leaves gameplay for the results screen after the final cutscene;
+  /// `saved` says whether the train's save was written.
+  final void Function(GameSnapshot snapshot, {required bool saved})
+  onLevelCompleted;
 
   /// Leaves gameplay directly for the destination map from the train.
   final void Function(GameSnapshot snapshot) onTravelMapRequested;
@@ -274,8 +296,14 @@ final class GameSession {
           levelStart: levelStart,
         ),
       );
-    } on SaveWriteException catch (error) {
+    } on SaveWriteException catch (error, stack) {
       debugPrint('save: $error');
+      lastSaveFailure = SaveFailure(
+        error: error,
+        stack: stack,
+        place: snapshot.place,
+        at: DateTime.now(),
+      );
       return false;
     }
     resumePoint = snapshot.place == trainPlaceName

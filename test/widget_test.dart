@@ -30,21 +30,48 @@ import 'package:stepbound/save/save_game.dart';
 import 'package:stepbound/ui/black_fade.dart';
 import 'package:stepbound/ui/blood_decor.dart';
 import 'package:stepbound/ui/blood_splat.dart';
+import 'package:stepbound/ui/crash_guard.dart';
 import 'package:stepbound/ui/fire_frame.dart';
 import 'package:stepbound/ui/gameplay_dialogue.dart';
+import 'package:stepbound/ui/level_complete.dart';
 import 'package:stepbound/ui/level_map.dart';
 import 'package:stepbound/ui/loading_art.dart';
 import 'package:stepbound/ui/portrait_image.dart';
 import 'package:stepbound/ui/story_intro.dart';
+
+/// Waits for the report of a failed save to reach [shared]: it is put
+/// together off the frame loop, reading the slot and asking the phone.
+Future<void> _untilShared(WidgetTester tester, List<String> shared) async {
+  for (var i = 0; i < 100 && shared.isEmpty; i++) {
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    await tester.pump();
+  }
+}
+
+/// Empty storage that cannot be written, as a full disk.
+final class _ReadOnlyRepository extends StoredSaveRepository {
+  @override
+  Future<String?> readValue(String key) async => null;
+
+  @override
+  Future<void> writeValue(String key, String value) async =>
+      throw StateError('disk full');
+
+  @override
+  Future<void> removeValue(String key) async {}
+}
 
 /// Opens the app on the main menu and starts a new game in slot 1.
 Future<SaveRepository> _startNewGame(
   WidgetTester tester, {
   SaveRepository? saves,
   GameAudio? audio,
+  ShareReport? share,
 }) async {
   final repository = saves ?? MemorySaveRepository();
-  await tester.pumpWidget(StepboundApp(saves: repository, audio: audio));
+  await tester.pumpWidget(
+    StepboundApp(saves: repository, audio: audio, share: share),
+  );
   await tester.pump();
   await tester.tap(find.byKey(const ValueKey<String>('menu-new-game')));
   await tester.pump();
@@ -83,8 +110,9 @@ Future<void> _pumpAppThroughIntro(
   WidgetTester tester, {
   GameAudio? audio,
   SaveRepository? saves,
+  ShareReport? share,
 }) async {
-  await _startNewGame(tester, audio: audio, saves: saves);
+  await _startNewGame(tester, audio: audio, saves: saves, share: share);
   final intro = find.byKey(const ValueKey<String>('story-intro'));
   for (var i = 0; i < _introTapCount; i++) {
     await tester.tap(intro);
@@ -128,8 +156,9 @@ Future<StepboundGame> _pumpReadyGame(
   WidgetTester tester, {
   GameAudio? audio,
   SaveRepository? saves,
+  ShareReport? share,
 }) async {
-  await _pumpAppThroughIntro(tester, audio: audio, saves: saves);
+  await _pumpAppThroughIntro(tester, audio: audio, saves: saves, share: share);
   final gameState = tester.state<GameWidgetState<StepboundGame>>(
     find.byType(GameWidget<StepboundGame>),
   );
@@ -1781,7 +1810,12 @@ void main() {
       'Mario up and can be tried again at the fire', (tester) {
     return tester.runAsync(() async {
       final saves = MemorySaveRepository();
-      final game = await _pumpReadyGame(tester, saves: saves);
+      final shared = <String>[];
+      final game = await _pumpReadyGame(
+        tester,
+        saves: saves,
+        share: (name, text) async => shared.add(text),
+      );
       game.story.restore(const <String, Object?>{
         'north': <String, Object?>{'campLesson': true},
         'backpacks': <String, Object?>{'lesson': true},
@@ -1806,10 +1840,20 @@ void main() {
       saves.failWrites = true;
       game.unlock(HudElement.interact);
       await rest();
-      final prompt = game.cover.value! as PromptCover;
-      expect(prompt.lines.single.text, StepboundGame.saveFailedLine);
+      final notice = game.cover.value! as SaveFailedCover;
+      expect(notice.line, StepboundGame.saveFailedLine);
+      expect(find.text(StepboundGame.saveFailedLine), findsOneWidget);
       expect(await saves.load(1), isNull, reason: 'nothing was written');
-      await tester.tap(find.byKey(const ValueKey<String>('gameplay-dialogue')));
+      // The report of the failed save can be sent from here.
+      await tester.tap(find.byKey(const ValueKey<String>('save-failed-share')));
+      await _untilShared(tester, shared);
+      expect(shared, hasLength(1));
+      expect(shared.single, contains('== Errore (salvataggio: '));
+      expect(shared.single, contains('storage full'));
+      expect(shared.single, contains('== Partita ==\nslot: 1\nfase: playing'));
+      await tester.tap(
+        find.byKey(const ValueKey<String>('save-failed-continue')),
+      );
       await tester.pump();
       expect(game.cover.value, isNull);
       // Not stuck kneeling: the pause menu opens, as it does not while
@@ -2332,6 +2376,33 @@ void main() {
     });
   });
 
+  testWidgets('a train save that cannot be written is said on the results, '
+      'and the level still ends', (tester) {
+    return tester.runAsync(() async {
+      final shared = <String>[];
+      final game = await _pumpReadyGame(
+        tester,
+        saves: _ReadOnlyRepository(),
+        share: (name, text) async => shared.add(text),
+      );
+      game.completeLevel();
+      await tester.pump();
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey<String>('level-complete')),
+        findsOneWidget,
+      );
+      expect(find.text(LevelComplete.saveFailedLine), findsOneWidget);
+      await tester.tap(
+        find.byKey(const ValueKey<String>('level-complete-share')),
+      );
+      await _untilShared(tester, shared);
+      expect(shared, hasLength(1));
+      expect(shared.single, contains('== Errore (salvataggio: Treno) =='));
+      expect(shared.single, contains('disk full'));
+    });
+  });
+
   testWidgets('level completion saves aboard the train, opens the Europe '
       'map, and Città natale resumes at the map in the train, loading on '
       'the harbour', (tester) {
@@ -2360,6 +2431,8 @@ void main() {
       game.completeLevel();
       await tester.pump();
       final saved = (await saves.load(1))!;
+      // The results come once the train's save is written.
+      await tester.pump();
       expect(saved.place, 'Treno', reason: 'the label in the save slots');
       expect(saved.atCampfire, isTrue, reason: 'it can be resumed from');
       expect(
@@ -2367,6 +2440,7 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('ZAINI TROVATI'), findsOneWidget);
+      expect(find.text(LevelComplete.saveFailedLine), findsNothing);
       expect(find.text('RICORDI VISSUTI'), findsOneWidget);
       expect(find.text('ZOMBI CONOSCIUTI'), findsOneWidget);
       expect(find.text('TIPI DI ZOMBI CONOSCIUTI'), findsNothing);
@@ -2467,6 +2541,7 @@ void main() {
         ..facing = trainMapFacing;
       game.simulation.player.component<AmmoComponent>().loaded = 12;
       game.completeLevel();
+      await tester.pump();
       await tester.pump();
       await tester.tap(
         find.byKey(const ValueKey<String>('level-complete-continue')),

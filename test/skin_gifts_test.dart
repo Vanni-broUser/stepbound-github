@@ -100,7 +100,7 @@ void main() {
       session = GameSession(
         saves: saves,
         audio: SilentAudio(),
-        onLevelCompleted: (_) {},
+        onLevelCompleted: (_, {required saved}) {},
         onTravelMapRequested: (_) {},
       );
     });
