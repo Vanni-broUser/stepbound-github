@@ -42,10 +42,10 @@ final class TrainStage extends LevelStage {
         tile: stationTrainDoorTile,
         active: () => !simulation.map.tileAt(stationTrainDoorTile).isWalkable,
       ),
-      // Over the open book on the desk.
+      // Over the abacus in the middle of the desk.
       InteractGlintComponent(
         tile: trainBookTiles.first,
-        spot: const Offset(5, 6),
+        spot: const Offset(8, 3),
         active: canInteract,
       ),
       // On the middle of the wardrobe rail.
