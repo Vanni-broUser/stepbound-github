@@ -35,6 +35,11 @@ enum PlaceId {
   duomoTower,
   duomoBells,
   duomoTowerRoof,
+  terminiOverpass,
+  terminiFarPlatform,
+  terminiConcourse,
+  piazzaCinquecento,
+  viaMarsala,
 }
 
 /// The levels of the game, one city each. The train Mario and Luigi live
@@ -66,8 +71,11 @@ enum AreaId {
   /// is found.
   train(LevelId.hometown),
 
-  /// Roma Termini.
-  romeTermini(LevelId.rome);
+  /// Roma Termini: its platforms, the overpass and the concourse.
+  romeTermini(LevelId.rome),
+
+  /// The streets just outside Termini.
+  romeStreets(LevelId.rome);
 
   const AreaId(this.level);
 

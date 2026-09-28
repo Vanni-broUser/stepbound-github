@@ -2,9 +2,10 @@ import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/story/story_director.dart';
 
 /// The start of the Rome level. As soon as the city has loaded, before
-/// Mario can move, Luigi says why they stop here. The stairs out of
-/// Termini are as far as the game goes for now: they say so, and Mario is
-/// back on the platform, facing it, once that is tapped away.
+/// Mario can move, Luigi says why they stop here. The ends of the streets
+/// round Termini are as far as the game goes for now: they say so, and
+/// Mario is back a step inside the street, facing into it, once that is
+/// tapped away.
 final class RomeScript extends StoryScript {
   RomeScript(super.director);
 
@@ -40,15 +41,15 @@ final class RomeScript extends StoryScript {
     if (event case MovedEvent(
       :final entityId,
       :final to,
-    ) when entityId == world.playerId && terminiExitTiles.contains(to)) {
-      host.showEndOfDemo(onClosed: () => _stepBack(to));
+    ) when entityId == world.playerId && romeStreetEnds.containsKey(to)) {
+      host.showEndOfDemo(onClosed: () => _stepBack(to, romeStreetEnds[to]!));
     }
   }
 
-  void _stepBack(GridPoint from) {
+  void _stepBack(GridPoint from, Direction back) {
     world.player.component<PositionComponent>()
-      ..position = from.step(Direction.north)
-      ..facing = Direction.north;
+      ..position = from.step(back)
+      ..facing = back;
   }
 
   @override

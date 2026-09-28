@@ -1516,13 +1516,23 @@ void main() {
       ).map((place) => place.id),
       unorderedEquals(<PlaceId>[PlaceId.trainInterior, PlaceId.romeTermini]),
     );
+    // The station's own places, the train, and the two streets one door
+    // out of it: nothing of Molfetta.
     expect(
       PlaceLayers.kept(
         place(PlaceId.romeTermini),
         gamePlaces,
         world.portals,
       ).map((place) => place.id),
-      unorderedEquals(<PlaceId>[PlaceId.romeTermini, PlaceId.trainInterior]),
+      unorderedEquals(<PlaceId>[
+        PlaceId.romeTermini,
+        PlaceId.terminiOverpass,
+        PlaceId.terminiFarPlatform,
+        PlaceId.terminiConcourse,
+        PlaceId.trainInterior,
+        PlaceId.piazzaCinquecento,
+        PlaceId.viaMarsala,
+      ]),
     );
   });
 

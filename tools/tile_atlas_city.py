@@ -29,6 +29,7 @@ from PIL import Image, ImageDraw
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import build_street_level as sl  # noqa: E402
+import build_termini as termini  # noqa: E402
 from build_street_level import TILE, rect, shade  # noqa: E402
 from tile_atlas_core import (  # noqa: E402
     SEED,
@@ -49,19 +50,32 @@ from tile_atlas_core import (  # noqa: E402
 )
 
 ROAD = "".join(sorted(sl.ROAD_GLYPHS))
-BUILDINGS = "BHfKMGW#%0"
+BUILDINGS = "BHfKMGW#%0]"
 FACADE = "Hf"
 
 GROUND = ground_config(
     buildings=BUILDINGS,
     roads=".-|ZVc",
-    walks="=",
+    walks="={}",
     floors="PLY,",
     footway="T/F",
     keep="~bRlo5g",
     lawn="g",
     lawnProps="Apn^<",
 )
+
+# Rome: palazzi in ochre, Pompeian red, yellow and burnt orange, their
+# trim travertine cream, under roofs of terracotta tiles.
+ROME_FACADES = [
+    ((200, 138, 70), (232, 220, 196)),
+    ((170, 82, 58), (228, 214, 188)),
+    ((214, 176, 104), (236, 226, 204)),
+    ((192, 116, 76), (230, 218, 194)),
+    ((222, 196, 150), (240, 232, 214)),
+]
+ROME_ROOFS = [(172, 84, 56), (158, 74, 50), (184, 96, 64), (150, 80, 60)]
+ROME_SHUTTERS = [(92, 62, 40), (62, 84, 60), (110, 76, 46)]
+ROME_BASE = (206, 198, 176)
 
 # The asphalt the baker laid under everything, and what shows under the
 # buildings the objects stand on.
@@ -361,7 +375,39 @@ def roof_street_side(d, c):
     rect(d, 0, TILE - 3, TILE, 3, tuple(min(255, v + 24) for v in c))
 
 
-def roof_rules(atlas: Atlas, rng, palette, region=None) -> list[dict]:
+def paint_coppi(d, c, r):
+    """A Roman roof tile, `B` in Rome: courses of curved terracotta tiles,
+    their ridges catching the light and the channels between them dark, a
+    tile slipped or broken here and there, lichen on the old ones."""
+    light, dark = shade(c, 22), shade(c, -28)
+    rect(d, 0, 0, TILE, TILE, c)
+    for cy in range(0, TILE, 4):
+        shift = 2 if (cy // 4) % 2 else 0
+        for cx in range(-shift, TILE, 4):
+            rect(d, cx, cy, 2, 3, light)
+            rect(d, cx + 2, cy, 1, 3, dark)
+        rect(d, 0, cy + 3, TILE, 1, shade(c, -40))
+    for _ in range(r.randint(0, 2)):
+        rect(d, r.randrange(TILE - 3), r.randrange(TILE - 2), 3, 2,
+             r.choice((shade(c, -60), (120, 124, 96))))
+
+
+def roof_chimney(d, r):
+    """What stands on a tiled roof: a chimney pot, a TV aerial."""
+    if r.random() < 0.6:
+        cx, cy = r.randrange(3, 10), r.randrange(2, 8)
+        rect(d, cx, cy, 5, 6, (190, 170, 150))
+        rect(d, cx, cy, 5, 2, (120, 70, 50))
+        rect(d, cx + 5, cy + 2, 2, 5, (60, 40, 34))
+    else:
+        ax, ay = r.randrange(3, 9), r.randrange(3, 9)
+        rect(d, ax + 3, ay, 1, 7, (70, 70, 74))
+        for i in range(3):
+            rect(d, ax, ay + 1 + i * 2, 7 - i * 2 + 1, 1, (90, 90, 96))
+
+
+def roof_rules(atlas: Atlas, rng, palette, region=None,
+               coppi=False) -> list[dict]:
     """Every `B` is the roof of a building: a colour of `palette` to each
     building, grit on it, a unit or a skylight here and there, and a
     parapet along its edges -- where the band of roofs ends, or where the
@@ -382,16 +428,18 @@ def roof_rules(atlas: Atlas, rng, palette, region=None) -> list[dict]:
         s = segment_of(first, second)
         return palette[(s + 3 * odd_band + 2 * odd_block) % len(palette)]
 
+    fill = paint_coppi if coppi else roof_fill
     count = 2 ** (len(colour_keys) + len(region))
     fills = []
     for index in range(count):
         c = colour(index)
         fills.append([] if c is None else atlas.bucket(
-            lambda c=c: tile_of(lambda d: roof_fill(d, c, rng))))
+            lambda c=c: tile_of(lambda d: fill(d, c, rng))))
     rules = [rule("structures", "B", fills, colour_keys + region)]
 
+    unit = roof_chimney if coppi else roof_unit
     rules.append(rule("structures", "B", [atlas.odds(lambda: tile_of(
-        lambda d: roof_unit(d, rng) if rng.random() < 0.17 else None), 24)]))
+        lambda d: unit(d, rng) if rng.random() < 0.17 else None), 24)]))
 
     # The parapet, one side at a time. Each side's edge is the end of the
     # roofs or the start of the next building by the pattern -- except in
@@ -454,12 +502,14 @@ def facade_keys() -> list[dict]:
     ]
 
 
-def facade_rules(atlas: Atlas, rng, old_town: bool) -> list[dict]:
+def facade_rules(atlas: Atlas, rng, old_town: bool,
+                 rome: bool = False) -> list[dict]:
     """A band of `H` is the fronts of the buildings whose roofs are behind
     it, split where the roofs are: a colour to each building, a cornice
     along the top, windows, and on the street a shop or a door."""
     keys = facade_keys()
-    colours = sl.OLD_TOWN_STONE if old_town else sl.FACADES
+    colours = (sl.OLD_TOWN_STONE if old_town
+               else ROME_FACADES if rome else sl.FACADES)
 
     def building(index):
         first, second, odd_band = bits(index, 3)
@@ -488,6 +538,20 @@ def facade_rules(atlas: Atlas, rng, old_town: bool) -> list[dict]:
             return
         wall, trim = c
         rect(d, 0, 0, TILE, TILE, wall)
+        if rome:
+            # Plaster, patchy with age, and a heavy travertine cornice.
+            for _ in range(5):
+                rect(d, r.randrange(TILE - 3), r.randrange(TILE - 2),
+                     r.randint(2, 5), r.randint(1, 3),
+                     shade(wall, r.choice((-12, -8, 8))))
+            if top:
+                rect(d, 0, 0, TILE, 4, trim)
+                rect(d, 0, 4, TILE, 1, shade(trim, -60))
+                for dx in range(1, TILE, 4):
+                    rect(d, dx, 2, 2, 2, shade(trim, -30))
+            if east:
+                rect(d, TILE - 2, 0, 2, TILE, shade(wall, -22))
+            return
         if top:
             rect(d, 0, 0, TILE, 3, trim)
         if east:
@@ -501,7 +565,7 @@ def facade_rules(atlas: Atlas, rng, old_town: bool) -> list[dict]:
         walls.append([] if c is None else atlas.bucket(
             lambda c=c, t=top, e=east: tile_of(
                 lambda d: paint_wall(d, c, t, e, rng)),
-            4 if old_town else 1))
+            4 if old_town or rome else 1))
     rules = [rule("structures", FACADE, walls, keys)]
 
     # The floors above the street: a window to each tile.
@@ -537,6 +601,41 @@ def facade_rules(atlas: Atlas, rng, old_town: bool) -> list[dict]:
                 rect(d, wx - 3, wy + 7, 12, 1, (50, 50, 52))
                 for i in range(0, 12, 2):
                     rect(d, wx - 3 + i, wy + 7, 1, 4, (50, 50, 52))
+            return
+        if rome:
+            # A tall window in its travertine frame under a little
+            # pediment, the wooden shutters open or shut, an iron railing
+            # across it now and then.
+            wall, trim = c
+            wx, wy = 5, 4
+            rect(d, wx - 1, wy - 1, 8, 12, trim)
+            rect(d, wx, wy, 6, 10, sl.PANE if r.random() > 0.2
+                 else sl.PANE_BROKEN)
+            if r.random() < 0.5:
+                d.polygon([(wx - 2, wy - 1), (wx + 3, wy - 4),
+                           (wx + 8, wy - 1)], fill=trim)
+                rect(d, wx - 2, wy - 1, 11, 1, shade(trim, -50))
+            else:
+                rect(d, wx - 2, wy - 3, 11, 2, trim)
+                rect(d, wx - 2, wy - 1, 11, 1, shade(trim, -50))
+            brown = r.choice(ROME_SHUTTERS)
+            slat = shade(brown, -26)
+            roll = r.random()
+            if roll < 0.35:
+                rect(d, wx, wy, 6, 10, brown)
+                for ly in range(wy + 1, wy + 10, 2):
+                    rect(d, wx, ly, 6, 1, slat)
+            elif roll < 0.7:
+                for sx in (wx - 4, wx + 7):
+                    rect(d, sx, wy, 3, 10, brown)
+                    for ly in range(wy + 1, wy + 10, 2):
+                        rect(d, sx, ly, 3, 1, slat)
+            if r.random() < 0.3:
+                rect(d, wx - 2, wy + 7, 11, 1, (40, 40, 42))
+                rect(d, wx - 2, wy + 10, 11, 1, (40, 40, 42))
+                for i in range(0, 11, 2):
+                    rect(d, wx - 2 + i, wy + 7, 1, 4, (40, 40, 42))
+            rect(d, wx - 1, wy + 11, 8, 1, shade(trim, -40))
             return
         _, trim = c
         roll = r.random()
@@ -574,6 +673,9 @@ def facade_rules(atlas: Atlas, rng, old_town: bool) -> list[dict]:
         if old_town:
             return (lambda d, px, py, c=c, dr=door:
                     paint_old_town_street(d, px, py, c, dr, rng))
+        if rome:
+            return (lambda d, px, py, c=c, dr=door, t=tall:
+                    paint_rome_street(d, px, py, c, dr, t, rng))
         if tall:
             return lambda d, px, py, c=c: paint_shop(d, px, py, c, rng)
         return lambda d, px, py, c=c, dr=door: paint_street_door(
@@ -633,6 +735,47 @@ def paint_street_door(d, px, py, c, door, rng):
         rect(d, px + 4, py + 2, 8, 10, trim)
         rect(d, px + 5, py + 3, 6, 8, sl.PANE if rng.random() > 0.3
              else sl.PANE_BROKEN)
+
+
+def paint_rome_street(d, px, py, c, door, tall, rng):
+    """The street level of a Roman palazzo: a rusticated travertine base,
+    its courses cut deep; on the middle tile the great arched portone,
+    dark wood and studs, and elsewhere a shop behind its steel shutter,
+    the shutters of the tall ones tagged or forced."""
+    rect(d, px, py, TILE, TILE, ROME_BASE)
+    for cy in range(py + 3, py + TILE, 4):
+        rect(d, px, cy, TILE, 1, shade(ROME_BASE, -44))
+    rect(d, px, py, TILE, 2, shade(ROME_BASE, 18))
+    if door:
+        rect(d, px + 2, py + 3, 12, TILE - 3, shade(ROME_BASE, 14))
+        d.ellipse([px + 3, py + 1, px + 12, py + 9], fill=(58, 36, 26))
+        rect(d, px + 3, py + 5, 10, TILE - 5, (58, 36, 26))
+        rect(d, px + 8, py + 5, 1, TILE - 5, (36, 22, 16))
+        for sy in range(py + 7, py + TILE, 3):
+            rect(d, px + 5, sy, 1, 1, (150, 120, 70))
+            rect(d, px + 11, sy, 1, 1, (150, 120, 70))
+        if rng.random() < 0.3:
+            sl.paint_boards(d, px + 4, py + 7, 8, 8)
+        return
+    if tall:
+        rect(d, px + 1, py + 3, 14, TILE - 3, (40, 38, 38))
+        for sy in range(py + 4, py + TILE, 2):
+            rect(d, px + 1, sy, 14, 1, (132, 134, 138))
+        if rng.random() < 0.4:
+            for i in range(0, 12, 2):
+                rect(d, px + 2 + i, py + 8 + (i % 4) // 2, 2, 1,
+                     rng.choice(((200, 60, 150), (60, 170, 190),
+                                 (230, 200, 60))))
+        elif rng.random() < 0.3:
+            rect(d, px + 1, py + 10, 14, TILE - 10, (16, 14, 16))
+    elif rng.random() < 0.5:
+        rect(d, px + 5, py + 4, 6, 7, (30, 30, 34))
+        for i in range(0, 6, 2):
+            rect(d, px + 5 + i, py + 4, 1, 7, (80, 80, 80))
+    for _ in range(4):
+        gx, gh = rng.randrange(TILE), rng.randint(2, 6)
+        rect(d, px + gx, py + TILE - gh, 1, gh,
+             shade(ROME_BASE, -rng.randint(30, 60)))
 
 
 def paint_old_town_street(d, px, py, stone, door, rng):
@@ -1097,7 +1240,7 @@ def barracks_block(rows: list[str], name: str) -> dict:
 
 
 def city_place(atlas: Atlas, rng, name: str, marker, storefront_table,
-               old_town=False, one_roof=None) -> dict:
+               old_town=False, one_roof=None, rome=False) -> dict:
     rows = sl.read_rows(marker) if marker else sl.read_rows()
     level = sl.Level(rows, storefront_table, old_town=old_town,
                      one_roof=one_roof)
@@ -1110,12 +1253,27 @@ def city_place(atlas: Atlas, rng, name: str, marker, storefront_table,
         row, column = one_roof
         region = [first_row_key("j", -1, "le"),
                   pattern_key(1, 0, 2, 1, div=(column, 1))]
-    palette = sl.OLD_TOWN_ROOFS if old_town else sl.ROOFS
-    rules += shared(atlas, f"roofs/{old_town}/{bool(region)}",
-                    lambda r: roof_rules(atlas, r, palette, region))
+    palette = (sl.OLD_TOWN_ROOFS if old_town
+               else ROME_ROOFS if rome else sl.ROOFS)
+    style = "/rome" if rome else ""
+    rules += shared(atlas, f"roofs/{old_town}/{bool(region)}{style}",
+                    lambda r: roof_rules(atlas, r, palette, region,
+                                         coppi=rome))
     rules.append(roof_shadow_rule(atlas, ground_glyphs))
-    rules += shared(atlas, f"facades/{old_town}",
-                    lambda r: facade_rules(atlas, r, old_town))
+    rules += shared(atlas, f"facades/{old_town}{style}",
+                    lambda r: facade_rules(atlas, r, old_town, rome))
+    if "]" in glyphs:
+        # Under the front of Termini, which is its own picture.
+        rules.append(rule("structures", "]", [atlas.bucket(lambda: tile_of(
+            lambda d: rect(d, 0, 0, TILE, TILE, termini.TERMINI_STONE)),
+            1)]))
+        rules.append(rule("structures", "{", [atlas.bucket(lambda: tile_of(
+            lambda d: rect(d, 0, 0, TILE, TILE, (18, 18, 22))), 1)]))
+    if "}" in glyphs:
+        rules.append(rule("structures", "}", [
+            atlas.bucket(lambda f=first: tile_of(
+                lambda d: termini.paint_wall_breach(d, rng, 0, 0, f)))
+            for first in (False, True)], [neighbour_key(-1, 0, "%")]))
     if "%" in glyphs:
         rules.append(yard_wall_rule(atlas, rng))
     if "c" in glyphs:
@@ -1141,6 +1299,8 @@ def city_place(atlas: Atlas, rng, name: str, marker, storefront_table,
         ("W", "duomo", lambda d, lv: sl.paint_duomo(d, rng, lv)),
         ("#(", "church", lambda d, lv: sl.paint_small_church(d, rng, lv)),
         ("_+[", "airliner", lambda d, lv: sl.paint_airliner(d, rng, lv)),
+        ("]{", "termini", lambda d, lv: termini.paint_termini_front(
+            d, rng, lv)),
     )
     for marks, what, paint in specials:
         if marks[0] in glyphs:
@@ -1221,16 +1381,30 @@ def mall_north_street(atlas: Atlas, rng) -> dict:
                       sl.MALL_NORTH_STOREFRONTS, one_roof=(rear, 50))
 
 
+def piazza_cinquecento(atlas: Atlas, rng) -> dict:
+    return city_place(atlas, rng, "piazzaCinquecento",
+                      "piazza-cinquecento-rows", {}, rome=True)
+
+
+def via_marsala(atlas: Atlas, rng) -> dict:
+    return city_place(atlas, rng, "viaMarsala", "via-marsala-rows", {},
+                      rome=True)
+
+
 PLACES = {
     "harbour": harbour,
     "mallNorthStreet": mall_north_street,
     "northDistrict": north_district,
+    "piazzaCinquecento": piazza_cinquecento,
     "street": street,
+    "viaMarsala": via_marsala,
 }
 
 PREVIEW_ROWS = {
     "harbour": "harbour-rows",
     "mallNorthStreet": "mall-north-rows",
     "northDistrict": "north-rows",
+    "piazzaCinquecento": "piazza-cinquecento-rows",
     "street": "level-rows",
+    "viaMarsala": "via-marsala-rows",
 }

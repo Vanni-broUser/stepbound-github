@@ -15,9 +15,8 @@ import 'package:stepbound/core/grid/grid_point.dart';
 /// `Q`, ROMA TERMINI high on the back wall above the train, and `o`, ROMA
 /// on its posts at the edge of the platform, a few steps from the door.
 /// Unlike Molfetta's, the stairs `D` in the front wall go up, to the
-/// concourse: the rest of Rome is still to be made, so they end the
-/// playable game for now. The dead of the station wander the platform (see
-/// [terminiZombieSpots]).
+/// overpass over the tracks (termini_station.dart). The dead of the
+/// station wander the platform (see `terminiZombieSpots`).
 // termini-rows-start
 const List<String> terminiRows = <String>[
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
