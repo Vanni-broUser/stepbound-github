@@ -32,10 +32,10 @@ import 'package:stepbound/ui/loading_art.dart';
 import 'package:stepbound/ui/location_card.dart';
 import 'package:stepbound/ui/main_menu.dart';
 import 'package:stepbound/ui/pause_menu.dart';
-import 'package:stepbound/ui/rome_placeholder.dart';
 import 'package:stepbound/ui/save_failed_notice.dart';
 import 'package:stepbound/ui/screen_wide_layer.dart';
 import 'package:stepbound/ui/story_intro.dart';
+import 'package:stepbound/ui/work_in_progress_screen.dart';
 import 'package:stepbound/ui/zombie_book.dart';
 
 /// The main menu first; a new game then plays the story scenes and the
@@ -288,7 +288,7 @@ final class _StepboundAppState extends State<StepboundApp> {
       LoadingArt.image,
       LevelMap.hometownImage,
       LevelMap.romeImage,
-      RomePlaceholder.image,
+      WorkInProgressScreen.image,
       MainMenu.logo,
     ]) {
       unawaited(precacheImage(AssetImage(image), context));
@@ -487,11 +487,11 @@ final class _StepboundAppState extends State<StepboundApp> {
       onShare: () => unawaited(_shareSaveFailure()),
       onContinue: game.dismissSaveFailed,
     ),
-    EndOfDemoCover() => Letterbox(
+    WorkInProgressCover() => Letterbox(
       color: Colors.black,
-      child: RomePlaceholder(
+      child: WorkInProgressScreen(
         key: ObjectKey(cover),
-        onBack: game.closeEndOfDemo,
+        onBack: game.closeWorkInProgress,
       ),
     ),
     PauseCover(:final wardrobe) => PauseMenu(

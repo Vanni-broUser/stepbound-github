@@ -133,11 +133,11 @@ final class _FakeHost implements StoryHost, HometownActions {
   @override
   void openTravelMap() => travelMapsOpened++;
 
-  int endsOfDemo = 0;
+  int workInProgressShown = 0;
 
   @override
-  void showEndOfDemo({void Function()? onClosed}) {
-    endsOfDemo++;
+  void showWorkInProgress({void Function()? onClosed}) {
+    workInProgressShown++;
     onClosed?.call();
   }
 
@@ -226,6 +226,28 @@ void main() {
 
     director.update(0.05, turnAnimating: false);
     expect(host.shown.single.single.text, 'Ecco');
+  });
+
+  test('a step off the edge of a map with no next map shows the '
+      'work-in-progress screen, and Mario is back inside once it is '
+      'tapped away', () {
+    // West of Termini, where Piazza dei Cinquecento runs off the map.
+    final piazza = place(PlaceId.piazzaCinquecento);
+    final end = GridPoint(piazza.origin.x, piazza.origin.y + 8);
+    final mario = world.player.component<PositionComponent>()
+      ..position = end.step(Direction.east)
+      ..facing = Direction.west;
+
+    final events = const TurnScheduler().advance(
+      world,
+      const MoveAction(Direction.west),
+    );
+    expect(mario.position, end);
+    director.onEvents(events);
+
+    expect(host.workInProgressShown, 1);
+    expect(mario.position, end.step(Direction.east));
+    expect(mario.facing, Direction.east);
   });
 
   test('the locked bar door explains that it needs a key', () {

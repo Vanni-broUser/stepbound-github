@@ -17,6 +17,7 @@ import 'package:stepbound/game/story/scripts/rooftops_script.dart';
 import 'package:stepbound/game/story/scripts/station_script.dart';
 import 'package:stepbound/game/story/scripts/street_script.dart';
 import 'package:stepbound/game/story/scripts/train_script.dart';
+import 'package:stepbound/game/story/scripts/work_in_progress_script.dart';
 import 'package:stepbound/game/story/scripts/zombie_sightings_script.dart';
 import 'package:stepbound/game/zombie_lore.dart';
 
@@ -35,6 +36,7 @@ export 'package:stepbound/game/story/scripts/rooftops_script.dart';
 export 'package:stepbound/game/story/scripts/station_script.dart';
 export 'package:stepbound/game/story/scripts/street_script.dart';
 export 'package:stepbound/game/story/scripts/train_script.dart';
+export 'package:stepbound/game/story/scripts/work_in_progress_script.dart';
 export 'package:stepbound/game/story/scripts/zombie_sightings_script.dart';
 
 /// A line shown in the dialogue box over the gameplay.
@@ -189,9 +191,9 @@ abstract interface class StoryHost {
   /// Leaves the train and opens the destination map immediately.
   void openTravelMap();
 
-  /// Says that the game goes no further yet; [onClosed] once it is tapped
-  /// away.
-  void showEndOfDemo({void Function()? onClosed});
+  /// Shows the work-in-progress screen: the game goes no further yet.
+  /// [onClosed] once it is tapped away.
+  void showWorkInProgress({void Function()? onClosed});
 
   /// Opens the book of the zombie types met so far.
   void openZombieBook();
@@ -259,9 +261,9 @@ abstract class StoryScript {
 /// other: the backpacks, the first street, the barracks, the north
 /// district, the hypermarket, the Duomo, the station, the train Mario and
 /// Luigi live in, the roofs the crashed airliner came down in, the arrival
-/// in Rome, what the train carries from one level to the next and the
-/// zombie types met on sight. It records what the player comes to know in
-/// [progress].
+/// in Rome, the ways that go nowhere yet, what the train carries from one
+/// level to the next and the zombie types met on sight. It records what
+/// the player comes to know in [progress].
 final class StoryDirector {
   StoryDirector({
     required this.world,
@@ -282,6 +284,7 @@ final class StoryDirector {
       RooftopsScript(this),
       RoadblockFireScript(this),
       RomeScript(this),
+      WorkInProgressScript(this),
       MaranzaScript(this),
       JourneyScript(this),
       ZombieSightingsScript(this),

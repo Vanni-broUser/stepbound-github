@@ -142,16 +142,17 @@ void main() {
   });
 
   test('Rome ends, for now, where its streets run off the map', () {
-    final world = createGameWorld();
-    expect(romeStreetEnds, isNotEmpty);
-    for (final MapEntry(key: end, value: back) in romeStreetEnds.entries) {
-      expect(world.map.tileAt(end).isWalkable, isTrue);
-      final inside = end.step(back);
-      expect(world.map.tileAt(inside).isWalkable, isTrue, reason: '$end');
-      expect(romeStreetEnds.containsKey(inside), isFalse, reason: '$end');
+    final ends = workInProgressEnds.keys;
+    expect(ends.where(piazza.bounds.contains), isNotEmpty);
+    expect(ends.where(marsala.bounds.contains), isNotEmpty);
+    // West of Termini, where the piazza runs off the map.
+    expect(
+      workInProgressEnds[GridPoint(piazza.origin.x, piazza.origin.y + 8)],
+      Direction.east,
+    );
+    for (final station in <Place>[termini, overpass, farPlatform, concourse]) {
+      expect(ends.where(station.bounds.contains), isEmpty, reason: '$station');
     }
-    expect(romeStreetEnds.keys.where(piazza.bounds.contains), isNotEmpty);
-    expect(romeStreetEnds.keys.where(marsala.bounds.contains), isNotEmpty);
   });
 
   test('fires burn in the streets of Rome too', () {

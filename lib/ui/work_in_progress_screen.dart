@@ -2,11 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/ui/screen_caption.dart';
 
-/// Temporary end of the playable build. A tap returns to the Europe map.
-final class RomePlaceholder extends StatelessWidget {
-  const RomePlaceholder({required this.onBack, super.key});
+/// The work-in-progress screen: the developer at his laptop, and the
+/// words saying this part is still to be made. It comes up wherever the
+/// game goes no further yet, at every walkable edge of a map that has no
+/// next map (`workInProgressEnds`); a tap takes it away and Mario is back
+/// a step inside. Every unfinished way out shows this same screen, in any
+/// level: see docs/level_pipeline.md, "Strade incomplete".
+final class WorkInProgressScreen extends StatelessWidget {
+  const WorkInProgressScreen({required this.onBack, super.key});
 
-  static const String image = 'assets/story/placeholders/rome.jpg';
+  static const String image = 'assets/story/placeholders/work_in_progress.jpg';
   static const String message =
       'Vanni deve ancora programmarla questa parte\n'
       'Fagli sapere se ti piace il gioco';
@@ -16,7 +21,7 @@ final class RomePlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      key: const ValueKey<String>('rome-placeholder'),
+      key: const ValueKey<String>('work-in-progress'),
       behavior: HitTestBehavior.opaque,
       onTap: onBack,
       child: LayoutBuilder(
@@ -34,7 +39,7 @@ final class RomePlaceholder extends StatelessWidget {
               ColoredBox(color: Colors.black.withValues(alpha: 0.12)),
               ScreenCaption(
                 message,
-                key: const ValueKey<String>('rome-placeholder-caption'),
+                key: const ValueKey<String>('work-in-progress-caption'),
                 unit: unit,
               ),
             ],

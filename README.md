@@ -119,7 +119,7 @@ GitLab CI runs formatting, static analysis, and tests with Flutter 3.44.2. Signe
 - `assets/characters`: Mario (including skins), NPC and zombie portraits and sprite atlases
 - `assets/objects`: generic inventory and world objects
 - `assets/levels`: tile atlas and place-specific art grouped by level area
-- `assets/story`: cutscene scenes, maps, UI art and placeholders
+- `assets/story`: cutscene scenes, maps, UI art and placeholders; every street that runs off a map with no next map ends on the work-in-progress screen (`docs/level_pipeline.md`, "Strade incomplete")
 - `bin/stepbound_runner.dart`: headless ASCII runner
 - `tools/benchmark_world.dart`: deterministic simulation scaling benchmark
 
