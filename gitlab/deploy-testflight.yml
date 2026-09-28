@@ -27,6 +27,9 @@ deploy_testflight:
   script:
     - |
       set -eu
+      echo "=== Diagnostica Ambiente ==="
+      echo "Data/ora Mac (UTC): $(date -u)"
+
       for v in ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8; do
         eval "val=\${$v:-}"
         if [ -z "$val" ]; then
@@ -34,15 +37,38 @@ deploy_testflight:
           exit 1
         fi
       done
-      mkdir -p "$HOME/private_keys"
-      cp "$ASC_KEY_P8" "$HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+
+      # Sanificazione da whitespace accidentali
+      KEY_ID=$(echo "$ASC_KEY_ID" | tr -d '[:space:]')
+      ISSUER_ID=$(echo "$ASC_ISSUER_ID" | tr -d '[:space:]')
+
+      echo "Key ID: $KEY_ID (lunghezza ${#KEY_ID})"
+      echo "Issuer ID: $ISSUER_ID (lunghezza ${#ISSUER_ID})"
+
+      # Preparazione directory chiavi cercate da altool
+      mkdir -p "$HOME/private_keys" "$HOME/.private_keys" "$HOME/.appstoreconnect/private_keys"
+
+      KEY_FILE="$HOME/private_keys/AuthKey_${KEY_ID}.p8"
+      # Rimuove ritorni a capo Windows (CRLF) ed eventuali spazi superflui
+      tr -d '\r' < "$ASC_KEY_P8" > "$KEY_FILE"
+      chmod 600 "$KEY_FILE"
+
+      cp "$KEY_FILE" "$HOME/.private_keys/AuthKey_${KEY_ID}.p8"
+      cp "$KEY_FILE" "$HOME/.appstoreconnect/private_keys/AuthKey_${KEY_ID}.p8"
+
+      echo "Verifica formato chiave:"
+      head -n 1 "$KEY_FILE"
+      tail -n 1 "$KEY_FILE"
+
       IPA=$(ls build/ios/ipa/*.ipa 2>/dev/null | head -n1 || true)
       if [ -z "$IPA" ] || [ ! -f "$IPA" ]; then
         echo "ERRORE: nessun file .ipa trovato in build/ios/ipa/." >&2
         exit 1
       fi
-      echo "Upload di $IPA su App Store Connect / TestFlight..."
+
+      echo "Upload di $IPA su App Store Connect / TestFlight per App ID 6816988482..."
       xcrun altool --upload-app --type ios --file "$IPA" \
-        --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID"
+        --apiKey "$KEY_ID" --apiIssuer "$ISSUER_ID" \
+        --apple-id 6816988482
   after_script:
-    - rm -rf "$HOME/private_keys" || true
+    - rm -rf "$HOME/private_keys" "$HOME/.private_keys" "$HOME/.appstoreconnect/private_keys" || true
