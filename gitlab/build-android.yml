@@ -67,8 +67,10 @@ build_android_debug:
 # AAB firmato per Google Play Store (automatico su main, parte da solo al merge)
 build_android_signed:
   extends: .android_signed
+  needs: []
   dependencies: []
   rules:
+
     - if: '$CI_COMMIT_BRANCH == "main"'
       when: on_success
     - if: '$CI_COMMIT_REF_PROTECTED == "true"'
