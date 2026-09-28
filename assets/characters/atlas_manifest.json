@@ -330,6 +330,21 @@
       ]
     },
     {
+      "file": "mario/sprites/roma_throwable.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "throw_0",
+        "throw_1",
+        "throw_2"
+      ],
+      "actions": [
+        "aim_throwable",
+        "throw"
+      ]
+    },
+    {
       "file": "mario/sprites/lazio_gun.png",
       "columns": [
         "aim_0",
@@ -356,6 +371,21 @@
       ],
       "actions": [
         "pickup"
+      ]
+    },
+    {
+      "file": "mario/sprites/lazio_throwable.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "throw_0",
+        "throw_1",
+        "throw_2"
+      ],
+      "actions": [
+        "aim_throwable",
+        "throw"
       ]
     },
     {

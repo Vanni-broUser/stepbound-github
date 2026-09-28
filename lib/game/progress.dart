@@ -11,7 +11,16 @@ const int arrivalRounds = 5;
 
 /// Clothes Mario can wear. Each outfit owns the matching world atlases and
 /// dialogue/menu portrait so every view changes together.
-enum PlayerOutfit { base, cultist, ghost, vampire, jackOLantern, zombie }
+enum PlayerOutfit {
+  base,
+  cultist,
+  ghost,
+  vampire,
+  jackOLantern,
+  zombie,
+  roma,
+  lazio,
+}
 
 /// Seasonal outfits obtained through their campaign links.
 const List<PlayerOutfit> halloweenOutfits = <PlayerOutfit>[
@@ -29,6 +38,8 @@ extension PlayerOutfitAssets on PlayerOutfit {
     PlayerOutfit.vampire => 'Vampiro',
     PlayerOutfit.jackOLantern => 'Jack-o’-lantern',
     PlayerOutfit.zombie => 'Zombi',
+    PlayerOutfit.roma => 'Roma',
+    PlayerOutfit.lazio => 'Lazio',
   };
 
   String get portrait => switch (this) {
@@ -39,6 +50,8 @@ extension PlayerOutfitAssets on PlayerOutfit {
     PlayerOutfit.jackOLantern =>
       'assets/characters/mario/portraits/jack_o_lantern.png',
     PlayerOutfit.zombie => 'assets/characters/mario/portraits/zombie.png',
+    PlayerOutfit.roma => 'assets/characters/mario/portraits/roma.png',
+    PlayerOutfit.lazio => 'assets/characters/mario/portraits/lazio.png',
   };
 
   String get spriteStem => switch (this) {
@@ -48,6 +61,8 @@ extension PlayerOutfitAssets on PlayerOutfit {
     PlayerOutfit.vampire => 'vampire',
     PlayerOutfit.jackOLantern => 'jack_o_lantern',
     PlayerOutfit.zombie => 'zombie',
+    PlayerOutfit.roma => 'roma',
+    PlayerOutfit.lazio => 'lazio',
   };
 }
 

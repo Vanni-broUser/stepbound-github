@@ -10,12 +10,21 @@ const bool vanniDeployEnabled = String.fromEnvironment('VANNI_DEPLOY') == '1';
 /// and rebuilds it at every launch, so a save-format bump can never stale it.
 const int vanniDeploySlot = SaveRepository.slotCount;
 
+/// Outfits available only in the build-owned test slot. Roma and Lazio have
+/// no normal unlock path yet; keeping them here prevents regular games from
+/// wearing them while their future distribution is undecided.
+const List<PlayerOutfit> vanniDeployOutfits = <PlayerOutfit>[
+  ...halloweenOutfits,
+  PlayerOutfit.roma,
+  PlayerOutfit.lazio,
+];
+
 Future<void> installVanniDeploySave(SaveRepository saves) async {
   await saves.clear(vanniDeploySlot);
   await saves.save(vanniDeployScenario.save(vanniDeploySlot));
 }
 
-/// Gives every Halloween skin to the test slot, as if their gift links had
-/// been opened. Normal builds only get them through the links.
+/// Gives every test skin to the build-owned slot. Normal saves never receive
+/// Roma or Lazio, while Halloween skins keep their existing gift-link path.
 Future<void> installVanniDeployGifts(SaveRepository saves) =>
-    saves.saveGifts(vanniDeploySlot, halloweenOutfits.toSet());
+    saves.saveGifts(vanniDeploySlot, vanniDeployOutfits.toSet());

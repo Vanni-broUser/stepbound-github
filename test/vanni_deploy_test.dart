@@ -47,7 +47,7 @@ void main() {
     );
   });
 
-  test('install gives every Halloween skin to the test slot', () async {
+  test('install gives every test skin to the VANNI_DEPLOY slot', () async {
     final saves = MemorySaveRepository();
 
     await installVanniDeploySave(saves);
@@ -55,7 +55,21 @@ void main() {
 
     expect(
       await saves.loadGifts(vanniDeploySlot),
-      unorderedEquals(halloweenOutfits),
+      unorderedEquals(vanniDeployOutfits),
     );
+  });
+
+  test('Roma and Lazio have no normal-game unlock path', () {
+    for (final outfit in <PlayerOutfit>[
+      PlayerOutfit.roma,
+      PlayerOutfit.lazio,
+    ]) {
+      expect(Progress.newGame().unlockedOutfits, isNot(contains(outfit)));
+      expect(
+        halloweenOutfits,
+        isNot(contains(outfit)),
+        reason: 'team skins are not distributed by seasonal gift links',
+      );
+    }
   });
 }
