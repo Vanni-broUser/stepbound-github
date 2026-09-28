@@ -134,6 +134,10 @@ final class LevelComplete extends StatelessWidget {
 
   static const String shareLabel = 'CONDIVIDI IL RAPPORTO';
 
+  /// From the bottom of a title's letters down to the card under it, whose
+  /// top the title's drips run over.
+  static const double titleGap = 14;
+
   final LevelStats stats;
   final VoidCallback onContinue;
 
@@ -166,58 +170,64 @@ final class LevelComplete extends StatelessWidget {
           return Center(
             child: FittedBox(
               fit: saveFailed ? BoxFit.scaleDown : BoxFit.none,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  BloodyTitle('LIVELLO COMPLETATO', fontSize: 20 * unit),
-                  SizedBox(height: 4 * unit),
-                  StatsCard(stats: stats, unit: unit),
-                  SizedBox(height: 4 * unit),
-                  MissionsCard(
-                    stats: stats,
-                    unit: unit,
-                    finale: finale,
-                    secret: secret,
-                  ),
-                  if (saveFailed) ...<Widget>[
-                    SizedBox(height: 3 * unit),
-                    SizedBox(
-                      width: StatsCard.cardWidth * unit,
-                      child: Text(
-                        saveFailedLine,
-                        key: const ValueKey<String>(
-                          'level-complete-save-failed',
-                        ),
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: BloodColors.bright,
-                          fontFamily: 'monospace',
-                          fontSize: 7 * unit,
-                          height: 1.3,
-                          decoration: TextDecoration.none,
-                        ),
-                      ),
+              child: DrippingOver(
+                title: BloodyTitle(
+                  'LIVELLO COMPLETATO',
+                  fontSize: 20 * unit,
+                  hangDrips: true,
+                ),
+                gap: LevelComplete.titleGap * unit,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    StatsCard(stats: stats, unit: unit),
+                    SizedBox(height: 4 * unit),
+                    MissionsCard(
+                      stats: stats,
+                      unit: unit,
+                      finale: finale,
+                      secret: secret,
                     ),
-                    if (onShareReport case final share?) ...<Widget>[
+                    if (saveFailed) ...<Widget>[
                       SizedBox(height: 3 * unit),
-                      MenuButton(
-                        key: const ValueKey<String>('level-complete-share'),
-                        label: shareLabel,
-                        unit: unit,
-                        width: 120,
-                        compact: true,
-                        onPressed: share,
+                      SizedBox(
+                        width: StatsCard.cardWidth * unit,
+                        child: Text(
+                          saveFailedLine,
+                          key: const ValueKey<String>(
+                            'level-complete-save-failed',
+                          ),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: BloodColors.bright,
+                            fontFamily: 'monospace',
+                            fontSize: 7 * unit,
+                            height: 1.3,
+                            decoration: TextDecoration.none,
+                          ),
+                        ),
                       ),
+                      if (onShareReport case final share?) ...<Widget>[
+                        SizedBox(height: 3 * unit),
+                        MenuButton(
+                          key: const ValueKey<String>('level-complete-share'),
+                          label: shareLabel,
+                          unit: unit,
+                          width: 120,
+                          compact: true,
+                          onPressed: share,
+                        ),
+                      ],
                     ],
+                    SizedBox(height: 6 * unit),
+                    MenuButton(
+                      key: const ValueKey<String>('level-complete-continue'),
+                      label: 'CONTINUA',
+                      unit: unit,
+                      onPressed: onContinue,
+                    ),
                   ],
-                  SizedBox(height: 6 * unit),
-                  MenuButton(
-                    key: const ValueKey<String>('level-complete-continue'),
-                    label: 'CONTINUA',
-                    unit: unit,
-                    onPressed: onContinue,
-                  ),
-                ],
+                ),
               ),
             ),
           );
@@ -435,62 +445,65 @@ final class _AdventureStatsState extends State<AdventureStats> {
         return SizedBox.expand(
           key: const ValueKey<String>('adventure-stats'),
           child: Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                BloodyTitle(
-                  AdventureStats.cityName(level),
-                  key: ValueKey<String>('adventure-stats-${level.name}'),
-                  fontSize: 20 * unit,
-                ),
-                SizedBox(height: 6 * unit),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    if (several) ...<Widget>[
-                      arrow('<', -1),
-                      SizedBox(width: 6 * unit),
+            child: DrippingOver(
+              title: BloodyTitle(
+                AdventureStats.cityName(level),
+                key: ValueKey<String>('adventure-stats-${level.name}'),
+                fontSize: 20 * unit,
+                hangDrips: true,
+              ),
+              gap: LevelComplete.titleGap * unit,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      if (several) ...<Widget>[
+                        arrow('<', -1),
+                        SizedBox(width: 6 * unit),
+                      ],
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          StatsCard(stats: stats, unit: unit),
+                          SizedBox(height: 4 * unit),
+                          MissionsCard(
+                            key: ValueKey<LevelId>(level),
+                            stats: stats,
+                            unit: unit,
+                          ),
+                        ],
+                      ),
+                      if (several) ...<Widget>[
+                        SizedBox(width: 6 * unit),
+                        arrow('>', 1),
+                      ],
                     ],
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        StatsCard(stats: stats, unit: unit),
-                        SizedBox(height: 4 * unit),
-                        MissionsCard(
-                          key: ValueKey<LevelId>(level),
-                          stats: stats,
-                          unit: unit,
+                  ),
+                  SizedBox(height: 8 * unit),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      button(
+                        'adventure-stats-memories',
+                        'RIVIVI I RICORDI',
+                        () => widget.onReplayMemories(level),
+                      ),
+                      if (secrets) ...<Widget>[
+                        SizedBox(width: AdventureStats.buttonGap * unit),
+                        button(
+                          'adventure-stats-secrets',
+                          'MISSIONI SEGRETE',
+                          () => setState(() => _secrets = true),
                         ),
                       ],
-                    ),
-                    if (several) ...<Widget>[
-                      SizedBox(width: 6 * unit),
-                      arrow('>', 1),
-                    ],
-                  ],
-                ),
-                SizedBox(height: 8 * unit),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    button(
-                      'adventure-stats-memories',
-                      'RIVIVI I RICORDI',
-                      () => widget.onReplayMemories(level),
-                    ),
-                    if (secrets) ...<Widget>[
                       SizedBox(width: AdventureStats.buttonGap * unit),
-                      button(
-                        'adventure-stats-secrets',
-                        'MISSIONI SEGRETE',
-                        () => setState(() => _secrets = true),
-                      ),
+                      button('adventure-stats-close', 'ESCI', widget.onClose),
                     ],
-                    SizedBox(width: AdventureStats.buttonGap * unit),
-                    button('adventure-stats-close', 'ESCI', widget.onClose),
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -529,60 +542,68 @@ final class _SecretMissions extends StatelessWidget {
       key: const ValueKey<String>('secret-missions'),
       child: Center(
         child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              BloodyTitle('MISSIONI SEGRETE', fontSize: 20 * unit),
-              SizedBox(height: 6 * unit),
-              MenuPanel(
-                unit: unit,
-                width: StatsCard.cardWidth,
-                child: open.isEmpty
-                    ? MenuParagraph(
-                        "Nessun'altra missione segreta per ora",
-                        key: const ValueKey<String>('secret-missions-none'),
-                        unit: unit,
-                        center: true,
-                      )
-                    : Column(
-                        children: <Widget>[
-                          for (final mission in open)
-                            Padding(
-                              padding: EdgeInsets.symmetric(vertical: 2 * unit),
-                              child: Row(
-                                key: ValueKey<String>(
-                                  'secret-mission-${mission.name}',
+          child: DrippingOver(
+            title: BloodyTitle(
+              'MISSIONI SEGRETE',
+              fontSize: 20 * unit,
+              hangDrips: true,
+            ),
+            gap: LevelComplete.titleGap * unit,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                MenuPanel(
+                  unit: unit,
+                  width: StatsCard.cardWidth,
+                  child: open.isEmpty
+                      ? MenuParagraph(
+                          "Nessun'altra missione segreta per ora",
+                          key: const ValueKey<String>('secret-missions-none'),
+                          unit: unit,
+                          center: true,
+                        )
+                      : Column(
+                          children: <Widget>[
+                            for (final mission in open)
+                              Padding(
+                                padding: EdgeInsets.symmetric(
+                                  vertical: 2 * unit,
                                 ),
-                                children: <Widget>[
-                                  CustomPaint(
-                                    size: Size.square(14 * unit),
-                                    painter: MissionBoxPainter(
-                                      border: 1.6 * unit,
-                                      seed: 50 + mission.index,
-                                    ),
+                                child: Row(
+                                  key: ValueKey<String>(
+                                    'secret-mission-${mission.name}',
                                   ),
-                                  SizedBox(width: 7 * unit),
-                                  Expanded(
-                                    child: Text(
-                                      mission.text,
-                                      style: missionTextStyle(8.5 * unit),
+                                  children: <Widget>[
+                                    CustomPaint(
+                                      size: Size.square(14 * unit),
+                                      painter: MissionBoxPainter(
+                                        border: 1.6 * unit,
+                                        seed: 50 + mission.index,
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                    SizedBox(width: 7 * unit),
+                                    Expanded(
+                                      child: Text(
+                                        mission.text,
+                                        style: missionTextStyle(8.5 * unit),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                        ],
-                      ),
-              ),
-              SizedBox(height: 8 * unit),
-              MenuButton(
-                key: const ValueKey<String>('secret-missions-back'),
-                label: 'INDIETRO',
-                unit: unit,
-                compact: true,
-                onPressed: onBack,
-              ),
-            ],
+                          ],
+                        ),
+                ),
+                SizedBox(height: 8 * unit),
+                MenuButton(
+                  key: const ValueKey<String>('secret-missions-back'),
+                  label: 'INDIETRO',
+                  unit: unit,
+                  compact: true,
+                  onPressed: onBack,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -790,15 +811,17 @@ final class _MissionsCardState extends State<MissionsCard>
                         ),
                         if (secrets > 0)
                           Positioned(
-                            right: -20 * unit,
-                            top: -6 * unit,
-                            // Tilted down to the right.
+                            right: -16 * unit,
+                            top: 4 * unit,
+                            // Tilted down to the right, the plus in line
+                            // with the number and close to it.
                             child: Transform.rotate(
-                              angle: 0.28,
+                              angle: 0.2,
                               child: BloodyTitle(
                                 '+$secrets',
                                 key: const ValueKey<String>('secret-stat'),
                                 fontSize: 13 * unit,
+                                spacing: -0.05,
                               ),
                             ),
                           ),
