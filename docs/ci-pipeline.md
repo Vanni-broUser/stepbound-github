@@ -4,8 +4,9 @@ Stepbound usa la stessa impostazione di base di Delivery: una sola pipeline per
 commit/MR, cache limitata a `.pub-cache`, job interrompibili e configurazione
 suddivisa per responsabilita in `gitlab/`.
 
-Gli stage sono due: prima `build`, dove stanno tutti i job che producono un
-pacchetto, poi `verify`, che blocca. I job di build sono manuali e non
+Gli stage sono tre: `build`, dove stanno tutti i job che producono un
+pacchetto, `verify`, che blocca, e `deploy`, per la pubblicazione manuale della
+privacy policy con GitLab Pages. I job di build sono manuali e non
 bloccanti, quindi si possono lanciare appena parte la pipeline, senza aspettare
 analisi e test; le verifiche hanno `needs: []` e partono subito lo stesso.
 Un pacchetto costruito cosi non e ancora verificato: prima di distribuirlo
@@ -43,6 +44,12 @@ guarda che `verify` sia verde.
   da installare a mano sul telefono (prove prima dello store, o la demo
   distribuita direttamente). Stesse regole e stessa chiave di
   `build_android_signed`.
+- `privacy_policy_pages`: job manuale disponibile solo sulla branch predefinita.
+  Pubblica `privacy/index.html` come pagina GitLab Pages. Prima di avviarlo,
+  sostituire nella pagina i segnaposto `REPLACE_BEFORE_PUBLICATION` con la
+  denominazione legale dell'editore e un indirizzo email privacy monitorato.
+  L'URL effettivo si trova in **Deploy > Pages** dopo il completamento del job;
+  verificare che sia accessibile senza login prima di inserirlo in Play Console.
 
 Il web non ha un job: non distribuiamo il gioco sul browser, lo usiamo solo
 per provarlo in locale con `flutter build web` o `flutter run -d chrome`, e

@@ -16,6 +16,7 @@ workflow:
 stages:
   - build
   - verify
+  - deploy
 
 variables:
   PUB_CACHE: "$CI_PROJECT_DIR/.pub-cache"
@@ -58,3 +59,4 @@ include:
   - local: 'gitlab/verify.yml'
   - local: 'gitlab/build.yml'
   - local: 'gitlab/package.yml'
+  - local: 'gitlab/pages.yml'
