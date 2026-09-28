@@ -1,19 +1,54 @@
 # Maintainability and scalability backlog
 
 This backlog records the findings still open from the review of `main` at
-`7061d62`, re-checked against `1b0261a` (2026-09-26) and again against
-`7319a9e` (2026-09-27) ahead of the first public demo, the hometown level.
-What has been dealt with leaves the list: the commits say what was done
-and why. The figures quoted were measured on the development machine with
-a throwaway script over `lib/core`; a Go phone is five to ten times slower.
+`7061d62`, re-checked against `1b0261a` (2026-09-26), `7319a9e`
+(2026-09-27) and `de39a1b` (2026-09-28) ahead of the first public demo,
+the hometown level. What has been dealt with leaves the list: the commits
+say what was done and why. The figures quoted were measured on the
+development machine with a throwaway script over `lib/core`; a Go phone is
+five to ten times slower. Figures from real phones live in
+`docs/device_measurements.md`.
 
-Suggested order: settle the save policy, then the rest. Figures from real
-phones live in `docs/device_measurements.md`.
+At `de39a1b`: analysis clean, 623 tests green, coverage floors 88–95%
+held, dependencies at the newest resolvable versions, 36 merge requests
+landed in the two days since the previous check. The project is in good
+shape; nearly everything below is about the moment it goes public.
+
+Suggested order: the release key's backup, the level-end save, then the
+publication ritual (save policy, tags, privacy page), then the rest.
+
+## P1 — Before the first player: the release key
+
+The release key is in CI's protected variables and has already signed a
+build (pipeline 402). Android only updates an app with an APK signed by the
+same key: lose it and the published app can never be updated again.
+`docs/ci-pipeline.md` says to keep a copy outside GitLab; the repository
+cannot show whether that copy exists. If it does not, it is the first thing
+to do.
 
 ## P1 — A save policy for the public demo
 
 Once the demo is out, an update installs over the old one and keeps its
 data: `docs/save_policy.md` says which save formats a build must still load.
+`publishedSaveFormat` is still `null` and `SaveGame.format` is at 35: the
+mechanism and its test (`test/published_save_test.dart`) are ready, the
+first public build has to flip the switch. With `deploy_play` now able to
+put an App Bundle on a Play track (`gitlab/deploy-play.yml`), and main
+taking eighteen merges a day, the risk is a format bump right after the
+public build without the freeze commit. The ritual belongs in one place, in
+this order, all in the commit the build is made from:
+
+1. `publishedSaveFormat` takes `SaveGame.format`, the frozen saves are
+   rewritten (`flutter test tools/freeze_published_saves.dart`);
+2. the commit is tagged. There is no tag in the repository yet, and
+   `docs/device_measurements.md` had to guess which commit build 402 was
+   ("con ogni probabilità"): every build that reaches a phone outside the
+   team gets a tag;
+3. the privacy page is published (`privacy_policy_pages` is a manual job;
+   `privacy/index.html` still heads its filled-in publisher details with
+   "to complete before publication").
+
+Two rules already in the policy, restated:
 
 - The progress between levels (zombies met, memories, outfits, steps,
   fires lit) is its own object in the save, `progress`, apart from the
@@ -26,6 +61,67 @@ data: `docs/save_policy.md` says which save formats a build must still load.
   menu, never in the middle of a story line or a scene: if a script ever
   holds Mario for long without a prompt up, that stretch goes unsaved.
 
+## P1 — Errors in the field
+
+Until this branch, an error nobody caught went to a console nobody reads:
+`lib/bootstrap.dart` installed neither `FlutterError.onError` nor
+`PlatformDispatcher.onError`, the privacy policy rules out crash
+reporting, and the release manifest has no `INTERNET` permission. A player
+would have seen a game that no longer answered, and nobody would have
+known.
+
+**Done here (first stage, no network).** `ErrorReporter`
+(`lib/report/error_report.dart`) hooks both handlers and keeps the first
+error; `CrashGuard` (`lib/ui/crash_guard.dart`) sits over the app and
+swaps in `ErrorScreen`, sound paused, with two ways out: share the report
+through the system's share sheet (`share_plus`, as a text file), or back
+to the menu, which builds the app anew. The report holds the build
+(`versionName`, `versionCode` and the commit CI passes as
+`--dart-define=STEPBOUND_COMMIT`), the phone (model, Android version,
+memory, from a method channel in `MainActivity.kt`), the error with its
+stack trace, the slot, phase and place, the slot's save as JSON to load
+and play the error back, and the trail (`Breadcrumbs`): place changes,
+world events other than steps, bumps and noises, story lines shown and
+the app's own turns (new game, load, menu, level complete). Nothing in the
+report can stop it from being written: whatever fails says so in its
+place. Release stack traces stay readable as long as `--obfuscate` is not
+used.
+
+**Left for later (second stage, if the demo grows).**
+
+- A "Condividi il rapporto" entry in the pause menu, for the bugs that
+  throw nothing: a script that never lets go of Mario is only in the
+  trail, and today the trail can only be sent from the error screen.
+- An opt-in switch, off by default, "Invia i rapporti automaticamente",
+  posting the same file to a small endpoint. A Cloudflare Worker with R2
+  or D1 costs nothing and has no server to keep patched; the runner
+  machine would have to be exposed and kept up. Before the switch ships:
+  `INTERNET` in the main manifest, the privacy policy rewritten (it
+  promises no data leaves the phone), the Play data-safety form, a size
+  limit and a rate limit on the endpoint, no device identifier in the
+  payload.
+- The report says nothing about what the player was doing with their
+  fingers: if touch input turns out to matter, the trail can take the
+  input controller's actions too.
+
+## P2 — The level-end save is fire-and-forget
+
+`StepboundGame.completeLevel` (`lib/game/stepbound_game.dart`) calls
+`onRest` unawaited and hands the snapshot to the results screen at once:
+a save that fails aboard the train is logged (`GameSession.store`) and
+nothing tells the player, whose level completion is not on disk. For a demo
+whose end is that very train, this is the save that matters most. Await it
+and say on the results screen when it failed; the next campfire writes it
+anyway.
+
+## P2 — `deploy_play` cannot start
+
+`gitlab/deploy-play.yml` installs `tools/play/requirements.txt` before
+running `tools/play/upload.py`, and only the script is in the repository:
+the job fails at `before_script`. The script imports
+`google-api-python-client`, `google-auth` and `google-auth-httplib2`; pin
+them in that file.
+
 ## P2 — What is left of loading the places by area
 
 - An area's places are composed one at a time as Mario walks into it
@@ -33,14 +129,22 @@ data: `docs/save_policy.md` says which save formats a build must still load.
   the harbour's, 2304×992 (8.7 MB) plus a front layer of the same size,
   composes in 257 ms with no visible hitch (`docs/device_measurements.md`);
   that phone has 6 GB, though. The harbour area holds about 28 MB of place
-  images, the town about 29 MB: whether that fits a 2 GB phone is still
-  unmeasured.
+  images, the town about 29 MB: whether that fits a 2 GB phone, the
+  minimum of `docs/target_devices.md`, is still unmeasured, and a kill in
+  the background for memory is exactly the case the suspended save has
+  to cover. Only a phone can settle it.
+- On the Redmi 9, the CPU and GPU of that minimum, frames are skipped
+  almost every second in the Duomo (six flickering torches) and two out
+  of three readings in the barracks (nine lamps): the live part of
+  `LightingComponent`. It plays well there; on anything slower it is the
+  first thing to look at.
 - New areas as the levels grow: a place's `area` decides what is loaded
   with it, so a big new district wants an area of its own.
 - The simulation grid is still whole: 1902×62, 117,924 `Tile` objects
   (not bytes: about 3.5 MB with the pathfinder's scratch arrays), 92% of
   them the wall between places. Split it per level only if the benchmark
-  or the save size ask for it: a save only stores the tiles that differ.
+  or the save size ask for it: a save only stores the tiles that differ,
+  and the most advanced test scenarios save in about 79 KB.
 
 ## P2 — Split application and game orchestration
 
@@ -49,14 +153,14 @@ restart behaviour and widget composition. `StepboundGame` combines story
 hosting, event presentation, camera, audio, place transitions, rendering and
 save snapshots. They are also the most frequently changed source files in
 the current history: `lib/app.dart` went from 976 lines at `1b0261a` to
-1043 at `7319a9e`, `lib/game/stepbound_game.dart` came down from 1465 to
-1000. (The touch controls, once the largest file of the game, are split
-under `lib/game/input/` by zone, stick, badges and icons.)
+1043 at `7319a9e` and down to 908 at `de39a1b`, once `GameSession` took
+what a save records; `lib/game/stepbound_game.dart` came down from 1465
+to 1000 and is back at 1205, missions, props and the weapon in hand having
+gone in within a day. (The touch controls, once the largest file of the
+game, are split under `lib/game/input/` by zone, stick, badges and icons.)
 
-`GameSession` (`lib/game/game_session.dart`) now holds what a save records
-around the game and makes the games that play it: `app.dart` is left with
-the phases and the widgets. Extract the rest as small framework-free
-collaborators too, rather than adding a broad state management framework:
+Extract the rest as small framework-free collaborators too, rather than
+adding a broad state management framework:
 
 - `AppFlowController` for menu, story, title and playing phases;
 - `WorldEventPresenter` for event-to-animation/audio routing;
@@ -76,35 +180,43 @@ what is left of them. What is left here:
   and quest-item generators.
 - Extend the regeneration check to the sprite atlases and the audio.
 
-## P2 — Release signing and the debug builds
+## P2 — What is left of release signing
 
-Android only updates an app with an APK signed by the same key. The release
-key must be kept safe and backed up: losing it means the published app can
-never be updated again. Debug APKs built by CI are signed with a debug key
-generated anew in each job's container, so each one conflicts with the
-last and has to be installed after uninstalling it.
+Debug builds now carry `applicationIdSuffix = ".debug"`
+(`android/app/build.gradle.kts`): they install beside the release, so a
+debug key no longer conflicts with the release one. What remains:
 
-- A fixed debug keystore, checked in (a debug key is no secret), would let
-  the CI debug APKs update each other too.
+- Debug APKs built by CI are still signed with a debug key generated anew
+  in each job's container, so each one conflicts with the last and has to
+  be installed after uninstalling it. A fixed debug keystore, checked in
+  (a debug key is no secret), would let them update each other too.
 - Keep the `versionCode` growing across every build that reaches a phone:
-  GitLab and GitHub number their builds differently.
+  GitLab (`CI_PIPELINE_IID`) and GitHub (`run_number`) number their builds
+  differently.
+- iOS: `build_ios_signed` and `deploy_testflight` exist, but the Xcode
+  project has no team and the privacy policy already names iOS. Either
+  configure the signing or say Android only until it is.
 
 ## P3 — What is left of the save hardening
 
 Slots are now read as a typed result, damaged ones fall back on the save they
 replaced, failed writes never leave the game stuck, and a slot is only
 offered once its world, progress and story scripts have been rebuilt. One
-corner remains:
+corner remains besides the level-end save above:
 
-- The save written aboard the train when the level ends is logged when it
-  fails, but the results screen does not say so; the next campfire writes it.
+- `_onLifecycle` (`lib/app.dart`) raises `_putDown` as soon as the app
+  goes inactive, even when `_suspend` wrote nothing because the game was
+  not in a state it can come back to; if it became so before `paused`,
+  nothing is written until the next `resumed`. Theoretical today, since
+  the game does not move between the two; raise the flag only once a save
+  is written.
 
 ## P3 — Smaller portrait files
 
-The seventeen portraits are decoded at the height they are drawn
-(`PortraitImage`), so memory is no longer the question; the files are.
-They are still PNGs of 1048×1501, some 15 MB of the APK, for pictures
-never shown above about 1000 pixels tall. Resize them only if the
+The portraits are decoded at the height they are drawn (`PortraitImage`),
+so memory is no longer the question; the files are. They are still PNGs of
+1048×1501, some 7 MB under `assets/characters/mario/portraits` alone, for
+pictures never shown above about 1000 pixels tall. Resize them only if the
 download size matters, and mind that `tools/clean_portraits.py` works on
 the full-size files. The scenes (JPEG, 1376×768) are fine.
 
@@ -114,9 +226,13 @@ What only a release build shows, to keep in mind while testing:
 
 - `assert` is compiled out: the three in `lib/` guard nothing in a release.
 - The `INTERNET` permission is only in the debug manifest (for hot reload):
-  anything online added later needs it in `android/app/src/main`.
+  anything online added later needs it in `android/app/src/main`, and the
+  privacy policy with it.
 - R8 shrinks the plugins' Java/Kotlin code; a plugin relying on reflection
-  can break there only.
+  can break there only. `share_plus` is the newest plugin: try the share
+  sheet on a release build once.
+- The key that signs gift links is in the APK (`docs/skin_unlock_links.md`
+  says so and accepts it).
 
 ## P3 — Clarify service ownership and disposal
 

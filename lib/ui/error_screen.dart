@@ -1,0 +1,117 @@
+import 'package:flutter/material.dart';
+import 'package:stepbound/game/render/integer_resolution_viewport.dart';
+import 'package:stepbound/game/render/pixel_palette.dart';
+import 'package:stepbound/ui/letterbox.dart';
+import 'package:stepbound/ui/main_menu.dart';
+
+/// What the player sees when the game stops on an error nobody caught:
+/// what happened in a line, what the report holds, and two ways out. All
+/// of it fits the 16:9 picture: the words on the left, the choices on the
+/// right, nothing to scroll for.
+final class ErrorScreen extends StatelessWidget {
+  const ErrorScreen({
+    required this.summary,
+    required this.onShare,
+    required this.onMenu,
+    this.sharing = false,
+    super.key,
+  });
+
+  /// The error's first line.
+  final String summary;
+  final VoidCallback onShare;
+  final VoidCallback onMenu;
+
+  /// While the share sheet is being prepared: the button waits.
+  final bool sharing;
+
+  static const String title = 'QUALCOSA È ANDATO STORTO';
+  static const String explanation =
+      'Il gioco si è fermato per un errore. Il rapporto dice quale, con la '
+      'versione del gioco, il telefono, gli ultimi passi della partita e il '
+      'salvataggio dello slot: niente di personale. Mandalo allo '
+      'sviluppatore e poi torna al menù per riprendere dall’ultimo '
+      'salvataggio.';
+  static const String shareLabel = 'CONDIVIDI IL RAPPORTO';
+  static const String sharingLabel = 'UN MOMENTO…';
+  static const String menuLabel = 'TORNA AL MENÙ';
+
+  /// The buttons' width, in virtual pixels.
+  static const double buttonWidth = 120;
+
+  @override
+  Widget build(BuildContext context) {
+    return Letterbox(
+      color: PixelPalette.screenBlack,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final unit = constraints.maxHeight.isFinite
+              ? constraints.maxHeight / IntegerResolutionViewport.virtualHeight
+              : 1.0;
+          return Padding(
+            key: const ValueKey<String>('error-screen'),
+            padding: EdgeInsets.all(8 * unit),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                MenuHeading(text: title, unit: unit),
+                SizedBox(height: 4 * unit),
+                // As tall as the words, no taller; a summary too long for
+                // the picture scrolls inside the panel.
+                Flexible(
+                  child: Row(
+                    children: <Widget>[
+                      Flexible(
+                        child: MenuPanel(
+                          unit: unit,
+                          child: SingleChildScrollView(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: <Widget>[
+                                MenuParagraph(explanation, unit: unit),
+                                SizedBox(height: 4 * unit),
+                                MenuParagraph(
+                                  summary,
+                                  key: const ValueKey<String>('error-summary'),
+                                  unit: unit,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 6 * unit),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          MenuButton(
+                            key: const ValueKey<String>('error-share'),
+                            label: sharing ? sharingLabel : shareLabel,
+                            unit: unit,
+                            width: buttonWidth,
+                            compact: true,
+                            onPressed: sharing ? () {} : onShare,
+                          ),
+                          SizedBox(height: MenuColumn.gap * unit),
+                          MenuButton(
+                            key: const ValueKey<String>('error-menu'),
+                            label: menuLabel,
+                            unit: unit,
+                            width: buttonWidth,
+                            compact: true,
+                            onPressed: onMenu,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}

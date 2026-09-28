@@ -49,7 +49,7 @@ build_ios_signed:
     - flutter config --no-analytics
     - flutter pub get
   script:
-    - flutter build ipa --release --build-number="$CI_PIPELINE_IID" --dart-define=VANNI_DEPLOY="${VANNI_DEPLOY:-0}"
+    - flutter build ipa --release --build-number="$CI_PIPELINE_IID" --dart-define=VANNI_DEPLOY="${VANNI_DEPLOY:-0}" --dart-define=STEPBOUND_COMMIT="$CI_COMMIT_SHORT_SHA"
   artifacts:
     name: "stepbound-ipa-$CI_COMMIT_SHORT_SHA"
     paths:
