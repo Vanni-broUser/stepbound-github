@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/progress.dart';
+import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/save/save_game.dart';
 import 'package:stepbound/save/vanni_deploy.dart';
 
@@ -21,6 +22,13 @@ void main() {
       10,
     );
     expect(Progress.fromJson(save.progress).hometownCompleted, isTrue);
+    // Keys used up on their doors, the doors open.
+    expect(save.hud, isNot(contains(HudElement.barKey.name)));
+    expect(save.hud, isNot(contains(HudElement.duomoKey.name)));
+    final world = restoreGameWorld(save.world);
+    expect(world.map.tileAt(barLockedDoorTile).isWalkable, isTrue);
+    expect(world.map.tileAt(duomoUpperLockedDoorTile).isWalkable, isTrue);
+    expect(world.pickups[duomoKeyPickupId]!.collected, isTrue);
     final progress = Progress.fromJson(save.progress);
     expect(
       progress.knownZombies,
