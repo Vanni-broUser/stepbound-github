@@ -270,14 +270,18 @@ final class _StepboundAppState extends State<StepboundApp> {
 
   /// Writes the game as it is beside the slot's save, to be picked up from
   /// the menu; the campfire's save stays the one to go back to. Only while
-  /// playing, and only in a state the game can come back to (see
-  /// [StepboundGame.canBeSuspended]): otherwise the slot keeps what it had.
+  /// playing, and only in a state the game can come back to: when it is
+  /// in the middle of something, the last such state a few steps back (see
+  /// [StepboundGame.putDownSnapshot]); with none, the slot keeps what it
+  /// had.
   Future<void> _suspend() async {
     final game = _game;
-    if (game == null || _phase != _Phase.playing || !game.canBeSuspended) {
+    if (game == null || _phase != _Phase.playing) {
       return;
     }
-    await _session.suspend(game);
+    if (game.putDownSnapshot case final snapshot?) {
+      await _session.suspend(snapshot);
+    }
   }
 
   @override

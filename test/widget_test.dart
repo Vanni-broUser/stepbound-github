@@ -168,6 +168,26 @@ Future<StepboundGame> _pumpReadyGame(
   return game;
 }
 
+/// The way out as Android walks it: inactive, hidden, paused.
+Future<void> _leaveApp(WidgetTester tester) async {
+  <AppLifecycleState>[
+    AppLifecycleState.inactive,
+    AppLifecycleState.hidden,
+    AppLifecycleState.paused,
+  ].forEach(tester.binding.handleAppLifecycleStateChanged);
+  await tester.pump();
+}
+
+/// And back to the front.
+Future<void> _backToApp(WidgetTester tester) async {
+  <AppLifecycleState>[
+    AppLifecycleState.hidden,
+    AppLifecycleState.inactive,
+    AppLifecycleState.resumed,
+  ].forEach(tester.binding.handleAppLifecycleStateChanged);
+  await tester.pump();
+}
+
 void main() {
   // Tests tap through the lines without waiting: only the test below cares
   // about the pause that keeps a walking tap from eating them.
@@ -2739,32 +2759,65 @@ void main() {
     });
   });
 
-  testWidgets('not in the middle of a story line, where the game could not '
-      'pick itself up again', (tester) {
+  testWidgets('in the middle of a story line, the game is put down as it '
+      'last was before it, where it can pick itself up again', (tester) {
     return tester.runAsync(() async {
       final saves = MemorySaveRepository();
       final game = await _pumpReadyGame(tester, saves: saves);
+      final position = game.simulation.player.component<PositionComponent>();
+      final before = position.position;
+      await tester.pump();
       game.showPrompt(const <StoryLine>[StoryLine('Un momento.')]);
       await tester.pump();
       expect(game.canBeSuspended, isFalse);
-      // The way out as Android walks it: inactive, hidden, paused.
-      <AppLifecycleState>[
-        AppLifecycleState.inactive,
-        AppLifecycleState.hidden,
-        AppLifecycleState.paused,
-      ].forEach(tester.binding.handleAppLifecycleStateChanged);
+      // What happens under the line is not what the copy holds.
+      position.position = const GridPoint(16, 20);
+      await _leaveApp(tester);
+      final key = StoredSaveRepository.suspendedKey(1);
+      for (var i = 0; i < 20 && !saves.values.containsKey(key); i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      }
+      final read = await saves.read(1);
+      expect(read, isA<LoadedSave>());
+      expect((read as LoadedSave).suspended, isTrue);
+      expect(
+        restoreGameWorld(
+          read.save.world,
+        ).player.component<PositionComponent>().position,
+        before,
+      );
+      await _backToApp(tester);
+    });
+  });
+
+  testWidgets('dead, the game is not put down: the way back is the game '
+      'over’s', (tester) {
+    return tester.runAsync(() async {
+      final saves = MemorySaveRepository();
+      final game = await _pumpReadyGame(tester, saves: saves);
       await tester.pump();
+      final player = game.simulation.player;
+      player.component<HealthComponent>().current = 1;
+      final zombie = game.simulation.entities.values.firstWhere(
+        (entity) => entity.kind != EntityKind.player,
+      );
+      zombie.component<PositionComponent>()
+        ..position = player.component<PositionComponent>().position.step(
+          Direction.east,
+        )
+        ..facing = Direction.west;
+      zombie.component<ActorComponent>().energy =
+          zombie.component<ActorComponent>().tickCost - 1;
+      game.input.pressWait();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(player.component<HealthComponent>().current, 0);
+      await _leaveApp(tester);
       await Future<void>.delayed(const Duration(milliseconds: 100));
       expect(
         saves.values.containsKey(StoredSaveRepository.suspendedKey(1)),
         isFalse,
       );
-      <AppLifecycleState>[
-        AppLifecycleState.hidden,
-        AppLifecycleState.inactive,
-        AppLifecycleState.resumed,
-      ].forEach(tester.binding.handleAppLifecycleStateChanged);
-      await tester.pump();
+      await _backToApp(tester);
     });
   });
 
