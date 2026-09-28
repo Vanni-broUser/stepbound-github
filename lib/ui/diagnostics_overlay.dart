@@ -5,9 +5,11 @@ import 'package:flutter/widgets.dart';
 import 'package:stepbound/game/stepbound_game.dart';
 
 /// Whether the build shows [DiagnosticsOverlay]: only one built with
-/// `--dart-define=STEPBOUND_DIAGNOSTICS=true`, to measure a release on a
-/// phone (docs/maintainability_and_scalability_backlog.md).
-const bool diagnosticsEnabled = bool.fromEnvironment('STEPBOUND_DIAGNOSTICS');
+/// `--dart-define=STEPBOUND_DIAGNOSTICS=1`, to measure a release on a
+/// phone (docs/maintainability_and_scalability_backlog.md). 1 like
+/// VANNI_DEPLOY, so every build switch reads the same.
+const bool diagnosticsEnabled =
+    String.fromEnvironment('STEPBOUND_DIAGNOSTICS') == '1';
 
 /// A line in a corner over the game: frames per second, the slowest frame
 /// of the last second (the longest gap between two), how long the game
