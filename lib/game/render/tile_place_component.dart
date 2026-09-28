@@ -16,7 +16,8 @@ import 'package:stepbound/game/render/tile_atlas.dart';
 /// open, and the flip is then only a choice of image.
 ///
 /// What stands taller than its own cell -- a traffic light's head, a road
-/// sign, a tree, the airliner's hull -- is drawn a second time into
+/// sign, a tree, a column, a statue, the airliner's hull -- is drawn a
+/// second time into
 /// [front], wherever it covers a cell someone can walk on: that layer goes
 /// over the characters, so one standing behind it is hidden by it.
 final class TilePlaceComponent extends Component {
@@ -173,9 +174,21 @@ final class TilePlaceComponent extends Component {
         ui.Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble()),
         ui.Paint()..color = art.voidColour,
       );
-    for (final layer in <String>['ground', 'structures']) {
-      _drawLayer(canvas, loaded, art, grid, layer);
-    }
+    _drawLayer(canvas, loaded, art, grid, 'ground');
+    // A column, a statue, a wardrobe or a desk is a structure, but it
+    // stands taller than its cell all the same: its top leans into the
+    // front like a tree's. Not a doorway's lintel, though -- one walks
+    // through that, and the feet would vanish on the step before it --
+    // and not the ground, which lies flat.
+    _drawLayer(
+      canvas,
+      loaded,
+      art,
+      grid,
+      'structures',
+      front: frontCanvas,
+      solidOnly: true,
+    );
     _drawObjects(canvas, loaded, art, grid, opened: opened);
     _drawObjects(
       frontCanvas,
@@ -230,6 +243,7 @@ final class TilePlaceComponent extends Component {
     GlyphGrid grid,
     String layer, {
     ui.Canvas? front,
+    bool solidOnly = false,
   }) {
     final rules = art.rules.where((rule) => rule.layer == layer).toList();
     if (rules.isEmpty) {
@@ -262,7 +276,14 @@ final class TilePlaceComponent extends Component {
           } else {
             next = fromGround[b++];
           }
-          _drawRule(batch, grid, rules[next], x, y, front: frontBatch);
+          _drawRule(
+            batch,
+            grid,
+            rules[next],
+            x,
+            y,
+            front: solidOnly && _walkable(grid, x, y) ? null : frontBatch,
+          );
         }
       }
     }

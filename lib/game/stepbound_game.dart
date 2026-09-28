@@ -23,6 +23,7 @@ import 'package:stepbound/game/render/aim_line_component.dart';
 import 'package:stepbound/game/render/burning_ground_component.dart';
 import 'package:stepbound/game/render/character_component.dart';
 import 'package:stepbound/game/render/debug_overlay.dart';
+import 'package:stepbound/game/render/depth_sorted_world.dart';
 import 'package:stepbound/game/render/fire_component.dart';
 import 'package:stepbound/game/render/follow_camera.dart';
 import 'package:stepbound/game/render/molotov_blast_component.dart';
@@ -79,7 +80,10 @@ final class StepboundGame extends FlameGame
        hud = ValueNotifier<Set<HudElement>>(Set<HudElement>.of(unlocked)),
        // The world fills the whole screen; FollowCamera zooms it so every
        // screen shows about as much of it.
-       super(camera: CameraComponent(viewport: MaxViewport())) {
+       super(
+         camera: CameraComponent(viewport: MaxViewport()),
+         world: DepthSortedWorld(),
+       ) {
     ammoLoaded = ValueNotifier<int>(
       simulation.player.component<AmmoComponent>().loaded,
     );

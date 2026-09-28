@@ -3,13 +3,14 @@ import 'dart:ui' as ui;
 import 'package:flame/components.dart';
 import 'package:stepbound/core/core.dart' hide PositionComponent;
 import 'package:stepbound/game/render/asset_image.dart';
+import 'package:stepbound/game/render/depth_sorted_world.dart';
 
 /// Someone alive who is not part of the simulation: Luigi behind his
 /// shutter, Don Angelo behind his gate. They stand on their tile facing
 /// [facing], breathing between their two idle frames, until the story
 /// sends them away through [walkAwayThrough]; then they walk the path
 /// given and remove themselves once they arrive.
-final class NpcComponent extends PositionComponent {
+final class NpcComponent extends PositionComponent with StandsOnFloor {
   NpcComponent({
     required this.asset,
     required GridPoint tile,

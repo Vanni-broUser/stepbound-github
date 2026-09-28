@@ -6,6 +6,7 @@ import 'package:stepbound/core/core.dart' hide PositionComponent;
 import 'package:stepbound/core/entities/components.dart' as simulation;
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/asset_image.dart';
+import 'package:stepbound/game/render/depth_sorted_world.dart';
 import 'package:stepbound/game/render/pixel_palette.dart';
 
 enum CharacterAction { none, fire, throwWeapon, hit, bite, death, pickup, rest }
@@ -17,7 +18,7 @@ enum PlayerPoseFamily { locomotion, oneHanded, throwable, pickup }
 /// Weapon art shared by all outfits and attached to a pose at runtime.
 enum PlayerWeaponSprite { molotov }
 
-final class CharacterComponent extends PositionComponent {
+final class CharacterComponent extends PositionComponent with StandsOnFloor {
   CharacterComponent({
     required this.entity,
     this.playerOutfit = PlayerOutfit.base,
