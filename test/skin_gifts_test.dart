@@ -18,13 +18,13 @@ final DateTime _now = DateTime(2026, 10, 20, 18);
 Uri _link(PlayerOutfit outfit, {Duration left = skinLinkValidity}) =>
     skinGiftLink(outfit, expiresAt: _now.add(left), nonce: 42);
 
-SaveGame _save(int slot) => SaveGame(
+SaveGame _save(int slot, {Progress? progress}) => SaveGame(
   slot: slot,
   savedAt: DateTime(2026),
   place: 'Dietro la caserma',
   world: saveGameWorld(createGameWorld()),
   story: const <String, Object?>{},
-  progress: Progress.newGame().toJson(),
+  progress: (progress ?? Progress.newGame()).toJson(),
   hud: const <String>[],
 );
 
@@ -113,7 +113,8 @@ void main() {
       expect(await saves.loadGifts(2), <PlayerOutfit>{PlayerOutfit.vampire});
       expect(
         session.newGame().progress.unlockedOutfits,
-        contains(PlayerOutfit.vampire),
+        orderedEquals(<PlayerOutfit>[PlayerOutfit.vampire, PlayerOutfit.base]),
+        reason: 'Mario had it before the game began: before his own clothes',
       );
     });
 
@@ -136,12 +137,33 @@ void main() {
 
       final game = await session.load(_save(1));
 
-      expect(game.progress.unlockedOutfits, contains(PlayerOutfit.zombie));
       expect(
         game.progress.unlockedOutfits,
-        isNot(contains(PlayerOutfit.cultist)),
-        reason: 'a gift does not skip the Duomo',
+        orderedEquals(<PlayerOutfit>[PlayerOutfit.base, PlayerOutfit.zombie]),
+        reason: 'a gift does not skip the Duomo, and comes after the base',
       );
+    });
+
+    test('a gift that came to a saved game goes after what it had, the '
+        'robe included, and stays where it went', () async {
+      final robe = Progress.newGame()..unlockOutfit(PlayerOutfit.cultist);
+      await saves.save(_save(1, progress: robe));
+      await saves.saveGifts(1, <PlayerOutfit>{PlayerOutfit.ghost});
+
+      final game = await session.load(_save(1, progress: robe));
+      final order = <PlayerOutfit>[
+        PlayerOutfit.base,
+        PlayerOutfit.cultist,
+        PlayerOutfit.ghost,
+      ];
+      expect(game.progress.unlockedOutfits, orderedEquals(order));
+
+      // Saved and loaded again, the ghost is still where it went, and the
+      // gift already there adds nothing.
+      final again = await session.load(
+        _save(1, progress: Progress.fromJson(game.progress.toJson())),
+      );
+      expect(again.progress.unlockedOutfits, orderedEquals(order));
     });
   });
 

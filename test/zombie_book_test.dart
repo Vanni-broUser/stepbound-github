@@ -5,6 +5,8 @@ import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/zombie_lore.dart';
+import 'package:stepbound/ui/main_menu.dart';
+import 'package:stepbound/ui/portrait_image.dart';
 import 'package:stepbound/ui/story_intro.dart';
 import 'package:stepbound/ui/zombie_book.dart';
 
@@ -79,9 +81,8 @@ void main() {
   testWidgets('the mutilated is listed, with its page, once it has been met', (
     tester,
   ) async {
-    final index = zombieCards.indexWhere(
-      (card) => card.kind == EntityKind.mutilated,
-    );
+    // Second met, second page.
+    const index = 1;
     await pumpBook(tester);
     expect(find.text('MUTILATO'), findsNothing);
     await pumpBook(
@@ -93,15 +94,13 @@ void main() {
     expect(find.text('MUTILATO'), findsNWidgets(2), reason: 'list and card');
     expect(find.textContaining('gambe'), findsOneWidget);
     expect(
-      find.byKey(ValueKey<String>('zombie-book-portrait-$index')),
+      find.byKey(const ValueKey<String>('zombie-book-portrait-$index')),
       findsOne,
     );
   });
 
   testWidgets('the cultist zombie has its own book page', (tester) async {
-    final index = zombieCards.indexWhere(
-      (card) => card.kind == EntityKind.cultist,
-    );
+    const index = 1;
     await pumpBook(
       tester,
       known: const <EntityKind>{EntityKind.wanderer, EntityKind.cultist},
@@ -112,9 +111,47 @@ void main() {
     expect(find.text('CULTISTA'), findsNWidgets(2), reason: 'list and card');
     expect(find.textContaining('tre per abbatterlo'), findsOneWidget);
     expect(
-      find.byKey(ValueKey<String>('zombie-book-portrait-$index')),
+      find.byKey(const ValueKey<String>('zombie-book-portrait-$index')),
       findsOneWidget,
     );
+  });
+
+  testWidgets('the types met come in the order they were met, and every '
+      'page still blank looks the same, types of the game or not', (
+    tester,
+  ) async {
+    await pumpBook(
+      tester,
+      known: const <EntityKind>{
+        EntityKind.carabiniere,
+        EntityKind.cultist,
+        EntityKind.wanderer,
+      },
+    );
+    String label(int index) => tester
+        .widget<MenuButton>(find.byKey(ValueKey<String>('zombie-book-$index')))
+        .label;
+    expect(
+      <String>[label(0), label(1), label(2)],
+      <String>['CARABINIERE', 'CULTISTA', 'VAGANTE'],
+    );
+
+    final wanderer = zombieLore[EntityKind.wanderer]!.portrait;
+    for (var index = 3; index < zombieCards.length; index++) {
+      await tester.scrollUntilVisible(
+        find.byKey(ValueKey<String>('zombie-book-$index')),
+        20,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tap(tester, 'zombie-book-$index');
+      expect(label(index), '???');
+      expect(
+        tester.widget<PortraitImage>(find.byType(PortraitImage)).asset,
+        wanderer,
+        reason: 'page $index: the shape of a wanderer, whatever it hides',
+      );
+      expect(find.text('Non hai ancora incontrato questo zombi.'), findsOne);
+    }
   });
 
   test('every zombie type of the game has its card, once, with its lore', () {

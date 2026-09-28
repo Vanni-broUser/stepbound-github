@@ -129,7 +129,7 @@ final class GameSession {
       StoryMemory.newsBroadcast,
       StoryMemory.outbreakNight,
     });
-    final progress = Progress.newGame(openingSaved: false)
+    final progress = Progress.newGame(openingSaved: false, gifts: gifts)
       ..addViewedMemories(storyHistory);
     return _build(progress: progress)..inputLocked = true;
   }
