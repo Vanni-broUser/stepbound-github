@@ -1818,8 +1818,8 @@ void main() {
     });
   });
 
-  testWidgets('aboard, the books open the zombie types and the cot plays '
-      'the memories', (tester) {
+  testWidgets('aboard, the books open the zombie types, and the memories '
+      'played from the figures go back to them', (tester) {
     return tester.runAsync(() async {
       final game = await _pumpReadyGame(tester);
       game.progress.confirmPendingMemories();
@@ -1840,7 +1840,7 @@ void main() {
       expect(story.scenes.length, introScenes.length + outbreakScenes.length);
       await tester.tap(find.byKey(const ValueKey<String>('story-exit')));
       await tester.pump();
-      expect(game.cover.value, isNull);
+      expect(game.cover.value, isA<AdventureStatsCover>());
       expect(game.soundscapePaused, isFalse, reason: "the game's is back");
     });
   });

@@ -9,9 +9,9 @@
 ///
 /// The locomotive is where the two of them live. Its back half is split
 /// by the aisle: Mario above it, his cot `B` and a crate for a desk three
-/// cells long: on its left end the abacus and the calculator `K` (the
-/// adventure's figures), in the middle `q` his mug and a candle, and on
-/// the right end the open books `k` (the zombie types met so far); more
+/// cells long: on its left end the abacus and the calculator `K`, in the
+/// middle the open books `k` (the zombie types met so far), and on the
+/// right end `q` his mug and a candle; more
 /// books and notes `f` all round, and beside the cot his weapons table
 /// `a`, with the shotgun, the pistol and the boxes of rounds: whenever he
 /// comes back to it with fewer than five rounds, he loads up to five.
@@ -33,12 +33,12 @@
 const List<String> trainInteriorRows = <String>[
   'xWWWWWWWWWWWWWWWWWWWWIIIWWWWWWWWWWWWWWWWWWWWIIIWWWWWWWWWWWWWWWWWWWWWWWxxxxxxx',
   'xW..SS....SS....SS..WI.IW..SS....SS....SS..WI.IWBBB.aaafYYRRR.GGG...CCVxxxxxx',
-  'xW..SS....SS....SS..WI.IW..SS....SS....SS..WI.IW...*...Kqk............CCVxxxx',
+  'xW..SS....SS....SS..WI.IW..SS....SS....SS..WI.IW...*...Kkq............CCVxxxx',
   'xW....*........*....WI.IW....*........*....WI.IW.f.................*...CCVxxx',
-  'xW..TT....LL....TT..WI.IW..TT....LL....TT..WI.IW....f...f.....PPPP.....*CCVxx',
+  'xW..TT....LL....TT..WI.IW..TT....LL....TT..WI.IW....f...f..............*CCVxx',
   'xW............................................................PPPP...h..CCVxx',
   'xW..SS....SS....SS..WI.IW..SS....SS....SS..WI.IW..u....om.....PPPP...h..CCVxx',
-  'xW..SS....SS....SS..WI.IW..SS....SS....SS..WI.IWoc...m...cc............*CCVxx',
+  'xW..SS....SS....SS..WI.IW..SS....SS....SS..WI.IWoc...m...cc...PPPP.....*CCVxx',
   'xW....*........*....WI.IW....*........*....WI.IW...*c..cm..O...........CCVxxx',
   'xW..SS....SS....SS..WI.IW..SS....SS....SS..WI.IW.o..l.m.uccm..........CCVxxxx',
   'xW..SS....SS....SS..WI.IW..SS....SS....SS..WI.IWbbbm...oc.OO........CCVxxxxxx',

@@ -53,12 +53,6 @@ final class TrainStage extends LevelStage {
         tile: trainWardrobeTiles[trainWardrobeTiles.length ~/ 2],
         active: canInteract,
       ),
-      // Over the calculator beside the abacus.
-      InteractGlintComponent(
-        tile: trainStatsTiles.first,
-        spot: const Offset(12, 7),
-        active: canInteract,
-      ),
       // On the middle of Mario's cot.
       InteractGlintComponent(
         tile: trainCotTiles[trainCotTiles.length ~/ 2],

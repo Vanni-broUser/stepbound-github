@@ -136,7 +136,6 @@ final class _FakeHost implements StoryHost, HometownActions {
   }
 
   int zombieBooksOpened = 0;
-  int memoriesReplayed = 0;
 
   @override
   void openZombieBook() => zombieBooksOpened++;
@@ -150,9 +149,6 @@ final class _FakeHost implements StoryHost, HometownActions {
 
   @override
   void openAdventureStats() => adventureStatsOpened++;
-
-  @override
-  void replayMemories() => memoriesReplayed++;
 
   int luigiSent = 0;
 
@@ -1499,21 +1495,6 @@ void main() {
         expect(host.zombieBooksOpened, index + 1);
       }
       expect(trainBookTiles, hasLength(1), reason: 'one cell of books');
-      // The abacus and the calculator at the left end of the desk.
-      expect(trainStatsTiles, hasLength(1));
-      // The two ends of the desk, the mug and the candle between them.
-      expect(trainStatsTiles.single.x, trainBookTiles.single.x - 2);
-      director.onEvents(<WorldEvent>[
-        LookedOutEvent(at: trainStatsTiles.single),
-      ]);
-      settle();
-      expect(
-        host.shown.last.single.text,
-        "Osserva le statistiche e i progressi dell'avventura",
-      );
-      expect(host.adventureStatsOpened, 0, reason: 'not before the line');
-      host.dismiss();
-      expect(host.adventureStatsOpened, 1);
       // The wardrobe, then the outfits to choose from.
       director.onEvents(<WorldEvent>[
         LookedOutEvent(at: trainWardrobeTiles.first),
@@ -1526,21 +1507,14 @@ void main() {
       expect(host.wardrobesOpened, 0, reason: 'not before the line');
       host.dismiss();
       expect(host.wardrobesOpened, 1);
-      // The cot names the city whose memories it plays, then plays them.
-      for (final (index, level) in LevelId.values.indexed) {
-        progress.level = level;
-        director.onEvents(<WorldEvent>[
-          LookedOutEvent(at: trainCotTiles[index % trainCotTiles.length]),
-        ]);
-        settle();
-        expect(host.shown.last.single.text, switch (level) {
-          LevelId.hometown => 'Rivedi i ricordi della città natale',
-          LevelId.rome => 'Rivedi i ricordi di Roma',
-        });
-        expect(host.memoriesReplayed, index, reason: 'not before the line');
-        host.dismiss();
-        expect(host.memoriesReplayed, index + 1);
-      }
+      // The cot opens the figures of the adventure, the memories among
+      // them.
+      director.onEvents(<WorldEvent>[LookedOutEvent(at: trainCotTiles.first)]);
+      settle();
+      expect(host.shown.last.single.text, TrainScript.cotLine);
+      expect(host.adventureStatsOpened, 0, reason: 'not before the line');
+      host.dismiss();
+      expect(host.adventureStatsOpened, 1);
     });
 
     test('the ammunition crate loads Mario up to five rounds, as often as '

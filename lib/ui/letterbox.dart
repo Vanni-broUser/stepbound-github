@@ -12,6 +12,11 @@ final class Letterbox extends StatelessWidget {
   final Color color;
   final Widget child;
 
+  /// The one veil the game is dimmed with behind whatever is looked at
+  /// over it: the figures of the adventure, the book of the zombies, the
+  /// clothes to change into. The world stays in view through it.
+  static const Color veil = Color(0xc2180e0c);
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(

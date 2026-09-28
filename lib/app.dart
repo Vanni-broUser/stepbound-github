@@ -357,6 +357,7 @@ final class _StepboundAppState extends State<StepboundApp> {
         world: game.simulation,
         progress: game.progress,
         onClose: game.closeAdventureStats,
+        onReplayMemories: game.replayMemories,
       ),
     ),
     ZombieBookCover() => Letterbox(
@@ -629,13 +630,9 @@ final class _StepboundAppState extends State<StepboundApp> {
 
   /// The world fills the whole screen (see ScreenFillingViewport). The
   /// controls and the dialogue box spread as wide as it, as tall as the
-  /// 16:9 picture; the pause menu stays on the picture, over the world, and
-  /// every other cover lays its picture out itself, with its backdrop
-  /// across the bands (see [Letterbox]).
+  /// 16:9 picture; every other cover lays its picture out itself, with its
+  /// backdrop across the bands (see [Letterbox]).
   Widget _playing(StepboundGame game, Size picture) {
-    Widget onPicture(Widget child) => Center(
-      child: SizedBox.fromSize(size: picture, child: child),
-    );
     Widget screenWide(Widget child) =>
         ScreenWideLayer(pictureHeight: picture.height, child: child);
     return Stack(
@@ -671,7 +668,6 @@ final class _StepboundAppState extends State<StepboundApp> {
               PromptCover() => screenWide(
                 SafeArea(child: _coverOf(game, cover)),
               ),
-              PauseCover() => onPicture(_coverOf(game, cover)),
               _ => _coverOf(game, cover),
             },
           ),

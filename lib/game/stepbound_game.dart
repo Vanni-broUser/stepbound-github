@@ -771,9 +771,8 @@ final class StepboundGame extends FlameGame
     }
   }
 
-  /// The memories play with the story's sound; the game's comes back when
-  /// they end.
-  @override
+  /// The memories, played from the figures of the adventure with the
+  /// story's sound; the game's comes back when they end.
   void replayMemories() {
     soundscapePaused = true;
     audio
@@ -783,11 +782,12 @@ final class StepboundGame extends FlameGame
     _cover(const MemoriesCover());
   }
 
-  /// Called once the memories are over, or left.
+  /// Called once the memories are over, or left: back to the figures
+  /// they were played from.
   void closeMemories() {
     if (cover.value is MemoriesCover) {
       soundscapePaused = false;
-      cover.value = null;
+      cover.value = const AdventureStatsCover();
     }
   }
 

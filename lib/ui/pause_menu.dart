@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
+import 'package:stepbound/ui/letterbox.dart';
 import 'package:stepbound/ui/main_menu.dart';
 import 'package:stepbound/ui/portrait_image.dart';
 
@@ -128,14 +129,25 @@ final class _PauseMenuState extends State<PauseMenu> {
     _PausePage.home || _PausePage.outfits => '',
   };
 
+  /// On the 16:9 picture over the whole screen. The choices leave the
+  /// world in view as it is; the clothes dim it with the veil of the other
+  /// things looked at over the game, wherever they are changed.
   @override
   Widget build(BuildContext context) {
+    return Letterbox(
+      color: _page == _PausePage.outfits
+          ? Letterbox.veil
+          : const Color(0x00000000),
+      child: _picture(),
+    );
+  }
+
+  Widget _picture() {
     return LayoutBuilder(
       builder: (context, constraints) {
         final unit = constraints.maxHeight.isFinite
             ? constraints.maxHeight / IntegerResolutionViewport.virtualHeight
             : 1.0;
-        // No backdrop: the world stays in view behind it.
         return Padding(
           key: const ValueKey<String>('pause-menu'),
           padding: EdgeInsets.all(8 * unit),
