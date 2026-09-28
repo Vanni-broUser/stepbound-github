@@ -187,6 +187,124 @@ void main() {
   });
 
   test(
+    'Halloween headwear fully covers the face and follows pose bobbing',
+    () async {
+      const poseShifts = <String, List<int>>{
+        '': [0, 0, 0, 0, 0, 0],
+        '_gun': [0, 0, 0, 0, 0, 0],
+        '_pickup': [2, 4, 4, 4, 2, 0],
+        '_throwable': [0, 0, 0, 0, 0, 0],
+      };
+      const pumpkinColors = <(int, int, int)>[
+        (224, 91, 20),
+        (255, 139, 27),
+        (139, 47, 16),
+        (255, 223, 99),
+      ];
+      const ghostColors = <(int, int, int)>[
+        (244, 239, 220),
+        (211, 215, 211),
+        (160, 169, 171),
+        (37, 31, 42),
+        (20, 15, 19),
+      ];
+      const pumpkinBounds = <(int, int)>[(4, 12), (3, 12), (4, 13), (4, 12)];
+
+      bool matches(Uint8List rgba, int pixel, (int, int, int) color) =>
+          rgba[pixel] == color.$1 &&
+          rgba[pixel + 1] == color.$2 &&
+          rgba[pixel + 2] == color.$3;
+
+      bool isExposedSkin(
+        Uint8List rgba,
+        int pixel,
+        List<(int, int, int)> costumeColors,
+      ) {
+        if (rgba[pixel + 3] <= 200 ||
+            rgba[pixel] <= 145 ||
+            rgba[pixel + 1] <= 80 ||
+            rgba[pixel + 2] <= 45 ||
+            rgba[pixel] <= rgba[pixel + 1] ||
+            rgba[pixel + 1] <= rgba[pixel + 2]) {
+          return false;
+        }
+        return !costumeColors.any((color) => matches(rgba, pixel, color));
+      }
+
+      for (final entry in poseShifts.entries) {
+        final suffix = entry.key;
+        final jack = await loadAsset(
+          'assets/characters/mario/sprites/jack_o_lantern$suffix.png',
+        );
+        final ghost = await loadAsset(
+          'assets/characters/mario/sprites/ghost$suffix.png',
+        );
+        final jackPixels = await pixelsOf(jack);
+        final ghostPixels = await pixelsOf(ghost);
+        for (var row = 0; row < 4; row++) {
+          for (var column = 0; column < 6; column++) {
+            final shift = entry.value[column];
+            final frameName =
+                '${suffix.isEmpty ? 'base' : suffix} row $row column $column';
+            var pumpkinMinX = 16;
+            var pumpkinMaxX = -1;
+            var pumpkinMinY = 24;
+            for (var y = 0; y < 24; y++) {
+              for (var x = 0; x < 16; x++) {
+                final pixel = ((row * 24 + y) * 96 + column * 16 + x) * 4;
+                if (pumpkinColors.any(
+                  (color) => matches(jackPixels, pixel, color),
+                )) {
+                  if (x < pumpkinMinX) pumpkinMinX = x;
+                  if (x > pumpkinMaxX) pumpkinMaxX = x;
+                  if (y < pumpkinMinY) pumpkinMinY = y;
+                }
+              }
+            }
+            expect(
+              (pumpkinMinX, pumpkinMaxX),
+              pumpkinBounds[row],
+              reason: '$frameName pumpkin alignment',
+            );
+            if (suffix == '_pickup') {
+              expect(
+                pumpkinMinY,
+                2 + shift,
+                reason: '$frameName pumpkin vertical anchor',
+              );
+            }
+
+            for (var y = 12 + shift; y < 14 + shift; y++) {
+              for (var x = 6; x < 10; x++) {
+                final pixel = ((row * 24 + y) * 96 + column * 16 + x) * 4;
+                expect(
+                  isExposedSkin(jackPixels, pixel, pumpkinColors),
+                  isFalse,
+                  reason: '$frameName exposes skin below the pumpkin at $x,$y',
+                );
+              }
+            }
+            for (var y = 2 + shift; y < 15 + shift; y++) {
+              for (var x = 5; x < 11; x++) {
+                final pixel = ((row * 24 + y) * 96 + column * 16 + x) * 4;
+                expect(
+                  isExposedSkin(ghostPixels, pixel, ghostColors),
+                  isFalse,
+                  reason:
+                      '$frameName exposes a face through the ghost hood '
+                      'at $x,$y',
+                );
+              }
+            }
+          }
+        }
+        jack.dispose();
+        ghost.dispose();
+      }
+    },
+  );
+
+  test(
     'action sheets follow the manifest contract on the shared grid',
     () async {
       final manifestJson = await rootBundle.loadString(
