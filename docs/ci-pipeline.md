@@ -4,13 +4,10 @@ Stepbound usa la stessa impostazione di base di Delivery: una sola pipeline per
 commit/MR, cache limitata a `.pub-cache`, job interrompibili e configurazione
 suddivisa per responsabilita in `gitlab/`.
 
-Gli stage sono tre: `build`, dove stanno tutti i job che producono un
-pacchetto, `verify`, che blocca, e `deploy`, per la pubblicazione manuale della
-privacy policy con GitLab Pages. I job di build sono manuali e non
-bloccanti, quindi si possono lanciare appena parte la pipeline, senza aspettare
-analisi e test; le verifiche hanno `needs: []` e partono subito lo stesso.
-Un pacchetto costruito cosi non e ancora verificato: prima di distribuirlo
-guarda che `verify` sia verde.
+Gli stage sono quattro: `build-android`, per la compilazione APK e App Bundle;
+`build-ios`, per la diagnostica e l'IPA iOS; `verify`, che blocca con analisi e test;
+e `deploy`, per la pubblicazione su Google Play (`deploy_play`), TestFlight
+(`deploy_testflight`) e GitLab Pages (`privacy_policy_pages`).
 
 ## Verifiche e build
 
@@ -38,12 +35,18 @@ guarda che `verify` sia verde.
   gira sempre e non ha bisogno di Python.
 - `deps_check`: dipendenze obsolete, informativo.
 - `build_android_debug`: APK debug installabile, manuale e non bloccante.
-- `build_android_signed` / `build_ios_signed`: pacchetti release manuali solo su ref
-  protette, su combusken (Android) e sul Mac (iOS).
+- `build_android_signed`: AAB release firmato per Google Play su ref protette,
+  gira su combusken.
 - `build_android_release_apk`: la stessa release Android come APK firmato,
-  da installare a mano sul telefono (prove prima dello store, o la demo
-  distribuita direttamente). Stesse regole e stessa chiave di
-  `build_android_signed`.
+  da installare a mano sul telefono per prove dirette.
+- `check_macos_runner`: diagnostica runner macOS per iOS.
+- `build_ios_signed`: pacchetto IPA release firmato per iOS su ref protette,
+  gira sul Mac.
+- `deploy_play`: carica l'AAB su Google Play sulla traccia configurata in
+  `PLAY_TRACK` (default `alpha` per test chiuso). Richiede
+  `GOOGLE_PLAY_SERVICE_ACCOUNT_JSON`.
+- `deploy_testflight`: carica l'IPA su TestFlight via `xcrun altool`. Richiede
+  `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8`.
 - `privacy_policy_pages`: job manuale disponibile solo sulla branch predefinita.
   Pubblica `privacy/index.html` come pagina GitLab Pages. Prima di avviarlo,
   sostituire nella pagina i segnaposto `REPLACE_BEFORE_PUBLICATION` con la

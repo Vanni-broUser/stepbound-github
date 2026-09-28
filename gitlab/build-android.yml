@@ -1,10 +1,25 @@
-# The release key, from the protected ANDROID_* variables. Shared by the two
-# signed Android packages. They run on combusken, a Linux machine of ours,
-# in the same Flutter image as the other jobs: the machine needs only the
-# runner and Docker, and nothing of its own reaches the build.
+# Build Android: debug APK, release APK firmato e Android App Bundle (AAB) firmato.
+#
+# I job firmati girano su combusken (tag combusken-docker) con le variabili protette
+# ANDROID_KEYSTORE_BASE64, ANDROID_STORE_PASSWORD, ANDROID_KEY_PASSWORD, ANDROID_KEY_ALIAS.
+
+build_android_debug:
+  extends: .flutter_3_44_2
+  stage: build-android
+  rules:
+    - when: manual
+      allow_failure: true
+  script:
+    - flutter build apk --debug --build-number="$CI_PIPELINE_IID" --dart-define=VANNI_DEPLOY="${VANNI_DEPLOY:-0}"
+  artifacts:
+    name: "stepbound-debug-apk-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - build/app/outputs/flutter-apk/app-debug.apk
+    expire_in: 1 week
+
 .android_signed:
   extends: .flutter_3_44_2
-  stage: build
+  stage: build-android
   tags:
     - combusken-docker
   interruptible: false
@@ -14,21 +29,13 @@
       when: manual
       allow_failure: true
     - when: never
-  # What the image lacks and every build would download again: Gradle's
-  # dependencies and wrapper, and the SDK packages Gradle installs itself
-  # (gitlab/android_sdk_cache.sh). Kept even when a build fails, so a
-  # retry does not start over.
   variables:
     GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle-home"
-    # A daemon would hold the cache's lock files until the container goes.
     GRADLE_OPTS: "-Dorg.gradle.daemon=false"
     ANDROID_SDK_CACHE: "$CI_PROJECT_DIR/.android-sdk-cache"
-    # The NDK alone is gigabytes: packing it fast beats packing it small,
-    # the cache stays on combusken's own disk.
     FF_USE_FASTZIP: "true"
     CACHE_COMPRESSION_LEVEL: "fastest"
   cache:
-    # The same as every job's (.gitlab-ci.yml): a job's own list replaces it.
     - key:
         files:
           - pubspec.lock
@@ -50,15 +57,10 @@
           exit 1
         fi
       done
-      # storeFile is resolved from android/app (android/app/build.gradle.kts),
-      # key.properties is read from android/.
       echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/app/release-keystore.jks
       printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=release-keystore.jks\n' \
         "$ANDROID_STORE_PASSWORD" "$ANDROID_KEY_PASSWORD" "$ANDROID_KEY_ALIAS" \
         > android/key.properties
-  # The build's outcome waits until what it installed is in the cache.
-  # STEPBOUND_DIAGNOSTICS=1, set when running the job, shows frame rate
-  # and load times over the game (lib/ui/diagnostics_overlay.dart).
   script:
     - status=0
     - flutter build "$ANDROID_PACKAGE" --release --build-number="$CI_PIPELINE_IID" --dart-define=STEPBOUND_DIAGNOSTICS="${STEPBOUND_DIAGNOSTICS:-0}" --dart-define=VANNI_DEPLOY="${VANNI_DEPLOY:-0}" || status=$?
@@ -67,7 +69,7 @@
   after_script:
     - rm -f android/app/release-keystore.jks android/key.properties
 
-# For the store.
+# AAB firmato per Google Play Store
 build_android_signed:
   extends: .android_signed
   variables:
@@ -78,11 +80,7 @@ build_android_signed:
       - build/app/outputs/bundle/release/app-release.aab
     expire_in: 1 month
 
-# The same release, as an APK to install by hand: for testing on a phone
-# before the store, or for handing the demo out directly. Signed with the
-# same key, so each one updates over the last. One installed from the store
-# is signed by the store's own key when Play App Signing is on, and the two
-# do not update each other.
+# APK release firmato per installazione diretta/test su dispositivo fisico
 build_android_release_apk:
   extends: .android_signed
   variables:
@@ -91,39 +89,4 @@ build_android_release_apk:
     name: "stepbound-release-apk-$CI_COMMIT_SHORT_SHA"
     paths:
       - build/app/outputs/flutter-apk/app-release.apk
-    expire_in: 1 month
-
-check_macos_runner:
-  stage: build
-  tags:
-    - stepbound-local-macos
-  needs: []
-  rules:
-    - when: manual
-      allow_failure: true
-  before_script: []
-  script:
-    - sw_vers
-    - xcodebuild -version
-    - pod --version
-    - flutter --version
-    - flutter doctor -v
-
-build_ios_signed:
-  stage: build
-  tags:
-    - stepbound-local-macos
-  interruptible: false
-  resource_group: stepbound-ios-release
-  rules:
-    - if: '$CI_COMMIT_REF_PROTECTED == "true"'
-      when: manual
-      allow_failure: true
-    - when: never
-  script:
-    - flutter build ipa --release --build-number="$CI_PIPELINE_IID" --dart-define=VANNI_DEPLOY="${VANNI_DEPLOY:-0}"
-  artifacts:
-    name: "stepbound-ipa-$CI_COMMIT_SHORT_SHA"
-    paths:
-      - build/ios/ipa/*.ipa
     expire_in: 1 month

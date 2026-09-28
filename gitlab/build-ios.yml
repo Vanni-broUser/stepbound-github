@@ -1,0 +1,39 @@
+# Build iOS: diagnostica runner e generazione IPA firmato.
+# Gira su runner macOS self-hosted (tag: stepbound-local-macos).
+
+.macos:
+  tags:
+    - macos
+  interruptible: false
+  resource_group: stepbound-ios-release
+
+check_macos_runner:
+  extends: .macos
+  stage: build-ios
+  needs: []
+  rules:
+    - when: manual
+      allow_failure: true
+  before_script: []
+  script:
+    - sw_vers
+    - xcodebuild -version
+    - pod --version
+    - flutter --version
+    - flutter doctor -v
+
+build_ios_signed:
+  extends: .macos
+  stage: build-ios
+  rules:
+    - if: '$CI_COMMIT_REF_PROTECTED == "true"'
+      when: manual
+      allow_failure: true
+    - when: never
+  script:
+    - flutter build ipa --release --build-number="$CI_PIPELINE_IID" --dart-define=VANNI_DEPLOY="${VANNI_DEPLOY:-0}"
+  artifacts:
+    name: "stepbound-ipa-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - build/ios/ipa/*.ipa
+    expire_in: 1 month
