@@ -17,6 +17,7 @@ import 'package:stepbound/game/haptics/game_haptics.dart';
 import 'package:stepbound/game/input/game_input_controller.dart';
 import 'package:stepbound/game/levels/hometown_stage.dart';
 import 'package:stepbound/game/levels/level_stage.dart';
+import 'package:stepbound/game/levels/rome_stage.dart';
 import 'package:stepbound/game/levels/train_stage.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/aim_line_component.dart';
@@ -154,6 +155,7 @@ final class StepboundGame extends FlameGame
   late final List<LevelStage> _stages = <LevelStage>[
     TrainStage(this),
     hometown,
+    RomeStage(this),
   ];
   final Map<String, CharacterComponent> _characters =
       <String, CharacterComponent>{};

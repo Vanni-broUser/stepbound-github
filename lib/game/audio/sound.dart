@@ -14,7 +14,11 @@ enum Music {
   sacred('music/sacred.mp3'),
 
   /// Setting off together: Luigi, the station and the train.
-  luigi('music/luigi.mp3');
+  luigi('music/luigi.mp3'),
+
+  /// Chords like Gregorian chant under a cold organ, a harp plucking
+  /// alone: Rome, from Termini out into its streets.
+  rome('music/rome.mp3');
 
   const Music(this.file);
 
@@ -133,6 +137,11 @@ const List<SoundCredit> musicCredits = <SoundCredit>[
   ),
   (
     title: 'At Launch',
+    author: 'Kevin MacLeod (incompetech.com)',
+    licence: 'CC BY 4.0',
+  ),
+  (
+    title: 'Rites',
     author: 'Kevin MacLeod (incompetech.com)',
     licence: 'CC BY 4.0',
   ),

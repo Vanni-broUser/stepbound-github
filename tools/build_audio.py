@@ -42,6 +42,8 @@ SOURCES = {
                             "Kevin MacLeod (incompetech.com)", "CC BY 4.0"),
     "at_launch": (INCOMPETECH + "At%20Launch.mp3", "At Launch",
                   "Kevin MacLeod (incompetech.com)", "CC BY 4.0"),
+    "rites": (INCOMPETECH + "Rites.mp3", "Rites",
+              "Kevin MacLeod (incompetech.com)", "CC BY 4.0"),
     "lurking": (SOUNDIMAGE + "2014/03/Lurking-in-the-Shadows.mp3",
                 "Lurking in the Shadows", "Eric Matyas (soundimage.org)",
                 "Free with attribution"),
@@ -94,6 +96,8 @@ MUSIC = [
     ("music/sacred.mp3", "halls_of_the_undead", 0.42, 284.0, 6.0, -21),
     # Brass, snare and strings setting off: Luigi, the station, the train.
     ("music/luigi.mp3", "at_launch", 1.0, 180.0, 4.0, -20),
+    # Chords like Gregorian chant under a cold organ and a lone harp: Rome.
+    ("music/rome.mp3", "rites", 0.0, 119.0, 6.0, -21),
 ]
 
 AMBIENCE = [
