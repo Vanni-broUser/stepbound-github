@@ -115,7 +115,7 @@ const List<String> hospitalThirdFloorRows = <String>[
 /// jump, near enough for a grappling hook, as on the roofs past the
 /// airliner and at the top of the Duomo's tower. Straight across from it
 /// the next block's wall is broken open `<`: where the hook would bring
-/// Mario in.
+/// Mario in, and where it takes him back from.
 // hospital-roof-rows-start
 const List<String> hospitalRoofRows = <String>[
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',

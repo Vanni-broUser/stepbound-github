@@ -77,13 +77,19 @@ final class HealthComponent extends EntityComponent {
 }
 
 final class AmmoComponent extends EntityComponent {
-  AmmoComponent({required this.loaded, this.hasGun = true, this.molotovs = 0});
+  AmmoComponent({
+    required this.loaded,
+    this.hasGun = true,
+    this.molotovs = 0,
+    this.grapplingHook = false,
+  });
 
   factory AmmoComponent.fromJson(Map<String, Object?> json) {
     return AmmoComponent(
       loaded: json['loaded']! as int,
       hasGun: json['hasGun'] as bool? ?? true,
       molotovs: json['molotovs']! as int,
+      grapplingHook: json['grapplingHook'] as bool? ?? false,
     );
   }
 
@@ -98,6 +104,11 @@ final class AmmoComponent extends EntityComponent {
   /// thrown: each one bursts into flames over a 3x3 square.
   int molotovs;
 
+  /// The grappling hook, found in the Baths of Diocletian: it carries
+  /// Mario across the gap between two roofs (see `WorldState.grapples`).
+  /// It is not used up, so like the pistol it goes wherever he goes.
+  bool grapplingHook;
+
   void add(int rounds) => loaded += rounds;
 
   @override
@@ -109,6 +120,7 @@ final class AmmoComponent extends EntityComponent {
     'loaded': loaded,
     'hasGun': hasGun,
     'molotovs': molotovs,
+    if (grapplingHook) 'grapplingHook': true,
   };
 }
 

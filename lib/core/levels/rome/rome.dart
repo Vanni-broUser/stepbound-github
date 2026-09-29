@@ -122,6 +122,14 @@ final Place _piazza = place(PlaceId.piazzaCinquecento);
 final Place _marsala = place(PlaceId.viaMarsala);
 final Place _terme = place(PlaceId.termeDiocleziano);
 
+/// The backpack with the grappling hook, left before the high altar of
+/// Santa Maria degli Angeli, in the great hall of the Baths.
+final GridPoint grapplingHookTile = _onGrid(
+  PlaceId.termeDiocleziano,
+  const GridPoint(20, 5),
+);
+const String grapplingHookPickupId = 'grappling-hook';
+
 /// The portal of Santa Maria degli Angeli, in the front of the Baths of
 /// Diocletian where the road past Termini ends: the way inside.
 final GridPoint termePortalTile = _piazza.tileOf('¶');
@@ -300,8 +308,9 @@ Map<GridPoint, Portal> _portals() => <GridPoint, Portal>{
 
 /// What Rome holds when a game starts: the dead wandering Termini and
 /// the streets round it, the carabinieri at the roadblock east of the
-/// piazza, a backpack in the rubbish and one by the tank, the station's
-/// doors, and the fire in the roadblock's gap to look at.
+/// piazza, a backpack in the rubbish, one by the tank and the grappling
+/// hook in the Baths of Diocletian, the station's doors, and the fire in
+/// the roadblock's gap to look at.
 LevelContents romeContents(EntityFactory factory) => LevelContents(
   entities: <Entity>[
     for (final MapEntry(key: id, value: spots) in romeZombieSpots.entries)
@@ -332,6 +341,11 @@ LevelContents romeContents(EntityFactory factory) => LevelContents(
       ammo: 2,
     ),
     Pickup(id: roadblockBackpackId, position: roadblockBackpackTile, ammo: 2),
+    Pickup(
+      id: grapplingHookPickupId,
+      position: grapplingHookTile,
+      grapplingHook: true,
+    ),
   ],
   portals: _portals(),
   lookouts: <GridPoint>[roadblockFireTile],

@@ -399,6 +399,20 @@ final List<TestScenario> testScenarios = <TestScenario>[
       ..script('journey', <String, Object?>{'taught': true})
       ..restAt(piazzaCampfireTile);
   }),
+  // Found in Rome and brought home: the hospital's roof, a step from the
+  // gap to the next block.
+  TestScenario('Molfetta, con il rampino', (story) {
+    _molfettaDone(story);
+    story
+      ..travelTo(LevelId.rome)
+      ..script('rome', <String, Object?>{'welcomed': true})
+      ..script('journey', <String, Object?>{'taught': true})
+      ..collect(grapplingHookPickupId)
+      ..unlock(HudElement.grapplingHook)
+      ..travelTo(LevelId.hometown)
+      ..restAt(hospitalRoofCampfireTile);
+    story.world.player.component<AmmoComponent>().grapplingHook = true;
+  }),
   vanniDeployScenario,
 ];
 

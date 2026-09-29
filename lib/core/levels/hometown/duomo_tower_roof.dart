@@ -3,7 +3,9 @@
 /// stone roof walled by its parapet `^`, with a lightning rod `n` at one
 /// corner. The other tower stands just across, too far to jump, with a
 /// backpack `9` left on its roof. `>` is the stretch of parapet facing it,
-/// where Mario measures the gap. `:` is grit and fallen stone.
+/// where Mario measures the gap, and where the grappling hook takes him
+/// over to the parapet straight across, and back. `:` is grit and fallen
+/// stone.
 ///
 /// Everything else, `x`, is the long way down, and it is all in view: the
 /// Duomo itself below the towers, its three domes in a row along the nave

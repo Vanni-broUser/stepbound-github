@@ -122,6 +122,21 @@ enum HudElement {
   episcopalRing,
   duomoKey,
   molotov,
+  grapplingHook,
+}
+
+extension HudElementLevel on HudElement {
+  /// The level whose errand the item is for, or null for what goes with
+  /// Mario everywhere. The keys and the rest he carries for somebody in
+  /// Molfetta are not taken on the train: they wait for him there, out of
+  /// sight elsewhere.
+  LevelId? get level => switch (this) {
+    HudElement.incense ||
+    HudElement.barKey ||
+    HudElement.episcopalRing ||
+    HudElement.duomoKey => LevelId.hometown,
+    _ => null,
+  };
 }
 
 /// What the director needs from the game.

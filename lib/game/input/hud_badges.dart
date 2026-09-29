@@ -11,8 +11,17 @@ import 'package:stepbound/ui/blood_decor.dart';
 import 'package:stepbound/ui/fire_frame.dart';
 
 /// The badge of the thing Mario carries for [element], or null for the
-/// elements that are buttons and not things: interacting and shooting.
-Widget? carriedBadge(HudElement element, {required StepboundGame game}) =>
+/// elements that are buttons and not things (interacting and shooting)
+/// and for an errand of another level than the one he is in.
+Widget? carriedBadge(HudElement element, {required StepboundGame game}) {
+  final level = element.level;
+  if (level != null && level != game.progress.level) {
+    return null;
+  }
+  return _badge(element, game: game);
+}
+
+Widget? _badge(HudElement element, {required StepboundGame game}) =>
     switch (element) {
       HudElement.ammo => _AmmoBadge(game: game),
       HudElement.incense => _QuestItemBadge(
@@ -39,6 +48,9 @@ Widget? carriedBadge(HudElement element, {required StepboundGame game}) =>
           'assets/objects/episcopal_ring.png',
           width: 28,
           height: 28,
+          // Without a fit, a picture smaller than its box is drawn at its
+          // own size and not blown up to fill it.
+          fit: BoxFit.contain,
           filterQuality: FilterQuality.none,
         ),
       ),
@@ -48,6 +60,21 @@ Widget? carriedBadge(HudElement element, {required StepboundGame game}) =>
         label: 'Chiave del Duomo',
         drips: const <BloodDrip>[BloodDrip(0.28, 11, 4), BloodDrip(0.7, 9, 3)],
         icon: const CustomPaint(size: Size(28, 28), painter: ChurchKeyIcon()),
+      ),
+      HudElement.grapplingHook => _QuestItemBadge(
+        key: const ValueKey<String>('hud-grappling-hook'),
+        game: game,
+        label: 'Rampino',
+        drips: const <BloodDrip>[BloodDrip(0.3, 9, 3), BloodDrip(0.76, 12, 4)],
+        icon: Image.asset(
+          'assets/objects/grappling_hook.png',
+          width: 28,
+          height: 28,
+          // Without a fit, a picture smaller than its box is drawn at its
+          // own size and not blown up to fill it.
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.none,
+        ),
       ),
       HudElement.molotov => _MolotovBadge(game: game),
       HudElement.interact || HudElement.shoot => null,

@@ -187,6 +187,58 @@ void main() {
     expect(host.shown.single.single.text, RooftopsScript.gapLesson);
   });
 
+  test('with the hook, Mario swings across and the game says so', () {
+    director.onEvents(<WorldEvent>[
+      TeleportedEvent(
+        entityId: world.playerId,
+        from: rooftopGapTile.step(Direction.north),
+        to: world.grapples[rooftopGapTile]!.to,
+        grappled: true,
+      ),
+    ]);
+    settle();
+    expect(host.shown.single.single.text, RooftopsScript.grappleLine);
+    expect(RooftopsScript.grappleLine, 'Mario usa il rampino');
+  });
+
+  test('a door is no swing', () {
+    director.onEvents(<WorldEvent>[
+      TeleportedEvent(
+        entityId: world.playerId,
+        from: duomoPortalTile,
+        to: world.portals[duomoPortalTile]!.to,
+      ),
+    ]);
+    settle();
+    expect(
+      host.shown.expand((lines) => lines).map((line) => line.text),
+      isNot(contains(RooftopsScript.grappleLine)),
+    );
+  });
+
+  test('the grappling hook goes up among what Mario carries', () {
+    director.onEvents(<WorldEvent>[
+      pickedUp(grapplingHookPickupId, grapplingHook: true),
+    ]);
+    settle();
+    expect(host.pickupAnimations, 1);
+    expect(host.shown.single.map((line) => line.text), <String>[
+      BackpacksScript.grapplingHookFound,
+      BackpacksScript.grapplingHookLesson,
+    ]);
+    expect(host.unlocked, contains(HudElement.grapplingHook));
+  });
+
+  test("Molfetta's errands stay in Molfetta; the hook goes everywhere", () {
+    expect(HudElement.duomoKey.level, LevelId.hometown);
+    expect(HudElement.barKey.level, LevelId.hometown);
+    expect(HudElement.incense.level, LevelId.hometown);
+    expect(HudElement.episcopalRing.level, LevelId.hometown);
+    expect(HudElement.grapplingHook.level, isNull);
+    expect(HudElement.ammo.level, isNull);
+    expect(HudElement.molotov.level, isNull);
+  });
+
   test('a look anywhere else is no business of the rooftops script', () {
     director.onEvents(<WorldEvent>[const LookedOutEvent(at: GridPoint(0, 0))]);
     settle();
