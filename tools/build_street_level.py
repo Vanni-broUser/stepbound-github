@@ -101,7 +101,7 @@ OUTLINE = (16, 12, 14)
 # They are decorations: every one is wrecked and shut. The rest of a band
 # with shops gets ordinary houses.
 STREET_STOREFRONTS = {
-    28: [
+    38: [
         (4, 5, "kebab"),
         (9, 4, "alimentari"),
         (20, 5, "pizzeria"),
@@ -288,6 +288,13 @@ class Level:
         floor = self._floor(glyph)
         if floor is not None:
             return floor
+        if glyph not in FOOTWAY_GLYPHS and 0 < y < self.height - 1:
+            # Right between two cells of one floor, a prop is on that floor:
+            # a car parked across a road that runs north-south has the
+            # carriageway above and below it, whatever its row says.
+            above = self._floor(self.rows[y - 1][x])
+            if above is not None and above == self._floor(self.rows[y + 1][x]):
+                return above
         ways = [(-1, 0), (1, 0)]
         if glyph in FOOTWAY_GLYPHS:
             ways += [(0, -1), (0, 1)]

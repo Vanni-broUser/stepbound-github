@@ -1007,6 +1007,26 @@ def paint_mall_back_door(d, px, py):
     rect(d, px + 6, well + 6, 4, 3, (210, 250, 220))
 
 
+def paint_road_blood(d, rng, px, py):
+    """A pool of blood on the road, `>`: a pool gone dark at its heart,
+    or a smear where something was dragged, and spatter round either."""
+    if rng.random() < 0.5:
+        w, h = rng.randint(7, 11), rng.randint(5, 8)
+        x, y = px + rng.randint(1, 15 - w), py + rng.randint(2, 15 - h)
+        rect(d, x, y + 1, w, h - 2, sl.BLOOD)
+        rect(d, x + 1, y, w - 2, h, sl.BLOOD)
+        rect(d, x + w // 3, y + h // 3, max(2, w // 3), max(2, h // 3),
+             sl.BLOOD_DARK)
+    else:
+        y = py + rng.randint(4, 10)
+        for i in range(rng.randint(10, 14)):
+            rect(d, px + 1 + i, y + (i // 4) % 2, 1, rng.randint(2, 3),
+                 sl.BLOOD_DARK if i % 3 else sl.BLOOD)
+    for _ in range(rng.randint(3, 6)):
+        rect(d, px + rng.randrange(15), py + rng.randrange(15), 1, 1,
+             sl.BLOOD)
+
+
 def paint_lane_bend(d, px, py):
     """Where a road turns, `c`: the line from the west curving round into
     the one going south, over the tile before it and the two below."""
@@ -1288,6 +1308,9 @@ def city_place(atlas: Atlas, rng, name: str, marker, storefront_table,
         buckets, pieces = spread(atlas, lambda i: paint_lane_bend, None,
                                  (2, 0, 0, 2), 1)
         rules.append(rule("structures", "c", buckets, None, pieces))
+    if ">" in glyphs and '"' not in glyphs:
+        rules.append(rule("structures", ">",
+                          randomly(atlas, rng, paint_road_blood)))
     if glyphs & set("_+["):
         scorched = "".join(sorted(set(ground_glyphs) - set("_+[")))
         rules.append(rule("structures", scorched, [[], atlas.bucket(

@@ -177,6 +177,15 @@ final class GroundConfig {
       return own;
     }
     final onFootway = footway.contains(glyph);
+    if (!onFootway && y > 0 && y < grid.height - 1) {
+      // Right between two cells of one floor, a prop is on that floor: a
+      // car parked across a road that runs north-south has the carriageway
+      // above and below it, whatever its row says.
+      final above = _floor(grid.rows[y - 1][x]);
+      if (above != null && above == _floor(grid.rows[y + 1][x])) {
+        return above;
+      }
+    }
     final found = <(String?, int)>[
       _floorAlong(grid, x, y, -1, 0),
       _floorAlong(grid, x, y, 1, 0),

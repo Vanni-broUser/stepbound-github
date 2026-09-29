@@ -861,10 +861,13 @@ void main() {
       final game = await _pumpReadyGame(tester);
       // The player starts near the south-west corner of the tutorial street:
       // the view stops at the map's left edge instead of centring on him,
-      // and never reaches past its bottom (42 tiles).
+      // and never reaches past its bottom.
       final view = game.camera.visibleWorldRect;
       expect(view.left, closeTo(0, 0.01));
-      expect(view.bottom, lessThanOrEqualTo(42 * 16 + 0.01));
+      expect(
+        view.bottom,
+        lessThanOrEqualTo(streetLevelRows.length * 16 + 0.01),
+      );
     });
   });
 
@@ -2588,7 +2591,8 @@ void main() {
           .last
           .data!;
       final zombies = levelZombieKinds(LevelId.hometown);
-      expect(stat('backpack-stat'), '0 / 17');
+      // Among them the two rounds at the end of the dead-end street.
+      expect(stat('backpack-stat'), '0 / 18');
       expect(stat('kill-stat'), '1 / ${zombies.length}');
       expect(stat('zombie-kind-stat'), '1 / ${zombies.toSet().length}');
       expect(stat('campfire-stat'), '1 / 4');
