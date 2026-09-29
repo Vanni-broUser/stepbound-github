@@ -166,6 +166,9 @@ final class PlaceLayers {
               area: area,
               lights: place.lights,
               darkness: place.darkness,
+              litAreas: <Rect>[
+                for (final lit in place.litAreas) pixelRect(lit),
+              ],
               playerPosition: playerFeet,
             )
           : null,

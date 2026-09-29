@@ -1257,3 +1257,109 @@ def paint_boat(d, px, py, hands):
             rect(d, hx + 1, py - 4, 1, 3, (96, 130, 80))
             rect(d, hx + 2, py - 3, 1, 3, (96, 130, 80))
             rect(d, hx, py + 3, 2, 1, (70, 30, 26))  # torn sleeve
+
+
+def paint_portone(d, px, py):
+    """The portone of the palazzo past the airliner, where its stairwell
+    comes out on the street, standing wide open: a doorway one floor high
+    in a surround of pale stone, arched at the top. Both wooden leaves are
+    swung right back against the jambs, and between them the hall burns
+    with light, its marble floor running in. The light pours out over the
+    step and down across the pavement (the cell under it)."""
+    stone, stone_dark = (214, 204, 180), (150, 140, 118)
+    wood, wood_light, wood_dark = (112, 70, 40), (146, 98, 60), (70, 44, 26)
+    glow, glow_hot = (255, 236, 176), (255, 248, 214)
+    rect(d, px, py, TILE, TILE, stone)
+    rect(d, px, py, 1, TILE, stone_dark)
+    rect(d, px + TILE - 1, py, 1, TILE, stone_dark)
+    # the opening, arched, full of the hall's light
+    rect(d, px + 2, py + 3, 12, 12, glow)
+    rect(d, px + 4, py + 1, 8, 2, glow)
+    for dx, dy in ((2, 2), (3, 1), (12, 1), (13, 2)):
+        rect(d, px + dx, py + dy, 1, 1, stone_dark)
+    # inside: the marble floor of the hall, lit
+    rect(d, px + 5, py + 6, 6, 9, glow_hot)
+    for fy in (py + 9, py + 12):
+        rect(d, px + 5, fy, 6, 1, (216, 204, 176))
+    rect(d, px + 7, py + 10, 2, 2, BLOOD)
+    # the two leaves swung back against the jambs
+    for side in (0, 1):
+        lx = px + (2 if side == 0 else 11)
+        rect(d, lx, py + 4, 3, 11, wood)
+        rect(d, lx + (0 if side == 0 else 2), py + 4, 1, 11, wood_dark)
+        for ly in (py + 5, py + 10):
+            rect(d, lx + 1, ly, 1, 4, wood_light)
+        rect(d, lx + (2 if side == 0 else 0), py + 9, 1, 1, (220, 190, 100))
+    # the step, and the light poured out across the pavement below
+    rect(d, px + 1, py + TILE - 1, 14, 1, stone_dark)
+    for step, alpha in enumerate((190, 150, 115, 85, 60, 40, 24)):
+        d.rectangle(
+            [px + 2 - step, py + TILE + step * 2,
+             px + 13 + step, py + TILE + 1 + step * 2],
+            fill=(255, 226, 150, alpha))
+    rect(d, px + 7, py + TILE + 3, 2, 1, BLOOD)
+    rect(d, px + 5, py + TILE + 8, 2, 1, BLOOD_DARK)
+    rect(d, px + 9, py + TILE + 11, 1, 1, BLOOD_DARK)
+
+
+FACTORY_NAME = "INDUSTRIE MOLFETTESI"
+
+
+def paint_factory(d, rng, level):
+    """The big company east of the palazzo: a long front of concrete panels
+    under a steel parapet, a ribbon of high windows, its name across the
+    top, loading bays shuttered either side, and in the middle the gate
+    `Ø`, rolled shut and chained. Tagged, burnt at one end, blood thrown up
+    against the gate by whoever tried to get in."""
+    cells = [(x, y) for y in range(level.height) for x in range(level.width)
+             if level.at(x, y) in "ÆØ"]
+    if not cells:
+        return
+    xs = [x for x, _ in cells]
+    ys = [y for _, y in cells]
+    px, py = min(xs) * TILE, min(ys) * TILE
+    w = (max(xs) - min(xs) + 1) * TILE
+    h = (max(ys) - min(ys) + 1) * TILE
+    panel, panel_dark = (168, 170, 166), (138, 140, 138)
+    rect(d, px, py, w, h, panel)
+    for bx in range(px, px + w, 24):  # the joints between the panels
+        rect(d, bx, py, 1, h, panel_dark)
+    rect(d, px, py, w, 4, (70, 76, 84))  # the parapet
+    rect(d, px, py + 4, w, 1, (40, 44, 50))
+    # its name, big, along the top
+    tw = text_width(FACTORY_NAME) * 2
+    tx = px + (w - tw) // 2
+    rect(d, tx - 4, py + 7, tw + 8, 14, (40, 70, 120))
+    paint_text(d, tx, py + 9, FACTORY_NAME, (240, 236, 220), missing=(3,),
+               scale=2)
+    # the ribbon of windows, some broken
+    for wx in range(px + 4, px + w - 8, 10):
+        pane = (70, 92, 108) if rng.random() > 0.3 else (20, 22, 26)
+        rect(d, wx, py + 26, 8, 8, (96, 100, 104))
+        rect(d, wx + 1, py + 27, 6, 6, pane)
+    # the gate, rolled shut: steel slats, a chain and a padlock
+    gate = [x for x, y in cells if level.at(x, y) == "Ø"]
+    gx0, gx1 = min(gate) * TILE, (max(gate) + 1) * TILE
+    ground = py + h
+    rect(d, gx0 - 3, ground - 30, gx1 - gx0 + 6, 30, (70, 76, 84))
+    for sy in range(ground - 28, ground, 3):
+        rect(d, gx0, sy, gx1 - gx0, 2, (120, 126, 132))
+    mid = (gx0 + gx1) // 2
+    for i in range(6):
+        rect(d, mid - 6 + i * 2, ground - 16 + (i % 2), 2, 2, (180, 180, 170))
+    rect(d, mid - 2, ground - 13, 4, 5, (200, 170, 80))
+    rect(d, gx0 + 4, ground - 20, 10, 12, BLOOD)
+    rect(d, gx0 + 8, ground - 8, 2, 8, BLOOD_DARK)
+    # loading bays either side of the gate, their shutters down
+    for bay in (gx0 - 64, gx1 + 24):
+        if bay < px or bay + 40 > px + w:
+            continue
+        rect(d, bay, ground - 26, 40, 26, (90, 94, 98))
+        for sy in range(ground - 24, ground, 3):
+            rect(d, bay + 2, sy, 36, 2, (132, 136, 138))
+        rect(d, bay, ground - 28, 40, 2, (230, 190, 40))  # the yellow edge
+    # burnt at the west end, where a car went up against it
+    rect(d, px, ground - 40, 30, 40, (58, 54, 52))
+    rect(d, px + 4, ground - 46, 20, 6, (80, 76, 72))
+    # tags
+    paint_text(d, px + w - 60, ground - 12, "VIA", (200, 40, 40))

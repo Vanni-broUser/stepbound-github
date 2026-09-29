@@ -10,6 +10,7 @@ import 'package:stepbound/game/story/scripts/journey_script.dart';
 import 'package:stepbound/game/story/scripts/mall_script.dart';
 import 'package:stepbound/game/story/scripts/maranza_script.dart';
 import 'package:stepbound/game/story/scripts/north_district_script.dart';
+import 'package:stepbound/game/story/scripts/palazzo_script.dart';
 import 'package:stepbound/game/story/scripts/priest_script.dart';
 import 'package:stepbound/game/story/scripts/roadblock_fire_script.dart';
 import 'package:stepbound/game/story/scripts/rome_script.dart';
@@ -29,6 +30,7 @@ export 'package:stepbound/game/story/scripts/journey_script.dart';
 export 'package:stepbound/game/story/scripts/mall_script.dart';
 export 'package:stepbound/game/story/scripts/maranza_script.dart';
 export 'package:stepbound/game/story/scripts/north_district_script.dart';
+export 'package:stepbound/game/story/scripts/palazzo_script.dart';
 export 'package:stepbound/game/story/scripts/priest_script.dart';
 export 'package:stepbound/game/story/scripts/roadblock_fire_script.dart';
 export 'package:stepbound/game/story/scripts/rome_script.dart';
@@ -127,6 +129,9 @@ enum HudElement {
   /// The rocket launcher's badge, with the rounds for it counted: dimmed
   /// until the launcher itself is found.
   rockets,
+
+  /// The key of the flat still locked on the palazzo's third floor.
+  palazzoKey,
 }
 
 extension HudElementLevel on HudElement {
@@ -138,7 +143,8 @@ extension HudElementLevel on HudElement {
     HudElement.incense ||
     HudElement.barKey ||
     HudElement.episcopalRing ||
-    HudElement.duomoKey => LevelId.hometown,
+    HudElement.duomoKey ||
+    HudElement.palazzoKey => LevelId.hometown,
     _ => null,
   };
 }
@@ -297,6 +303,7 @@ final class StoryDirector {
     scripts = <StoryScript>[
       BackpacksScript(this),
       BarScript(this),
+      PalazzoScript(this),
       StreetScript(this),
       BarracksScript(this),
       DuomoScript(this),

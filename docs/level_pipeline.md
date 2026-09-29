@@ -4,7 +4,8 @@ Ogni posto del gioco e dipinto a runtime dalle sue righe ASCII, con l'atlas
 di `assets/levels/tiles` generato da `tools/build_tile_atlas.py`, che elenca
 i posti, impacchetta i tile e scrive il manifest. L'arte di ogni posto sta in
 un modulo suo, `tools/tile_atlas_<posto>.py` (citta, Duomo, bar, stazione,
-aereo, caserma, treno, ipermercato, San Nicola, Termini, ospedale, Terme),
+aereo, caserma, treno, ipermercato, San Nicola, Termini, ospedale, Terme,
+palazzo dopo l'aereo),
 sulla macchina comune di `tools/tile_atlas_core.py`. I painter della citta
 stanno in `tools/street_*.py` (vedi "Dividere i file troppo grandi").
 
@@ -35,14 +36,22 @@ Cosa fare quando si disegna un posto:
 - **Una strada che per ora finisce li**: basta lasciarla aperta fino al
   bordo, calpestabile. La schermata parte da sola.
 - **Una scala, una porta o una botola dentro un posto verso un edificio
-  non ancora mappato** (per esempio le scale del palazzo dopo l'aereo): le
+  non ancora mappato** (per esempio le scale del palazzo accanto al tetto
+  dell'ospedale): le
   tile della porta (per una scala, l'ultimo scalino) vanno in
   `workInProgressDoors` (`lib/core/levels/game_world.dart`, per Molfetta
   `hometownWorkInProgressDoors`). Calpestarle apre la stessa
   schermata e rimette Mario dove era prima. Quando l'edificio viene
   disegnato, quelle tile escono dall'elenco e diventano una porta vera
-  (`pairedDoors`). Il test `test/work_in_progress_test.dart` controlla che
-  nessuna sia anche una porta vera.
+  (`pairedDoors`), come e successo alle scale del palazzo dopo l'aereo.
+  Il test `test/work_in_progress_test.dart` controlla che nessuna sia
+  anche una porta vera.
+- **Una porta chiusa a chiave davanti a un posto non ancora mappato** (la
+  porta dell'appartamento chiuso al terzo piano del palazzo dopo l'aereo):
+  la porta e un muro, il posto dietro non si disegna (resta nero come
+  fuori mappa) e lo script della porta, senza chiave, dice che e chiusa;
+  con la chiave apre la schermata work in progress e la chiave resta a
+  Mario per quando il posto ci sara.
 - **Una strada che prosegue in una mappa nuova**: si mette una porta
   (`pairedDoors` o un `Portal`) sulla tile di bordo; una tile con porta non e
   piu un punto work in progress.
@@ -99,6 +108,17 @@ quattro posti della citta, dove tetti e facciate sono cambiati.
   storia, che restano fuori da qui (`tools/build_sprites.py --check` e
   `tools/build_audio.py --check`).
 - `docs/ci-pipeline.md` per la struttura dei job.
+
+## Pavimenti sotto gli oggetti negli interni
+
+Un posto puo dire nell'atlas qual e il pavimento sotto le celle che non lo
+sono (`ground`, vedi `ground_config` in `tools/tile_atlas_core.py` e
+`GroundConfig` in `lib/game/render/tile_atlas.dart`): il piu vicino lungo
+la riga, mai attraverso un muro. Le strade lo usano per auto e lampioni;
+il palazzo dopo l'aereo per i mobili, i cadaveri e le porte, cosi un
+divano sta sul parquet del soggiorno e il fornello sulle piastrelle della
+cucina. `ground_of` in `tile_atlas_core.py` ripete passo per passo quello
+che fa il renderer, per `--preview` e `--compare`.
 
 ## Le scale
 

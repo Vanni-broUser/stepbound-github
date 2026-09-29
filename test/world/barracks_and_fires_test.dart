@@ -80,16 +80,19 @@ void main() {
           'the burning wrecks blocking both streets west, and one in the '
           'pile-up under the park',
     );
-    // And two on the overturned car burning at the station.
-    expect(count(all, FireKind.car), 15 + stationWreckFireSpots.length);
+    // And two on the overturned car burning at the station, and one on
+    // the street out of the palazzo past the airliner, with a bin and
+    // two windows on fire.
+    expect(count(all, FireKind.car), 16 + stationWreckFireSpots.length);
     expect(stationWreckFireSpots, hasLength(2));
-    expect(count(all, FireKind.bin), 9);
-    expect(count(all, FireKind.window), 15);
-    expect(count(all, FireKind.campfire), 5);
+    expect(count(all, FireKind.bin), 10);
+    expect(count(all, FireKind.window), 17);
+    expect(count(all, FireKind.campfire), 6);
     // One camp in the north district, one in the dead end the wrecks
     // leave at the west end of the shopping street behind the mall, two
-    // at the harbour: the Duomo sagrato and the south-east road end, and
-    // one on the hospital's roof.
+    // at the harbour: the Duomo sagrato and the south-east road end, one
+    // on the hospital's roof, and one on the street out of the palazzo
+    // past the airliner.
     expect(
       all
           .where((spot) => spot.kind == FireKind.campfire)
@@ -100,6 +103,7 @@ void main() {
         PlaceId.mallNorthStreet,
         PlaceId.harbour,
         PlaceId.hospitalRoof,
+        PlaceId.industryStreet,
       },
     );
   });

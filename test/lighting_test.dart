@@ -100,6 +100,54 @@ void main() {
     });
   });
 
+  testWidgets('a lit area has no darkness at all, composed or live, and '
+      'the rest of the room keeps it', (tester) async {
+    await tester.runAsync(() async {
+      // A stairwell down the middle of the room, three tiles wide.
+      const stairwell = ui.Rect.fromLTWH(32 + 80, 16, 48, 128);
+      LightingComponent lit() => LightingComponent(
+        area: _room,
+        lights: const <LightSpot>[],
+        playerPosition: () => Vector2(10, 150),
+        darkness: 0.8,
+        litAreas: const <ui.Rect>[stairwell],
+      );
+      final live = lit();
+      final baked = lit();
+      await baked.onLoad();
+      for (final lighting in <LightingComponent>[live, baked]) {
+        final pixels = await _pixels(lighting);
+        int red(int x, int y) => pixels[(y * 256 + x) * 4];
+        expect(red(32 + 100, 16 + 60), 0x80, reason: 'on the stairs');
+        expect(red(32 + 20, 16 + 60), lessThan(0x30), reason: 'in a flat');
+      }
+      baked.onRemove();
+    });
+  });
+
+  test('the palazzo lights its stairwell whole, and its flats only dim', () {
+    for (final id in <PlaceId>[
+      PlaceId.palazzoThirdFloor,
+      PlaceId.palazzoSecondFloor,
+      PlaceId.palazzoFirstFloor,
+    ]) {
+      final floor = place(id);
+      expect(floor.litAreas.single, isA<GridRect>());
+      expect(
+        floor.litAreas.single.contains(floor.tileOf('U')) &&
+            floor.litAreas.single.contains(floor.tileOf('D')),
+        isTrue,
+        reason: '$id: the stairs up and down are in it',
+      );
+      expect(floor.darkness, lessThan(PlaceSpec.defaultDarkness));
+      expect(
+        floor.lights.where((light) => light.flickers),
+        hasLength(greaterThan(3)),
+        reason: '$id: lamps going on and off in the flats',
+      );
+    }
+  });
+
   testWidgets('nothing is drawn off screen', (tester) async {
     await tester.runAsync(() async {
       final lighting = _lighting(Vector2(100, 60))..onScreen = false;

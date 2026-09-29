@@ -45,6 +45,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from street_paint import TILE  # noqa: E402
 import tile_atlas_city as city  # noqa: E402
 import tile_atlas_hospital as hospital  # noqa: E402
+import tile_atlas_palazzo as palazzo  # noqa: E402
 import tile_atlas_terme as terme  # noqa: E402
 from tile_atlas_core import (  # noqa: E402
     Atlas,
@@ -159,6 +160,7 @@ PLACES = {
     **city.PLACES,
     **hospital.PLACES,
     **terme.PLACES,
+    **palazzo.PLACES,
 }
 
 
@@ -320,6 +322,7 @@ PREVIEW_ROWS = {
     **city.PREVIEW_ROWS,
     **hospital.PREVIEW_ROWS,
     **terme.PREVIEW_ROWS,
+    **palazzo.PREVIEW_ROWS,
 }
 
 

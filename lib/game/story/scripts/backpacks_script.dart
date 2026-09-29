@@ -20,6 +20,7 @@ final class BackpacksScript extends StoryScript {
   static const String duomoKeyFound =
       'Hai trovato la Chiave del Duomo vicino il cadavere di Don Angelo';
   static const String grapplingHookFound = 'Hai trovato un rampino';
+  static const String palazzoKeyFound = 'Hai trovato la Chiave del terzo piano';
   static const String grapplingHookLesson =
       'Con il rampino puoi raggiungere i tetti vicini che non riuscivi a '
       'raggiungere';
@@ -86,6 +87,7 @@ final class BackpacksScript extends StoryScript {
       :final cultistRobe,
       :final duomoKey,
       :final grapplingHook,
+      :final palazzoKey,
       :final rockets,
     )) {
       host.playPickupAnimation();
@@ -117,6 +119,16 @@ final class BackpacksScript extends StoryScript {
             ],
             delay: StoryDirector.pickupDelay,
             onShown: () => host.unlock(HudElement.grapplingHook),
+          ),
+        );
+        return;
+      }
+      if (palazzoKey) {
+        say(
+          StoryPrompt(
+            const <StoryLine>[StoryLine(palazzoKeyFound)],
+            delay: StoryDirector.pickupDelay,
+            onShown: () => host.unlock(HudElement.palazzoKey),
           ),
         );
         return;

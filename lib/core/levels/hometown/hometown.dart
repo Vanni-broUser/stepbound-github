@@ -20,18 +20,20 @@ export 'package:stepbound/core/levels/hometown/duomo_tower_roof.dart';
 export 'package:stepbound/core/levels/hometown/duomo_upper.dart';
 export 'package:stepbound/core/levels/hometown/harbour.dart';
 export 'package:stepbound/core/levels/hometown/hospital.dart';
+export 'package:stepbound/core/levels/hometown/industry_street.dart';
 export 'package:stepbound/core/levels/hometown/mall.dart';
 export 'package:stepbound/core/levels/hometown/mall_north_street.dart';
 export 'package:stepbound/core/levels/hometown/north_district.dart';
+export 'package:stepbound/core/levels/hometown/palazzo.dart';
 export 'package:stepbound/core/levels/hometown/station.dart';
 export 'package:stepbound/core/levels/hometown/street.dart';
 
 /// The glyphs of the street, the north district and the harbour (see
-/// street.dart), of the barracks (barracks.dart) and of the hypermarket
-/// (mall.dart).
+/// street.dart), of the barracks (barracks.dart), of the hypermarket
+/// (mall.dart) and of the street out of the palazzo (industry_street.dart).
 const Legend outdoorLegend = Legend(
-  walls: 'BHfKMGW#%0_',
-  obstacles: 'CXUvkDFTSOyJQaAnI~RNbpx*i&!^;/+',
+  walls: 'BHfKMGW#%0_Æ',
+  obstacles: 'CXUvkDFTSOyJQaAnI~RNbpx*i&!^;/+Ø',
   debris: ':q',
   fire: '?',
 );
@@ -117,6 +119,23 @@ const Legend hospitalLegend = Legend(
 /// wall knocked down low `>`, the stacks, the aerials and the camp's fire
 /// can be seen over, and the gravel is noisy.
 const Legend hospitalRoofLegend = Legend(walls: 'xW', obstacles: '^><TnS');
+
+/// The palazzo's stairwell on every floor, from its back wall to its
+/// front wall: the landing, the stairs up and the stairs down, lit
+/// throughout (see `PlaceSpec.litAreas`).
+const GridRect palazzoStairwell = GridRect(20, 1, 25, 18);
+
+/// How dark the palazzo's flats are between their lamps: dim, not black.
+const double palazzoFlatDarkness = 0.72;
+
+/// The palazzo's hall and floors (palazzo.dart): the walls, the partitions,
+/// the letterboxes on the wall and the door still locked are solid, and
+/// what furnishes a flat stops a step but not a shot. The plaster down
+/// off the ceilings crunches underfoot.
+const Legend palazzoLegend = Legend(
+  walls: 'xWwILM',
+  obstacles: 'SaVThBnAlKOFHQRpr',
+);
 
 /// The name on the card shown on the way into the harbour.
 const String harbourName = 'Porto e centro storico';
@@ -372,6 +391,56 @@ const List<PlaceSpec> hometownPlaces = <PlaceSpec>[
     legend: hospitalRoofLegend,
     name: 'Tetto dell’ospedale',
   ),
+  // The stairwell of the palazzo has every light on; its flats are dim,
+  // not black, a lamp still working here and there and some of them going
+  // on and off. Painted from their rows out of the tile atlas.
+  PlaceSpec(
+    id: PlaceId.palazzoThirdFloor,
+    area: AreaId.hometownTown,
+    rows: palazzoThirdFloorRows,
+    legend: palazzoLegend,
+    indoor: true,
+    darkness: palazzoFlatDarkness,
+    litAreas: <GridRect>[palazzoStairwell],
+    name: 'Palazzo',
+  ),
+  PlaceSpec(
+    id: PlaceId.palazzoSecondFloor,
+    area: AreaId.hometownTown,
+    rows: palazzoSecondFloorRows,
+    legend: palazzoLegend,
+    indoor: true,
+    darkness: palazzoFlatDarkness,
+    litAreas: <GridRect>[palazzoStairwell],
+    name: 'Palazzo',
+  ),
+  PlaceSpec(
+    id: PlaceId.palazzoFirstFloor,
+    area: AreaId.hometownTown,
+    rows: palazzoFirstFloorRows,
+    legend: palazzoLegend,
+    indoor: true,
+    darkness: palazzoFlatDarkness,
+    litAreas: <GridRect>[palazzoStairwell],
+    name: 'Palazzo',
+  ),
+  // The entrance hall: its lights on, and daylight through the portone.
+  PlaceSpec(
+    id: PlaceId.palazzoGroundFloor,
+    area: AreaId.hometownTown,
+    rows: palazzoGroundFloorRows,
+    legend: palazzoLegend,
+    indoor: true,
+    lit: true,
+    daylight: 'E',
+    name: 'Palazzo',
+  ),
+  PlaceSpec(
+    id: PlaceId.industryStreet,
+    area: AreaId.hometownTown,
+    rows: industryStreetRows,
+    legend: outdoorLegend,
+  ),
 ];
 
 final Place _street = place(PlaceId.street);
@@ -399,8 +468,13 @@ final Place _hospitalFirst = place(PlaceId.hospitalFirstFloor);
 final Place _hospitalSecond = place(PlaceId.hospitalSecondFloor);
 final Place _hospitalThird = place(PlaceId.hospitalThirdFloor);
 final Place _hospitalRoof = place(PlaceId.hospitalRoof);
+final Place _palazzoGround = place(PlaceId.palazzoGroundFloor);
+final Place _palazzoFirst = place(PlaceId.palazzoFirstFloor);
+final Place _palazzoSecond = place(PlaceId.palazzoSecondFloor);
+final Place _palazzoThird = place(PlaceId.palazzoThirdFloor);
+final Place _industryStreet = place(PlaceId.industryStreet);
 
-/// The four places [outdoorLegend] describes, the ones tools/
+/// The places [outdoorLegend] describes, the ones tools/
 /// build_street_level.py bakes: what walks the streets, what burns in them
 /// and what is dropped in them is read off these and no others. It is not
 /// the same as `!place.indoor` -- the station's platforms are open to the
@@ -410,6 +484,7 @@ Iterable<Place> get _streets => <Place>[
   _north,
   _harbour,
   _mallNorthStreet,
+  _industryStreet,
 ];
 
 /// The zombie waiting on the east arm of the crossroads.
@@ -687,6 +762,7 @@ final GridPoint mallNorthCampfireTile = _mallNorthStreet.tileOf('S');
 const Map<PlaceId, String> _campNames = <PlaceId, String>{
   PlaceId.northDistrict: 'Dietro la caserma',
   PlaceId.mallNorthStreet: 'Zona nord',
+  PlaceId.industryStreet: 'Davanti all’azienda',
 };
 
 /// Molfetta's campfires, by tile, with the name shown in the save slots.
@@ -915,8 +991,8 @@ final GridPoint rooftopFarEdgeTile = _airlinerRoofs.tileOf('<');
 
 /// The open stairwell `S` going down eastward into the block across the
 /// gap past the airliner, three steps deep: got onto from its head, the
-/// west end, and down step by step to the last, the door to a place that
-/// has no map yet.
+/// west end, and down step by step to the last, the door down into the
+/// palazzo's top floor.
 final List<GridPoint> rooftopFarStairs = _airlinerRoofs.tilesOf('S');
 
 /// The last steps of [rooftopFarStairs], at its east end.
@@ -948,9 +1024,43 @@ List<GridPoint> _lastSteps(List<GridPoint> flight, Direction down) {
 
 /// Molfetta's doors to places not drawn yet (see `workInProgressDoors`).
 final Set<GridPoint> hometownWorkInProgressDoors = <GridPoint>{
-  ...rooftopFarStairsFoot,
   ...hospitalNextRoofStairsFoot,
 };
+
+/// The palazzo's stairs, bottom to top: on each floor the flight `U` up
+/// in the back wall, and where it comes out, the flight `D` down in the
+/// front wall of the floor above.
+final List<(GridPoint, GridPoint)> palazzoFlights = <(GridPoint, GridPoint)>[
+  (_palazzoGround.tileOf('U'), _palazzoFirst.tileOf('D')),
+  (_palazzoFirst.tileOf('U'), _palazzoSecond.tileOf('D')),
+  (_palazzoSecond.tileOf('U'), _palazzoThird.tileOf('D')),
+];
+
+/// The top of the palazzo's stairwell, on the third floor: up it, the
+/// stairs on the roof past the airliner.
+final GridPoint palazzoRoofStairs = _palazzoThird.tileOf('U');
+
+/// The portone, from the hall and from the street.
+final GridPoint palazzoPortone = _palazzoGround.tileOf('E');
+final GridPoint industryStreetPortone = _industryStreet.tileOf('«');
+
+/// The flat door on the third floor still locked: the flat behind it is
+/// not drawn.
+final GridPoint palazzoLockedDoorTile = _palazzoThird.tileOf('L');
+
+/// The backpack with two rounds, in the second floor's front flat.
+const String palazzoBackpackId = 'backpack-palazzo';
+final GridPoint palazzoBackpackTile = _palazzoSecond.tileOf('9');
+
+/// The key of the third floor, on the first floor's bedroom floor.
+const String palazzoKeyPickupId = 'palazzo-key';
+final GridPoint palazzoKeyTile = _palazzoFirst.tileOf('k');
+
+/// The wanderers left in the palazzo, floor by floor, `palazzo-wanderer-<n>`.
+const String palazzoZombiePrefix = 'palazzo-wanderer-';
+
+/// The camp on the pavement between the palazzo and the company.
+final GridPoint industryStreetCampfireTile = _industryStreet.tileOf('S');
 
 /// Molfetta's flights of stairs out in the open, each step with the way
 /// up it (see `WorldState.stairs`): the hypermarket's, up from the ground
@@ -1184,6 +1294,31 @@ Map<GridPoint, Portal> _portals() {
       ...pairedDoors(<GridPoint>[below], <GridPoint>[above], Direction.north),
       ...pairedDoors(<GridPoint>[above], <GridPoint>[below], Direction.south),
     },
+    // Down the stairwell on the roof past the airliner into the palazzo's
+    // top floor, and back up onto its lowest step but one.
+    for (final step in rooftopFarStairsFoot)
+      step: Portal(
+        to: palazzoRoofStairs.step(Direction.south),
+        facing: Direction.south,
+      ),
+    palazzoRoofStairs: Portal(
+      to: rooftopFarStairsFoot.first.step(Direction.west),
+      facing: Direction.west,
+    ),
+    for (final (below, above) in palazzoFlights) ...<GridPoint, Portal>{
+      ...pairedDoors(<GridPoint>[below], <GridPoint>[above], Direction.north),
+      ...pairedDoors(<GridPoint>[above], <GridPoint>[below], Direction.south),
+    },
+    ...pairedDoors(
+      <GridPoint>[palazzoPortone],
+      <GridPoint>[industryStreetPortone],
+      Direction.south,
+    ),
+    ...pairedDoors(
+      <GridPoint>[industryStreetPortone],
+      <GridPoint>[palazzoPortone],
+      Direction.north,
+    ),
   };
 }
 
@@ -1334,6 +1469,8 @@ LevelContents hometownContents(EntityFactory factory) {
       position: rooftopBackpackTile,
       ammo: rooftopBackpackAmmo,
     ),
+    Pickup(id: palazzoBackpackId, position: palazzoBackpackTile, ammo: 2),
+    Pickup(id: palazzoKeyPickupId, position: palazzoKeyTile, palazzoKey: true),
   ]);
   var indoorZombies = 0;
   for (final place in <Place>[_church, _station]) {
@@ -1372,6 +1509,23 @@ LevelContents hometownContents(EntityFactory factory) {
       entities.add(
         factory.zombie(
           id: '$hospitalZombiePrefix${hospitalZombies++}',
+          kind: EntityKind.wanderer,
+          position: tile,
+        ),
+      );
+    }
+  }
+  var palazzoZombies = 0;
+  for (final floor in <Place>[
+    _palazzoThird,
+    _palazzoSecond,
+    _palazzoFirst,
+    _palazzoGround,
+  ]) {
+    for (final tile in floor.tilesOf('Z')) {
+      entities.add(
+        factory.zombie(
+          id: '$palazzoZombiePrefix${palazzoZombies++}',
           kind: EntityKind.wanderer,
           position: tile,
         ),

@@ -56,10 +56,7 @@ void main() {
   test('the doors to buildings with no map yet are the last steps of '
       'walkable stairs inside their place, and none is a real door', () {
     final world = createGameWorld();
-    expect(workInProgressDoors, <GridPoint>{
-      ...rooftopFarStairsFoot,
-      ...hospitalNextRoofStairsFoot,
-    });
+    expect(workInProgressDoors, <GridPoint>{...hospitalNextRoofStairsFoot});
     expect(rooftopFarStairs, hasLength(6));
     expect(rooftopFarStairsFoot, hasLength(2));
     expect(hospitalNextRoofStairs, hasLength(4));

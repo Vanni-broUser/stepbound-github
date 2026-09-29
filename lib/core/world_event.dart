@@ -505,6 +505,7 @@ final class PickedUpEvent extends WorldEvent {
     this.cultistRobe = false,
     this.duomoKey = false,
     this.grapplingHook = false,
+    this.palazzoKey = false,
     this.rockets = 0,
   });
 
@@ -520,6 +521,7 @@ final class PickedUpEvent extends WorldEvent {
       cultistRobe: json['cultistRobe']! as bool,
       duomoKey: json['duomoKey'] as bool? ?? false,
       grapplingHook: json['grapplingHook'] as bool? ?? false,
+      palazzoKey: json['palazzoKey'] as bool? ?? false,
       rockets: json['rockets'] as int? ?? 0,
     );
   }
@@ -534,6 +536,7 @@ final class PickedUpEvent extends WorldEvent {
   final bool cultistRobe;
   final bool duomoKey;
   final bool grapplingHook;
+  final bool palazzoKey;
   final int rockets;
 
   @override
@@ -546,6 +549,7 @@ final class PickedUpEvent extends WorldEvent {
       '${cultistRobe ? ' and the occultist robe' : ''}'
       '${duomoKey ? ' and the key of the Duomo' : ''}'
       '${grapplingHook ? ' and a grappling hook' : ''}'
+      '${palazzoKey ? ' and the key of the third floor' : ''}'
       '${rockets > 0 ? ' and $rockets rockets' : ''}';
 
   @override
@@ -561,6 +565,7 @@ final class PickedUpEvent extends WorldEvent {
     'cultistRobe': cultistRobe,
     'duomoKey': duomoKey,
     if (grapplingHook) 'grapplingHook': true,
+    if (palazzoKey) 'palazzoKey': true,
     if (rockets > 0) 'rockets': rockets,
   };
 }

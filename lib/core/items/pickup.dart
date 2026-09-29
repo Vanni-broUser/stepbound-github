@@ -16,6 +16,7 @@ final class Pickup {
     this.cultistRobe = false,
     this.duomoKey = false,
     this.grapplingHook = false,
+    this.palazzoKey = false,
     this.rockets = 0,
     this.active = true,
     this.collected = false,
@@ -33,6 +34,7 @@ final class Pickup {
       cultistRobe: json['cultistRobe']! as bool,
       duomoKey: json['duomoKey'] as bool? ?? false,
       grapplingHook: json['grapplingHook'] as bool? ?? false,
+      palazzoKey: json['palazzoKey'] as bool? ?? false,
       rockets: json['rockets'] as int? ?? 0,
       active: json['active']! as bool,
       collected: json['collected'] as bool? ?? false,
@@ -64,6 +66,10 @@ final class Pickup {
   /// The grappling hook, in the Baths of Diocletian.
   final bool grapplingHook;
 
+  /// The key of the flat still locked on the palazzo's third floor, in a
+  /// bedroom on its first.
+  final bool palazzoKey;
+
   /// Rounds for the rocket launcher.
   final int rockets;
 
@@ -84,6 +90,7 @@ final class Pickup {
     'cultistRobe': cultistRobe,
     'duomoKey': duomoKey,
     if (grapplingHook) 'grapplingHook': true,
+    if (palazzoKey) 'palazzoKey': true,
     if (rockets > 0) 'rockets': rockets,
     'active': active,
     'collected': collected,

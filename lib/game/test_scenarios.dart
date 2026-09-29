@@ -395,6 +395,11 @@ final List<TestScenario> testScenarios = <TestScenario>[
     _hookBroughtHome(story);
     story.restNearest(duomoTowerLookoutTile);
   }),
+  // Over the gap past the airliner with the hook, down into the palazzo.
+  TestScenario("Palazzo dopo l'aereo, col rampino", (story) {
+    _hookBroughtHome(story);
+    story.restNearest(palazzoRoofStairs);
+  }),
   vanniDeployScenario,
 ];
 
