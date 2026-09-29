@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:stepbound/app_flow.dart';
+import 'package:stepbound/app_services.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/game_audio.dart';
 import 'package:stepbound/game/audio/sound.dart';
@@ -39,6 +40,7 @@ import 'package:stepbound/ui/zombie_book.dart';
 
 final class StepboundApp extends StatefulWidget {
   const StepboundApp({
+    this.services,
     this.saves,
     this.skinLinks = const Stream<Uri>.empty(),
     this.audio,
@@ -48,7 +50,13 @@ final class StepboundApp extends StatefulWidget {
     super.key,
   });
 
-  /// Where the four save slots live; the device storage when null.
+  /// What the app runs on, made by whoever runs it and closed by the app
+  /// when it goes (see [AppServices]). Without one the app makes its own
+  /// around [saves] and [audio], owning only what it had to make itself.
+  final AppServices? services;
+
+  /// Where the four save slots live; the device storage when null. Read
+  /// only without [services].
   final SaveRepository? saves;
 
   /// Where an uncaught error ends up (see `CrashGuard`): the app tells it
@@ -67,7 +75,8 @@ final class StepboundApp extends StatefulWidget {
   /// What time it is, to tell whether a gift link has expired.
   final DateTime Function() clock;
 
-  /// The sound of the game; silent when null.
+  /// The sound of the game; silent when null. Read only without
+  /// [services].
   final GameAudio? audio;
 
   @override
@@ -78,9 +87,10 @@ final class StepboundApp extends StatefulWidget {
 /// the player does; the phone's side (gift links, the app going to the
 /// background, the error report) is here too.
 final class _StepboundAppState extends State<StepboundApp> {
-  late final SaveRepository _saves =
-      widget.saves ?? PreferencesSaveRepository();
-  late final GameAudio _audio = widget.audio ?? SilentAudio();
+  late final AppServices _services =
+      widget.services ?? AppServices(saves: widget.saves, audio: widget.audio);
+  SaveRepository get _saves => _services.saves;
+  GameAudio get _audio => _services.audio;
 
   /// Which screen the app is on, and the game being played.
   late final AppFlowController _flow = AppFlowController(
@@ -108,7 +118,12 @@ final class _StepboundAppState extends State<StepboundApp> {
     // call or the app switcher stops at inactive: all of them silence
     // it, or the game over sting plays on over whatever comes next, and
     // all of them stop the clock.
-    _lifecycle = AppLifecycleListener(onStateChange: _onLifecycle);
+    _lifecycle = AppLifecycleListener(
+      onStateChange: _onLifecycle,
+      // The engine is letting go of the app: the last chance to close what
+      // was made for it (the phone's sound), before the process ends.
+      onDetach: () => unawaited(_services.dispose()),
+    );
     widget.reporter?.context = _reportSections;
     Breadcrumbs.shared.add('app: menù principale');
     _audio.playMusic(Music.menu);
@@ -248,6 +263,7 @@ final class _StepboundAppState extends State<StepboundApp> {
     _flow
       ..removeListener(_flowChanged)
       ..dispose();
+    unawaited(_services.dispose());
     super.dispose();
   }
 
