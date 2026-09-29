@@ -1326,6 +1326,23 @@ def city_place(atlas: Atlas, rng, name: str, marker, storefront_table,
             lambda: tile_of(lambda d: sl.paint_airliner_scorch(
                 d, rng, None, 0, 0)))], [any_key(around(1), "_+[")]))
     rules += shared(atlas, "props", lambda r: prop_rules(atlas, r))
+    # The roadblock east of Termini, in Rome only (Molfetta's `m`, `s`,
+    # `t`, `u` and `w` are other things): the carabinieri `m` and police
+    # `s` cars on their roofs and `u` and `w` still on their wheels, two
+    # cells each, stacked lane on lane, and the tank `t`.
+    # Their own stream, so nothing else in the place is painted anew.
+    block_rng = random.Random(f"{SEED}/{name}/roadblock")
+    for glyph, police, paint in (
+            ("m", False, termini.paint_service_car),
+            ("s", True, termini.paint_service_car),
+            ("u", False, termini.paint_service_car_upright),
+            ("w", True, termini.paint_service_car_upright)):
+        if rome and glyph in glyphs:
+            rules.append(anchored(
+                atlas, "foreground", glyph,
+                lambda i, p=police, f=paint: lambda d, px, py: f(
+                    d, block_rng, px, py, p),
+                (1, 0, 2, 0), count=4, across=True))
     rules += shared(atlas, "overhead", lambda r: overhead_rules(atlas, r))
 
     objects = storefronts(rows, level, name, rng)
@@ -1350,6 +1367,13 @@ def city_place(atlas: Atlas, rng, name: str, marker, storefront_table,
         if marks[0] in glyphs:
             objects.append(picture(rows, level, f"{name}_{what}", paint,
                                    marks))
+    tank = run_of(rows, "t") if rome else None
+    if tank:
+        x, y, w, h = tank
+        objects.append(picture(
+            rows, level, f"{name}_tank",
+            lambda d, lv: termini.paint_tank(d, x * TILE, y * TILE,
+                                             w * TILE, h * TILE), "t"))
     hull = run_of(rows, "*")
     if hull:
         x, y, w, h = hull

@@ -43,6 +43,10 @@ final class RomeStage extends LevelStage {
         spot: const Offset(11, 3),
         active: () => game.isUnlocked(HudElement.interact),
       ),
+    InteractGlintComponent(
+      tile: roadblockFireTile,
+      active: () => game.isUnlocked(HudElement.interact),
+    ),
   ];
 
   static final Set<PlaceId> _rome = <PlaceId>{

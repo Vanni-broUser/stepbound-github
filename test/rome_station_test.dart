@@ -147,9 +147,9 @@ void main() {
     final ends = workInProgressEnds.keys;
     expect(ends.where(piazza.bounds.contains), isNotEmpty);
     expect(ends.where(marsala.bounds.contains), isNotEmpty);
-    // East of Termini, where the piazza runs off the map.
+    // East of Termini, past the roadblock, where the road runs off the map.
     expect(
-      workInProgressEnds[GridPoint(piazza.bounds.right, piazza.origin.y + 8)],
+      workInProgressEnds[GridPoint(piazza.bounds.right, piazza.origin.y + 12)],
       Direction.west,
     );
     // West, the road ends against the Baths of Diocletian.
