@@ -129,6 +129,7 @@ final class ZombieAi {
       start: zombiePosition.position,
       target: target,
       isBlocked: (point) => world.isBlocked(point, excluding: zombie.id),
+      canStep: world.stairs.isEmpty ? null : world.canStep,
       maxDistance: detourFor(
         zombiePosition.position.manhattanDistanceTo(target),
       ),
@@ -179,6 +180,7 @@ final class ZombieAi {
       if (!world.map.contains(next) ||
           !world.map.tileAt(next).isWalkable ||
           world.portals.containsKey(next) ||
+          !world.canStep(position.position, next) ||
           world.isBlocked(next, excluding: zombie.id)) {
         continue;
       }

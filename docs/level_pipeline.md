@@ -34,6 +34,15 @@ Cosa fare quando si disegna un posto:
 
 - **Una strada che per ora finisce li**: basta lasciarla aperta fino al
   bordo, calpestabile. La schermata parte da sola.
+- **Una scala, una porta o una botola dentro un posto verso un edificio
+  non ancora mappato** (per esempio le scale del palazzo dopo l'aereo): le
+  tile della porta (per una scala, l'ultimo scalino) vanno in
+  `workInProgressDoors` (`lib/core/levels/game_world.dart`, per Molfetta
+  `hometownWorkInProgressDoors`). Calpestarle apre la stessa
+  schermata e rimette Mario dove era prima. Quando l'edificio viene
+  disegnato, quelle tile escono dall'elenco e diventano una porta vera
+  (`pairedDoors`). Il test `test/work_in_progress_test.dart` controlla che
+  nessuna sia anche una porta vera.
 - **Una strada che prosegue in una mappa nuova**: si mette una porta
   (`pairedDoors` o un `Portal`) sulla tile di bordo; una tile con porta non e
   piu un punto work in progress.
@@ -90,3 +99,21 @@ quattro posti della citta, dove tetti e facciate sono cambiati.
   storia, che restano fuori da qui (`tools/build_sprites.py --check` e
   `tools/build_audio.py --check`).
 - `docs/ci-pipeline.md` per la struttura dei job.
+
+## Le scale
+
+Regola per ogni scala visibile di piu scalini, presente e futura (come
+quelle del centro commerciale): **il primo scalino e calpestabile e non fa
+niente, l'ultimo e la porta**. Sulla scala si sale e si scende scalino per
+scalino, e ci si sposta di lato restando sugli scalini; ci si sale solo dal
+pavimento davanti al primo scalino, e se ne esce solo lungo la scala. Dai
+lati e dal fondo, dove ci sono muro o ringhiera, non si entra. Vale per
+Mario e per gli zombie.
+
+- `WorldState.stairs` (`lib/core/world.dart`): ogni scalino con la direzione
+  in cui si sale; `WorldState.canStep` applica la regola a ogni passo
+  (Mario, il percorso degli zombie, gli ubriachi che barcollano).
+- Per Molfetta l'elenco e `hometownStairs` (`hometown.dart`).
+- Le scale di una sola cella dentro un muro (ospedale, Duomo, stazioni,
+  Termini) non vanno elencate: il muro ai lati fa gia da ringhiera, e il
+  test `test/stairs_test.dart` lo controlla.

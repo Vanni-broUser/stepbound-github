@@ -53,6 +53,12 @@ final class MoveAction extends PlayerAction {
       );
       return;
     }
+    if (!world.canStep(position.position, target)) {
+      world.emit(
+        BlockedEvent(entityId: player.id, at: target, reason: 'stairs'),
+      );
+      return;
+    }
     if (world.entityAt(target, excluding: player.id) != null) {
       world.emit(
         BlockedEvent(entityId: player.id, at: target, reason: 'entity'),

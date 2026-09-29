@@ -175,12 +175,16 @@ final class TileMap {
   /// before the search admits defeat, and that happens per zombie, per
   /// tick.
   ///
+  /// [canStep] says whether a step between two walkable neighbours is
+  /// allowed at all: a flight of stairs is climbed only along it.
+  ///
   /// Neighbours are visited in [Direction] order, so of two paths of the
   /// same length the same one comes back every time.
   GridPoint? shortestNextStep({
     required GridPoint start,
     required GridPoint target,
     bool Function(GridPoint point)? isBlocked,
+    bool Function(GridPoint from, GridPoint to)? canStep,
     int? maxDistance,
   }) {
     if (start == target) {
@@ -228,6 +232,10 @@ final class TileMap {
         }
         if (neighbor != targetIndex &&
             (isBlocked?.call(GridPoint(nextX, nextY)) ?? false)) {
+          continue;
+        }
+        if (canStep != null &&
+            !canStep(GridPoint(x, y), GridPoint(nextX, nextY))) {
           continue;
         }
         _reachedBy[neighbor] = search;
