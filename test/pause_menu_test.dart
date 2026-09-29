@@ -373,7 +373,8 @@ void main() {
     expect(await costOf(tester, 'pause-resume'), contains('va perso'));
     await tap(tester, 'pause-back');
     final restart = await costOf(tester, 'pause-restart');
-    expect(restart, contains('si azzerano'));
+    expect(restart, contains('si azzera'));
+    expect(restart, contains('altre città'));
     expect(
       restart,
       contains('ore di gioco'),

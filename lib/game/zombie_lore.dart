@@ -124,4 +124,17 @@ const Map<EntityKind, ZombieLore> zombieLore = <EntityKind, ZombieLore>{
         'ma i primi due colpi non bastano: ne servono tre per abbatterlo.',
     introducedOnSight: true,
   ),
+  EntityKind.brute: ZombieLore(
+    name: 'Bruto',
+    portrait: 'assets/characters/zombies/portraits/brute.png',
+    lesson:
+        'Gli zombi bruti sono lentissimi, fanno un passo ogni tre tuoi, ma '
+        'servono due colpi di pistola per abbatterli',
+    description:
+        'Un colosso già prima di cambiare, e la mutazione lo ha gonfiato '
+        'ancora. Fa un passo ogni tre dei tuoi e ci vede poco, ma sente il '
+        'minimo rumore da lontano. Il primo colpo non lo ferma: ne servono '
+        'due.',
+    introducedOnSight: true,
+  ),
 };

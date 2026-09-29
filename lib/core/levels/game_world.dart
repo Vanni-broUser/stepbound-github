@@ -291,6 +291,131 @@ WorldState restoreGameWorld(Map<String, Object?> json) {
 /// Whether [tile] lies in one of [level]'s places.
 bool isInLevel(GridPoint tile, LevelId level) => placeAt(tile)?.level == level;
 
+/// The level [tile] belongs to; the dark between places counts as
+/// Molfetta's, like the train.
+LevelId levelAt(GridPoint tile) => placeAt(tile)?.level ?? LevelId.hometown;
+
+/// The level of the campfire called [name], the train's table Molfetta's.
+LevelId campfireLevel(String name) {
+  for (final MapEntry(key: tile, value: fire) in campfireNames.entries) {
+    if (fire == name) {
+      return levelAt(tile);
+    }
+  }
+  return LevelId.hometown;
+}
+
+GridPoint _pointOf(Object? json) =>
+    GridPoint.fromJson(json! as Map<String, Object?>);
+
+GridPoint _positionOf(Map<String, Object?> entity) => _pointOf(
+  (entity['components']! as List<Object?>)
+      .cast<Map<String, Object?>>()
+      .firstWhere((component) => component['type'] == 'position')['position'],
+);
+
+/// Where the game starts everyone, and every backpack, by id.
+final Map<String, GridPoint> _startingEntities = <String, GridPoint>{
+  for (final entity
+      in (_levelJson['entities']! as List<Object?>)
+          .cast<Map<String, Object?>>())
+    entity['id']! as String: _positionOf(entity),
+};
+final Map<String, GridPoint> _startingPickups = <String, GridPoint>{
+  for (final pickup
+      in (_levelJson['pickups']! as List<Object?>).cast<Map<String, Object?>>())
+    pickup['id']! as String: _pointOf(pickup['position']),
+};
+
+/// The level whose inhabitant [id] is: the one the level puts it in, or,
+/// for someone the story raised, the one it stands [at] now. A zombie that
+/// followed Mario aboard is still its city's.
+LevelId entityLevel(String id, GridPoint at) =>
+    levelAt(_startingEntities[id] ?? at);
+
+/// [saved], a world as [saveGameWorld] stores it, with [level] as the game
+/// starts it (its zombies, backpacks, panels, the tiles it changed) and
+/// every other level exactly as it was: starting a level over leaves the
+/// other cities alone. Mario is left as he is, unless [freshPlayer]: then
+/// he is as the game starts him too.
+Map<String, Object?> restartLevelWorld(
+  Map<String, Object?> saved,
+  LevelId level, {
+  bool freshPlayer = false,
+}) {
+  final playerId = saved['playerId']! as String;
+  bool entityOfLevel(Map<String, Object?> entity) =>
+      entity['id'] != playerId &&
+      entityLevel(entity['id']! as String, _positionOf(entity)) == level;
+  LevelId pickupLevel(Map<String, Object?> pickup) =>
+      levelAt(_startingPickups[pickup['id']] ?? _pointOf(pickup['position']));
+  List<Map<String, Object?>> listOf(Map<String, Object?> json, String key) =>
+      (json[key] as List<Object?>? ?? const <Object?>[])
+          .cast<Map<String, Object?>>();
+  // Points, or entries placed with an 'at', of both worlds: the level's
+  // from the game's start, the others' as they were.
+  List<Object?> byPlace(String key, GridPoint Function(Object? entry) at) =>
+      <Object?>[
+        for (final entry in saved[key] as List<Object?>? ?? const <Object?>[])
+          if (levelAt(at(entry)) != level) entry,
+        for (final entry in _levelJson[key]! as List<Object?>)
+          if (levelAt(at(entry)) == level) entry,
+      ];
+  GridPoint entryAt(Object? entry) =>
+      _pointOf((entry! as Map<String, Object?>)['at']);
+  final savedEntities = listOf(saved, 'entities');
+  final levelEntities = listOf(_levelJson, 'entities');
+  final savedTriggers =
+      saved['alertTriggers'] as Map<String, Object?>? ??
+      const <String, Object?>{};
+  final levelTriggers = _levelJson['alertTriggers']! as Map<String, Object?>;
+  final standing = <String, GridPoint>{
+    for (final entity in savedEntities)
+      entity['id']! as String: _positionOf(entity),
+  };
+  LevelId triggerLevel(String zombie) => levelAt(
+    _startingEntities[zombie] ?? standing[zombie] ?? const GridPoint(0, 0),
+  );
+  return <String, Object?>{
+    ...saved,
+    'entities': <Object?>[
+      for (final entity in savedEntities)
+        if (entity['id'] == playerId)
+          freshPlayer
+              ? levelEntities.firstWhere((fresh) => fresh['id'] == playerId)
+              : entity
+        else if (!entityOfLevel(entity))
+          entity,
+      for (final entity in levelEntities)
+        if (entityOfLevel(entity)) entity,
+    ],
+    'pickups': <Object?>[
+      for (final pickup in listOf(saved, 'pickups'))
+        if (pickupLevel(pickup) != level) pickup,
+      for (final pickup in listOf(_levelJson, 'pickups'))
+        if (pickupLevel(pickup) == level) pickup,
+    ],
+    'alertTriggers': <String, Object?>{
+      for (final MapEntry(:key, :value) in savedTriggers.entries)
+        if (triggerLevel(key) != level) key: value,
+      for (final MapEntry(:key, :value) in levelTriggers.entries)
+        if (triggerLevel(key) == level) key: value,
+    },
+    'controls': byPlace('controls', entryAt),
+    'lookouts': byPlace('lookouts', _pointOf),
+    'campfires': byPlace('campfires', _pointOf),
+    'mapChanges': <Object?>[
+      for (final change in listOf(saved, 'mapChanges'))
+        if (levelAt(GridPoint(change['x']! as int, change['y']! as int)) !=
+            level)
+          change,
+    ],
+    // Whatever was on its way when the level was left is not any more.
+    'pendingNoises': const <Object?>[],
+    'events': const <Object?>[],
+  };
+}
+
 /// Every zombie [level] can hold: the ones there from the start and the
 /// ones its story raises, by kind.
 List<EntityKind> levelZombieKinds(LevelId level) => <EntityKind>[

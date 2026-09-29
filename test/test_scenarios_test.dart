@@ -105,11 +105,6 @@ void main() {
       Mission.findValuable,
     ]);
     expect(save.story['maranza'], containsPair('met', true));
-    expect(
-      Progress.fromJson(save.levelStart!.progress).level,
-      LevelId.rome,
-      reason: 'starting over stays in Rome',
-    );
   });
 
   testWidgets('each scenario loads into a game that runs, with the story '

@@ -287,18 +287,19 @@ final class AppFlowController extends ChangeNotifier {
 
   /// The level from the very start: Molfetta from the first story picture,
   /// any other level from where Mario arrived in it (see [GameSession]).
+  /// Only the city being played starts over: the others stay as they are.
   Future<void> restartLevel() async {
     trail.add('app: ricomincia il livello');
-    if (session.levelStart case final start?) {
-      await _restartFrom(start);
+    final game = _game;
+    final current = game?.snapshot(place: GameSession.levelStartPlace);
+    if (current != null && game!.progress.level != LevelId.hometown) {
+      await _restartCity(current);
       return;
     }
     // The camp's fire and hushed music stop at once: the story plays.
-    _game?.soundscapePaused = true;
+    game?.soundscapePaused = true;
     playStoryAudio();
-    await session.saveLevelStart(
-      secretMissions: <SecretMission>{...?_game?.progress.secretMissions},
-    );
+    await session.saveLevelStart(current: current);
     if (_disposed) {
       return;
     }
@@ -308,8 +309,8 @@ final class AppFlowController extends ChangeNotifier {
     });
   }
 
-  Future<void> _restartFrom(LevelStart start) async {
-    final game = await session.restartFrom(start);
+  Future<void> _restartCity(GameSnapshot current) async {
+    final game = await session.restartCityLevel(current);
     if (_disposed) {
       return;
     }

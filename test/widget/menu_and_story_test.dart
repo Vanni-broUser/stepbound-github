@@ -5,6 +5,7 @@ import 'package:stepbound/app.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/game_audio.dart';
 import 'package:stepbound/game/audio/sound.dart';
+import 'package:stepbound/game/level_restart.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/save/save_game.dart';
@@ -360,7 +361,11 @@ void main() {
         isFalse,
         reason: 'there is no fire to go back to at the start of a level',
       );
-      expect(saved.story, isEmpty);
+      expect(
+        saved.story.keys,
+        everyElement(isIn(storyScriptCities.keys)),
+        reason: 'only the other cities story is kept',
+      );
       final progress = Progress.fromJson(saved.progress);
       expect(progress.knownZombies, isEmpty, reason: 'it had met a wanderer');
       expect(progress.memories, isEmpty);

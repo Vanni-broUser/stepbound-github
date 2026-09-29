@@ -54,6 +54,13 @@ extension PlayerOutfitAssets on PlayerOutfit {
     PlayerOutfit.lazio => 'assets/characters/mario/portraits/lazio.png',
   };
 
+  /// The city the outfit is found in: starting it over takes it away.
+  /// Null for Mario's own clothes and for the gifts, his wherever he goes.
+  LevelId? get foundIn => switch (this) {
+    PlayerOutfit.cultist => LevelId.hometown,
+    _ => null,
+  };
+
   String get spriteStem => switch (this) {
     PlayerOutfit.base => 'base',
     PlayerOutfit.cultist => 'cultist',
@@ -91,6 +98,46 @@ enum StoryMemory {
   /// Tonino and Marcello at the bottom of Via Cavour, who want something
   /// of value before they let Mario onto their square.
   maranzaMet,
+}
+
+/// What Mario carries everywhere once found, and the city he finds it in:
+/// starting that city over takes it from him.
+enum CityItem {
+  /// Found in the Baths of Diocletian.
+  grapplingHook(LevelId.rome);
+
+  const CityItem(this.level);
+
+  final LevelId level;
+}
+
+/// What the other cities had given Mario when Molfetta was started over:
+/// the missions, the figures, the zombies met, the clothes and the
+/// [items] found there. Molfetta starts him with nothing; it all waits
+/// aboard the train, and is his again once he has reached it with Luigi
+/// (see [Progress.returnHeldAway]).
+final class HeldAway {
+  HeldAway({
+    required this.progress,
+    Iterable<CityItem> items = const <CityItem>[],
+  }) : items = Set<CityItem>.of(items);
+
+  factory HeldAway.fromJson(Map<String, Object?> json) => HeldAway(
+    progress: Progress.fromJson(json['progress']! as Map<String, Object?>),
+    items: <CityItem>[
+      for (final name in (json['items']! as List<Object?>).cast<String>())
+        CityItem.values.byName(name),
+    ],
+  );
+
+  /// The other cities' part of Mario's progress, and nothing of Molfetta.
+  final Progress progress;
+  final Set<CityItem> items;
+
+  Map<String, Object?> toJson() => <String, Object?>{
+    'progress': progress.toJson(),
+    'items': <String>[for (final item in items) item.name],
+  };
 }
 
 /// What is never asked of Mario, only dared, on the secret missions page
@@ -133,6 +180,8 @@ extension StoryMemoryLevel on StoryMemory {
 final class Progress {
   Progress({
     Iterable<EntityKind> knownZombies = const <EntityKind>[],
+    Map<EntityKind, Iterable<LevelId>> zombieCities =
+        const <EntityKind, Iterable<LevelId>>{},
     Iterable<StoryMemory> memories = const <StoryMemory>[],
     Iterable<StoryMemory> viewedMemories = const <StoryMemory>[],
     Iterable<PlayerOutfit> unlockedOutfits = const <PlayerOutfit>[
@@ -147,6 +196,7 @@ final class Progress {
     Map<LevelId, int> rocketsLeft = const <LevelId, int>{},
     MissionLog? missions,
     Iterable<SecretMission> secretMissions = const <SecretMission>[],
+    this.heldAway,
   }) : missions = missions ?? MissionLog(),
        secretMissions = Set<SecretMission>.of(secretMissions),
        steps = Map<LevelId, int>.of(steps),
@@ -154,7 +204,12 @@ final class Progress {
        molotovsLeft = Map<LevelId, int>.of(molotovsLeft),
        rocketsLeft = Map<LevelId, int>.of(rocketsLeft),
        litCampfires = Set<String>.of(litCampfires),
-       knownZombies = Set<EntityKind>.of(knownZombies),
+       _zombieCities = <EntityKind, Set<LevelId>>{
+         for (final kind in knownZombies)
+           kind: Set<LevelId>.of(
+             zombieCities[kind] ?? const <LevelId>[LevelId.hometown],
+           ),
+       },
        memories = Set<StoryMemory>.of(memories),
        _viewedMemories = Set<StoryMemory>.of(viewedMemories),
        // Mario has his own clothes from the start: first, unless something
@@ -198,6 +253,16 @@ final class Progress {
             in (json['knownZombies']! as List<Object?>).cast<String>())
           EntityKind.values.byName(name),
       ],
+      zombieCities: <EntityKind, List<LevelId>>{
+        for (final MapEntry(:key, :value)
+            in (json['zombieCities'] as Map<String, Object?>? ??
+                    const <String, Object?>{})
+                .entries)
+          EntityKind.values.byName(key): <LevelId>[
+            for (final city in (value! as List<Object?>).cast<String>())
+              LevelId.values.byName(city),
+          ],
+      },
       memories: <StoryMemory>[
         for (final name in (json['memories']! as List<Object?>).cast<String>())
           StoryMemory.values.byName(name),
@@ -242,11 +307,31 @@ final class Progress {
             in (json['secretMissions']! as List<Object?>).cast<String>())
           SecretMission.values.byName(name),
       ],
+      heldAway: switch (json['heldAway']) {
+        final Map<String, Object?> held => HeldAway.fromJson(held),
+        _ => null,
+      },
     );
   }
 
   /// The zombie types met, in the order they were: the book lists them so.
-  final Set<EntityKind> knownZombies;
+  Set<EntityKind> get knownZombies =>
+      Set<EntityKind>.unmodifiable(_zombieCities.keys);
+
+  /// The cities each of [knownZombies] is known in: met there, or seen
+  /// there once already known. Starting a city over forgets what is known
+  /// in it, and a type is known as long as one city knows it.
+  final Map<EntityKind, Set<LevelId>> _zombieCities;
+
+  /// Whether [kind] is known in [city].
+  bool knowsIn(EntityKind kind, LevelId city) =>
+      _zombieCities[kind]?.contains(city) ?? false;
+
+  /// The zombie types known in [city], in the order they were met.
+  Iterable<EntityKind> zombiesKnownIn(LevelId city) => <EntityKind>[
+    for (final MapEntry(key: kind, value: cities) in _zombieCities.entries)
+      if (cities.contains(city)) kind,
+  ];
 
   /// The scenes seen so far, in the order they were lived: a `Set` keeps
   /// what was put in it first, and a save writes and reads it in that same
@@ -296,6 +381,10 @@ final class Progress {
 
   /// The secret missions done, in the order they were.
   final Set<SecretMission> secretMissions;
+
+  /// What the other cities gave Mario, while Molfetta, started over, has
+  /// not been completed again; null the rest of the time.
+  HeldAway? heldAway;
 
   /// Whether Mario's pistol is the golden one, which Luigi hands over for
   /// [SecretMission.unarmedToLuigi]: it does twice the damage, and stays
@@ -353,7 +442,81 @@ final class Progress {
     LevelId.rome => false,
   };
 
-  void meet(EntityKind kind) => knownZombies.add(kind);
+  /// [kind] is known, and known in the city Mario is in.
+  void meet(EntityKind kind) =>
+      (_zombieCities[kind] ??= <LevelId>{}).add(level);
+
+  /// Forgets everything [city] gave: the zombies known there, its
+  /// story, its clothes, its fires, its figures, its missions and the
+  /// ammunition left in it. What the rest of the game gave stays, the
+  /// secret missions too.
+  void forget(LevelId city) {
+    bool ofCity(StoryMemory memory) => memory.level == city;
+    for (final cities in _zombieCities.values) {
+      cities.remove(city);
+    }
+    _zombieCities.removeWhere((_, cities) => cities.isEmpty);
+    memories.removeWhere(ofCity);
+    _pendingMemories.removeWhere(ofCity);
+    unlockedOutfits.removeWhere((outfit) => outfit.foundIn == city);
+    if (!unlockedOutfits.contains(activeOutfit)) {
+      activeOutfit = PlayerOutfit.base;
+    }
+    litCampfires.removeWhere((name) => campfireLevel(name) == city);
+    for (final perCity in <Map<LevelId, int>>[
+      steps,
+      roundsLeft,
+      molotovsLeft,
+      rocketsLeft,
+    ]) {
+      perCity.remove(city);
+    }
+    missions.forget(city);
+  }
+
+  /// Only what the cities but [city] gave, as [forget] tells them apart,
+  /// to be held away while [city] starts over.
+  Progress elsewhereThan(LevelId city) => Progress.fromJson(toJson())
+    ..forget(city)
+    ..secretMissions.clear()
+    ..heldAway = null;
+
+  /// Takes on what [other] knows besides: its zombies, story, clothes,
+  /// fires, figures and missions, and the ammunition left in its cities.
+  void absorb(Progress other) {
+    for (final MapEntry(key: kind, value: cities)
+        in other._zombieCities.entries) {
+      (_zombieCities[kind] ??= <LevelId>{}).addAll(cities);
+    }
+    memories.addAll(other.memories);
+    unlockedOutfits.addAll(other.unlockedOutfits);
+    litCampfires.addAll(other.litCampfires);
+    for (final (mine, theirs) in <(Map<LevelId, int>, Map<LevelId, int>)>[
+      (steps, other.steps),
+      (roundsLeft, other.roundsLeft),
+      (molotovsLeft, other.molotovsLeft),
+      (rocketsLeft, other.rocketsLeft),
+    ]) {
+      for (final MapEntry(:key, :value) in theirs.entries) {
+        mine.putIfAbsent(key, () => value);
+      }
+    }
+    missions.absorb(other.missions);
+    secretMissions.addAll(other.secretMissions);
+  }
+
+  /// Molfetta has been completed again: what the other cities gave is
+  /// Mario's once more. The items found there are returned, for the game
+  /// to hand back.
+  Set<CityItem> returnHeldAway() {
+    final held = heldAway;
+    if (held == null) {
+      return const <CityItem>{};
+    }
+    heldAway = null;
+    absorb(held.progress);
+    return held.items;
+  }
 
   void remember(StoryMemory memory) => memories.add(memory);
 
@@ -396,6 +559,10 @@ final class Progress {
     bool confirmPendingMemories = false,
   }) => <String, Object?>{
     'knownZombies': <String>[for (final kind in knownZombies) kind.name],
+    'zombieCities': <String, List<String>>{
+      for (final MapEntry(key: kind, value: cities) in _zombieCities.entries)
+        kind.name: <String>[for (final city in cities) city.name],
+    },
     'memories': <String>[
       for (final memory in memories) memory.name,
       if (confirmPendingMemories)
@@ -427,5 +594,6 @@ final class Progress {
     'secretMissions': <String>[
       for (final mission in secretMissions) mission.name,
     ],
+    if (heldAway case final held?) 'heldAway': held.toJson(),
   };
 }

@@ -6,6 +6,7 @@ Produces 96x96 transparent PNGs laid out on the shared 4x6 grid
 assets/characters/atlas_manifest.json.
 
 Sheets:
+  brute.png                idle + heavy walk, 4 directions
   <type>_hit.png          damage flinch, 4 directions
   <type>_bite.png         lunge + bite, 4 directions
   <type>_death.png        collapse to prone, 4 directions
@@ -313,6 +314,156 @@ def paint_legs(
         frame.fill(lx1, y0 + legs_h - 1, lx1 + 1, y0 + legs_h - 1, spec.legs_shade)
 
 
+# --------------------------------------------------------------------------
+# Brute anatomy
+# --------------------------------------------------------------------------
+
+def paint_brute_head(
+    frame: Frame,
+    spec: CharacterSpec,
+    cx: int,
+    top: int,
+    direction: str,
+) -> None:
+    """A deliberately small head, sunk low into the brute's shoulders."""
+    frame.fill(cx - 2, top, cx + 2, top, spec.hair)
+    frame.fill(cx - 3, top + 1, cx + 3, top + 2, spec.hair)
+
+    if direction == "north":
+        frame.fill(cx - 3, top + 3, cx + 3, top + 6, spec.hair)
+        frame.fill(cx - 1, top + 1, cx, top + 2, spec.hair_hi)
+        return
+
+    if direction == "south":
+        frame.fill(cx - 2, top + 2, cx + 2, top + 6, spec.skin)
+        frame.fill(cx - 2, top + 6, cx + 2, top + 6, spec.skin_shade)
+        frame.set(cx - 1, top + 3, OUTLINE)
+        frame.set(cx + 1, top + 3, OUTLINE)
+        frame.fill(cx - 1, top + 5, cx + 1, top + 5, MAW)
+    else:
+        sign = -1 if direction == "west" else 1
+        face_x0 = cx - 3 if sign < 0 else cx - 1
+        face_x1 = cx + 1 if sign < 0 else cx + 3
+        frame.fill(face_x0, top + 2, face_x1, top + 6, spec.skin)
+        frame.fill(face_x0, top + 6, face_x1, top + 6, spec.skin_shade)
+        eye_x = face_x0 if sign < 0 else face_x1
+        frame.set(eye_x, top + 3, OUTLINE)
+        frame.set(eye_x + sign, top + 4, spec.skin)
+
+
+def paint_brute_body(
+    frame: Frame,
+    spec: CharacterSpec,
+    y0: int,
+    direction: str,
+    arms: str,
+) -> None:
+    """Paint broad shoulders, a deep belly and thick, low-hanging arms."""
+    # The torso fills almost the entire safe width of the 16 px cell. The
+    # centre narrows by a pixel so it reads as body mass, not a square block.
+    frame.fill(3, y0, 12, y0 + 2, spec.top)
+    frame.fill(2, y0 + 2, 13, y0 + 4, spec.top)
+    frame.fill(3, y0 + 5, 12, y0 + 9, spec.top)
+    frame.fill(2, y0 + 6, 13, y0 + 8, spec.top)
+    frame.fill(3, y0 + 8, 12, y0 + 9, spec.top_shade)
+
+    if direction == "west":
+        frame.fill(2, y0 + 4, 4, y0 + 8, spec.top_hi)
+        frame.fill(11, y0 + 2, 13, y0 + 8, spec.top_shade)
+    elif direction == "east":
+        frame.fill(11, y0 + 4, 13, y0 + 8, spec.top_hi)
+        frame.fill(2, y0 + 2, 4, y0 + 8, spec.top_shade)
+    else:
+        frame.fill(4, y0 + 1, 5, y0 + 4, spec.top_hi)
+        frame.fill(10, y0 + 3, 12, y0 + 8, spec.top_shade)
+
+    if arms == "raised":
+        frame.fill(2, y0 + 1, 4, y0 + 5, spec.top)
+        frame.fill(11, y0 + 1, 13, y0 + 5, spec.top)
+        frame.fill(2, y0 - 1, 4, y0 + 1, spec.skin)
+        frame.fill(11, y0 - 1, 13, y0 + 1, spec.skin)
+    elif arms == "reach":
+        frame.fill(2, y0 + 2, 4, y0 + 7, spec.top)
+        frame.fill(11, y0 + 2, 13, y0 + 7, spec.top)
+        frame.fill(2, y0 + 7, 4, y0 + 9, spec.skin)
+        frame.fill(11, y0 + 7, 13, y0 + 9, spec.skin)
+    else:
+        frame.fill(2, y0 + 2, 4, y0 + 7, spec.top)
+        frame.fill(11, y0 + 2, 13, y0 + 7, spec.top_shade)
+        frame.fill(2, y0 + 7, 4, y0 + 10, spec.skin)
+        frame.fill(11, y0 + 7, 13, y0 + 10, spec.skin)
+        frame.set(2, y0 + 10, spec.skin_shade)
+        frame.set(13, y0 + 10, spec.skin_shade)
+
+
+def paint_brute_legs(
+    frame: Frame,
+    spec: CharacterSpec,
+    y0: int,
+    step: int,
+    direction: str,
+) -> None:
+    """Short, blocky legs whose wide footfalls carry the brute's weight."""
+    knee = min(y0 + 3, 21)
+    if direction == "west" and step:
+        leading = -1 if step < 0 else 0
+        trailing = 0 if step < 0 else 1
+    elif direction == "east" and step:
+        leading = 1 if step > 0 else 0
+        trailing = 0 if step > 0 else -1
+    else:
+        leading = -1 if step < 0 else 0
+        trailing = 1 if step > 0 else 0
+
+    left_x0 = 4 + leading
+    right_x0 = 8 + trailing
+    frame.fill(left_x0, y0, left_x0 + 3, knee, spec.legs)
+    frame.fill(right_x0, y0, right_x0 + 3, knee, spec.legs)
+    frame.fill(left_x0, knee, left_x0 + 3, 21, spec.legs_shade)
+    frame.fill(right_x0, knee, right_x0 + 3, 21, spec.legs_shade)
+    frame.fill(left_x0 - (1 if step < 0 else 0), 22, left_x0 + 3, 23, spec.boots)
+    frame.fill(right_x0, 22, right_x0 + 3 + (1 if step > 0 else 0), 23, spec.boots)
+
+
+def brute_pose(
+    spec: CharacterSpec,
+    direction: str,
+    *,
+    sink: int = 0,
+    step: int = 0,
+    head_dx: int = 0,
+    head_dy: int = 0,
+    arms: str = "down",
+) -> Frame:
+    """The brute's shared obese silhouette, anchored inside one 16x24 cell."""
+    frame = Frame()
+    body_y = 8 + sink
+    head_cx = CENTER_X + head_dx
+    paint_brute_body(frame, spec, body_y, direction, arms)
+    paint_brute_head(frame, spec, head_cx, 3 + sink + head_dy, direction)
+    paint_brute_legs(frame, spec, 18 + sink, step, direction)
+    frame.outline()
+    return frame
+
+
+def brute_walk(spec: CharacterSpec, direction: str, column: int) -> Frame:
+    """Two held idle frames followed by a slow, weighty four-step walk."""
+    if column < 2:
+        head_dx = -1 if column == 1 and direction == "west" else 0
+        return brute_pose(spec, direction, head_dx=head_dx)
+    phase = column - 2
+    sink = 1 if phase in (1, 3) else 0
+    step = (-1, 0, 1, 0)[phase]
+    head_dx = -1 if direction == "west" and phase == 0 else 0
+    return brute_pose(
+        spec,
+        direction,
+        sink=sink,
+        step=step,
+        head_dx=head_dx,
+    )
+
+
 def base_standing(spec: CharacterSpec, direction: str) -> Frame:
     frame = Frame()
     top = 2
@@ -536,6 +687,95 @@ def death_prone(spec: CharacterSpec, direction: str, index: int) -> Frame:
     return frame
 
 
+def brute_hit(spec: CharacterSpec, direction: str, index: int) -> Frame:
+    """The heavy body absorbs the hit with little displacement."""
+    dx, dy = lean_vector(direction)
+    lean = (0, 1, 0)[index]
+    frame = brute_pose(
+        spec,
+        direction,
+        sink=1 if index == 1 else 0,
+        head_dx=dx * lean,
+        head_dy=dy * lean,
+    )
+    if index == 1:
+        flash_x = CENTER_X + dx * 3 + (1 if dx == 0 else 0)
+        flash_y = 7 + dy * 2
+        frame.set(flash_x, flash_y, HIT_FLASH)
+        frame.set(flash_x + (1 if dx == 0 else 0), flash_y, HIT_FLASH)
+    return frame
+
+
+def brute_bite(spec: CharacterSpec, direction: str, index: int) -> Frame:
+    """A short, ponderous reach instead of the standard head-first lunge."""
+    if index in (0, 3):
+        return brute_pose(spec, direction, sink=1, arms="raised")
+
+    dx, dy = {
+        "south": (0, 1),
+        "north": (0, -1),
+        "west": (-1, 0),
+        "east": (1, 0),
+    }[direction]
+    frame = brute_pose(
+        spec,
+        direction,
+        sink=1,
+        head_dx=dx,
+        head_dy=dy,
+        arms="reach",
+    )
+    head_cx = CENTER_X + dx
+    head_top = 4 + dy
+    if direction == "south":
+        frame.fill(head_cx - 1, head_top + 4, head_cx + 1, head_top + 5, MAW)
+    elif direction == "north":
+        frame.fill(head_cx - 1, head_top + 5, head_cx + 1, head_top + 5, MAW)
+    else:
+        maw_x = head_cx - 3 if direction == "west" else head_cx + 3
+        frame.fill(maw_x, head_top + 4, maw_x, head_top + 5, MAW)
+    return frame
+
+
+def brute_prone(spec: CharacterSpec, direction: str, index: int) -> Frame:
+    """A wide collapse that keeps the brute massive even on the ground."""
+    frame = Frame()
+    if index == 3:
+        shift = -1 if direction == "west" else 1 if direction == "east" else 0
+        head_cx = 5 + shift
+        paint_brute_head(frame, spec, head_cx, 11, "south")
+        frame.fill(5, 16, 12, 20, spec.top)
+        frame.fill(4, 18, 13, 21, spec.top)
+        frame.fill(5, 21, 12, 22, spec.top_shade)
+        frame.fill(3, 18, 4, 21, spec.skin)
+        frame.fill(10, 22, 13, 22, spec.legs)
+        frame.fill(11, 23, 13, 23, spec.boots)
+    else:
+        head_x = 2 if direction != "north" else 3
+        frame.fill(head_x + 1, 18, head_x + 4, 18, spec.hair)
+        frame.fill(head_x, 19, head_x + 4, 21, spec.hair)
+        frame.fill(head_x, 21, head_x + 4, 22, spec.skin)
+        frame.fill(5, 17, 11, 21, spec.top)
+        frame.fill(6, 16, 10, 22, spec.top)
+        frame.fill(5, 21, 11, 22, spec.top_shade)
+        frame.fill(11, 19, 13, 22, spec.legs)
+        frame.fill(13, 21, 13, 23, spec.boots)
+        if index == 5:
+            frame.fill(9, 22, 12, 22, spec.legs_shade)
+    frame.outline()
+    return frame
+
+
+def brute_death(spec: CharacterSpec, direction: str, index: int) -> Frame:
+    if index == 0:
+        return brute_hit(spec, direction, 1)
+    if index == 1:
+        return brute_pose(spec, direction, sink=1, head_dx=1)
+    if index == 2:
+        return brute_pose(spec, direction, sink=2, head_dx=2, arms="reach")
+    return brute_prone(spec, direction, index)
+
+
 # --------------------------------------------------------------------------
 # Sheet assembly
 # --------------------------------------------------------------------------
@@ -581,6 +821,29 @@ def gun_sheet(spec: CharacterSpec) -> Image.Image:
     )
 
 
+def brute_walk_sheet(spec: CharacterSpec) -> Image.Image:
+    return build_sheet(
+        directional_rows(
+            lambda direction: [
+                brute_walk(spec, direction, column) for column in range(6)
+            ]
+        )
+    )
+
+
+def brute_action_sheet(spec: CharacterSpec, action: str) -> Image.Image:
+    def painter(direction: str):
+        if action == "hit":
+            frames = [brute_hit(spec, direction, index) for index in range(3)]
+            return frames + [frames[-1]] * 3
+        if action == "bite":
+            frames = [brute_bite(spec, direction, index) for index in range(4)]
+            return frames + [frames[-1]] * 2
+        return [brute_death(spec, direction, index) for index in range(6)]
+
+    return build_sheet(directional_rows(painter))
+
+
 def zombie_sheet(spec: CharacterSpec, action: str) -> Image.Image:
     def painter(direction: str):
         if action == "hit":
@@ -603,11 +866,15 @@ def main() -> None:
 
     # Mario's gun and pickup sheets come from tools/generate_protagonist_actions.py,
     # which builds them from his real idle frames.
-    outputs = {}
+    outputs = {"brute.png": brute_walk_sheet(ZOMBIE_SPECS["brute"])}
     for zombie_type in ZOMBIE_TYPES:
         spec = ZOMBIE_SPECS[zombie_type]
         for action in ("hit", "bite", "death"):
-            outputs[f"{zombie_type}_{action}.png"] = zombie_sheet(spec, action)
+            outputs[f"{zombie_type}_{action}.png"] = (
+                brute_action_sheet(spec, action)
+                if zombie_type == "brute"
+                else zombie_sheet(spec, action)
+            )
 
     for filename, sheet in outputs.items():
         path = os.path.join(out_dir, filename)

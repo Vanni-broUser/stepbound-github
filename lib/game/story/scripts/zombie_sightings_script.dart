@@ -10,6 +10,9 @@ import 'package:stepbound/game/zombie_lore.dart';
 /// What it has done is `Progress.knownZombies` itself: a type is introduced
 /// once in the whole game, not once a level, and a save keeps that with the
 /// rest of the progress, so this script has nothing of its own to save.
+/// A type already known elsewhere, of any kind, becomes known in this city
+/// too the first time one is seen here, without a word: starting over the
+/// city where it was met leaves it known where it has been seen since.
 final class ZombieSightingsScript extends StoryScript {
   ZombieSightingsScript(super.director);
 
@@ -24,14 +27,22 @@ final class ZombieSightingsScript extends StoryScript {
       return;
     }
     for (final zombie in world.entities.values) {
-      if (zombieLore[zombie.kind]?.introducedOnSight != true ||
-          progress.knownZombies.contains(zombie.kind) ||
+      final kind = zombie.kind;
+      final lore = zombieLore[kind];
+      if (lore == null ||
+          progress.knowsIn(kind, progress.level) ||
           !zombie.isAlive ||
           !host.isTileVisible(zombie.component<PositionComponent>().position)) {
         continue;
       }
-      director.introduceZombie(zombie);
-      return;
+      if (progress.knownZombies.contains(kind)) {
+        progress.meet(kind);
+        continue;
+      }
+      if (lore.introducedOnSight) {
+        director.introduceZombie(zombie);
+        return;
+      }
     }
   }
 

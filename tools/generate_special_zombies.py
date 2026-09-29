@@ -2,14 +2,15 @@
 """Build the special-zombie atlases.
 
 The mutilated, burning and drunk archetypes share the wanderer's anatomy and
-animation timing. The cultist uses the brute's larger build. Their gameplay
-identity is carried by a strong, readable silhouette:
+animation timing. The cultist uses a frozen copy of the original brute build,
+so later changes to the playable brute cannot alter it. Their gameplay identity
+is carried by a strong, readable silhouette:
 
 * mutilated: only the upper body remains, lying on the ground;
 * burning: scorched clothes and a compact, animated crown of flame;
 * drunk: burgundy bar clothes and an alternating off-balance posture.
-* cultist: the brute's build under a torn cult robe, with a lowered hood and
-  sulfur-yellow veins across its exposed arms.
+* cultist: the preserved broad build under a torn cult robe, with a lowered
+  hood and sulfur-yellow veins across its exposed arms.
 
 All outputs keep Stepbound's 96x96, four-row-by-six-column atlas contract.
 Run from the repository root:  python tools/generate_special_zombies.py
@@ -25,6 +26,7 @@ CELL_W = 16
 CELL_H = 24
 ROWS = ("south", "west", "east", "north")
 SPRITES = Path("assets/characters/zombies/sprites")
+CULTIST_SOURCES = Path("tools/sprite_sources/cultist")
 TRANSPARENT = (0, 0, 0, 0)
 
 OUTLINE = (16, 12, 12, 255)
@@ -44,8 +46,8 @@ FLAME = (244, 121, 24, 255)
 FLAME_CORE = (255, 220, 79, 255)
 
 
-def frames(name: str) -> list[list[Image.Image]]:
-    sheet = Image.open(SPRITES / name).convert("RGBA")
+def frames(path: Path) -> list[list[Image.Image]]:
+    sheet = Image.open(path).convert("RGBA")
     return [
         [
             sheet.crop(
@@ -295,7 +297,13 @@ def cultist(frame: Image.Image, row: int, column: int, suffix: str) -> Image.Ima
     return ensure_frame_contract(output)
 
 
-def build(kind: str, transform, *, source_stem: str = "wanderer") -> None:
+def build(
+    kind: str,
+    transform,
+    *,
+    source_stem: str = "wanderer",
+    source_dir: Path = SPRITES,
+) -> None:
     source_names = {
         "": f"{source_stem}.png",
         "_hit": f"{source_stem}_hit.png",
@@ -303,7 +311,7 @@ def build(kind: str, transform, *, source_stem: str = "wanderer") -> None:
         "_death": f"{source_stem}_death.png",
     }
     for suffix, source_name in source_names.items():
-        source = frames(source_name)
+        source = frames(source_dir / source_name)
         output_rows: list[list[Image.Image]] = []
         for row, row_frames in enumerate(source):
             output_row = []
@@ -328,7 +336,12 @@ def main() -> None:
         lambda frame, row, column, suffix: burning(frame, row, column, suffix),
     )
     build("drunk", lambda frame, row, column, _suffix: drunk(frame, row, column))
-    build("cultist", cultist, source_stem="brute")
+    build(
+        "cultist",
+        cultist,
+        source_stem="brute",
+        source_dir=CULTIST_SOURCES,
+    )
 
 
 if __name__ == "__main__":

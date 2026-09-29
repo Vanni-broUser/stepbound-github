@@ -228,7 +228,6 @@ void main() {
     flow
       ..travelFromTrain(aboard(progress: seen))
       ..startRome();
-    expect(flow.session.levelStart, isNotNull);
     final rome = flow.game;
     await flow.restartLevel();
     expect(flow.phase, AppPhase.playing);

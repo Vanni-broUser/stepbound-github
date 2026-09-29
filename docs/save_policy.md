@@ -82,7 +82,7 @@ salvataggio vero della build precedente.
 
 Il JSON di un salvataggio tiene il progresso tra i livelli (`progress`:
 zombi conosciuti, memorie, vestiti, passi, falò accesi) in un oggetto suo,
-separato dalla partita in corso (`world`, `story`, `hud`, `levelStart`).
+separato dalla partita in corso (`world`, `story`, `hud`).
 Quando un cambiamento di formato non può portare avanti la partita in
 corso, la migrazione tiene `progress` e sostituisce il resto con l'inizio
 del livello, com'è quando il livello ricomincia: il giocatore perde il
