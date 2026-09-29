@@ -15,7 +15,7 @@ import sys
 from PIL import Image, ImageDraw
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from build_street_level import TILE  # noqa: E402
+from build_street_level import TILE, rect  # noqa: E402
 
 # How many times the same kind of tile is painted with fresh grit. The
 # renderer picks between them with a hash of the tile's position: enough
@@ -489,3 +489,8 @@ def compose(rows: list[str], place: dict, tiles: list[Image.Image],
             x0, y0 = obj["at"]
             out.alpha_composite(obj["sprite"], (x0 * TILE, y0 * TILE))
     return out
+
+
+def paint_side_edge(d, px, py, right):
+    """The dark line where a floor meets the darkness outside the room."""
+    rect(d, px + (14 if right else 0), py, 2, TILE, (40, 40, 46))

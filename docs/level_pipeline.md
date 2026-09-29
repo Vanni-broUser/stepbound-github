@@ -1,8 +1,11 @@
 # Pipeline dei livelli
 
 Ogni posto del gioco e dipinto a runtime dalle sue righe ASCII, con l'atlas
-di `assets/levels/tiles` generato da `tools/build_tile_atlas.py` (interni) e
-`tools/tile_atlas_city.py` (citta).
+di `assets/levels/tiles` generato da `tools/build_tile_atlas.py`, che elenca
+i posti, impacchetta i tile e scrive il manifest. L'arte di ogni posto sta in
+un modulo suo, `tools/tile_atlas_<posto>.py` (citta, Duomo, bar, stazione,
+aereo, caserma, treno, ipermercato, San Nicola, Termini, ospedale, Terme),
+sulla macchina comune di `tools/tile_atlas_core.py`.
 
 ## Strade incomplete: la schermata work in progress
 
@@ -61,16 +64,19 @@ quattro posti della citta, dove tetti e facciate sono cambiati.
 
 ### Dividere i file troppo grandi
 
-- `tools/build_tile_atlas.py` tiene tutti gli interni in circa 2700 righe.
-  La citta ha gia un modulo suo (`tools/tile_atlas_city.py`) sulla macchina
-  comune di `tools/tile_atlas_core.py`: gli interni vanno portati allo
-  stesso modo, un modulo per posto o per gruppo di posti.
+- Fatto (2026-09-29): `tools/build_tile_atlas.py` e sceso da 5400 a 460
+  righe, ogni interno in un modulo `tools/tile_atlas_<posto>.py`; il modulo
+  piu grande e quello del Duomo, 1400 righe per sei posti. Il taglio e
+  verificato da `build_tile_atlas.py --check`: atlas, manifest e oggetti
+  identici pixel per pixel a prima. L'ordine dei posti in `PLACES` decide
+  come i tile sono impacchettati: chi ne aggiunge uno lo mette in coda.
 - `tools/build_street_level.py`, oggi solo painter della citta, e ancora
   circa 2300 righe: va diviso in pavimenti, edifici e oggetti di scena.
 
 ## Riferimenti
 
-- `docs/maintainability_and_scalability_backlog.md`, voce "P2 - Make asset
-  generation reproducible", per i generatori di sprite, audio e immagini
-  della storia, che restano fuori da qui.
+- `docs/maintainability_and_scalability_backlog.md`, voce "What is left of
+  asset generation", per i generatori di sprite, audio e immagini della
+  storia, che restano fuori da qui (`tools/build_sprites.py --check` e
+  `tools/build_audio.py --check`).
 - `docs/ci-pipeline.md` per la struttura dei job.
