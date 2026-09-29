@@ -65,10 +65,15 @@ void main() {
       'own fires', () {
     final hometown = levelZombieKinds(LevelId.hometown);
     final rome = levelZombieKinds(LevelId.rome);
-    // Rome's wanderers, and the one sprinter on the piazza.
+    // Rome's wanderers, the one sprinter on the piazza and the carabinieri
+    // at the roadblock.
     expect(
       rome,
-      hasLength(romeZombieSpots.values.expand((spots) => spots).length + 1),
+      hasLength(
+        romeZombieSpots.values.expand((spots) => spots).length +
+            1 +
+            roadblockCarabiniereTiles.length,
+      ),
     );
     final atStart = createGameWorld().entities.values
         .where((entity) => entity.kind != EntityKind.player)

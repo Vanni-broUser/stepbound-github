@@ -30,9 +30,9 @@ void main() {
   test('a step off the edge of a map with no next map shows the '
       'work-in-progress screen, and Mario is back inside once it is '
       'tapped away', () {
-    // East of Termini, where Piazza dei Cinquecento runs off the map.
+    // East of Termini, past the roadblock, where the road runs off the map.
     final piazza = place(PlaceId.piazzaCinquecento);
-    final end = GridPoint(piazza.bounds.right, piazza.origin.y + 8);
+    final end = GridPoint(piazza.bounds.right, piazza.origin.y + 12);
     final mario = world.player.component<PositionComponent>()
       ..position = end.step(Direction.west)
       ..facing = Direction.east;

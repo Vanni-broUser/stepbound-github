@@ -1108,6 +1108,123 @@ def paint_street_banner(d, px, py, w, text):
         rect(d, tx + i, py + 11 + mid, 1, 3, (150, 24, 24))
 
 
+# ------------------------------------------------ the roadblock east of it
+# The carabinieri and the police made their stand on the road east of the
+# piazza and lost it: their cars lie on their roofs right across the road,
+# burnt out and still burning (the flames are the game's), and a tank has
+# stopped in front of them.
+
+CARABINIERI_BODY = (26, 34, 62)
+CARABINIERI_STRIPE = (170, 30, 34)
+POLICE_BODY = (196, 206, 214)
+POLICE_STRIPE = (40, 70, 150)
+SCORCH_BLACK = (24, 22, 22)
+SCORCH_GREY = (58, 54, 52)
+
+
+def paint_service_car(d, rng, px, py, police):
+    """A carabinieri or police car on its roof, side-on over two tiles:
+    the body upside down, its livery stripe along it, the light bar
+    crushed under the roof, the wheels in the air, all of it blackened
+    where it has burnt."""
+    body = POLICE_BODY if police else CARABINIERI_BODY
+    stripe = POLICE_STRIPE if police else CARABINIERI_STRIPE
+    dark = shade(body, -40)
+    x, y = px - 1, py + 15
+    rect(d, x + 2, y - 1, 32, 2, (24, 24, 28))  # ground shadow
+    rect(d, x + 8, y - 5, 18, 5, dark)  # the cabin, crushed on the road
+    rect(d, x + 10, y - 4, 6, 3, (20, 20, 20))
+    rect(d, x + 18, y - 4, 6, 3, (20, 20, 20))
+    rect(d, x + 12, y - 2, 10, 2, (40, 60, 150))  # the light bar
+    rect(d, x + 13, y - 2, 3, 1, (200, 40, 40))
+    rect(d, x + 2, y - 12, 30, 7, body)  # the body, upside down
+    rect(d, x + 2, y - 9, 30, 2, stripe)
+    if police:
+        for sx in range(x + 6, x + 28, 4):  # POLIZIA, in blue on white
+            rect(d, sx, y - 11, 2, 1, POLICE_STRIPE)
+    else:
+        rect(d, x + 4, y - 11, 26, 1, CARABINIERI_STRIPE)
+    rect(d, x + 2, y - 13, 30, 1, dark)  # the floor pan, up
+    for wx in (x + 4, x + 24):
+        rect(d, wx, y - 17, 6, 4, (20, 20, 22))
+        rect(d, wx + 2, y - 16, 2, 2, (70, 70, 74))
+    for _ in range(9):  # burnt through
+        sx, sy = x + 2 + rng.randrange(28), y - 13 + rng.randrange(8)
+        rect(d, sx, sy, rng.randint(2, 4), rng.randint(1, 2),
+             rng.choice((SCORCH_BLACK, SCORCH_GREY)))
+
+
+TANK = (78, 86, 58)
+TANK_DARK = (50, 56, 38)
+TANK_LIGHT = (108, 116, 80)
+
+
+def paint_tank(d, px, py, w, h):
+    """A tank side-on over the cells (px, py, w, h), gun to the west: its
+    tracks on the road, the hull, the turret and the long barrel, the
+    hatch thrown open. Nobody came out of it alive."""
+    bottom = py + h
+    rect(d, px + 2, bottom - 2, w - 4, 2, (24, 24, 28))  # shadow
+    # the tracks and their road wheels
+    rect(d, px + 2, bottom - 9, w - 4, 7, (34, 34, 36))
+    rect(d, px + 4, bottom - 8, w - 8, 5, (54, 54, 56))
+    for wx in range(px + 6, px + w - 8, 7):
+        rect(d, wx, bottom - 8, 5, 5, (80, 80, 84))
+        rect(d, wx + 2, bottom - 6, 1, 1, (30, 30, 32))
+    # the hull
+    rect(d, px + 1, bottom - 17, w - 2, 8, TANK)
+    rect(d, px + 1, bottom - 17, w - 2, 1, TANK_LIGHT)
+    rect(d, px + 1, bottom - 10, w - 2, 1, TANK_DARK)
+    rect(d, px, bottom - 14, 3, 5, TANK_DARK)  # the glacis
+    # the turret and its barrel, to the west
+    tx = px + w // 2 - 8
+    rect(d, tx, bottom - 25, 20, 8, TANK)
+    rect(d, tx, bottom - 25, 20, 1, TANK_LIGHT)
+    rect(d, tx + 1, bottom - 18, 18, 1, TANK_DARK)
+    rect(d, px - 6, bottom - 22, tx - px + 6, 3, TANK_DARK)
+    rect(d, px - 6, bottom - 22, tx - px + 6, 1, TANK_LIGHT)
+    rect(d, px - 8, bottom - 23, 3, 5, TANK_DARK)  # the muzzle brake
+    rect(d, tx + 12, bottom - 29, 6, 4, TANK_DARK)  # the hatch, open
+    rect(d, tx + 12, bottom - 29, 6, 1, TANK_LIGHT)
+    # soot up the side and a tricolour roundel half burnt
+    rect(d, tx + 4, bottom - 23, 3, 3, (0, 140, 70))
+    rect(d, tx + 7, bottom - 23, 3, 3, (230, 230, 226))
+    rect(d, tx + 10, bottom - 23, 2, 3, (200, 40, 40))
+    for sx in range(px + 6, px + w - 6, 9):
+        rect(d, sx, bottom - 16, 4, 5, SCORCH_GREY)
+
+
+def paint_service_car_upright(d, rng, px, py, police):
+    """A carabinieri or police car still on its wheels, side-on over two
+    tiles, burnt out where it stood: the livery stripe along the doors,
+    the light bar on the roof, the windows blown in, soot all over."""
+    body = POLICE_BODY if police else CARABINIERI_BODY
+    stripe = POLICE_STRIPE if police else CARABINIERI_STRIPE
+    dark = shade(body, -40)
+    x, y = px - 1, py + 15
+    rect(d, x + 2, y - 1, 32, 2, (24, 24, 28))  # ground shadow
+    rect(d, x + 2, y - 8, 30, 6, body)
+    rect(d, x + 8, y - 14, 18, 6, body)
+    if not police:
+        rect(d, x + 8, y - 14, 18, 1, (230, 230, 226))  # the white roof
+    rect(d, x + 10, y - 13, 6, 4, (20, 20, 20))  # windows blown in
+    rect(d, x + 18, y - 13, 6, 4, (20, 20, 20))
+    rect(d, x + 2, y - 6, 30, 2, stripe)
+    if police:
+        for sx in range(x + 6, x + 28, 4):  # POLIZIA along the doors
+            rect(d, sx, y - 8, 2, 1, POLICE_STRIPE)
+    rect(d, x + 12, y - 16, 10, 2, (40, 60, 150))  # the light bar
+    rect(d, x + 13, y - 16, 3, 1, (200, 40, 40))
+    rect(d, x + 2, y - 3, 30, 1, dark)
+    for wx in (x + 5, x + 23):
+        rect(d, wx, y - 3, 6, 4, (18, 18, 20))
+        rect(d, wx + 2, y - 2, 2, 2, (70, 70, 74))
+    for _ in range(9):  # burnt through
+        sx, sy = x + 2 + rng.randrange(28), y - 14 + rng.randrange(11)
+        rect(d, sx, sy, rng.randint(2, 4), rng.randint(1, 2),
+             rng.choice((SCORCH_BLACK, SCORCH_GREY)))
+
+
 # ------------------------------------------------- the Baths of Diocletian
 
 TERME = "§"

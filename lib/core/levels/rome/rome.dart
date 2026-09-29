@@ -38,11 +38,12 @@ const Legend terminiConcourseLegend = Legend(
 
 /// Rome's streets: Molfetta's outdoor legend, with the front of Termini
 /// `]`, Santa Maria Maggiore `"` and the Baths of Diocletian `§` walls,
-/// and the Column of Peace `>`, the placards `` ` `` and the Baths' brown
-/// sign `¤` obstacles.
+/// and the Column of Peace `>`, the placards `` ` ``, the Baths' brown
+/// sign `¤`, the carabinieri and police cars (`m` and `s` on their roofs,
+/// `u` and `w` on their wheels) and the tank `t` obstacles.
 const Legend romeStreetLegend = Legend(
   walls: 'BHfKMGW#%0_]"§',
-  obstacles: 'CXUvkDFTSOyJQaAnI~RNbpx*i&!^;/+>`¤',
+  obstacles: 'CXUvkDFTSOyJQaAnI~RNbpx*i&!^;/+>`¤mstuw',
   debris: ':q',
   fire: '?',
 );
@@ -208,9 +209,41 @@ const GridPoint piazzaSprinterSpot = GridPoint(67, 12);
 /// The wanderers on the platforms of Termini, `termini-wanderer-<n>`.
 const String terminiZombiePrefix = 'termini-wanderer-';
 
+/// The glyphs of the roadblock's cars: carabinieri and police, on their
+/// roofs and on their wheels.
+const String roadblockCarGlyphs = 'msuw';
+
+/// The roadblock east of Termini on the piazza's road: the carabinieri
+/// and police cars across it, every one of them burning, from
+/// pavement to pavement, one flame on the first cell of each.
+final List<FireSpot> roadblockFireSpots = <FireSpot>[
+  for (final glyph in roadblockCarGlyphs.split(''))
+    for (final tile in _piazza.tilesOf(glyph))
+      if (_piazza.rows[tile.y - _piazza.origin.y][tile.x -
+              _piazza.origin.x -
+              1] !=
+          glyph)
+        FireSpot(tile, FireKind.car),
+];
+
+/// The gap in the roadblock, in the middle lane between two of the
+/// burning cars: no car in it, only their fuel alight `?`. It is the way
+/// through that is not one; its west end is where Mario looks at it.
+final GridPoint roadblockFireTile = _piazza
+    .tilesOf('?')
+    .reduce((a, b) => a.x < b.x ? a : b);
+
+/// The carabinieri come back as the dead round the roadblock `r`, and the
+/// backpack `9` one of them dropped by the tank.
+final List<GridPoint> roadblockCarabiniereTiles = _piazza.tilesOf('r');
+const String roadblockCarabinierePrefix = 'roadblock-carabiniere-';
+const String roadblockBackpackId = 'roadblock-backpack';
+final GridPoint roadblockBackpackTile = _piazza.tileOf('9');
+
 /// The fires burning in Rome's streets.
 final List<FireSpot> romeFireSpots = <FireSpot>[
   for (final street in <Place>[_piazza, _marsala]) ...firesIn(street),
+  ...roadblockFireSpots,
 ];
 
 /// The doors of Rome's station, both ways: the stairs up from the
@@ -266,8 +299,9 @@ Map<GridPoint, Portal> _portals() => <GridPoint, Portal>{
 };
 
 /// What Rome holds when a game starts: the dead wandering Termini and
-/// the streets round it, a backpack in the rubbish, and the station's
-/// doors.
+/// the streets round it, the carabinieri at the roadblock east of the
+/// piazza, a backpack in the rubbish and one by the tank, the station's
+/// doors, and the fire in the roadblock's gap to look at.
 LevelContents romeContents(EntityFactory factory) => LevelContents(
   entities: <Entity>[
     for (final MapEntry(key: id, value: spots) in romeZombieSpots.entries)
@@ -284,6 +318,12 @@ LevelContents romeContents(EntityFactory factory) => LevelContents(
       kind: EntityKind.sprinter,
       position: _onGrid(PlaceId.piazzaCinquecento, piazzaSprinterSpot),
     ),
+    for (final (index, tile) in roadblockCarabiniereTiles.indexed)
+      factory.zombie(
+        id: '$roadblockCarabinierePrefix$index',
+        kind: EntityKind.carabiniere,
+        position: tile,
+      ),
   ],
   pickups: <Pickup>[
     Pickup(
@@ -291,8 +331,10 @@ LevelContents romeContents(EntityFactory factory) => LevelContents(
       position: _onGrid(PlaceId.terminiFarPlatform, terminiRubbishBackpackSpot),
       ammo: 2,
     ),
+    Pickup(id: roadblockBackpackId, position: roadblockBackpackTile, ammo: 2),
   ],
   portals: _portals(),
+  lookouts: <GridPoint>[roadblockFireTile],
 );
 
 GridPoint _onGrid(PlaceId id, GridPoint spot) {

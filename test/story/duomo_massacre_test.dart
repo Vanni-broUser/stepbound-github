@@ -149,6 +149,12 @@ void main() {
     },
   );
 
+  test('the gap in the roadblock east of Termini says the same', () {
+    director.onEvents(<WorldEvent>[LookedOutEvent(at: roadblockFireTile)]);
+    settle();
+    expect(host.shown.single.single.text, RoadblockFireScript.fireLine);
+  });
+
   test('looking over the gap between the roofs tells Mario what it would '
       'take, every time he looks', () {
     for (var look = 0; look < 2; look++) {

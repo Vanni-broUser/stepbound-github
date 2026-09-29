@@ -106,10 +106,18 @@ void main() {
       'brings up the work-in-progress screen and nothing breaks', (tester) {
     return tester.runAsync(() async {
       final game = await pumpReadyGame(tester);
-      // East of Termini, two steps from where the piazza runs off the map.
+      // East of Termini, past the roadblock, two steps from where the road
+      // runs off the map.
       final piazza = place(PlaceId.piazzaCinquecento);
       final mario = game.simulation.player.component<PositionComponent>()
-        ..position = GridPoint(piazza.bounds.right - 2, piazza.origin.y + 8);
+        ..position = GridPoint(piazza.bounds.right - 2, piazza.origin.y + 12);
+      // The carabinieri at the roadblock and the backpack by the tank are
+      // in sight from there: Mario knows the one and has taken the other,
+      // so no line about them stops him.
+      levelZombieKinds(LevelId.rome).forEach(game.progress.meet);
+      game.simulation.pickups[roadblockBackpackId]!
+        ..active = false
+        ..collected = true;
       await tester.pump(const Duration(milliseconds: 100));
 
       final thumb = await tester.createGesture(pointer: 1);
@@ -127,7 +135,7 @@ void main() {
       expect(screen, findsOneWidget);
       expect(
         mario.position,
-        GridPoint(piazza.bounds.right, piazza.origin.y + 8),
+        GridPoint(piazza.bounds.right, piazza.origin.y + 12),
       );
       expect(find.byKey(const ValueKey<String>('touch-move')), findsNothing);
 
@@ -142,7 +150,7 @@ void main() {
       expect(screen, findsNothing);
       expect(
         mario.position,
-        GridPoint(piazza.bounds.right - 1, piazza.origin.y + 8),
+        GridPoint(piazza.bounds.right - 1, piazza.origin.y + 12),
       );
       expect(mario.facing, Direction.west);
     });
