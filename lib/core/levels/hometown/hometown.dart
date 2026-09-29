@@ -586,6 +586,30 @@ final GridPoint hospitalRoofLookoutTile = _hospitalRoof.tileOf('>');
 /// [hospitalRoofLookoutTile]: the way back with the grappling hook.
 final GridPoint hospitalNextRoofEdgeTile = _hospitalRoof.tileOf('<');
 
+/// The hospital's stairs `Y` in the north district and the forecourt at
+/// their foot, where the ambulances crashed: the horde there mills about,
+/// each of them turned its own way (see [hospitalForecourtFacings]). The
+/// ones out on the street, past it, all look west.
+final GridRect hospitalForecourt = GridRect(
+  _north.origin.x + 2,
+  _north.origin.y + 24,
+  _north.origin.x + 17,
+  _north.origin.y + 33,
+);
+
+/// The ways the zombies in [hospitalForecourt] face, handed out in turn
+/// row by row: every way about as often, and no two neighbours alike.
+const List<Direction> hospitalForecourtFacings = <Direction>[
+  Direction.south,
+  Direction.east,
+  Direction.north,
+  Direction.west,
+  Direction.east,
+  Direction.south,
+  Direction.west,
+  Direction.north,
+];
+
 /// The wanderers left in the hospital, floor by floor, `hospital-wanderer-<n>`.
 const String hospitalZombiePrefix = 'hospital-wanderer-';
 
@@ -1150,6 +1174,7 @@ LevelContents hometownContents(EntityFactory factory) {
   final entities = <Entity>[];
   final pickups = <Pickup>[];
   final zombieCounts = <EntityKind, int>{};
+  var forecourtZombies = 0;
   for (final place in _streets) {
     for (final (point, glyph) in place.glyphs) {
       switch (glyph) {
@@ -1174,6 +1199,7 @@ LevelContents hometownContents(EntityFactory factory) {
           final index = zombieCounts[kind] ?? 0;
           zombieCounts[kind] = index + 1;
           final priestIndex = priestZombieTiles.indexOf(point);
+          final milling = hospitalForecourt.contains(point);
           entities.add(
             factory.zombie(
               // The barracks' carabinieri, spawned later, are
@@ -1187,6 +1213,10 @@ LevelContents hometownContents(EntityFactory factory) {
               },
               kind: kind,
               position: point,
+              facing: milling
+                  ? hospitalForecourtFacings[forecourtZombies++ %
+                        hospitalForecourtFacings.length]
+                  : Direction.west,
             ),
           );
         case '9':
