@@ -41,12 +41,6 @@ final List<ZombieCard> zombieCards = <ZombieCard>[
       description: lore.description,
     ),
   const ZombieCard(
-    kind: EntityKind.brute,
-    name: 'Bruto',
-    portrait: _unknownPortrait,
-    description: '',
-  ),
-  const ZombieCard(
     kind: EntityKind.blind,
     name: 'Cieco',
     portrait: _unknownPortrait,

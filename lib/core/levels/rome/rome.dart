@@ -214,6 +214,13 @@ final Map<GridPoint, String> romeCampfireNames = <GridPoint, String>{
 /// The one sprinter of Rome, loose on the piazza.
 const GridPoint piazzaSprinterSpot = GridPoint(67, 12);
 
+/// The brute standing in the way out of the far platform: on the tracks
+/// just short of the breach onto Via Marsala, the back way out of Termini,
+/// in the far platform's own tile coordinates. Rome's first, and the
+/// game's.
+const String terminiBruteId = 'termini-brute';
+const GridPoint terminiBruteSpot = GridPoint(84, 4);
+
 /// The wanderers on the platforms of Termini, `termini-wanderer-<n>`.
 const String terminiZombiePrefix = 'termini-wanderer-';
 
@@ -322,6 +329,11 @@ LevelContents romeContents(EntityFactory factory) => LevelContents(
           kind: EntityKind.wanderer,
           position: _onGrid(id, spot),
         ),
+    factory.zombie(
+      id: terminiBruteId,
+      kind: EntityKind.brute,
+      position: _onGrid(PlaceId.terminiFarPlatform, terminiBruteSpot),
+    ),
     factory.zombie(
       id: 'piazza-sprinter',
       kind: EntityKind.sprinter,
