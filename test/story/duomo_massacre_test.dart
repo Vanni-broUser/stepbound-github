@@ -291,9 +291,11 @@ void main() {
       settle();
       host.dismiss();
       expect(host.spawned, hasLength(1));
-      expect(director.toJson()['rooftops'], <String, Object?>{
-        'towerCultist': true,
-      });
+      expect(
+        (director.toJson()['rooftops']!
+            as Map<String, Object?>)['towerCultist'],
+        isTrue,
+      );
     });
 
     test('nowhere else', () {
@@ -307,6 +309,71 @@ void main() {
         host.dismiss();
       }
       expect(host.spawned, isEmpty);
+    });
+  });
+
+  group('the terraces, with the hook', () {
+    TeleportedEvent swing(GridPoint edge) => TeleportedEvent(
+      entityId: world.playerId,
+      from: edge.step(world.grapples[edge]!.facing.opposite),
+      to: world.grapples[edge]!.to,
+      grappled: true,
+    );
+
+    void cross(GridPoint edge) {
+      director.onEvents(<WorldEvent>[swing(edge)]);
+      settle();
+      while (host.isPromptVisible) {
+        host.dismiss();
+        settle();
+      }
+    }
+
+    const mission = Mission.exploreTerraces;
+
+    test('no mission without the hook, nor in Rome with it', () {
+      settle();
+      expect(progress.missions.isOpen(mission), isFalse);
+      world.player.component<AmmoComponent>().grapplingHook = true;
+      progress.travel(LevelId.rome, rounds: 0);
+      settle();
+      expect(progress.missions.isOpen(mission), isFalse);
+      progress.travel(LevelId.hometown, rounds: 0);
+      settle();
+      expect(progress.missions.isOpen(mission), isTrue, reason: 'back home');
+    });
+
+    test('done once all three gaps are crossed, whichever way, in any '
+        'order, and kept across a save', () {
+      world.player.component<AmmoComponent>().grapplingHook = true;
+      settle();
+      expect(progress.missions.open, contains(mission));
+
+      cross(hospitalNextRoofEdgeTile);
+      cross(hospitalRoofLookoutTile);
+      cross(duomoFarTowerEdgeTile);
+      expect(progress.missions.isOpen(mission), isTrue, reason: 'two of three');
+
+      // Through a save, as far as the two done.
+      final saved = director.toJson();
+      startStory();
+      world.player.component<AmmoComponent>().grapplingHook = true;
+      director.restore(saved);
+      settle();
+      expect(progress.missions.isOpen(mission), isTrue);
+
+      cross(rooftopGapTile);
+      expect(progress.missions.isDone(mission), isTrue);
+      expect(progress.missions.isOpen(mission), isFalse);
+    });
+
+    test('the three crossings are the three gaps, each both ways', () {
+      expect(hometownGrappleCrossings, hasLength(6));
+      expect(hometownGrappleCrossings.values.toSet(), <String>{
+        'airliner',
+        'duomo',
+        'hospital',
+      });
     });
   });
 

@@ -945,6 +945,18 @@ final Map<GridPoint, Portal> hometownGrapples = <GridPoint, Portal>{
   ),
 };
 
+/// The three terraces the hook crosses to in Molfetta -- past the
+/// airliner, the Duomo's towers, the hospital's roof -- by the tiles it
+/// lands Mario on, either way across.
+final Map<GridPoint, String> hometownGrappleCrossings = <GridPoint, String>{
+  for (final (name, near, far) in <(String, GridPoint, GridPoint)>[
+    ('airliner', rooftopGapTile, rooftopFarEdgeTile),
+    ('duomo', duomoTowerLookoutTile, duomoFarTowerEdgeTile),
+    ('hospital', hospitalRoofLookoutTile, hospitalNextRoofEdgeTile),
+  ])
+    for (final edge in <GridPoint>[near, far]) hometownGrapples[edge]!.to: name,
+};
+
 Map<GridPoint, Portal> _bothWays(
   GridPoint near,
   GridPoint far,

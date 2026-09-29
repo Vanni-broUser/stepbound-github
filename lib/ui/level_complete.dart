@@ -29,6 +29,7 @@ final class LevelStats {
     required this.steps,
     this.doneMissions = const <Mission>[],
     this.missions = const <Mission>[],
+    this.hiddenMissions = const <Mission>[],
     this.doneSecrets = const <SecretMission>[],
     this.completed = true,
   });
@@ -75,6 +76,13 @@ final class LevelStats {
           if (mission.level == level) mission,
       ],
       missions: Mission.of(level),
+      hiddenMissions: <Mission>[
+        for (final mission in Mission.of(level))
+          if (mission.hiddenUntilGiven &&
+              !progress.missions.isOpen(mission) &&
+              !progress.missions.isDone(mission))
+            mission,
+      ],
       doneSecrets: <SecretMission>[
         for (final mission in progress.secretMissions)
           if (mission.level == level) mission,
@@ -100,8 +108,12 @@ final class LevelStats {
   /// The level's missions done, in the order the player got through them.
   final List<Mission> doneMissions;
 
-  /// Every mission of the level.
+  /// Every mission of the level: the total they are counted out of.
   final List<Mission> missions;
+
+  /// The level's missions not listed yet, though counted in [missions]:
+  /// those that wait for something from another level, not handed out.
+  final List<Mission> hiddenMissions;
 
   /// The level's secret missions done: listed with the rest, and counted
   /// apart, as a bonus over them.
@@ -697,7 +709,9 @@ final class _MissionsCardState extends State<MissionsCard>
     final celebratedSecret = celebrated == null ? null : widget.secret;
     final undone = <Mission>[
       for (final mission in stats.missions)
-        if (!stats.doneMissions.contains(mission)) mission,
+        if (!stats.doneMissions.contains(mission) &&
+            !stats.hiddenMissions.contains(mission))
+          mission,
     ];
     final listHeight = MissionsCard.rowHeight * MissionsCard.visibleRows * unit;
     return MenuPanel(
