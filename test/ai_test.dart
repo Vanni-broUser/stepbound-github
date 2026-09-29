@@ -7,7 +7,7 @@ void main() {
   group('energy scheduler', () {
     test('zombie archetypes act at their configured speeds', () {
       // Each zombie steps as soon as it spots the player, then keeps its
-      // own cadence: sprinter every tick, wanderer and brute every 2.
+      // own cadence: sprinter every tick, wanderer every 2, brute every 3.
       expect(_xAfterWaits(EntityKind.sprinter, 1), 4);
       expect(_xAfterWaits(EntityKind.sprinter, 2), 3);
 
@@ -20,8 +20,8 @@ void main() {
       expect(_xAfterWaits(EntityKind.cultist, 3), 3);
 
       expect(_xAfterWaits(EntityKind.brute, 1), 4);
-      expect(_xAfterWaits(EntityKind.brute, 2), 4);
-      expect(_xAfterWaits(EntityKind.brute, 3), 3);
+      expect(_xAfterWaits(EntityKind.brute, 3), 4);
+      expect(_xAfterWaits(EntityKind.brute, 4), 3);
     });
 
     test('an alert trigger makes a zombie notice the player behind it', () {

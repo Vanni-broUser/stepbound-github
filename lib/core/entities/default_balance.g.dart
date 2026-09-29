@@ -26,7 +26,7 @@ const Map<EntityKind, ActorStats> _defaultActorStats = <EntityKind, ActorStats>{
     contactDamage: 1,
   ),
   EntityKind.brute: ActorStats(
-    tickCost: 2,
+    tickCost: 3,
     health: 2,
     vision: 4,
     hearing: 14,

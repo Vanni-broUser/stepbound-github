@@ -128,11 +128,11 @@ const Map<EntityKind, ZombieLore> zombieLore = <EntityKind, ZombieLore>{
     name: 'Bruto',
     portrait: 'assets/characters/zombies/portraits/brute.png',
     lesson:
-        'Gli zombi bruti si muovono come i vaganti, ma servono due colpi di '
-        'pistola per abbatterli',
+        'Gli zombi bruti sono lentissimi, fanno un passo ogni tre tuoi, ma '
+        'servono due colpi di pistola per abbatterli',
     description:
         'Un colosso già prima di cambiare, e la mutazione lo ha gonfiato '
-        'ancora. Avanza al passo di un vagante e ci vede poco, ma sente il '
+        'ancora. Fa un passo ogni tre dei tuoi e ci vede poco, ma sente il '
         'minimo rumore da lontano. Il primo colpo non lo ferma: ne servono '
         'due.',
     introducedOnSight: true,
