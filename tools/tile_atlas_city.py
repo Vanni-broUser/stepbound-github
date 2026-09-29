@@ -663,8 +663,9 @@ def facade_rules(atlas: Atlas, rng, old_town: bool,
             lambda c=c: tile_of(lambda d: paint_window(d, c, rng)), 24))
     rules.append(rule("structures", FACADE, windows, window_keys))
 
-    # The street level: a shop under an awning if the building is four
-    # floors or more, a door on the middle tile of each building if not.
+    # The street level: a door on the middle tile of each building. The
+    # shops of Molfetta are the named ones (see storefronts); only Rome
+    # tells its tall palazzi apart.
     keys = colour_keys + [neighbour_key(0, 1, FACADE),
                           neighbour_key(0, -3, FACADE),
                           pattern_key(1, 0, SPAN, values=(1, 6, 12))]
@@ -680,8 +681,6 @@ def facade_rules(atlas: Atlas, rng, old_town: bool,
         if rome:
             return (lambda d, px, py, c=c, dr=door, t=tall:
                     paint_rome_street(d, px, py, c, dr, t, rng))
-        if tall:
-            return lambda d, px, py, c=c: paint_shop(d, px, py, c, rng)
         return lambda d, px, py, c=c, dr=door: paint_street_door(
             d, px, py, c, dr, rng)
 
@@ -698,18 +697,6 @@ def facade_rules(atlas: Atlas, rng, old_town: bool,
                 extra["buckets"][index] = []
     rules.append(rule("structures", FACADE, buckets, keys, pieces))
     return rules
-
-
-def paint_shop(d, px, py, c, rng):
-    """The shut shop at the foot of a tall building, under its striped
-    awning, which the baker hung two pixels into the floor above."""
-    shop_top = py + 2
-    rect(d, px, shop_top, TILE, TILE - 2, brushes.SHOP_DARK)
-    rect(d, px, shop_top + 4, TILE, 1, (48, 40, 40))
-    for i in range(0, TILE, 4):
-        torn = rng.random() < 0.2
-        rect(d, px + i, shop_top - 4, 4, 2 if torn else 4 + (i * 5 % 3),
-             brushes.RED if (i // 4) % 2 else brushes.CREAM)
 
 
 def paint_street_door(d, px, py, c, door, rng):

@@ -95,13 +95,17 @@ OUTLINE = (16, 12, 14)
 # They are decorations: every one is wrecked and shut. The rest of a band
 # with shops gets ordinary houses.
 STREET_STOREFRONTS = {
+    # The dead-end street off the road north: the burning window at column
+    # 33 is left to the houses.
+    14: [
+        (21, 5, "pizzeria"),
+        (28, 4, "bar"),
+        (34, 6, "burger"),
+    ],
     38: [
         (4, 5, "kebab"),
         (9, 4, "alimentari"),
-        (20, 5, "pizzeria"),
-        (25, 4, "bar"),
         (29, 5, "abbigliamento"),
-        (34, 6, "burger"),
     ],
 }
 NORTH_STOREFRONTS = {
