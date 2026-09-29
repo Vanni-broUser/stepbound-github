@@ -123,6 +123,10 @@ enum HudElement {
   duomoKey,
   molotov,
   grapplingHook,
+
+  /// The rocket launcher's badge, with the rounds for it counted: dimmed
+  /// until the launcher itself is found.
+  rockets,
 }
 
 extension HudElementLevel on HudElement {

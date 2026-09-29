@@ -184,10 +184,9 @@ final class Soundscape {
           add(Sfx.step);
         case DoorChangedEvent(:final at):
           add(Sfx.door, tile: at);
-        // The hook makes no sound of its own yet.
-        case TeleportedEvent(:final entityId, grappled: false)
+        case TeleportedEvent(:final entityId, :final grappled)
             when entityId == playerId:
-          add(Sfx.door);
+          add(grappled ? Sfx.grapple : Sfx.door);
         case ShotEvent(:final impact, :final hitEntityId):
           add(Sfx.gunshot);
           if (hitEntityId != null) {

@@ -23,6 +23,16 @@ final class BackpacksScript extends StoryScript {
   static const String grapplingHookLesson =
       'Con il rampino puoi raggiungere i tetti vicini che non riuscivi a '
       'raggiungere';
+  static const String noRocketLauncher = 'Non hai un lanciarazzi';
+
+  /// "Non hai un lanciarazzi" only while the player really has none.
+  static String rocketsFound(int rounds, {required bool hasLauncher}) {
+    final found = rounds == 1
+        ? 'Hai trovato 1 colpo per lanciarazzi'
+        : 'Hai trovato $rounds colpi per lanciarazzi';
+    return hasLauncher ? found : '$found. $noRocketLauncher';
+  }
+
   static String molotovFound(int count) => 'Hai trovato $count molotov';
   static const String molotovLesson = 'Le molotov fanno danno ad area';
 
@@ -76,10 +86,26 @@ final class BackpacksScript extends StoryScript {
       :final cultistRobe,
       :final duomoKey,
       :final grapplingHook,
+      :final rockets,
     )) {
       host.playPickupAnimation();
       // The Duomo's script tells of the robe: it dresses Mario in it.
       if (cultistRobe) {
+        return;
+      }
+      if (rockets > 0) {
+        final hasLauncher = world.player
+            .component<AmmoComponent>()
+            .hasRocketLauncher;
+        say(
+          StoryPrompt(
+            <StoryLine>[
+              StoryLine(rocketsFound(rockets, hasLauncher: hasLauncher)),
+            ],
+            delay: StoryDirector.pickupDelay,
+            onShown: () => host.unlock(HudElement.rockets),
+          ),
+        );
         return;
       }
       if (grapplingHook) {

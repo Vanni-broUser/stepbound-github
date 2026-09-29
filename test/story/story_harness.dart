@@ -192,6 +192,7 @@ PickedUpEvent pickedUp(
   bool duomoKey = false,
   bool grapplingHook = false,
   int molotovs = 0,
+  int rockets = 0,
 }) => PickedUpEvent(
   pickupId: id,
   at: world.pickups[id]!.position,
@@ -203,6 +204,7 @@ PickedUpEvent pickedUp(
   duomoKey: duomoKey,
   grapplingHook: grapplingHook,
   molotovs: molotovs,
+  rockets: rockets,
 );
 
 /// Molfetta from the start, a fresh director over it.

@@ -54,6 +54,13 @@ final class _Stage implements EventStage {
       log.add('through:$from>$to');
 
   @override
+  void grapple({
+    required GridPoint from,
+    required GridPoint anchor,
+    required GridPoint to,
+  }) => log.add('grapple:$from>$anchor>$to');
+
+  @override
   void groundCaughtFire(GridPoint at) => log.add('fire:$at');
 
   @override
@@ -159,6 +166,23 @@ void main() {
       ),
     ]);
     expect(progress.steps[progress.level], 1);
+  });
+
+  test('a swing with the grappling hook: Mario throws it as he throws a '
+      'molotov, and it catches on the edge just behind where it lands him; '
+      'no door, no fade', () {
+    presenter.present(1, const <WorldEvent>[
+      TeleportedEvent(
+        entityId: 'player',
+        from: GridPoint(16, 19),
+        to: GridPoint(25, 19),
+        grappled: true,
+      ),
+    ]);
+    expect(stage.log, <String>[
+      'player:throwGrapple',
+      'grapple:(16, 19)>(24, 19)>(25, 19)',
+    ]);
   });
 
   test('each event plays its animation', () {

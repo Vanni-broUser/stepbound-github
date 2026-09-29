@@ -20,7 +20,7 @@ enum PlayerPoseFamily { locomotion, oneHanded, throwable, pickup }
 /// it: the outfit gives the moveset, the weapon its design. The molotov is
 /// one bottle placed per frame; the pistols are a whole sheet on the pose's
 /// own grid (see tools/generate_protagonist_actions.py).
-enum PlayerWeaponSprite { molotov, pistol, goldenPistol }
+enum PlayerWeaponSprite { molotov, pistol, goldenPistol, grapplingHook }
 
 final class CharacterComponent extends PositionComponent with StandsOnFloor {
   CharacterComponent({
@@ -125,6 +125,11 @@ final class CharacterComponent extends PositionComponent with StandsOnFloor {
         assets,
         'assets/objects/molotov_held.png',
       );
+      _weaponSprites[PlayerWeaponSprite.grapplingHook] =
+          await _loadOptionalImage(
+            assets,
+            'assets/objects/grappling_hook_held.png',
+          );
       _weaponSprites[PlayerWeaponSprite.pistol] = await _loadOptionalImage(
         assets,
         'assets/objects/pistol_held.png',
@@ -207,16 +212,24 @@ final class CharacterComponent extends PositionComponent with StandsOnFloor {
     _startAction(CharacterAction.fire, rowFor(facing), fireDuration);
   }
 
-  /// Winds up with the outfit-specific throwable pose. The bottle remains a
-  /// shared layer and disappears on [throwReleaseDelay].
-  void playThrow(Direction facing) {
+  /// Winds up with the outfit-specific throwable pose. What is thrown, the
+  /// bottle or the grappling hook, is a shared layer in the hand and
+  /// disappears on [throwReleaseDelay].
+  void playThrow(
+    Direction facing, {
+    PlayerWeaponSprite thrown = PlayerWeaponSprite.molotov,
+  }) {
     if (_poseAtlases[PlayerPoseFamily.throwable] == null ||
-        _weaponSprites[PlayerWeaponSprite.molotov] == null ||
+        _weaponSprites[thrown] == null ||
         _action == CharacterAction.death) {
       return;
     }
+    _thrown = thrown;
     _startAction(CharacterAction.throwWeapon, rowFor(facing), throwDuration);
   }
+
+  /// What the throw under way has in hand.
+  PlayerWeaponSprite _thrown = PlayerWeaponSprite.molotov;
 
   /// Crouch, grab the backpack in front and stand up again.
   void playPickup(Direction facing) {
@@ -357,7 +370,7 @@ final class CharacterComponent extends PositionComponent with StandsOnFloor {
           _poseAtlases[PlayerPoseFamily.throwable]!,
           _actionRow,
           column,
-          weapon: column == 3 ? PlayerWeaponSprite.molotov : null,
+          weapon: column == 3 ? _thrown : null,
         );
       case CharacterAction.pickup
           when _poseAtlases[PlayerPoseFamily.pickup] != null:
@@ -504,10 +517,15 @@ final class CharacterComponent extends PositionComponent with StandsOnFloor {
     int column, {
     PlayerWeaponSprite? weapon,
   }) {
+    // Wound back behind the head: the bottle only facing away, the hook,
+    // too wide to hold in front of the face, whichever way he faces.
     final behind =
-        weapon == PlayerWeaponSprite.molotov && row == 3 && column == 3;
+        weapon != null &&
+        column == 3 &&
+        (weapon == PlayerWeaponSprite.grapplingHook ||
+            (weapon.isThrown && row == 3));
     if (behind) {
-      _drawWeapon(canvas, PlayerWeaponSprite.molotov, row, column);
+      _drawWeapon(canvas, weapon, row, column);
     }
     _drawCell(canvas, poseAtlas, row, column);
     if (weapon != null && !behind) {
@@ -522,7 +540,7 @@ final class CharacterComponent extends PositionComponent with StandsOnFloor {
     int column,
   ) {
     final image = _weaponSprites[weapon];
-    if (weapon != PlayerWeaponSprite.molotov) {
+    if (!weapon.isThrown) {
       // A pistol sheet shares the pose's grid: its cell goes right over.
       if (image != null) {
         _drawCell(canvas, image, row, column);
@@ -682,4 +700,12 @@ final class CharacterComponent extends PositionComponent with StandsOnFloor {
     EntityKind.drunk => 'drunk',
     EntityKind.cultist => 'cultist',
   };
+}
+
+extension on PlayerWeaponSprite {
+  /// Held in the hand of the throwable pose, at its attachment points,
+  /// rather than a sheet on the pose's own grid.
+  bool get isThrown =>
+      this == PlayerWeaponSprite.molotov ||
+      this == PlayerWeaponSprite.grapplingHook;
 }

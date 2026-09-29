@@ -62,6 +62,10 @@ enum Sfx {
   pickup(<String>['sfx/pickup.mp3'], volume: 0.8),
   pickupGun(<String>['sfx/pickup_gun.mp3'], volume: 0.9),
   door(<String>['sfx/door.mp3'], volume: 0.8),
+
+  /// The grappling hook: the rope through the air, the hook catching on
+  /// the stone across the gap, the rope creaking as Mario goes over.
+  grapple(<String>['sfx/grapple.mp3'], volume: 0.9),
   rest(<String>['sfx/rest.mp3'], volume: 0.7),
   zombieAlert(
     <String>[

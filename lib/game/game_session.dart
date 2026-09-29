@@ -343,8 +343,9 @@ final class GameSession {
   /// The train takes Mario and Luigi to [level] from [snapshot], the game
   /// as the last level left it: the game picks up aboard, with the
   /// train's door onto that level's station, and is saved there. Mario's
-  /// rounds and molotovs stay in the level he leaves (see
-  /// [Progress.travel] and [Progress.swapMolotovs]). Rome starts over
+  /// rounds, molotovs and rockets stay in the level he leaves (see
+  /// [Progress.travel], [Progress.swapMolotovs] and
+  /// [Progress.swapRockets]). Rome starts over
   /// from here.
   StepboundGame startLevel(LevelId level, GameSnapshot snapshot) {
     final progress = Progress.fromJson(snapshot.progress);
@@ -352,6 +353,7 @@ final class GameSession {
     final ammo = world.player.component<AmmoComponent>();
     ammo
       ..molotovs = progress.swapMolotovs(level, molotovs: ammo.molotovs)
+      ..rockets = progress.swapRockets(level, rockets: ammo.rockets)
       ..loaded = progress.travel(level, rounds: ammo.loaded);
     // At the map, but turned away from it: a stray tap on arrival does
     // not open it again.

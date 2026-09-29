@@ -77,6 +77,7 @@ Widget? _badge(HudElement element, {required StepboundGame game}) =>
         ),
       ),
       HudElement.molotov => _MolotovBadge(game: game),
+      HudElement.rockets => _RocketBadge(game: game),
       HudElement.interact || HudElement.shoot => null,
     };
 
@@ -452,6 +453,86 @@ final class _MolotovBadge extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// The rocket launcher and its rounds, like the pistol before it is found:
+/// until Mario has the launcher itself the badge is greyed out and deaf to
+/// taps, and only the count of rounds found keeps up. The launcher does
+/// not fire yet, so there is nothing a tap could do.
+final class _RocketBadge extends StatelessWidget {
+  const _RocketBadge({required this.game});
+
+  static const double spill = _AmmoBadge.spill;
+  final StepboundGame game;
+
+  @override
+  Widget build(BuildContext context) {
+    return ValueListenableBuilder<int>(
+      valueListenable: game.rockets,
+      builder: (context, count, _) => ValueListenableBuilder<bool>(
+        valueListenable: game.hasRocketLauncher,
+        builder: (context, hasLauncher, _) {
+          Widget frame = BloodOverlay(
+            painter: const BloodPainter(
+              band: 3,
+              cornerRadius: 8,
+              drips: <BloodDrip>[BloodDrip(0.26, 10, 3), BloodDrip(0.72, 8, 3)],
+            ),
+            child: Container(
+              key: const ValueKey<String>('hud-rockets'),
+              width: _badgeSize,
+              height: _badgeSize,
+              decoration: _frame(
+                rim: hasLauncher ? BloodColors.fresh : BloodColors.dried,
+              ),
+              child: Align(
+                alignment: const Alignment(0.2, -0.3),
+                child: _Mirrored(
+                  Image.asset(
+                    'assets/objects/rocket_launcher.png',
+                    width: 34,
+                    height: 34,
+                    fit: BoxFit.contain,
+                    filterQuality: FilterQuality.none,
+                  ),
+                ),
+              ),
+            ),
+          );
+          if (!hasLauncher) {
+            frame = ColorFiltered(colorFilter: _greyed, child: frame);
+          }
+          return Semantics(
+            button: true,
+            enabled: hasLauncher,
+            label: hasLauncher
+                ? 'Lanciarazzi, colpi: $count'
+                : 'Lanciarazzi da trovare, colpi: $count',
+            child: Padding(
+              padding: const EdgeInsets.only(left: spill, bottom: spill),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: <Widget>[
+                  frame,
+                  Positioned(
+                    left: -spill,
+                    bottom: -spill,
+                    child: Opacity(
+                      opacity: hasLauncher ? 1 : 0.6,
+                      child: _BloodCount(
+                        key: const ValueKey<String>('hud-rockets-count'),
+                        text: '×$count',
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           );

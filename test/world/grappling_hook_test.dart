@@ -151,4 +151,35 @@ void main() {
     final without = restoreGameWorld(saveGameWorld(createGameWorld()));
     expect(without.player.component<AmmoComponent>().grapplingHook, isFalse);
   });
+
+  test('the backpack on the other tower holds a round for the rocket '
+      'launcher, and Mario carries it without the launcher', () {
+    final world = createGameWorld();
+    final backpack = world.pickups[duomoFarTowerBackpackId]!;
+    expect(backpack.rockets, 1);
+    expect(backpack.ammo, 0);
+    world.player.component<PositionComponent>()
+      ..position = backpack.position.step(Direction.west)
+      ..facing = Direction.east;
+    final events = const TurnScheduler().advance(world, const InteractAction());
+    expect(events.whereType<PickedUpEvent>().single.rockets, 1);
+    final ammo = world.player.component<AmmoComponent>();
+    expect(ammo.rockets, 1);
+    expect(ammo.hasRocketLauncher, isFalse);
+
+    final restored = restoreGameWorld(saveGameWorld(world));
+    expect(restored.player.component<AmmoComponent>().rockets, 1);
+  });
+
+  test("the cultist comes out on the other tower's roof, out of sight of "
+      'the first and walkable to Mario', () {
+    final world = createGameWorld();
+    final landing = world.grapples[duomoTowerLookoutTile]!.to;
+    expect(world.map.tileAt(duomoFarTowerCultistTile).isWalkable, isTrue);
+    expect(placeAt(duomoFarTowerCultistTile)?.id, PlaceId.duomoTowerRoof);
+    final reached = world.map.floodFillDistances(landing, maxDistance: 400);
+    expect(reached.containsKey(duomoFarTowerCultistTile), isTrue);
+    expect(world.entities.containsKey(duomoFarTowerCultistId), isFalse);
+    expect(duomoFarTowerCultistTile, isNot(duomoFarTowerBackpackTile));
+  });
 }

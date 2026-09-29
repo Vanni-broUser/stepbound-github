@@ -229,6 +229,87 @@ void main() {
     expect(host.unlocked, contains(HudElement.grapplingHook));
   });
 
+  test('a round for the rocket launcher, without the launcher, says there '
+      'is none, and puts up its badge', () {
+    director.onEvents(<WorldEvent>[
+      pickedUp(duomoFarTowerBackpackId, rockets: 1),
+    ]);
+    settle();
+    expect(
+      host.shown.single.single.text,
+      'Hai trovato 1 colpo per lanciarazzi. Non hai un lanciarazzi',
+    );
+    expect(host.unlocked, contains(HudElement.rockets));
+  });
+
+  test('with the launcher, only what was found is said', () {
+    world.player.component<AmmoComponent>().hasRocketLauncher = true;
+    director.onEvents(<WorldEvent>[
+      pickedUp(duomoFarTowerBackpackId, rockets: 1),
+    ]);
+    settle();
+    expect(
+      host.shown.single.single.text,
+      'Hai trovato 1 colpo per lanciarazzi',
+    );
+    expect(
+      BackpacksScript.rocketsFound(3, hasLauncher: true),
+      'Hai trovato 3 colpi per lanciarazzi',
+    );
+  });
+
+  group("on the Duomo's other tower", () {
+    TeleportedEvent swing(GridPoint edge) => TeleportedEvent(
+      entityId: world.playerId,
+      from: edge.step(world.grapples[edge]!.facing.opposite),
+      to: world.grapples[edge]!.to,
+      grappled: true,
+    );
+
+    test('a cultist comes up after Mario the first time he lands there, '
+        'once the line is read, headed straight for him', () {
+      director.onEvents(<WorldEvent>[swing(duomoTowerLookoutTile)]);
+      settle();
+      expect(host.shown.single.single.text, RooftopsScript.grappleLine);
+      expect(host.spawned, isEmpty, reason: 'not while he reads');
+      host.dismiss();
+
+      final cultist = host.spawned.single;
+      expect(cultist.id, duomoFarTowerCultistId);
+      expect(cultist.kind, EntityKind.cultist);
+      expect(
+        cultist.component<PositionComponent>().position,
+        duomoFarTowerCultistTile,
+      );
+      expect(cultist.component<HearingComponent>().lastHeard, isNotNull);
+
+      // Back and over again: it came out once.
+      director.onEvents(<WorldEvent>[swing(duomoFarTowerEdgeTile)]);
+      settle();
+      host.dismiss();
+      director.onEvents(<WorldEvent>[swing(duomoTowerLookoutTile)]);
+      settle();
+      host.dismiss();
+      expect(host.spawned, hasLength(1));
+      expect(director.toJson()['rooftops'], <String, Object?>{
+        'towerCultist': true,
+      });
+    });
+
+    test('nowhere else', () {
+      for (final edge in <GridPoint>[
+        rooftopGapTile,
+        hospitalRoofLookoutTile,
+        duomoFarTowerEdgeTile,
+      ]) {
+        director.onEvents(<WorldEvent>[swing(edge)]);
+        settle();
+        host.dismiss();
+      }
+      expect(host.spawned, isEmpty);
+    });
+  });
+
   test("Molfetta's errands stay in Molfetta; the hook goes everywhere", () {
     expect(HudElement.duomoKey.level, LevelId.hometown);
     expect(HudElement.barKey.level, LevelId.hometown);
@@ -237,6 +318,7 @@ void main() {
     expect(HudElement.grapplingHook.level, isNull);
     expect(HudElement.ammo.level, isNull);
     expect(HudElement.molotov.level, isNull);
+    expect(HudElement.rockets.level, isNull);
   });
 
   test('a look anywhere else is no business of the rooftops script', () {

@@ -7,7 +7,9 @@ import 'package:stepbound/game/story/story_director.dart';
 /// nave, the hospital's roof the block east of it. Without the grappling
 /// hook, looking over is all Mario can do: the gap is measured for him,
 /// and he can come back and look again. With it, he swings across, and
-/// the game says so.
+/// the game says so. The first time he lands on the Duomo's other tower,
+/// after the backpack seen from the first, a cultist comes up there after
+/// him.
 final class RooftopsScript extends StoryScript {
   RooftopsScript(super.director);
 
@@ -15,14 +17,23 @@ final class RooftopsScript extends StoryScript {
       'Il tetto vicino non è molto distante, è raggiungibile con un rampino';
   static const String grappleLine = 'Mario usa il rampino';
 
+  /// Whether the cultist on the Duomo's other tower has come out.
+  bool _towerCultistOut = false;
+
   @override
   String get key => 'rooftops';
 
   @override
   void onEvent(WorldEvent event) {
-    if (event case TeleportedEvent(grappled: true)) {
-      // Said on the far side: the swing itself is still to be drawn.
-      say(StoryPrompt(const <StoryLine>[StoryLine(grappleLine)]));
+    if (event case TeleportedEvent(grappled: true, :final to)) {
+      final ontoFarTower =
+          !_towerCultistOut && to == world.grapples[duomoTowerLookoutTile]?.to;
+      // Said once he has landed: prompts wait for the swing to play.
+      say(
+        StoryPrompt(const <StoryLine>[
+          StoryLine(grappleLine),
+        ], onDismissed: ontoFarTower ? _raiseTowerCultist : null),
+      );
       return;
     }
     if (event is! LookedOutEvent ||
@@ -34,9 +45,27 @@ final class RooftopsScript extends StoryScript {
     say(StoryPrompt(const <StoryLine>[StoryLine(gapLesson)]));
   }
 
-  @override
-  Map<String, Object?> toJson() => const <String, Object?>{};
+  /// The cultist comes out of the far corner of the other tower, headed
+  /// for where Mario landed: it sees him at once, and raises the alert.
+  void _raiseTowerCultist() {
+    if (_towerCultistOut) {
+      return;
+    }
+    _towerCultistOut = true;
+    final cultist = createDuomoTowerCultist();
+    cultist.component<HearingComponent>().lastHeard = world.player
+        .component<PositionComponent>()
+        .position;
+    host.spawnZombie(cultist);
+  }
 
   @override
-  void restore(Map<String, Object?> json) {}
+  Map<String, Object?> toJson() => <String, Object?>{
+    if (_towerCultistOut) 'towerCultist': true,
+  };
+
+  @override
+  void restore(Map<String, Object?> json) {
+    _towerCultistOut = json['towerCultist'] as bool? ?? false;
+  }
 }

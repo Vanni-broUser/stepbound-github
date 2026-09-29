@@ -128,6 +128,7 @@ final class ScenarioBuilder {
     final ammo = world.player.component<AmmoComponent>();
     ammo
       ..molotovs = progress.swapMolotovs(level, molotovs: ammo.molotovs)
+      ..rockets = progress.swapRockets(level, rockets: ammo.rockets)
       ..loaded = progress.travel(level, rounds: ammo.loaded);
     if (level == LevelId.rome) {
       remember(StoryMemory.presidentFled);
@@ -402,16 +403,12 @@ final List<TestScenario> testScenarios = <TestScenario>[
   // Found in Rome and brought home: the hospital's roof, a step from the
   // gap to the next block.
   TestScenario('Molfetta, con il rampino', (story) {
-    _molfettaDone(story);
-    story
-      ..travelTo(LevelId.rome)
-      ..script('rome', <String, Object?>{'welcomed': true})
-      ..script('journey', <String, Object?>{'taught': true})
-      ..collect(grapplingHookPickupId)
-      ..unlock(HudElement.grapplingHook)
-      ..travelTo(LevelId.hometown)
-      ..restAt(hospitalRoofCampfireTile);
-    story.world.player.component<AmmoComponent>().grapplingHook = true;
+    _hookBroughtHome(story);
+    story.restAt(hospitalRoofCampfireTile);
+  }),
+  TestScenario('Duomo, le torri con il rampino', (story) {
+    _hookBroughtHome(story);
+    story.restNearest(duomoTowerLookoutTile);
   }),
   vanniDeployScenario,
 ];
@@ -551,4 +548,18 @@ void _upstairs(ScenarioBuilder story) {
       given: const <Mission>[Mission.initiation],
     )
     ..script('duomo', <String, Object?>{'ringDelivered': true});
+}
+
+/// Molfetta done, the grappling hook found in Rome, and the train back
+/// home with it.
+void _hookBroughtHome(ScenarioBuilder story) {
+  _molfettaDone(story);
+  story
+    ..travelTo(LevelId.rome)
+    ..script('rome', <String, Object?>{'welcomed': true})
+    ..script('journey', <String, Object?>{'taught': true})
+    ..collect(grapplingHookPickupId)
+    ..unlock(HudElement.grapplingHook)
+    ..travelTo(LevelId.hometown);
+  story.world.player.component<AmmoComponent>().grapplingHook = true;
 }

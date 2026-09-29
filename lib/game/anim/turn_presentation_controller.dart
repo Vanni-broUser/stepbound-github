@@ -1,6 +1,7 @@
 import 'dart:collection';
 
 import 'package:stepbound/core/core.dart';
+import 'package:stepbound/game/render/grapple_component.dart';
 
 final class VisualPosition {
   const VisualPosition(this.x, this.y);
@@ -9,9 +10,22 @@ final class VisualPosition {
 }
 
 final class MovementTrack {
-  const MovementTrack({required this.from, required this.to});
+  const MovementTrack({
+    required this.from,
+    required this.to,
+    this.startAt = 0,
+    this.walking = true,
+  });
   final GridPoint from;
   final GridPoint to;
+
+  /// How far into the turn the movement starts: before, the entity waits
+  /// at [from]; from there it eases into [to] by the end of the turn.
+  final double startAt;
+
+  /// False when the entity is carried rather than walking (along the rope
+  /// of the grappling hook): its legs stay still.
+  final bool walking;
 }
 
 final class TurnPresentationController {
@@ -30,14 +44,17 @@ final class TurnPresentationController {
   final Map<String, MovementTrack> _movements = <String, MovementTrack>{};
   List<WorldEvent> _lastEvents = const <WorldEvent>[];
   double _elapsed = 0;
+
+  /// This turn's length: [turnDuration], or longer for a swing across a
+  /// gap with the grappling hook.
+  double _duration = 0.13;
   bool _isAnimating = false;
   int _turnCount = 0;
 
   bool get isAnimating => _isAnimating;
   int get bufferedActionCount => _buffer.length;
   int get turnCount => _turnCount;
-  double get progress =>
-      _isAnimating ? (_elapsed / turnDuration).clamp(0, 1) : 1;
+  double get progress => _isAnimating ? (_elapsed / _duration).clamp(0, 1) : 1;
   List<WorldEvent> get lastEvents => List<WorldEvent>.unmodifiable(_lastEvents);
 
   void submit(PlayerAction action) {
@@ -53,7 +70,7 @@ final class TurnPresentationController {
   void update(double dt) {
     var remaining = dt;
     while (_isAnimating && remaining > 0) {
-      final untilComplete = turnDuration - _elapsed;
+      final untilComplete = _duration - _elapsed;
       if (remaining < untilComplete) {
         _elapsed += remaining;
         return;
@@ -74,7 +91,15 @@ final class TurnPresentationController {
           .position;
       return VisualPosition(point.x.toDouble(), point.y.toDouble());
     }
-    final amount = progress;
+    var amount = progress;
+    if (movement.startAt > 0) {
+      final t = ((amount - movement.startAt) / (1 - movement.startAt)).clamp(
+        0.0,
+        1.0,
+      );
+      // Eased: slow off the edge, quick over the gap, slow to land.
+      amount = t * t * (3 - 2 * t);
+    }
     return VisualPosition(
       movement.from.x + (movement.to.x - movement.from.x) * amount,
       movement.from.y + (movement.to.y - movement.from.y) * amount,
@@ -82,7 +107,7 @@ final class TurnPresentationController {
   }
 
   bool isEntityMoving(String entityId) =>
-      _isAnimating && _movements.containsKey(entityId);
+      _isAnimating && (_movements[entityId]?.walking ?? false);
 
   void clearBuffer() => _buffer.clear();
 
@@ -99,6 +124,24 @@ final class TurnPresentationController {
           ),
         ),
       );
+    _duration = turnDuration;
+    for (final event in _lastEvents) {
+      if (event case TeleportedEvent(
+        grappled: true,
+        :final entityId,
+        :final from,
+        :final to,
+      )) {
+        _duration = GrappleComponent.totalSeconds;
+        _movements[entityId] = MovementTrack(
+          from: from,
+          to: to,
+          startAt:
+              GrappleComponent.throwSeconds / GrappleComponent.totalSeconds,
+          walking: false,
+        );
+      }
+    }
     _elapsed = 0;
     _isAnimating = true;
   }

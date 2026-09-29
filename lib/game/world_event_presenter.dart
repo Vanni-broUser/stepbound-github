@@ -9,7 +9,7 @@ import 'package:stepbound/game/render/molotov_blast_component.dart';
 import 'package:stepbound/report/breadcrumbs.dart';
 
 /// What a character is asked to play for an event.
-enum CharacterCue { fire, throwWeapon, hit, bite, death, alert }
+enum CharacterCue { fire, throwWeapon, throwGrapple, hit, bite, death, alert }
 
 /// The stage the events are played on: what the game lends the presenter,
 /// and no more. Animations are asked for by name, so the presenter needs
@@ -41,6 +41,14 @@ abstract interface class EventStage {
 
   /// Mario has stepped through a door or along a road.
   void goThrough({required GridPoint from, required GridPoint to});
+
+  /// Mario throws the grappling hook from [from] to catch on [anchor],
+  /// the edge across the gap, and goes over along its rope to [to].
+  void grapple({
+    required GridPoint from,
+    required GridPoint anchor,
+    required GridPoint to,
+  });
 
   /// The ground at [at] has caught fire.
   void groundCaughtFire(GridPoint at);
@@ -157,6 +165,19 @@ final class WorldEventPresenter {
           stage.restAt(at);
         case MovedEvent(:final entityId) when entityId == playerId:
           progress.countStep();
+        case TeleportedEvent(grappled: true, :final from, :final to):
+          // Thrown like a molotov: he already faces the way it flies. The
+          // edge the hook catches on is the one just behind where it lands
+          // him.
+          stage.play(playerId, CharacterCue.throwGrapple);
+          stage.grapple(
+            from: from,
+            anchor: GridPoint(
+              to.x - (to.x - from.x).sign,
+              to.y - (to.y - from.y).sign,
+            ),
+            to: to,
+          );
         case TeleportedEvent(:final from, :final to):
           stage.goThrough(from: from, to: to);
         case AlertedEvent(entityId: final spotter):

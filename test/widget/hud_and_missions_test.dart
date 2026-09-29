@@ -63,6 +63,39 @@ void main() {
     });
   });
 
+  testWidgets('without the launcher, its rounds wait greyed out and '
+      'deaf to taps, counted', (tester) {
+    return tester.runAsync(() async {
+      final semantics = tester.ensureSemantics();
+      final game = await pumpReadyGame(tester);
+      game.simulation.player.component<AmmoComponent>().rockets = 1;
+      game.unlock(HudElement.rockets);
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      game.update(1 / 30);
+      await tester.pump();
+      expect(find.byKey(const ValueKey<String>('hud-rockets')), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey<String>('hud-rockets-count')),
+          matching: find.text('×1'),
+        ),
+        findsWidgets,
+      );
+      expect(
+        find.ancestor(
+          of: find.byKey(const ValueKey<String>('hud-rockets')),
+          matching: find.byType(ColorFiltered),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel(RegExp('^Lanciarazzi da trovare, colpi: 1')),
+        findsOneWidget,
+      );
+      semantics.dispose();
+    });
+  });
+
   testWidgets('quest inventory badges show their item name when tapped', (
     tester,
   ) {

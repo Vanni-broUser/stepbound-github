@@ -222,6 +222,23 @@ void main() {
       expect(cues.first.volume, 1);
     });
 
+    test('a door creaks; the grappling hook whips, catches and creaks', () {
+      final soundscape = Soundscape(world: _corridor(), fires: const []);
+      Sfx? of({required bool grappled}) => soundscape
+          .soundsFor(<WorldEvent>[
+            TeleportedEvent(
+              entityId: 'player',
+              from: const GridPoint(1, 1),
+              to: const GridPoint(4, 1),
+              grappled: grappled,
+            ),
+          ])
+          .single
+          .sfx;
+      expect(of(grappled: false), Sfx.door);
+      expect(of(grappled: true), Sfx.grapple);
+    });
+
     test('a bite on Mario sounds, a zombie out of earshot does not', () {
       final soundscape = Soundscape(
         world: _corridor(zombieAt: Soundscape.hearingRadius.toInt() + 2),

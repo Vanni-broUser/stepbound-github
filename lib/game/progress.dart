@@ -144,6 +144,7 @@ final class Progress {
     Iterable<String> litCampfires = const <String>[],
     Map<LevelId, int> roundsLeft = const <LevelId, int>{},
     Map<LevelId, int> molotovsLeft = const <LevelId, int>{},
+    Map<LevelId, int> rocketsLeft = const <LevelId, int>{},
     MissionLog? missions,
     Iterable<SecretMission> secretMissions = const <SecretMission>[],
   }) : missions = missions ?? MissionLog(),
@@ -151,6 +152,7 @@ final class Progress {
        steps = Map<LevelId, int>.of(steps),
        roundsLeft = Map<LevelId, int>.of(roundsLeft),
        molotovsLeft = Map<LevelId, int>.of(molotovsLeft),
+       rocketsLeft = Map<LevelId, int>.of(rocketsLeft),
        litCampfires = Set<String>.of(litCampfires),
        knownZombies = Set<EntityKind>.of(knownZombies),
        memories = Set<StoryMemory>.of(memories),
@@ -227,6 +229,13 @@ final class Progress {
             in (json['molotovsLeft']! as Map<String, Object?>).entries)
           LevelId.values.byName(key): value! as int,
       },
+      rocketsLeft: <LevelId, int>{
+        for (final MapEntry(:key, :value)
+            in (json['rocketsLeft'] as Map<String, Object?>? ??
+                    const <String, Object?>{})
+                .entries)
+          LevelId.values.byName(key): value! as int,
+      },
       missions: MissionLog.fromJson(json['missions']! as Map<String, Object?>),
       secretMissions: <SecretMission>[
         for (final name
@@ -278,6 +287,10 @@ final class Progress {
   /// like the rounds, they stay where they were found.
   final Map<LevelId, int> molotovsLeft;
 
+  /// The rounds for the rocket launcher Mario had on him when the train
+  /// last left each level: used up like the rest, they stay behind.
+  final Map<LevelId, int> rocketsLeft;
+
   /// What Mario has been asked to do, open and done, in every level.
   final MissionLog missions;
 
@@ -311,6 +324,12 @@ final class Progress {
   int swapMolotovs(LevelId destination, {required int molotovs}) {
     molotovsLeft[level] = molotovs;
     return molotovsLeft[destination] ?? 0;
+  }
+
+  /// Like [swapMolotovs], for the rounds of the rocket launcher.
+  int swapRockets(LevelId destination, {required int rockets}) {
+    rocketsLeft[level] = rockets;
+    return rocketsLeft[destination] ?? 0;
   }
 
   /// Whether Mario has been to [level] at least once: Molfetta always,
@@ -399,6 +418,11 @@ final class Progress {
       for (final MapEntry(:key, :value) in molotovsLeft.entries)
         key.name: value,
     },
+    if (rocketsLeft.isNotEmpty)
+      'rocketsLeft': <String, int>{
+        for (final MapEntry(:key, :value) in rocketsLeft.entries)
+          key.name: value,
+      },
     'missions': missions.toJson(),
     'secretMissions': <String>[
       for (final mission in secretMissions) mission.name,
