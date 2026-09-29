@@ -236,16 +236,22 @@ void main() {
     expect(flow.game!.progress.level, LevelId.rome);
   });
 
-  test('leaving the front silences the game and writes it down once', () {
+  test('leaving the front silences the game and stops the clock', () {
     flow.leftFront();
     expect(audio.paused, isTrue);
-    expect(flow.putDown, isTrue);
-    flow.leftFront();
-    expect(flow.putDown, isTrue);
-
     flow.cameToFront();
     expect(audio.paused, isFalse);
     expect(flow.putDown, isFalse);
+  });
+
+  test('the game counts as put down only once it is written', () async {
+    expect(flow.putDown, isFalse);
+    flow.leftFront();
+    await Future<void>.delayed(Duration.zero);
+    expect(flow.putDown, isFalse, reason: 'no game: nothing was written');
+    flow.leftFront();
+    await Future<void>.delayed(Duration.zero);
+    expect(flow.putDown, isFalse, reason: 'and the next step tries again');
   });
 
   test('nothing is written down unless a game is playing', () async {
@@ -253,7 +259,7 @@ void main() {
     flow
       ..finishIntro()
       ..finishOutbreak();
-    await flow.suspend();
+    expect(await flow.suspend(), isFalse);
     expect(
       await saves.read(1),
       isA<EmptySave>(),

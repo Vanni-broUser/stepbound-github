@@ -315,8 +315,9 @@ final class GameSession {
 
   /// Writes [snapshot], the game as it was put down, beside the slot's
   /// save, to be picked up from the menu; the campfire's save stays the
-  /// one to go back to (see [StepboundGame.putDownSnapshot]).
-  Future<void> suspend(GameSnapshot snapshot) async {
+  /// one to go back to (see [StepboundGame.putDownSnapshot]). False when
+  /// it could not be written.
+  Future<bool> suspend(GameSnapshot snapshot) async {
     try {
       await saves.suspend(
         SaveGame(
@@ -334,7 +335,9 @@ final class GameSession {
       );
     } on SaveWriteException catch (error) {
       debugPrint('save: $error');
+      return false;
     }
+    return true;
   }
 
   /// The train takes Mario and Luigi to [level] from [snapshot], the game
