@@ -17,6 +17,9 @@ final class SilentStoryHost implements StoryHost, HometownActions {
   void showPrompt(List<StoryLine> lines, {void Function()? onDismissed}) {}
 
   @override
+  bool get inPlay => false;
+
+  @override
   bool get isPromptVisible => false;
 
   @override
