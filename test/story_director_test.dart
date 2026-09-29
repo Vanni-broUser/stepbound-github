@@ -650,6 +650,15 @@ void main() {
     expect(host.shown.single.single.text, RooftopsScript.gapLesson);
   });
 
+  test('from the hospital roof the next block is a grappling hook away '
+      'too', () {
+    director.onEvents(<WorldEvent>[
+      LookedOutEvent(at: hospitalRoofLookoutTile),
+    ]);
+    settle();
+    expect(host.shown.single.single.text, RooftopsScript.gapLesson);
+  });
+
   test('a look anywhere else is no business of the rooftops script', () {
     director.onEvents(<WorldEvent>[const LookedOutEvent(at: GridPoint(0, 0))]);
     settle();

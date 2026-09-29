@@ -35,6 +35,10 @@ enum PlaceId {
   duomoTower,
   duomoBells,
   duomoTowerRoof,
+  hospitalFirstFloor,
+  hospitalSecondFloor,
+  hospitalThirdFloor,
+  hospitalRoof,
   terminiOverpass,
   terminiFarPlatform,
   terminiConcourse,
@@ -59,8 +63,8 @@ enum LevelId {
 /// places need not all be in memory at once, however much it grows.
 enum AreaId {
   /// Molfetta from the street Mario wakes up in to the station: the
-  /// barracks, the north district with the hypermarket, the airliner and
-  /// the station's three places.
+  /// barracks, the north district with the hypermarket and the hospital,
+  /// the airliner and the station's three places.
   hometownTown(LevelId.hometown),
 
   /// Molfetta's harbour and old town: the Duomo and its tower, the Bar

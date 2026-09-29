@@ -1325,7 +1325,7 @@ def city_place(atlas: Atlas, rng, name: str, marker, storefront_table,
     specials = (
         ("KE", "barracks", lambda d, lv: sl.paint_barracks(d, lv)),
         ("Mm", "hypermarket", lambda d, lv: sl.paint_hypermarket(d, rng, lv)),
-        ("G", "hospital", lambda d, lv: sl.paint_hospital(d, rng, lv)),
+        ("G$", "hospital", lambda d, lv: sl.paint_hospital(d, rng, lv)),
         ("0()", "station", lambda d, lv: sl.paint_station(d, rng, lv)),
         ("W", "duomo", lambda d, lv: sl.paint_duomo(d, rng, lv)),
         ("#(", "church", lambda d, lv: sl.paint_small_church(d, rng, lv)),

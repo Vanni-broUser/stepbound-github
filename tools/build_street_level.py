@@ -1360,9 +1360,10 @@ def paint_hoarding(d, rng, x, y, w, h, text):
 
 def paint_hospital(d, rng, level):
     """The hospital at the end of the west road: pale plastered block, rows
-    of windows (some with sheets begging for help), a red cross, the
-    OSPEDALE sign and the emergency entrance, its glass doors smeared with
-    blood."""
+    of windows (some with sheets begging for help), the emergency entrance,
+    its glass doors smeared with blood, and beside it, where it is seen
+    from the stairs, the OSPEDALE board with its red cross. The doors are where the `$` cells are, in the middle of the
+    front: the way in (lib/core/levels/hometown/hospital.dart)."""
     cells = [(x, y) for y in range(level.height) for x in range(level.width)
              if level.at(x, y) == "G"]
     if not cells:
@@ -1377,21 +1378,10 @@ def paint_hospital(d, rng, level):
     rect(d, px, py + 5, w, 1, (90, 96, 94))
     for bx in range(px + 31, px + w, 32):  # structural pillars
         rect(d, bx, py + 6, 3, h - 6, wall_dark)
-    # sign and red cross at the top
-    text = "OSPEDALE"
-    tw = text_width(text) * 2
-    sx = px + (w - tw) // 2 + 10
-    rect(d, sx - 16, py + 8, tw + 22, 14, (240, 240, 236))
-    rect(d, sx - 16, py + 21, tw + 22, 1, trim)
-    paint_text(d, sx, py + 10, text, (40, 70, 140), missing=(4,), scale=2)
-    rect(d, sx - 13, py + 12, 8, 2, (200, 30, 30))  # the cross
-    rect(d, sx - 10, py + 9, 2, 8, (200, 30, 30))
-    rect(d, sx - 14, py + 11, 10, 4, (200, 30, 30))
-    rect(d, sx - 11, py + 8, 4, 10, (200, 30, 30))
     # floors of windows, some shattered, some with sheets hung out
     ground = py + h - 30
     sheets = 0
-    for wy in range(py + 28, ground - 12, 16):
+    for wy in range(py + 12, ground - 12, 16):
         for wx in range(px + 6, px + w - 10, 12):
             roll = rng.random()
             pane = (60, 80, 96) if roll > 0.3 else (PANE_BROKEN if roll > 0.1 else PANE_LIT)
@@ -1422,6 +1412,19 @@ def paint_hospital(d, rng, level):
     rect(d, dx - 7, ground + 16, 4, 12, (236, 236, 230))
     rect(d, dx + door_w + 3, ground + 6, 4, 24, (60, 60, 64))  # drip stand
     rect(d, dx + door_w + 1, ground + 6, 8, 1, (60, 60, 64))
+    # The name, on a board beside the entrance, low enough to be read
+    # from the stairs: the top of the front is out of view from down there.
+    text = "OSPEDALE"
+    tw = text_width(text) * 2
+    bx, by = px + 6, ground - 10
+    rect(d, bx, by, tw + 22, 16, trim)
+    rect(d, bx + 1, by + 1, tw + 20, 14, (240, 240, 236))
+    rect(d, bx + 1, by + 14, tw + 20, 1, (200, 200, 196))
+    rect(d, bx + 5, by + 6, 10, 4, (200, 30, 30))  # the cross
+    rect(d, bx + 8, by + 3, 4, 10, (200, 30, 30))
+    paint_text(d, bx + 18, by + 3, text, (40, 70, 140), scale=2)
+    rect(d, bx + 50, by + 9, 3, 6, BLOOD)  # a bloody hand dragged down it
+    rect(d, bx + 51, by + 15, 1, 4, BLOOD_DARK)
 
 
 def paint_stairs(d, level, x, y):

@@ -19,6 +19,7 @@ export 'package:stepbound/core/levels/hometown/duomo_tower.dart';
 export 'package:stepbound/core/levels/hometown/duomo_tower_roof.dart';
 export 'package:stepbound/core/levels/hometown/duomo_upper.dart';
 export 'package:stepbound/core/levels/hometown/harbour.dart';
+export 'package:stepbound/core/levels/hometown/hospital.dart';
 export 'package:stepbound/core/levels/hometown/mall.dart';
 export 'package:stepbound/core/levels/hometown/mall_north_street.dart';
 export 'package:stepbound/core/levels/hometown/north_district.dart';
@@ -100,9 +101,22 @@ const Legend airlinerLegend = Legend(
 /// other, by whoever gets there.
 const Legend rooftopLegend = Legend(
   walls: 'xW#',
-  obstacles: 'Tnk^>',
+  obstacles: 'Tnk^><',
   fire: '&',
 );
+
+/// The hospital's three floors (hospital.dart): the walls and partitions
+/// are solid, and everything a ward or a waiting room is furnished with
+/// stops a step but not a shot.
+const Legend hospitalLegend = Legend(
+  walls: 'xWwIN',
+  obstacles: 'CTAhLVpsrHBnfMS',
+);
+
+/// The hospital's roof: its walls and the drop are walls, the parapet, the
+/// wall knocked down low `>`, the stacks, the aerials and the camp's fire
+/// can be seen over, and the gravel is noisy.
+const Legend hospitalRoofLegend = Legend(walls: 'xW', obstacles: '^><TnS');
 
 /// The name on the card shown on the way into the harbour.
 const String harbourName = 'Porto e centro storico';
@@ -315,6 +329,49 @@ const List<PlaceSpec> hometownPlaces = <PlaceSpec>[
     rows: duomoTowerRoofRows,
     legend: duomoTowerRoofLegend,
   ),
+  // Painted from its rows out of the tile atlas.
+  PlaceSpec(
+    id: PlaceId.hospitalFirstFloor,
+    area: AreaId.hometownTown,
+    rows: hospitalFirstFloorRows,
+    legend: hospitalLegend,
+    indoor: true,
+    // The emergency lights still on here and there: dim, not black.
+    darkness: 0.8,
+    name: 'Ospedale',
+    // Daylight through the glass doors.
+    daylight: 'E',
+  ),
+  // Painted from its rows out of the tile atlas.
+  PlaceSpec(
+    id: PlaceId.hospitalSecondFloor,
+    area: AreaId.hometownTown,
+    rows: hospitalSecondFloorRows,
+    legend: hospitalLegend,
+    indoor: true,
+    // The emergency lights still on here and there: dim, not black.
+    darkness: 0.8,
+    name: 'Ospedale',
+  ),
+  // Painted from its rows out of the tile atlas.
+  PlaceSpec(
+    id: PlaceId.hospitalThirdFloor,
+    area: AreaId.hometownTown,
+    rows: hospitalThirdFloorRows,
+    legend: hospitalLegend,
+    indoor: true,
+    // The emergency lights still on here and there: dim, not black.
+    darkness: 0.8,
+    name: 'Ospedale',
+  ),
+  // Open to the sky. Painted from its rows out of the tile atlas.
+  PlaceSpec(
+    id: PlaceId.hospitalRoof,
+    area: AreaId.hometownTown,
+    rows: hospitalRoofRows,
+    legend: hospitalRoofLegend,
+    name: 'Tetto dell’ospedale',
+  ),
 ];
 
 final Place _street = place(PlaceId.street);
@@ -338,6 +395,10 @@ final Place _duomoSecond = place(PlaceId.duomoSecondFloor);
 final Place _duomoTower = place(PlaceId.duomoTower);
 final Place _duomoBells = place(PlaceId.duomoBells);
 final Place _duomoRoof = place(PlaceId.duomoTowerRoof);
+final Place _hospitalFirst = place(PlaceId.hospitalFirstFloor);
+final Place _hospitalSecond = place(PlaceId.hospitalSecondFloor);
+final Place _hospitalThird = place(PlaceId.hospitalThirdFloor);
+final Place _hospitalRoof = place(PlaceId.hospitalRoof);
 
 /// The four places [outdoorLegend] describes, the ones tools/
 /// build_street_level.py bakes: what walks the streets, what burns in them
@@ -467,6 +528,31 @@ const String indoorZombiePrefix = 'indoor-wanderer-';
 /// floor area.
 const String mallGroundZombiePrefix = 'mall-ground-wanderer-';
 
+/// The hospital's glass doors at the top of its stairs, in the north
+/// district, and the same doors seen from inside the waiting room.
+final List<GridPoint> hospitalDoors = _north.doorRow(r'$');
+final List<GridPoint> hospitalEntrance = _hospitalFirst.doorRow('E');
+
+/// The hospital's stairs, bottom to top: on each floor the flight `U` up
+/// out of its back wall and, on the floor above, the stairs `D` in the
+/// front wall it comes out on; from the third floor, the hatch `D` in the
+/// roof.
+final List<(GridPoint, GridPoint)> hospitalFlights = <(GridPoint, GridPoint)>[
+  (_hospitalFirst.tileOf('U'), _hospitalSecond.tileOf('D')),
+  (_hospitalSecond.tileOf('U'), _hospitalThird.tileOf('D')),
+  (_hospitalThird.tileOf('U'), _hospitalRoof.tileOf('D')),
+];
+
+/// The camp on the hospital's roof, out of the horde's reach.
+final GridPoint hospitalRoofCampfireTile = _hospitalRoof.tileOf('S');
+
+/// The stretch of the roof's east wall knocked down low, facing the next
+/// block across the gap: looking over it, Mario measures the gap.
+final GridPoint hospitalRoofLookoutTile = _hospitalRoof.tileOf('>');
+
+/// The wanderers left in the hospital, floor by floor, `hospital-wanderer-<n>`.
+const String hospitalZombiePrefix = 'hospital-wanderer-';
+
 /// The two wanderers roaming the station's underground corridor.
 const String stationUnderpassZombiePrefix = 'station-underpass-wanderer-';
 
@@ -543,6 +629,7 @@ final Map<GridPoint, String> hometownCampfireNames = <GridPoint, String>{
         point: _campNames[place.id]!,
   duomoCampfireTile: 'Sagrato del Duomo',
   harbourRoadCampfireTile: 'Fine del porto',
+  hospitalRoofCampfireTile: 'Tetto dell’ospedale',
 };
 
 /// The flagpole planted on the forecourt, where the tricolour flies.
@@ -581,6 +668,7 @@ final List<FireSpot> hometownFireSpots = <FireSpot>[
     for (final spot in firesIn(place))
       if (spot.tile != extinguishedNorthDistrictBinTile) spot,
   ...stationWreckFireSpots,
+  ...firesIn(_hospitalRoof),
 ];
 
 /// Where the carabinieri zombies come out in the barracks.
@@ -798,7 +886,10 @@ final GridPoint stationTrackFireTile = _station
 ///   open at the crossroads behind the hypermarket, and the break in its
 ///   tail at the far end of the cabin, out onto the roofs it stopped in
 ///   (both breaks are in a roof, so either way Mario lands below the one
-///   he steps through).
+///   he steps through);
+/// - the hospital's glass doors at the top of its stairs, and inside it
+///   the flights up from each floor to the next (in the back wall of the
+///   floor below, onto the stairs in the front wall of the one above).
 Map<GridPoint, Portal> _portals() {
   final northEdge = _north.walkableRow(_north.height - 1);
   final harbourEdge = _harbour.walkableRow(0);
@@ -930,6 +1021,12 @@ Map<GridPoint, Portal> _portals() {
     // the roofs, and back up into the cabin north.
     ...pairedDoors(airlinerTailBreak, airlinerRoofBreak, Direction.south),
     ...pairedDoors(airlinerRoofBreak, airlinerTailBreak, Direction.north),
+    ...pairedDoors(hospitalDoors, hospitalEntrance, Direction.north),
+    ...pairedDoors(hospitalEntrance, hospitalDoors, Direction.south),
+    for (final (below, above) in hospitalFlights) ...<GridPoint, Portal>{
+      ...pairedDoors(<GridPoint>[below], <GridPoint>[above], Direction.north),
+      ...pairedDoors(<GridPoint>[above], <GridPoint>[below], Direction.south),
+    },
   };
 }
 
@@ -1090,6 +1187,22 @@ LevelContents hometownContents(EntityFactory factory) {
       );
     }
   }
+  var hospitalZombies = 0;
+  for (final floor in <Place>[
+    _hospitalFirst,
+    _hospitalSecond,
+    _hospitalThird,
+  ]) {
+    for (final tile in floor.tilesOf('Z')) {
+      entities.add(
+        factory.zombie(
+          id: '$hospitalZombiePrefix${hospitalZombies++}',
+          kind: EntityKind.wanderer,
+          position: tile,
+        ),
+      );
+    }
+  }
   // Lying on the floor, each one looks towards the middle of the cabin,
   // where the aisle runs.
   final cabinMiddle = _airlinerCabin.origin.y + airlinerCabinRows.length ~/ 2;
@@ -1132,6 +1245,7 @@ LevelContents hometownContents(EntityFactory factory) {
     lookouts: <GridPoint>[
       rooftopGapTile,
       duomoTowerLookoutTile,
+      hospitalRoofLookoutTile,
       shoppingStreetFireTile,
       stationTrackFireTile,
     ],

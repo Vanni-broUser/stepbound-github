@@ -80,8 +80,12 @@ const List<GridPoint> airlinerCabinLamps = <GridPoint>[
 /// cells of drop, near enough to look at and too far to jump: `>` is the
 /// low stretch of the parapet where Mario stops to measure it, `x` the
 /// drop into the street between the two blocks, and `%` the roof on the
-/// far side, flat and walkable, with its own chimney stacks `k`, gravel
-/// `;` and the open stairwell `S` going down into that block. Only a
+/// far side, flat and walkable, built like this one -- walled `W` round
+/// it and with its parapet `^` along the front -- with its own chimney
+/// stacks `k`, gravel `;` and the open stairwell `S` going down into that
+/// block, eastward: its head at the west end, its foot at the east. Its
+/// wall is broken open `<` straight across from `>`: where a grappling
+/// hook would bring Mario in. Only a
 /// grappling hook would get Mario over there, and the game has none yet,
 /// so the stairs lead nowhere for now.
 ///
@@ -96,7 +100,8 @@ const List<GridPoint> airlinerCabinLamps = <GridPoint>[
 /// `^` and `>` obstacles you can see over; `.` the roof deck, `%` the next
 /// roof's, `:` slate and gravel (noisy), `;` the next roof's gravel, `b`
 /// blood, `&` the roof on fire, `Y` a burning zombie, `9` the backpack,
-/// `D` the tail break, `S` the next roof's stairs down.
+/// `D` the tail break, `S` the next roof's stairs down, `<` the opening
+/// in its wall (an obstacle you can see over).
 // airliner-roof-rows-start
 const List<String> airlinerRoofRows = <String>[
   'xxxxxxxxxxx########xxxxxxxxxxx',
@@ -113,14 +118,16 @@ const List<String> airlinerRoofRows = <String>[
   'xW......:........n..........Wx',
   'xW..:..........:........:...Wx',
   'xW.......................:.9Wx',
-  'xW^^^^^^^^^^^^^>^^^^^^^^^^^^Wx',
+  'x^^^^^^^^^^^^^^>^^^^^^^^^^^^^x',
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  'xWWWWWWWWWWWWWW<WWWWWWWWWWWWWx',
   'xW%%%%%%%%%%%%%%%%%%%%%%%%%%Wx',
-  'xW%%%k%%%%%%%%%%%%SS%%%%%%%%Wx',
-  'xW%%%%%%%%%;%%%%%%SS%%%%%k%%Wx',
+  'xW%%%k%%%%%%%%%%%%%%%SSS%%%%Wx',
+  'xW%%%%%%%%%;%%%%%%%%%SSS%k%%Wx',
   'xW%%;%%%%%%%%%%%%%%%%%%;%%%%Wx',
   'xW%%%%%%%%%%%%%%%%%%%%%%%%%%Wx',
+  'x^^^^^^^^^^^^^^^^^^^^^^^^^^^^x',
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
 ];
 // airliner-roof-rows-end

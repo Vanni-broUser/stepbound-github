@@ -33,6 +33,7 @@
 /// - Park: `g` grass, floor; `p` broken playground ride and `^` the park
 ///   railing, obstacles you can see over; `<` a gate in that railing,
 ///   floor. `;` a heap of rubbish too deep to step on, an obstacle.
+/// - `$` the hospital's glass doors at the top of its stairs: a door.
 /// - `h` door of the Bar Arcobaleno, `j` where the hypermarket's fire exit
 ///   lands behind it, `(` the station's open doorways: doors.
 /// - Duomo: `x` the churchyard gate, an obstacle you can see through; `s`
