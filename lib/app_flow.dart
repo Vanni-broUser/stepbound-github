@@ -398,6 +398,8 @@ final class AppFlowController extends ChangeNotifier {
       _startLevel(LevelId.rome);
       return;
     }
+    // The city's music from the first picture of its story.
+    audio.playMusic(Music.rome);
     _set(() => _phase = AppPhase.romeStory);
   }
 

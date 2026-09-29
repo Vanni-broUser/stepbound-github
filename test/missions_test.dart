@@ -74,10 +74,6 @@ void main() {
           'Usa il rampino per esplorare i terrazzi',
         ],
       );
-      expect(
-        Mission.values.where((mission) => mission.hiddenUntilGiven),
-        <Mission>[Mission.exploreTerraces],
-      );
       expect(Mission.of(LevelId.rome).map((mission) => mission.text), <String>[
         'Trova delle provviste',
         'Cerca qualcosa di prezioso per avanzare',
@@ -147,12 +143,38 @@ void main() {
       );
     });
 
+    testWidgets('missions never handed out stay off the list, but count', (
+      tester,
+    ) async {
+      final progress = Progress.newGame();
+      progress.missions
+        ..give(Mission.findSurvivors)
+        ..give(Mission.freeLuigi)
+        ..complete(Mission.findSurvivors);
+      await pump(tester, statsOf(progress));
+      expect(score(tester), '1 / 8');
+      Finder row(Mission mission) =>
+          find.byKey(ValueKey<String>('mission-row-${mission.name}'));
+      expect(row(Mission.findSurvivors), findsOneWidget);
+      expect(row(Mission.freeLuigi), findsOneWidget);
+      for (final mission in <Mission>[
+        Mission.reachLuigi,
+        Mission.clearGate,
+        Mission.findIncense,
+        Mission.findRing,
+        Mission.initiation,
+        Mission.exploreTerraces,
+      ]) {
+        expect(row(mission), findsNothing, reason: mission.name);
+      }
+    });
+
     testWidgets('the terraces count from the start, but are listed only '
         'once handed out, not crossed out', (tester) async {
       final progress = Progress.newGame();
       var stats = statsOf(progress);
       expect(stats.missions, contains(Mission.exploreTerraces));
-      expect(stats.hiddenMissions, <Mission>[Mission.exploreTerraces]);
+      expect(stats.openMissions, isNot(contains(Mission.exploreTerraces)));
       await pump(tester, stats);
       expect(score(tester), '0 / 8');
       final row = find.byKey(
@@ -162,7 +184,7 @@ void main() {
 
       progress.missions.give(Mission.exploreTerraces);
       stats = statsOf(progress);
-      expect(stats.hiddenMissions, isEmpty);
+      expect(stats.openMissions, contains(Mission.exploreTerraces));
       await pump(tester, stats);
       expect(score(tester), '0 / 8');
       await tester.scrollUntilVisible(

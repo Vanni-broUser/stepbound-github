@@ -783,6 +783,9 @@ final class StepboundGame extends FlameGame
     _levelCompleted = true;
     inputLocked = true;
     soundscapePaused = true;
+    // The scene ended on black: it stays so while the train's save is
+    // written, the results coming straight out of it.
+    _covers.endLevel();
     // Molfetta started over is done again: what the other cities gave
     // Mario was waiting aboard.
     handBackHeldAway(progress, simulation, unlock);

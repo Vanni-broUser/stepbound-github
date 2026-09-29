@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/app.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/game_audio.dart';
+import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/game/story/story_director.dart';
@@ -106,6 +107,13 @@ void main() {
 
       game.completeLevel();
       await tester.pump();
+      // Black from the scene's end to the results: the world never shows
+      // while the save is written.
+      expect(game.cover.value, isA<LevelEndCover>());
+      expect(
+        find.byKey(const ValueKey<String>('level-end-black')),
+        findsOneWidget,
+      );
       final saved = (await saves.load(1))!;
       // The results come once the train's save is written.
       await tester.pump();
@@ -211,7 +219,8 @@ void main() {
       'starts over from there', (tester) {
     return tester.runAsync(() async {
       final saves = MemorySaveRepository();
-      final game = await pumpReadyGame(tester, saves: saves);
+      final audio = SilentAudio();
+      final game = await pumpReadyGame(tester, saves: saves, audio: audio);
       // Where the station's scene leaves him.
       game.simulation.player.component<PositionComponent>()
         ..position = trainMapStandTile
@@ -231,6 +240,7 @@ void main() {
 
       final story = find.byKey(const ValueKey<String>('rome-story'));
       expect(story, findsOneWidget);
+      expect(audio.music, Music.rome, reason: "the city's story, its music");
       // A tap for each new picture, one for each line.
       final pictures = romeScenes.map((scene) => scene.image).toSet().length;
       for (var i = 0; i < pictures + romeScenes.length; i++) {

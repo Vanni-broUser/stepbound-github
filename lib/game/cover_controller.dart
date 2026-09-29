@@ -206,6 +206,11 @@ final class CoverController {
     }
   }
 
+  // ------------------------------------------------------ level's end
+
+  /// Black over the game from the end of the level to its results.
+  void endLevel() => show(const LevelEndCover());
+
   // -------------------------------------------------------- game over
 
   /// Mario is dead; whatever was up stays under it.

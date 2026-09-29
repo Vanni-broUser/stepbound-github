@@ -14,20 +14,11 @@ enum Mission {
 
   /// Handed out once Mario is back in Molfetta with the grappling hook
   /// found in Rome; done once he has used it across all three gaps.
-  exploreTerraces(
-    LevelId.hometown,
-    'Usa il rampino per esplorare i terrazzi',
-    hiddenUntilGiven: true,
-  ),
+  exploreTerraces(LevelId.hometown, 'Usa il rampino per esplorare i terrazzi'),
   findSupplies(LevelId.rome, 'Trova delle provviste'),
   findValuable(LevelId.rome, 'Cerca qualcosa di prezioso per avanzare');
 
-  const Mission(
-    this.level,
-    this.text, {
-    this.fromStart = false,
-    this.hiddenUntilGiven = false,
-  });
+  const Mission(this.level, this.text, {this.fromStart = false});
 
   /// The city the mission belongs to.
   final LevelId level;
@@ -35,11 +26,6 @@ enum Mission {
 
   /// Open as soon as Mario is in [level], before anyone asks anything.
   final bool fromStart;
-
-  /// Left off the list of the level's missions until it is handed out:
-  /// it needs something found in another level. It counts towards the
-  /// level's total from the start all the same.
-  final bool hiddenUntilGiven;
 
   /// Every mission of [level], in the order the story hands them out.
   static List<Mission> of(LevelId level) => <Mission>[

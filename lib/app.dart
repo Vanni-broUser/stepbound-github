@@ -359,6 +359,10 @@ final class _StepboundAppState extends State<StepboundApp> {
       onClose: game.closeMenu,
       onWearOutfit: game.wearOutfit,
     ),
+    LevelEndCover() => const ColoredBox(
+      key: ValueKey<String>('level-end-black'),
+      color: Colors.black,
+    ),
     GameOverCover() => Letterbox(
       color: _GameOverOverlay.backdrop,
       child: _GameOverOverlay(
