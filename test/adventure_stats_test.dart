@@ -155,7 +155,8 @@ void main() {
   });
 
   testWidgets('a secret mission is dared on its page until done; then it '
-      'is listed with its city missions and counted apart', (tester) async {
+      'is listed with its city missions and counted apart, and with none '
+      'left the page is not there to open', (tester) async {
     final progress = Progress(
       memories: const <StoryMemory>[StoryMemory.luigiAtStation],
     );
@@ -176,7 +177,9 @@ void main() {
       find.byKey(const ValueKey<String>('secret-row-unarmedToLuigi')),
       findsOneWidget,
     );
-    await tap(tester, 'adventure-stats-secrets');
-    expect(find.text("Nessun'altra missione segreta per ora"), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('adventure-stats-secrets')),
+      findsNothing,
+    );
   });
 }

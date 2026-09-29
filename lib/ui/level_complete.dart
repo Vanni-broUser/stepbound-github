@@ -349,7 +349,7 @@ final class StatsCard extends StatelessWidget {
 /// is more than one: Rome is there once the train has taken him there. It
 /// opens on [level] or, without one, on the city the train stands in.
 /// Under the figures, beside the way out, the memories of the city shown
-/// to live again and its secret missions.
+/// to live again and, while some are left to do, its secret missions.
 final class AdventureStats extends StatefulWidget {
   const AdventureStats({
     required this.world,
@@ -419,17 +419,24 @@ final class _AdventureStatsState extends State<AdventureStats> {
           width: 22,
           onPressed: () => _turn(by),
         );
-        if (_secrets) {
+        // The secret missions only of a city played to its end, Molfetta
+        // once Luigi has been reached at the station, and only while some
+        // are left to do: with none, there is no page to open.
+        final open = <SecretMission>[
+          if (stats.completed)
+            for (final mission in SecretMission.values)
+              if (mission.level == level &&
+                  !widget.progress.secretMissions.contains(mission))
+                mission,
+        ];
+        if (_secrets && open.isNotEmpty) {
           return _SecretMissions(
-            progress: widget.progress,
-            level: level,
+            open: open,
             unit: unit,
             onBack: () => setState(() => _secrets = false),
           );
         }
-        // The secret missions only of a city played to its end: Molfetta
-        // once Luigi has been reached at the station.
-        final secrets = stats.completed;
+        final secrets = open.isNotEmpty;
         final buttonWidth = secrets
             ? AdventureStats.buttonWidth
             : (StatsCard.cardWidth - AdventureStats.buttonGap) / 2;
@@ -517,27 +524,18 @@ final class _AdventureStatsState extends State<AdventureStats> {
 /// for the missions of its city.
 final class _SecretMissions extends StatelessWidget {
   const _SecretMissions({
-    required this.progress,
-    required this.level,
+    required this.open,
     required this.unit,
     required this.onBack,
   });
 
-  final Progress progress;
-
-  /// The city whose secret missions these are.
-  final LevelId level;
+  /// The city's secret missions not done yet: never none.
+  final List<SecretMission> open;
   final double unit;
   final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
-    final open = <SecretMission>[
-      for (final mission in SecretMission.values)
-        if (mission.level == level &&
-            !progress.secretMissions.contains(mission))
-          mission,
-    ];
     return SizedBox.expand(
       key: const ValueKey<String>('secret-missions'),
       child: Center(
@@ -555,44 +553,35 @@ final class _SecretMissions extends StatelessWidget {
                 MenuPanel(
                   unit: unit,
                   width: StatsCard.cardWidth,
-                  child: open.isEmpty
-                      ? MenuParagraph(
-                          "Nessun'altra missione segreta per ora",
-                          key: const ValueKey<String>('secret-missions-none'),
-                          unit: unit,
-                          center: true,
-                        )
-                      : Column(
-                          children: <Widget>[
-                            for (final mission in open)
-                              Padding(
-                                padding: EdgeInsets.symmetric(
-                                  vertical: 2 * unit,
-                                ),
-                                child: Row(
-                                  key: ValueKey<String>(
-                                    'secret-mission-${mission.name}',
-                                  ),
-                                  children: <Widget>[
-                                    CustomPaint(
-                                      size: Size.square(14 * unit),
-                                      painter: MissionBoxPainter(
-                                        border: 1.6 * unit,
-                                        seed: 50 + mission.index,
-                                      ),
-                                    ),
-                                    SizedBox(width: 7 * unit),
-                                    Expanded(
-                                      child: Text(
-                                        mission.text,
-                                        style: missionTextStyle(8.5 * unit),
-                                      ),
-                                    ),
-                                  ],
+                  child: Column(
+                    children: <Widget>[
+                      for (final mission in open)
+                        Padding(
+                          padding: EdgeInsets.symmetric(vertical: 2 * unit),
+                          child: Row(
+                            key: ValueKey<String>(
+                              'secret-mission-${mission.name}',
+                            ),
+                            children: <Widget>[
+                              CustomPaint(
+                                size: Size.square(14 * unit),
+                                painter: MissionBoxPainter(
+                                  border: 1.6 * unit,
+                                  seed: 50 + mission.index,
                                 ),
                               ),
-                          ],
+                              SizedBox(width: 7 * unit),
+                              Expanded(
+                                child: Text(
+                                  mission.text,
+                                  style: missionTextStyle(8.5 * unit),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
+                    ],
+                  ),
                 ),
                 SizedBox(height: 8 * unit),
                 MenuButton(
