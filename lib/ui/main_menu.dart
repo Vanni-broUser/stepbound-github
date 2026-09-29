@@ -637,7 +637,6 @@ final class MenuColumn extends StatelessWidget {
   const MenuColumn({
     required this.unit,
     required this.children,
-    this.leading,
     this.trailing,
     super.key,
   });
@@ -645,12 +644,10 @@ final class MenuColumn extends StatelessWidget {
   final double unit;
   final List<Widget> children;
 
-  /// A choice set apart above the others, as [trailing] is below them.
-  final Widget? leading;
   final Widget? trailing;
 
-  /// The gap between two choices, and the wider one that sets [leading]
-  /// and [trailing] apart.
+  /// The gap between two choices, and the wider one that sets [trailing]
+  /// apart.
   static const double gap = 2.5;
   static const double trailingGap = 9;
 
@@ -659,14 +656,6 @@ final class MenuColumn extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        if (leading case final leading?)
-          Padding(
-            padding: EdgeInsets.only(
-              top: gap * unit,
-              bottom: trailingGap * unit,
-            ),
-            child: leading,
-          ),
         for (final child in children)
           Padding(
             padding: EdgeInsets.symmetric(vertical: gap * unit),

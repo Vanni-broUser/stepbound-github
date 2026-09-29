@@ -35,23 +35,17 @@ void main() {
     }
 
     test('in the robe, Mario comes out in his own clothes, told once that '
-        'the menu changes them', () {
+        'the robe is his and that the clothes will be changed later on', () {
       progress.wearOutfit(PlayerOutfit.cultist);
       leave();
       expect(host.outfitsWorn, <PlayerOutfit>[PlayerOutfit.base]);
+      const later =
+          "Hai ottenuto l'abbigliamento da occultista. In futuro potrai "
+          'scegliere quale abbigliamento usare.';
       expect(host.shown.single.map((line) => line.text), <String>[
-        DuomoScript.outfitChangedLine,
-        DuomoScript.outfitMenuLine,
-      ]);
-      expect(
-        DuomoScript.outfitChangedLine,
         'Mario cambia abbigliamento uscito dal duomo',
-      );
-      expect(
-        DuomoScript.outfitMenuLine,
-        'Puoi cambiare il tuo abbigliamento attraverso una funzione '
-        'disponibile nel menù',
-      );
+        later,
+      ]);
       host.dismiss();
 
       final saved = director.toJson();
@@ -60,6 +54,19 @@ void main() {
       leave();
       expect(host.outfitsWorn, hasLength(1), reason: 'only the first time');
       expect(host.shown, hasLength(1));
+    });
+
+    test('once Mario has been aboard the train with Luigi, he is told the '
+        'clothes are changed there', () {
+      progress
+        ..remember(StoryMemory.luigiAtStation)
+        ..wearOutfit(PlayerOutfit.cultist);
+      leave();
+      expect(
+        host.shown.single.last.text,
+        "Hai ottenuto l'abbigliamento da occultista. Potrai scegliere quale "
+        'abbigliamento usare sul treno.',
+      );
     });
 
     test('already in his own clothes, nothing is said, then or later', () {

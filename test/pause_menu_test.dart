@@ -17,7 +17,6 @@ void main() {
     WidgetTester tester, {
     ResumePoint? resumePoint = ResumePoint.campfire,
     bool cultistFound = true,
-    bool duomoCompleted = true,
     bool wardrobe = false,
     Iterable<PlayerOutfit> linkedOutfits = const <PlayerOutfit>[],
     Iterable<PlayerOutfit> giftsBeforeStart = const <PlayerOutfit>[],
@@ -27,7 +26,6 @@ void main() {
     quits = 0;
     closes = 0;
     progress = Progress(
-      memories: <StoryMemory>[if (duomoCompleted) StoryMemory.priestMassacre],
       unlockedOutfits: <PlayerOutfit>[
         ...giftsBeforeStart,
         PlayerOutfit.base,
@@ -69,7 +67,6 @@ void main() {
     await pumpMenu(tester);
     for (final text in <String>[
       'RIPRENDI DAL FALÒ',
-      'CAMBIA ABBIGLIAMENTO',
       'RICOMINCIA IL LIVELLO',
       'VAI AL MENÙ PRINCIPALE',
       'TORNA AL GIOCO',
@@ -98,24 +95,14 @@ void main() {
     expect(find.text('VAI AL MENÙ PRINCIPALE'), findsOneWidget);
   });
 
-  testWidgets('before the first outfit is found, no outfit button', (
-    tester,
-  ) async {
-    await pumpMenu(tester, cultistFound: false, duomoCompleted: false);
-    expect(find.text('CAMBIA ABBIGLIAMENTO'), findsNothing);
-    expect(find.text('RIPRENDI DAL FALÒ'), findsOneWidget);
-  });
-
-  testWidgets('a linked skin does not expose clothes before the Duomo', (
-    tester,
-  ) async {
+  testWidgets('the clothes are never changed from the menu, only at the '
+      'wardrobe aboard, whatever Mario has', (tester) async {
     await pumpMenu(
       tester,
-      cultistFound: false,
-      duomoCompleted: false,
       linkedOutfits: const <PlayerOutfit>[PlayerOutfit.ghost],
     );
     expect(find.text('CAMBIA ABBIGLIAMENTO'), findsNothing);
+    expect(find.byKey(const ValueKey<String>('pause-outfits')), findsNothing);
   });
 
   testWidgets('the way back to the game sits apart from the choices', (
@@ -133,26 +120,6 @@ void main() {
     expect(beforeTheWayBack, greaterThan(betweenChoices * 2));
   });
 
-  testWidgets('changing clothes sits apart from the three ways out', (
-    tester,
-  ) async {
-    await pumpMenu(tester);
-    double topOf(String key) =>
-        tester.getRect(find.byKey(ValueKey<String>(key))).top;
-    double bottomOf(String key) =>
-        tester.getRect(find.byKey(ValueKey<String>(key))).bottom;
-
-    final betweenChoices = topOf('pause-quit') - bottomOf('pause-restart');
-    final afterClothes = topOf('pause-resume') - bottomOf('pause-outfits');
-
-    expect(afterClothes, greaterThan(betweenChoices * 2));
-    expect(
-      afterClothes,
-      closeTo(topOf('pause-close') - bottomOf('pause-quit'), 0.5),
-      reason: 'as far as the way back to the game is from them',
-    );
-  });
-
   testWidgets('the first time aboard, without the robe: a gift had before '
       'the game began, then the base clothes, and nothing else', (
     tester,
@@ -161,7 +128,6 @@ void main() {
       tester,
       wardrobe: true,
       cultistFound: false,
-      duomoCompleted: false,
       giftsBeforeStart: const <PlayerOutfit>[PlayerOutfit.ghost],
     );
     String label(int index) => tester
@@ -179,18 +145,10 @@ void main() {
     expect(find.text('OCCULTISTA'), findsNothing);
   });
 
-  testWidgets('the top-right menu changes between unlocked outfits', (
+  testWidgets('the wardrobe aboard changes between unlocked outfits', (
     tester,
   ) async {
-    await pumpMenu(tester);
-    expect(
-      tester.getRect(find.byKey(const ValueKey<String>('pause-outfits'))).top,
-      lessThan(
-        tester.getRect(find.byKey(const ValueKey<String>('pause-resume'))).top,
-      ),
-      reason: 'changing clothes comes first, once it is there',
-    );
-    await tap(tester, 'pause-outfits');
+    await pumpMenu(tester, wardrobe: true);
 
     expect(find.text('BASE'), findsNWidgets(2));
     expect(find.text('OCCULTISTA'), findsOneWidget);
@@ -213,7 +171,7 @@ void main() {
     expect(find.text('GIÀ IN USO'), findsOneWidget);
 
     await tap(tester, 'pause-outfit-back');
-    expect(find.text('TORNA AL GIOCO'), findsOneWidget);
+    expect(closes, 1, reason: 'back to the game');
   });
 
   testWidgets('from the wardrobe aboard it opens on the outfits, even with '
@@ -250,8 +208,7 @@ void main() {
   testWidgets('the outfits still to come are "???" and cannot be worn', (
     tester,
   ) async {
-    await pumpMenu(tester);
-    await tap(tester, 'pause-outfits');
+    await pumpMenu(tester, wardrobe: true);
     // Many places already, only two of them filled.
     expect(outfitSlots, greaterThan(PlayerOutfit.values.length));
     await tap(tester, 'pause-outfit-2');
@@ -335,7 +292,6 @@ void main() {
     tester,
   ) async {
     progress = Progress(
-      memories: const <StoryMemory>[StoryMemory.priestMassacre],
       unlockedOutfits: const <PlayerOutfit>[
         PlayerOutfit.cultist,
         ...halloweenOutfits,
@@ -349,6 +305,7 @@ void main() {
       MaterialApp(
         home: PauseMenu(
           progress: progress,
+          wardrobe: true,
           resumePoint: ResumePoint.campfire,
           onResumeFromCamp: () {},
           onRestartLevel: () {},
@@ -361,8 +318,6 @@ void main() {
         ),
       ),
     );
-
-    await tap(tester, 'pause-outfits');
     final owned = progress.unlockedOutfits.toList();
     for (final outfit in halloweenOutfits) {
       final slot = owned.indexOf(outfit);

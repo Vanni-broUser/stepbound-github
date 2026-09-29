@@ -120,9 +120,16 @@ final class DuomoScript extends StoryScript {
 
   static const String outfitChangedLine =
       'Mario cambia abbigliamento uscito dal duomo';
-  static const String outfitMenuLine =
-      'Puoi cambiare il tuo abbigliamento attraverso una funzione '
-      'disponibile nel menù';
+
+  /// Said with the robe coming off, and in the same breath where the
+  /// clothes are changed: the wardrobe on the train, if Mario has been
+  /// aboard already, or somewhere still to come.
+  static const String outfitObtainedLine =
+      "Hai ottenuto l'abbigliamento da occultista.";
+  static const String wardrobeOnTrainLine =
+      'Potrai scegliere quale abbigliamento usare sul treno.';
+  static const String wardrobeLaterLine =
+      'In futuro potrai scegliere quale abbigliamento usare.';
 
   /// Leaves the portal's fade time to lift off the harbour first.
   static const double outfitLessonDelay = 0.8;
@@ -258,9 +265,10 @@ final class DuomoScript extends StoryScript {
   }
 
   /// The first time Mario comes out of the Duomo onto the harbour after
-  /// the massacre, the robe comes off: he is back in his own clothes, and
-  /// is told the menu can change them. Out in his own clothes already, he
-  /// has found the wardrobe by himself, and nothing is said.
+  /// the massacre, the robe comes off: he is back in his own clothes, the
+  /// robe is his, and he is told where the clothes are changed -- on the
+  /// train, once he has been aboard. Out in his own clothes already, he has
+  /// found the wardrobe by himself, and nothing is said.
   void _leaveAfterMassacre(GridPoint from, GridPoint to) {
     if (!_massacrePlayed ||
         _leftAfterMassacre ||
@@ -273,10 +281,13 @@ final class DuomoScript extends StoryScript {
       return;
     }
     host.wearOutfit(PlayerOutfit.base);
+    final where = progress.hasExperienced(StoryMemory.luigiAtStation)
+        ? wardrobeOnTrainLine
+        : wardrobeLaterLine;
     say(
-      StoryPrompt(const <StoryLine>[
-        StoryLine(outfitChangedLine),
-        StoryLine(outfitMenuLine),
+      StoryPrompt(<StoryLine>[
+        const StoryLine(outfitChangedLine),
+        StoryLine('$outfitObtainedLine $where'),
       ], delay: outfitLessonDelay),
     );
   }
