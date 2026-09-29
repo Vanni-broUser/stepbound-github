@@ -354,10 +354,16 @@ void main() {
           zombie.component<PositionComponent>().position.x < square.left,
     );
     expect(hordes.length, greaterThanOrEqualTo(30));
+    // And one sprinter in the middle of the forecourt.
     expect(hordes.map((zombie) => zombie.kind).toSet(), <EntityKind>{
       EntityKind.wanderer,
       EntityKind.carabiniere,
+      EntityKind.sprinter,
     });
+    expect(
+      hordes.where((zombie) => zombie.kind == EntityKind.sprinter),
+      hasLength(1),
+    );
     final carabinieri = hordes.where(
       (zombie) => zombie.kind == EntityKind.carabiniere,
     );
@@ -627,10 +633,12 @@ void main() {
   test('a sprinter prowls the middle of the car park, the backpack is '
       'further west', () {
     final world = createGameWorld();
-    final sprinters = zombiesIn(
-      world,
-      place(PlaceId.northDistrict),
-    ).where((zombie) => zombie.kind == EntityKind.sprinter);
+    final sprinters = zombiesIn(world, place(PlaceId.northDistrict)).where(
+      // The other one is among the horde in front of the hospital.
+      (zombie) =>
+          zombie.kind == EntityKind.sprinter &&
+          zombie.id != hospitalForecourtSprinterId,
+    );
     final sprinter = sprinters.single.component<PositionComponent>().position;
     final backpack = world.pickups[parkingBackpackId]!.position;
     final carPark =

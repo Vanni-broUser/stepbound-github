@@ -216,6 +216,26 @@ void main() {
       }
     }
     expect(milling.keys.toSet(), Direction.values.toSet());
+    final sprinter = world.entities[hospitalForecourtSprinterId]!;
+    expect(sprinter.kind, EntityKind.sprinter);
+    expect(
+      hospitalForecourt.contains(
+        sprinter.component<PositionComponent>().position,
+      ),
+      isTrue,
+    );
+    expect(world.map.tileAt(hospitalForecourtSprinterTile).isWalkable, isTrue);
+    expect(
+      world.entities.values.where(
+        (entity) =>
+            entity.id != hospitalForecourtSprinterId &&
+            entity.isAlive &&
+            entity.component<PositionComponent>().position ==
+                hospitalForecourtSprinterTile,
+      ),
+      isEmpty,
+      reason: 'alone on its tile',
+    );
     final total = milling.values.reduce((a, b) => a + b);
     expect(total, greaterThan(20));
     for (final count in milling.values) {

@@ -597,6 +597,14 @@ final GridRect hospitalForecourt = GridRect(
   _north.origin.y + 33,
 );
 
+/// A sprinter in the middle of the forecourt, among the horde: placed by
+/// hand rather than drawn, so the other sprinters keep their numbers.
+final GridPoint hospitalForecourtSprinterTile = GridPoint(
+  _north.origin.x + 10,
+  _north.origin.y + 31,
+);
+const String hospitalForecourtSprinterId = 'hospital-forecourt-sprinter';
+
 /// The ways the zombies in [hospitalForecourt] face, handed out in turn
 /// row by row: every way about as often, and no two neighbours alike.
 const List<Direction> hospitalForecourtFacings = <Direction>[
@@ -1255,6 +1263,14 @@ LevelContents hometownContents(EntityFactory factory) {
       }
     }
   }
+  entities.add(
+    factory.zombie(
+      id: hospitalForecourtSprinterId,
+      kind: EntityKind.sprinter,
+      position: hospitalForecourtSprinterTile,
+      facing: Direction.east,
+    ),
+  );
   // The places whose own glyphs the outdoor legend does not reach: their
   // one backpack is placed by hand, and `Z` is a wanderer standing in the
   // dark of them.
