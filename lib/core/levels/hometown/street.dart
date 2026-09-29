@@ -1,7 +1,7 @@
 /// The street where Mario wakes up, a crossroads under the barracks. Up the
 /// road north, past the backpack, a dead-end street turns east, a zombie
-/// standing on the road a few steps past where it opens; further up, before
-/// the barracks, a pile-up.
+/// standing on the road a few steps past where it opens and another four
+/// rows further up; further up still, before the barracks, a pile-up.
 ///
 /// Glyphs of the outdoor places (the street, the north district and the
 /// harbour share them; tools/build_street_level.py reads these rows to
@@ -50,8 +50,10 @@
 ///   water.
 /// - Zombies: `w` wanderer, `z` sprinter, `u` brute, `r` carabiniere; `t`
 ///   the two wanderers outside the churchyard gate.
-/// - `@` player, `w` wanderer; `9` the wanderer on the road north, just
-///   past the dead-end street, which has an id of its own.
+/// - `@` player, `w` wanderer; `9` the two wanderers on the road north,
+///   which have ids of their own: one just past the dead-end street, the
+///   other four rows further up and to the east, under the overturned car,
+///   looking south, there for whoever goes round the first.
 /// - Backpacks: `1` four rounds, there from the start; `2` two rounds by the
 ///   accident, waiting there from the start (the zombie guards it); `3` two
 ///   rounds at the far end of the dead-end street off the road north; `4` two
@@ -73,7 +75,7 @@ const List<String> streetLevelRows = <String>[
   'BBBBBBBBBBBBB=:....=BBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBB=CC..UUBBBBBBBBBBBBBBBBBBBBBBBB',
-  'BBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBB=..|.9=BBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBB=.....=BBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBB=..|..=HHHHHHHHHHHHHHHHHHHHBBBB',
   'BBBBBBBBBBBBB=.....=HHHHHHHHHHHHHfHHHHHHBBBB',

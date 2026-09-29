@@ -306,13 +306,13 @@ void main() {
       )
       .toList();
 
-  test('the only zombie on the street, but for the one before the '
+  test('the only zombie on the street, but for the two before the '
       'barracks, waits east of the crossroads', () {
     final world = createGameWorld();
     final zombies = zombiesIn(
       world,
       place(PlaceId.street),
-    ).where((zombie) => zombie.id != barracksRoadZombieId).toList();
+    ).where((zombie) => !zombie.id.startsWith('barracks-road-')).toList();
     expect(zombies, hasLength(1));
     expect(zombies.single.id, tutorialZombieId);
     final position = zombies.single.component<PositionComponent>().position;
@@ -550,6 +550,19 @@ void main() {
     expect(backpack.position.x, greaterThan(zombieTile.x), reason: 'east');
     expect(tutorialZombieId, isNot(barracksRoadZombieId));
     expect(world.entities[tutorialZombieId]!.kind, EntityKind.wanderer);
+  });
+
+  test('a second zombie waits four rows further up the road north, east '
+      'of the first, looking south', () {
+    final world = createGameWorld();
+    final first = world.entities[barracksRoadZombieId]!
+        .component<PositionComponent>();
+    final upper = world.entities[barracksRoadUpperZombieId]!;
+    expect(upper.kind, EntityKind.wanderer);
+    final position = upper.component<PositionComponent>();
+    expect(position.position.y, first.position.y - 4);
+    expect(position.position.x, greaterThan(first.position.x));
+    expect(position.facing, Direction.south);
   });
 
   group('doors', () {
