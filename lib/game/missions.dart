@@ -110,6 +110,34 @@ final class MissionLog {
     _revision++;
   }
 
+  /// Drops every mission of [level], open or done, as if never handed
+  /// out: the city starts over.
+  void forget(LevelId level) {
+    final before = _open.length + _done.length;
+    _open.removeWhere((mission) => mission.level == level);
+    _done.removeWhere((mission) => mission.level == level);
+    if (_open.length + _done.length != before) {
+      _revision++;
+    }
+  }
+
+  /// Takes on the missions [other] has handed out and done that this log
+  /// has not, after its own.
+  void absorb(MissionLog other) {
+    for (final mission in other._done) {
+      if (!_done.contains(mission)) {
+        _open.remove(mission);
+        _done.add(mission);
+        _revision++;
+      }
+    }
+    for (final mission in other._open) {
+      if (!_done.contains(mission)) {
+        give(mission);
+      }
+    }
+  }
+
   Map<String, Object?> toJson() => <String, Object?>{
     'open': <String>[for (final mission in _open) mission.name],
     'done': <String>[for (final mission in _done) mission.name],

@@ -259,7 +259,6 @@ void main() {
       );
       final saved = (await saves.load(1))!;
       expect(saved.place, 'Treno');
-      expect(saved.levelStart, isNotNull);
 
       // Luigi speaks as soon as the city has loaded, before Mario can go.
       expect(rome.story.holdsInput, isTrue);

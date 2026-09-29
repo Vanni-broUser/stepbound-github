@@ -19,6 +19,7 @@ import 'package:stepbound/game/game_snapshot.dart';
 import 'package:stepbound/game/haptics/game_haptics.dart';
 import 'package:stepbound/game/input/game_input_controller.dart';
 import 'package:stepbound/game/input/mission_board.dart';
+import 'package:stepbound/game/level_restart.dart';
 import 'package:stepbound/game/levels/hometown_stage.dart';
 import 'package:stepbound/game/levels/level_stage.dart';
 import 'package:stepbound/game/levels/rome_stage.dart';
@@ -780,6 +781,9 @@ final class StepboundGame extends FlameGame
     _levelCompleted = true;
     inputLocked = true;
     soundscapePaused = true;
+    // Molfetta started over is done again: what the other cities gave
+    // Mario was waiting aboard.
+    handBackHeldAway(progress, simulation, unlock);
     final aboard = snapshot(place: trainPlaceName, confirmStory: true);
     unawaited(_finishLevel(aboard));
   }
@@ -944,7 +948,8 @@ final class StepboundGame extends FlameGame
   /// The whole game as it is now, ready to be saved.
   GameSnapshot snapshot({required String place, bool confirmStory = false}) => (
     world: saveGameWorld(simulation),
-    story: story.toJson(),
+    // Not loaded yet, the story is still what the game was given.
+    story: isLoaded ? story.toJson() : <String, Object?>{...?_storyState},
     progress: progress.toJson(confirmPendingMemories: confirmStory),
     hud: <String>[for (final element in hud.value) element.name],
     place: place,

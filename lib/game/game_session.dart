@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/game_audio.dart';
+import 'package:stepbound/game/level_restart.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/game/story/story_director.dart';
@@ -68,10 +69,6 @@ final class GameSession {
   /// offer it. The slot written when the level starts over does not count.
   ResumePoint? resumePoint;
 
-  /// Where the level being played starts over from, when it is not the
-  /// first story scene: see [SaveGame.levelStart].
-  LevelStart? levelStart;
-
   /// The story scenes watched on this slot, campfire or not: they can be
   /// skipped from then on.
   final Set<StoryMemory> storyHistory = <StoryMemory>{};
@@ -80,9 +77,10 @@ final class GameSession {
   /// [SaveRepository.loadGifts]): every game made here can wear them.
   final Set<PlayerOutfit> gifts = <PlayerOutfit>{};
 
-  /// The secret missions done in this slot before Molfetta was started
-  /// over: starting over keeps them, and what they gave.
-  final Set<SecretMission> _keptSecrets = <SecretMission>{};
+  /// Molfetta as it was started over, for the game to begin once its
+  /// story has played: the other cities as they were, the secret missions
+  /// done and what the other cities gave (see [restartHometown]).
+  RestartedLevel? _restarted;
   Future<void> _storyHistoryWrite = Future<void>.value();
 
   /// What this game had been played for when it was loaded or started, and
@@ -125,7 +123,7 @@ final class GameSession {
   Future<void> startNew(int newSlot) async {
     await _storyHistoryWrite;
     gifts.clear();
-    _keptSecrets.clear();
+    _restarted = null;
     if (await saves.read(newSlot) is EmptySave) {
       gifts.addAll(await saves.loadGifts(newSlot));
     } else {
@@ -145,7 +143,6 @@ final class GameSession {
     slot = newSlot;
     storyHistory.clear();
     resumePoint = null;
-    levelStart = null;
     _startClock(Duration.zero);
   }
 
@@ -157,9 +154,20 @@ final class GameSession {
       StoryMemory.outbreakNight,
     });
     final progress = Progress.newGame(openingSaved: false, gifts: gifts)
-      ..addViewedMemories(storyHistory)
-      ..secretMissions.addAll(_keptSecrets);
-    return _build(progress: progress)..inputLocked = true;
+      ..addViewedMemories(storyHistory);
+    final kept = _restarted;
+    if (kept == null) {
+      return _build(progress: progress)..inputLocked = true;
+    }
+    final held = kept.progress.heldAway;
+    progress
+      ..secretMissions.addAll(kept.progress.secretMissions)
+      ..heldAway = held == null ? null : HeldAway.fromJson(held.toJson());
+    return _build(
+      progress: progress,
+      world: restoreGameWorld(kept.world),
+      storyState: kept.story,
+    )..inputLocked = true;
   }
 
   /// [save], picked from the menu. A game put down is picked up as it
@@ -178,7 +186,6 @@ final class GameSession {
     _startClock(save.played);
     slot = save.slot;
     resumePoint = resumePointOf(checkpoint);
-    levelStart = save.levelStart;
     return gameOf(
       world: save.world,
       story: save.story,
@@ -204,37 +211,57 @@ final class GameSession {
     }
     _startClock(save.played);
     storyHistory.addAll(history);
-    levelStart = save.levelStart;
     return gameFrom(save);
   }
 
   /// Molfetta from the very start, the first story picture, with nothing
-  /// kept but the hours played and the [secretMissions] done (bullets,
-  /// known zombies, memories all go).
+  /// of Molfetta kept: its bullets, zombies met, memories, clothes and
+  /// missions all go. The other cities stay as [current], the game being
+  /// played, left them, and what they gave Mario waits for him aboard the
+  /// train; the hours played and the secret missions done stay too (see
+  /// [restartHometown]).
   /// It counts as a save: the slot now holds the start of the level, so
   /// loading it later starts the level over too — but not a campfire one,
   /// so there is nothing to resume from until the next fire. False when
   /// the save could not be written: the level starts over all the same,
   /// and the slot keeps the save it had, with its fire.
-  Future<bool> saveLevelStart({
-    Set<SecretMission> secretMissions = const <SecretMission>{},
-  }) async {
-    _keptSecrets
-      ..clear()
-      ..addAll(secretMissions);
+  Future<bool> saveLevelStart({GameSnapshot? current}) async {
+    final restarted = restartHometown(
+      current,
+      Progress.newGame(openingSaved: false, gifts: gifts),
+    );
+    _restarted = restarted;
+    return _saveRestarted(restarted);
+  }
+
+  /// A level other than Molfetta starts over where Mario first arrived in
+  /// it, from [current], the game being played: only that city goes back
+  /// to its start (see [restartCity]). Like Molfetta's restart it counts
+  /// as a save, not a campfire one.
+  Future<StepboundGame> restartCityLevel(GameSnapshot current) async {
+    final restarted = restartCity(current);
+    await _saveRestarted(restarted);
+    return gameOf(
+      world: restarted.world,
+      story: restarted.story,
+      progress: restarted.progress,
+      hud: restarted.hud,
+    );
+  }
+
+  Future<bool> _saveRestarted(RestartedLevel restarted) async {
     try {
       await saves.save(
         SaveGame(
           slot: slot,
           savedAt: DateTime.now(),
           place: levelStartPlace,
-          world: saveGameWorld(createGameWorld()),
-          story: const <String, Object?>{},
-          progress: Progress(secretMissions: secretMissions).toJson(),
-          hud: const <String>[],
+          world: restarted.world,
+          story: restarted.story,
+          progress: restarted.progress.toJson(),
+          hud: restarted.hud,
           atCampfire: false,
-          // The hours played, and the secrets, are what starting over
-          // keeps.
+          // The hours played are what starting over always keeps.
           played: played,
         ),
       );
@@ -244,37 +271,6 @@ final class GameSession {
     }
     resumePoint = null;
     return true;
-  }
-
-  /// A level other than Molfetta starts over where Mario arrived in it,
-  /// with what he had then. Like the story's restart it counts as a save,
-  /// not a campfire one.
-  Future<StepboundGame> restartFrom(LevelStart start) async {
-    try {
-      await saves.save(
-        SaveGame(
-          slot: slot,
-          savedAt: DateTime.now(),
-          place: levelStartPlace,
-          world: start.world,
-          story: start.story,
-          progress: start.progress,
-          hud: start.hud,
-          atCampfire: false,
-          played: played,
-          levelStart: start,
-        ),
-      );
-      resumePoint = null;
-    } on SaveWriteException catch (error) {
-      debugPrint('save: $error');
-    }
-    return gameOf(
-      world: start.world,
-      story: start.story,
-      progress: Progress.fromJson(start.progress),
-      hud: start.hud,
-    );
   }
 
   /// Called by [game] when Mario rests at a campfire, and when the level
@@ -293,7 +289,6 @@ final class GameSession {
           progress: snapshot.progress,
           hud: snapshot.hud,
           played: played,
-          levelStart: levelStart,
         ),
       );
     } on SaveWriteException catch (error, stack) {
@@ -330,7 +325,6 @@ final class GameSession {
           hud: snapshot.hud,
           atCampfire: false,
           played: played,
-          levelStart: levelStart,
         ),
       );
     } on SaveWriteException catch (error) {
@@ -345,8 +339,7 @@ final class GameSession {
   /// train's door onto that level's station, and is saved there. Mario's
   /// rounds, molotovs and rockets stay in the level he leaves (see
   /// [Progress.travel], [Progress.swapMolotovs] and
-  /// [Progress.swapRockets]). Rome starts over
-  /// from here.
+  /// [Progress.swapRockets]).
   StepboundGame startLevel(LevelId level, GameSnapshot snapshot) {
     final progress = Progress.fromJson(snapshot.progress);
     final world = restoreGameWorld(snapshot.world);
@@ -370,14 +363,6 @@ final class GameSession {
       hud: snapshot.hud,
       place: trainPlaceName,
     );
-    levelStart = level == LevelId.hometown
-        ? null
-        : LevelStart(
-            world: arrival.world,
-            story: arrival.story,
-            progress: arrival.progress,
-            hud: arrival.hud,
-          );
     unawaited(store(arrival));
     return gameOf(
       world: arrival.world,

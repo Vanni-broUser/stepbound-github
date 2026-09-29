@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/story/story_director.dart';
@@ -122,8 +120,7 @@ final class ScenarioBuilder {
 
   /// The train takes Mario to [level], as the travel map does: his rounds
   /// and molotovs stay in the level he leaves, the new level's missions
-  /// are handed out, and he is aboard at the map table. Starting the level
-  /// over comes back to this very point.
+  /// are handed out, and he is aboard at the map table.
   void travelTo(LevelId level) {
     final ammo = world.player.component<AmmoComponent>();
     ammo
@@ -134,18 +131,7 @@ final class ScenarioBuilder {
       remember(StoryMemory.presidentFled);
     }
     aboardTrain();
-    _levelStart = LevelStart(
-      world: saveGameWorld(world),
-      story: _copy(_scripts),
-      progress: progress.toJson(),
-      hud: <String>[for (final element in _hud) element.name],
-    );
   }
-
-  LevelStart? _levelStart;
-
-  static Map<String, Object?> _copy(Map<String, Object?> json) =>
-      jsonDecode(jsonEncode(json)) as Map<String, Object?>;
 
   /// Saved aboard the train, the way the level ends: at the map table.
   void aboardTrain() {
@@ -234,7 +220,6 @@ final class ScenarioBuilder {
       story: _scripts,
       progress: progress.toJson(),
       hud: <String>[for (final element in _hud) element.name],
-      levelStart: _levelStart,
     );
   }
 }

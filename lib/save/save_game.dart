@@ -20,7 +20,6 @@ final class SaveGame {
     required this.hud,
     this.atCampfire = true,
     this.played = Duration.zero,
-    this.levelStart,
   });
 
   /// Reads a save of the current [format], checking every field: anything
@@ -43,10 +42,6 @@ final class SaveGame {
     if (hud.any((name) => name is! String)) {
       throw const FormatException('"hud" holds something else than names');
     }
-    final levelStart = json['levelStart'];
-    if (levelStart is! Map<String, Object?>?) {
-      throw const FormatException('"levelStart" is not an object');
-    }
     final played = fields.read<int>('played');
     if (played < 0) {
       throw const FormatException('"played" is negative');
@@ -61,7 +56,6 @@ final class SaveGame {
       hud: hud.cast<String>(),
       atCampfire: fields.read<bool>('atCampfire'),
       played: Duration(seconds: played),
-      levelStart: levelStart == null ? null : LevelStart.fromJson(levelStart),
     );
   }
 
@@ -120,7 +114,7 @@ final class SaveGame {
   /// Bump it whenever what a save holds changes. Saves of the formats in
   /// between public builds are dropped, never migrated; those of the last
   /// public build are, see `docs/save_policy.md`.
-  static const int format = 39;
+  static const int format = 40;
 
   /// 1 to [SaveRepository.slotCount].
   final int slot;
@@ -153,10 +147,6 @@ final class SaveGame {
   /// only as fresh as the last save.
   final Duration played;
 
-  /// The level as it was when Mario arrived in it, to start it over from:
-  /// null in Molfetta, which starts over from the first story scene.
-  final LevelStart? levelStart;
-
   SaveGame copyWith({int? slot}) => SaveGame(
     slot: slot ?? this.slot,
     savedAt: savedAt,
@@ -167,7 +157,6 @@ final class SaveGame {
     hud: hud,
     atCampfire: atCampfire,
     played: played,
-    levelStart: levelStart,
   );
 
   Map<String, Object?> toJson() => <String, Object?>{
@@ -181,44 +170,6 @@ final class SaveGame {
     'hud': hud,
     'atCampfire': atCampfire,
     'played': played.inSeconds,
-    'levelStart': levelStart?.toJson(),
-  };
-}
-
-/// Where a level starts over from: the game as it stood when Mario
-/// arrived in it, as a save holds it.
-final class LevelStart {
-  const LevelStart({
-    required this.world,
-    required this.story,
-    required this.progress,
-    required this.hud,
-  });
-
-  factory LevelStart.fromJson(Map<String, Object?> json) {
-    final fields = _Fields(json);
-    final hud = fields.read<List<Object?>>('hud');
-    if (hud.any((name) => name is! String)) {
-      throw const FormatException('"hud" holds something else than names');
-    }
-    return LevelStart(
-      world: fields.read<Map<String, Object?>>('world'),
-      story: fields.read<Map<String, Object?>>('story'),
-      progress: fields.read<Map<String, Object?>>('progress'),
-      hud: hud.cast<String>(),
-    );
-  }
-
-  final Map<String, Object?> world;
-  final Map<String, Object?> story;
-  final Map<String, Object?> progress;
-  final List<String> hud;
-
-  Map<String, Object?> toJson() => <String, Object?>{
-    'world': world,
-    'story': story,
-    'progress': progress,
-    'hud': hud,
   };
 }
 
@@ -251,22 +202,11 @@ typedef SaveCheck = void Function(SaveGame save);
 /// missing field, a zombie type or a tile kind the game does not know, a
 /// script's flag of the wrong type) marks the save as damaged.
 void checkRestorable(SaveGame save) {
-  _checkGame(save.world, save.story, save.progress);
-  if (save.levelStart case final start?) {
-    _checkGame(start.world, start.story, start.progress);
-  }
-}
-
-void _checkGame(
-  Map<String, Object?> world,
-  Map<String, Object?> story,
-  Map<String, Object?> progress,
-) {
   StoryDirector(
-    world: restoreGameWorld(world),
+    world: restoreGameWorld(save.world),
     host: const SilentStoryHost(),
-    progress: Progress.fromJson(progress),
-  ).restore(story);
+    progress: Progress.fromJson(save.progress),
+  ).restore(save.story);
 }
 
 /// What a slot holds, read back.

@@ -47,17 +47,10 @@ void main() {
     await saves.save(checkpoint(slot: 3));
     session
       ..resumePoint = ResumePoint.campfire
-      ..levelStart = LevelStart(
-        world: snapshot().world,
-        story: const <String, Object?>{},
-        progress: Progress().toJson(),
-        hud: const <String>[],
-      )
       ..rememberStory(StoryMemory.newsBroadcast);
     await session.startNew(3);
     expect(session.slot, 3);
     expect(session.resumePoint, isNull);
-    expect(session.levelStart, isNull);
     expect(session.storyHistory, isEmpty);
     expect(session.played, lessThan(const Duration(seconds: 1)));
     expect(await saves.read(3), isA<EmptySave>());
@@ -171,9 +164,17 @@ void main() {
       'golden pistol with them', () async {
     session.slot = 2;
     await session.store(snapshot());
+    final secret = Progress.newGame()
+      ..secretMissions.add(SecretMission.unarmedToLuigi);
     expect(
       await session.saveLevelStart(
-        secretMissions: const <SecretMission>{SecretMission.unarmedToLuigi},
+        current: (
+          world: snapshot().world,
+          story: const <String, Object?>{},
+          progress: secret.toJson(),
+          hud: const <String>[],
+          place: 'Porto',
+        ),
       ),
       isTrue,
     );
@@ -190,50 +191,44 @@ void main() {
   });
 
   test('another level starts over where Mario arrived in it', () async {
-    session.slot = 2;
-    final start = LevelStart(
+    session
+      ..slot = 2
+      ..resumePoint = ResumePoint.campfire;
+    final game = await session.restartCityLevel((
       world: snapshot().world,
       story: const <String, Object?>{},
       progress: Progress(level: LevelId.rome).toJson(),
       hud: const <String>['interact', 'ammo'],
-    );
-    session.resumePoint = ResumePoint.campfire;
-    final game = await session.restartFrom(start);
+      place: 'Termini',
+    ));
     expect(game.progress.level, LevelId.rome);
+    expect(
+      game.simulation.player.component<PositionComponent>().position,
+      trainMapStandTile,
+    );
     expect(session.resumePoint, isNull);
     final saved = (await saves.load(2))!;
     expect(saved.place, GameSession.levelStartPlace);
-    expect(saved.levelStart, isNotNull);
+    expect(saved.atCampfire, isFalse);
     expect(saved.hud, <String>['interact', 'ammo']);
   });
 
-  test(
-    'the train to Rome saves the arrival as where Rome starts over',
-    () async {
-      session.slot = 2;
-      final game = session.startLevel(
-        LevelId.rome,
-        snapshot(place: trainPlaceName),
-      );
-      expect(game.progress.level, LevelId.rome);
-      expect(game.progress.memories, contains(StoryMemory.presidentFled));
-      expect(session.levelStart, isNotNull);
-      expect(
-        game.simulation.player.component<PositionComponent>().position,
-        trainMapStandTile,
-      );
-      await Future<void>.delayed(Duration.zero);
-      expect((await saves.load(2))!.place, trainPlaceName);
-      expect(session.resumePoint, ResumePoint.train);
-
-      session.startLevel(LevelId.hometown, snapshot(place: trainPlaceName));
-      expect(
-        session.levelStart,
-        isNull,
-        reason: 'Molfetta starts from its story',
-      );
-    },
-  );
+  test('the train to Rome saves the arrival', () async {
+    session.slot = 2;
+    final game = session.startLevel(
+      LevelId.rome,
+      snapshot(place: trainPlaceName),
+    );
+    expect(game.progress.level, LevelId.rome);
+    expect(game.progress.memories, contains(StoryMemory.presidentFled));
+    expect(
+      game.simulation.player.component<PositionComponent>().position,
+      trainMapStandTile,
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect((await saves.load(2))!.place, trainPlaceName);
+    expect(session.resumePoint, ResumePoint.train);
+  });
 
   test('a save that cannot be written is kept for the report', () async {
     expect(session.lastSaveFailure, isNull);

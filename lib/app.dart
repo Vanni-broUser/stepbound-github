@@ -352,7 +352,7 @@ final class _StepboundAppState extends State<StepboundApp> {
       progress: game.progress,
       wardrobe: wardrobe,
       resumePoint: _flow.session.resumePoint,
-      restartsFromStory: _flow.session.levelStart == null,
+      restartsFromStory: game.progress.level == LevelId.hometown,
       onResumeFromCamp: () => unawaited(_flow.resumeFromCamp()),
       onRestartLevel: () => unawaited(_flow.restartLevel()),
       onMainMenu: _flow.backToMenu,
@@ -363,7 +363,7 @@ final class _StepboundAppState extends State<StepboundApp> {
       color: _GameOverOverlay.backdrop,
       child: _GameOverOverlay(
         resumePoint: _flow.session.resumePoint,
-        restartsFromStory: _flow.session.levelStart == null,
+        restartsFromStory: game.progress.level == LevelId.hometown,
         onResumeFromCamp: () =>
             _afterGameOver(() => unawaited(_flow.resumeFromCamp())),
         onRestartLevel: () =>
@@ -702,11 +702,11 @@ final class _GameOverOverlayState extends State<_GameOverOverlay> {
       child: MenuParagraph(
         widget.restartsFromStory
             ? 'Ricominciare il livello? ${widget.resumePoint!.savedHere} '
-                  'va perso: si riparte dalla prima scena della storia, e '
-                  'restano solo le ore di gioco.'
+                  'va perso: si riparte dalla prima scena della storia. Le '
+                  'altre città restano come sono.'
             : 'Ricominciare il livello? ${widget.resumePoint!.savedHere} '
-                  'va perso: si riparte dall’arrivo in città, con quello '
-                  'che avevi allora.',
+                  'va perso: si riparte dall’arrivo in città. Le altre '
+                  'città restano come sono.',
         key: const ValueKey<String>('game-over-cost'),
         unit: unit,
         center: true,

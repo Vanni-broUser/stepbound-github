@@ -112,14 +112,15 @@ final class _PauseMenuState extends State<PauseMenu> {
       '${widget.resumePoint?.goBack} Quello che hai fatto da lì in '
           'poi va perso.',
     _PausePage.restart when !widget.restartsFromStory =>
-      'Ricominciare il livello? Si riparte dall’arrivo in città, con '
-          'quello che avevi allora, e lo slot viene salvato all’inizio del '
-          'livello. Restano le ore di gioco.',
+      'Ricominciare il livello? Si riparte dall’arrivo in città: quello '
+          'che hai trovato e fatto qui si azzera, le altre città restano '
+          'come le hai lasciate, e lo slot viene salvato all’inizio del '
+          'livello.',
     _PausePage.restart =>
       'Ricominciare il livello? Si riparte dalla prima scena della storia: '
-          'proiettili, zombi conosciuti e ricordi si azzerano, e lo slot '
-          'viene salvato all’inizio del livello. Restano solo le ore '
-          'di gioco.',
+          'quello che hai trovato e fatto a Molfetta si azzera, le altre '
+          'città ti aspettano sul treno come le hai lasciate. Restano le '
+          'ore di gioco.',
     _PausePage.quit when widget.resumePoint != null =>
       'Uscire al menù principale? Quello che hai fatto '
           '${widget.resumePoint?.since} va perso.',
