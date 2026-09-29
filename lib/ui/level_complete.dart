@@ -29,7 +29,7 @@ final class LevelStats {
     required this.steps,
     this.doneMissions = const <Mission>[],
     this.missions = const <Mission>[],
-    this.hiddenMissions = const <Mission>[],
+    this.openMissions = const <Mission>[],
     this.doneSecrets = const <SecretMission>[],
     this.completed = true,
   });
@@ -79,12 +79,9 @@ final class LevelStats {
           if (mission.level == level) mission,
       ],
       missions: Mission.of(level),
-      hiddenMissions: <Mission>[
-        for (final mission in Mission.of(level))
-          if (mission.hiddenUntilGiven &&
-              !progress.missions.isOpen(mission) &&
-              !progress.missions.isDone(mission))
-            mission,
+      openMissions: <Mission>[
+        for (final mission in progress.missions.open)
+          if (mission.level == level) mission,
       ],
       doneSecrets: <SecretMission>[
         for (final mission in progress.secretMissions)
@@ -111,12 +108,12 @@ final class LevelStats {
   /// The level's missions done, in the order the player got through them.
   final List<Mission> doneMissions;
 
-  /// Every mission of the level: the total they are counted out of.
+  /// Every mission of the level: counted, but listed only once found.
   final List<Mission> missions;
 
-  /// The level's missions not listed yet, though counted in [missions]:
-  /// those that wait for something from another level, not handed out.
-  final List<Mission> hiddenMissions;
+  /// The level's missions handed out and not done yet, in the order they
+  /// were handed out. Those never handed out stay off the list.
+  final List<Mission> openMissions;
 
   /// The level's secret missions done: listed with the rest, and counted
   /// apart, as a bonus over them.
@@ -616,9 +613,10 @@ final class _SecretMissions extends StatelessWidget {
 }
 
 /// The level's missions under its figures: on the left the done ones in
-/// the order the player got through them, then those left undone with an
-/// empty box, in a list that shows three and a half rows so the half one
-/// says there is more below; on the right how many are done out of all.
+/// the order the player got through them, then those handed out and left
+/// undone with an empty box (those never found are not given away), in a
+/// list that shows three and a half rows so the half one says there is
+/// more below; on the right how many are done out of all.
 /// With a [finale] done, the list runs down to it and crosses it out in
 /// front of the player, and the count goes up with it.
 final class MissionsCard extends StatefulWidget {
@@ -711,10 +709,8 @@ final class _MissionsCardState extends State<MissionsCard>
     final celebrated = _celebrated;
     final celebratedSecret = celebrated == null ? null : widget.secret;
     final undone = <Mission>[
-      for (final mission in stats.missions)
-        if (!stats.doneMissions.contains(mission) &&
-            !stats.hiddenMissions.contains(mission))
-          mission,
+      for (final mission in stats.openMissions)
+        if (!stats.doneMissions.contains(mission)) mission,
     ];
     final listHeight = MissionsCard.rowHeight * MissionsCard.visibleRows * unit;
     return MenuPanel(

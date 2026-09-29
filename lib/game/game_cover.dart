@@ -100,6 +100,13 @@ final class WorkInProgressCover extends GameCover {
   final void Function()? onClosed;
 }
 
+/// The level is over: black, as the scene that ended it left the screen,
+/// while the save aboard the train is written and until the results take
+/// over, so the world never shows in between.
+final class LevelEndCover extends GameCover {
+  const LevelEndCover();
+}
+
 /// Mario is dead.
 final class GameOverCover extends GameCover {
   const GameOverCover();

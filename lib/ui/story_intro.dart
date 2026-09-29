@@ -76,16 +76,19 @@ const List<StoryScene> outbreakScenes = <StoryScene>[
 
 /// Played when the train sets off for Rome, before the city loads: the
 /// army cannot hold Rome and the President keeps his troops for himself.
+/// Rome's own music plays under it, then and when it is remembered.
 const List<StoryScene> romeScenes = <StoryScene>[
   StoryScene(
     image: 'assets/story/scenes/rome_vittoriano.jpg',
     speaker: 'Generale',
     text: 'Signor presidente, abbiamo bisogno di rinforzi!',
+    music: Music.rome,
   ),
   StoryScene(
     image: 'assets/story/scenes/rome_president_call.jpg',
     speaker: 'Presidente del consiglio',
     text: 'Non è possibile, tutte le nostre forze sono già occupate',
+    music: Music.rome,
   ),
   StoryScene(
     image: 'assets/story/scenes/rome_president_call.jpg',
@@ -93,16 +96,19 @@ const List<StoryScene> romeScenes = <StoryScene>[
     text:
         'Signore qui siamo nella merda, ci sono centinaia e centinaia di '
         'questi zombi bastardi',
+    music: Music.rome,
   ),
   StoryScene(
     image: 'assets/story/scenes/rome_president_call.jpg',
     speaker: 'Presidente del consiglio',
     text: 'Generale non posso fare altrimenti, dovete vedervela da soli',
+    music: Music.rome,
   ),
   StoryScene(
     image: 'assets/story/scenes/rome_secretary.jpg',
     speaker: 'Segretaria',
     text: 'Signor presidente siete sicuro di quello che state facendo?',
+    music: Music.rome,
   ),
   StoryScene(
     image: 'assets/story/scenes/rome_secretary.jpg',
@@ -110,6 +116,7 @@ const List<StoryScene> romeScenes = <StoryScene>[
     text:
         'Non preoccuparti Petunia, quei rinforzi servono per proteggere il '
         'mio bunker',
+    music: Music.rome,
   ),
   StoryScene(
     image: 'assets/story/scenes/rome_departure.jpg',
@@ -117,16 +124,19 @@ const List<StoryScene> romeScenes = <StoryScene>[
     text:
         'Ma... ma signor presidente quelle persone lì fuori stanno '
         'morendo...',
+    music: Music.rome,
   ),
   StoryScene(
     image: 'assets/story/scenes/rome_departure.jpg',
     speaker: 'Presidente del consiglio',
     text: 'Petunia non essere petulante oppure non ti ci porto nel bunker',
+    music: Music.rome,
   ),
   StoryScene(
     image: 'assets/story/scenes/rome_president_attacked.jpg',
     speaker: 'Presidente del consiglio',
     text: 'Oddio aiuto! Petunia, aiutooo!',
+    music: Music.rome,
   ),
 ];
 
