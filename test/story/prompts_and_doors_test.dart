@@ -49,6 +49,30 @@ void main() {
     expect(mario.facing, Direction.west);
   });
 
+  test('the last step of the stairs down into a building with no map yet '
+      'shows the work-in-progress screen, and Mario is back on the step '
+      'before it, facing back up', () {
+    for (final door in <GridPoint>[
+      rooftopFarStairsFoot.first,
+      hospitalNextRoofStairsFoot.first,
+    ]) {
+      host.workInProgressShown = 0;
+      final way = world.stairs[door]!;
+      final start = door.step(way.opposite);
+      final mario = world.player.component<PositionComponent>()
+        ..position = start
+        ..facing = way;
+
+      final events = const TurnScheduler().advance(world, MoveAction(way));
+      expect(mario.position, door);
+      director.onEvents(events);
+
+      expect(host.workInProgressShown, 1, reason: '$door');
+      expect(mario.position, start);
+      expect(mario.facing, way.opposite);
+    }
+  });
+
   test('the locked bar door explains that it needs a key', () {
     world.player.component<PositionComponent>()
       ..position = barLockedDoorTile.step(Direction.south)

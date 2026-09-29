@@ -58,6 +58,7 @@ final class LevelContents {
     this.travelMaps = const <GridPoint>[],
     this.lookouts = const <GridPoint>[],
     this.grapples = const <GridPoint, Portal>{},
+    this.stairs = const <GridPoint, Direction>{},
   });
 
   final List<Entity> entities;
@@ -68,6 +69,7 @@ final class LevelContents {
   final List<GridPoint> travelMaps;
   final List<GridPoint> lookouts;
   final Map<GridPoint, Portal> grapples;
+  final Map<GridPoint, Direction> stairs;
 }
 
 /// Campfires, by tile, with the name shown in the save slots. Aboard, the
@@ -154,6 +156,17 @@ final Map<GridPoint, Direction> workInProgressEnds = <GridPoint, Direction>{
       if (!_levelWorld.portals.containsKey(tile)) tile: back,
 };
 
+/// Doors to places that have no map yet: the last step of a flight of
+/// stairs, a doorway or a hatch inside a place, drawn as the way into a
+/// building nobody has drawn the inside of. Stepping on one shows the
+/// work-in-progress screen, as an open edge does, and puts Mario back
+/// where he stepped from. When the place behind one is drawn, its tiles
+/// leave this list for a pair of doors (`pairedDoors`), as an open edge
+/// does (docs/level_pipeline.md).
+final Set<GridPoint> workInProgressDoors = <GridPoint>{
+  ...hometownWorkInProgressDoors,
+};
+
 /// Its entities, backpacks, doors and travel maps as a save holds them,
 /// encoded once. Only ever read: [restoreGameWorld] hands the same maps
 /// to `WorldState.fromJson`, which copies what it needs out of them.
@@ -185,6 +198,7 @@ WorldState createGameWorld({int seed = 20260920}) {
     grapples: <GridPoint, Portal>{
       for (final level in levels) ...level.grapples,
     },
+    stairs: <GridPoint, Direction>{for (final level in levels) ...level.stairs},
     playerId: 'player',
     random: SeededRandom(seed),
   );
@@ -259,6 +273,7 @@ WorldState restoreGameWorld(Map<String, Object?> json) {
     'portals': _levelJson['portals'],
     'travelMaps': _levelJson['travelMaps'],
     'grapples': _levelJson['grapples'],
+    'stairs': _levelJson['stairs'],
     'entities': <Object?>[
       ...savedEntities,
       for (final entity in levelEntities)

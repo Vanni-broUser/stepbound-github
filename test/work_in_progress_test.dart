@@ -52,4 +52,25 @@ void main() {
       expect(world.portals.containsKey(end), isFalse, reason: '$end');
     }
   });
+
+  test('the doors to buildings with no map yet are the last steps of '
+      'walkable stairs inside their place, and none is a real door', () {
+    final world = createGameWorld();
+    expect(workInProgressDoors, <GridPoint>{
+      ...rooftopFarStairsFoot,
+      ...hospitalNextRoofStairsFoot,
+    });
+    expect(rooftopFarStairs, hasLength(6));
+    expect(rooftopFarStairsFoot, hasLength(2));
+    expect(hospitalNextRoofStairs, hasLength(4));
+    expect(hospitalNextRoofStairsFoot, hasLength(2));
+    for (final door in workInProgressDoors) {
+      expect(world.map.tileAt(door).isWalkable, isTrue, reason: '$door');
+      expect(world.portals.containsKey(door), isFalse, reason: '$door');
+      expect(workInProgressEnds.containsKey(door), isFalse, reason: '$door');
+      // The step before it on its flight, to come down it from.
+      final up = world.stairs[door]!;
+      expect(world.stairs[door.step(up.opposite)], up, reason: '$door');
+    }
+  });
 }

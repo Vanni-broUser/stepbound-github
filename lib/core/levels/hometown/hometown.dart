@@ -881,6 +881,56 @@ final GridPoint rooftopGapTile = _airlinerRoofs.tileOf('>');
 /// [rooftopGapTile]: the way back with the grappling hook.
 final GridPoint rooftopFarEdgeTile = _airlinerRoofs.tileOf('<');
 
+/// The open stairwell `S` going down eastward into the block across the
+/// gap past the airliner, three steps deep: got onto from its head, the
+/// west end, and down step by step to the last, the door to a place that
+/// has no map yet.
+final List<GridPoint> rooftopFarStairs = _airlinerRoofs.tilesOf('S');
+
+/// The last steps of [rooftopFarStairs], at its east end.
+final List<GridPoint> rooftopFarStairsFoot = _lastSteps(
+  rooftopFarStairs,
+  Direction.east,
+);
+
+/// The open stairwell `v` going down southward into the block east of the
+/// hospital's roof, two steps deep: its last step is the door to a place
+/// that has no map yet.
+final List<GridPoint> hospitalNextRoofStairs = _hospitalRoof.tilesOf('v');
+
+/// The last steps of [hospitalNextRoofStairs], at its south end.
+final List<GridPoint> hospitalNextRoofStairsFoot = _lastSteps(
+  hospitalNextRoofStairs,
+  Direction.south,
+);
+
+/// The steps of [flight] furthest along [down].
+List<GridPoint> _lastSteps(List<GridPoint> flight, Direction down) {
+  int depth(GridPoint step) => step.x * down.dx + step.y * down.dy;
+  final last = flight.map(depth).reduce((a, b) => a > b ? a : b);
+  return <GridPoint>[
+    for (final step in flight)
+      if (depth(step) == last) step,
+  ];
+}
+
+/// Molfetta's doors to places not drawn yet (see `workInProgressDoors`).
+final Set<GridPoint> hometownWorkInProgressDoors = <GridPoint>{
+  ...rooftopFarStairsFoot,
+  ...hospitalNextRoofStairsFoot,
+};
+
+/// Molfetta's flights of stairs out in the open, each step with the way
+/// up it (see `WorldState.stairs`): the hypermarket's, up from the ground
+/// floor and down from the first, climbed into the back wall, and the two
+/// stairwells on the roofs across the gaps.
+final Map<GridPoint, Direction> hometownStairs = <GridPoint, Direction>{
+  for (final step in _mallGround.tilesOf('U')) step: Direction.north,
+  for (final step in _mallFirst.tilesOf('D')) step: Direction.north,
+  for (final step in rooftopFarStairs) step: Direction.east,
+  for (final step in hospitalNextRoofStairs) step: Direction.south,
+};
+
 /// Where the grappling hook crosses in Molfetta: the three gaps between
 /// roofs, each both ways, from the edge Mario looks over to the one facing
 /// it and back again. Each lands him just inside the other edge, looking
@@ -1317,6 +1367,7 @@ LevelContents hometownContents(EntityFactory factory) {
       stationTrackFireTile,
     ],
     grapples: hometownGrapples,
+    stairs: hometownStairs,
   );
 }
 

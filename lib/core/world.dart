@@ -51,12 +51,14 @@ final class WorldState {
     Iterable<GridPoint> travelMaps = const <GridPoint>[],
     Iterable<GridPoint> lookouts = const <GridPoint>[],
     Map<GridPoint, Portal> grapples = const <GridPoint, Portal>{},
+    Map<GridPoint, Direction> stairs = const <GridPoint, Direction>{},
   }) : controls = Map<GridPoint, GridRect>.of(controls),
        portals = Map<GridPoint, Portal>.of(portals),
        campfires = Set<GridPoint>.unmodifiable(campfires),
        travelMaps = Set<GridPoint>.unmodifiable(travelMaps),
        lookouts = Set<GridPoint>.unmodifiable(lookouts),
        grapples = Map<GridPoint, Portal>.unmodifiable(grapples),
+       stairs = Map<GridPoint, Direction>.unmodifiable(stairs),
        _entities = <String, Entity>{
          for (final entity in entities) entity.id: entity,
        },
@@ -98,6 +100,7 @@ final class WorldState {
         json['lookouts'] as List<Object?>? ?? const <Object?>[];
     final encodedGrapples =
         json['grapples'] as List<Object?>? ?? const <Object?>[];
+    final encodedStairs = json['stairs'] as List<Object?>? ?? const <Object?>[];
     return WorldState(
       map: map ?? TileMap.fromJson(json['map']! as Map<String, Object?>),
       entities: encodedEntities.map(
@@ -142,6 +145,12 @@ final class WorldState {
         for (final encoded in encodedGrapples.cast<Map<String, Object?>>())
           GridPoint.fromJson(encoded['at']! as Map<String, Object?>):
               Portal.fromJson(encoded),
+      },
+      stairs: <GridPoint, Direction>{
+        for (final encoded in encodedStairs.cast<Map<String, Object?>>())
+          GridPoint.fromJson(encoded['at']! as Map<String, Object?>): Direction
+              .values
+              .byName(encoded['up']! as String),
       },
     );
   }
@@ -199,6 +208,11 @@ final class WorldState {
   /// the far side, where another brings him back. Without it, the edge is
   /// only a lookout.
   final Map<GridPoint, Portal> grapples;
+
+  /// The steps of the flights of stairs, each with the way up them, from
+  /// the floor in front of the first step to the last, which is the door.
+  /// A flight is climbed only along it: see [canStep].
+  final Map<GridPoint, Direction> stairs;
   final String playerId;
   final SeededRandom random;
   final List<NoisePulse> _pendingNoises;
@@ -206,6 +220,27 @@ final class WorldState {
   int tick;
 
   Entity get player => _entities[playerId]!;
+
+  /// Whether a step from [from] to the next tile [to] is allowed by the
+  /// stairs, whoever takes it: a flight is got onto only from the floor in
+  /// front of its first step, going up it, and left only along it, up or
+  /// back down. On it, anyone moves freely from step to step, sideways
+  /// too; its sides and its far end, where the rails are, stay shut.
+  bool canStep(GridPoint from, GridPoint to) {
+    final onto = stairs[to];
+    final off = stairs[from];
+    if (onto == null && off == null) {
+      return true;
+    }
+    if (onto != null && off == onto) {
+      return true;
+    }
+    final way = Direction.values.firstWhere((way) => from.step(way) == to);
+    if (onto != null) {
+      return way == onto;
+    }
+    return way == off || way == off!.opposite;
+  }
 
   /// Adds [entity], or replaces whoever already had its id: the story
   /// raises zombies in the middle of a game.
@@ -411,6 +446,10 @@ final class WorldState {
     'grapples': <Object?>[
       for (final entry in grapples.entries)
         <String, Object?>{'at': entry.key.toJson(), ...entry.value.toJson()},
+    ],
+    'stairs': <Object?>[
+      for (final entry in stairs.entries)
+        <String, Object?>{'at': entry.key.toJson(), 'up': entry.value.name},
     ],
   };
 }
