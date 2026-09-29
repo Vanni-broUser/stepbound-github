@@ -44,6 +44,7 @@ enum PlaceId {
   terminiConcourse,
   piazzaCinquecento,
   viaMarsala,
+  termeDiocleziano,
 }
 
 /// The levels of the game, one city each. The train Mario and Luigi live
@@ -78,7 +79,8 @@ enum AreaId {
   /// Roma Termini: its platforms, the overpass and the concourse.
   romeTermini(LevelId.rome),
 
-  /// The streets just outside Termini.
+  /// The streets just outside Termini, and the Baths of Diocletian at
+  /// the end of one of them.
   romeStreets(LevelId.rome);
 
   const AreaId(this.level);

@@ -6,6 +6,7 @@ import 'package:stepbound/core/levels/game_world.dart';
 import 'package:stepbound/core/levels/place.dart';
 
 export 'package:stepbound/core/levels/rome/rome_streets.dart';
+export 'package:stepbound/core/levels/rome/terme.dart';
 export 'package:stepbound/core/levels/rome/termini.dart';
 export 'package:stepbound/core/levels/rome/termini_station.dart';
 
@@ -36,14 +37,20 @@ const Legend terminiConcourseLegend = Legend(
 );
 
 /// Rome's streets: Molfetta's outdoor legend, with the front of Termini
-/// `]` and Santa Maria Maggiore `"` walls, and the Column of Peace `>`
-/// and the placards `` ` `` obstacles.
+/// `]`, Santa Maria Maggiore `"` and the Baths of Diocletian `§` walls,
+/// and the Column of Peace `>`, the placards `` ` `` and the Baths' brown
+/// sign `¤` obstacles.
 const Legend romeStreetLegend = Legend(
-  walls: 'BHfKMGW#%0_]"',
-  obstacles: 'CXUvkDFTSOyJQaAnI~RNbpx*i&!^;/+>`',
+  walls: 'BHfKMGW#%0_]"§',
+  obstacles: 'CXUvkDFTSOyJQaAnI~RNbpx*i&!^;/+>`¤',
   debris: ':q',
   fire: '?',
 );
+
+/// Inside the Baths of Diocletian (terme.dart): the walls, the columns `O`
+/// and the high altar `A` shut the way and the sight; the pews `T` and the
+/// column drum `K` can be seen over.
+const Legend termeLegend = Legend(walls: 'xWIwOA', obstacles: 'TK');
 
 /// Rome, the second level: Roma Termini and the two streets round it, on
 /// the same grid as Molfetta. The train is the one place the two levels
@@ -94,6 +101,16 @@ const List<PlaceSpec> romePlaces = <PlaceSpec>[
     rows: viaMarsalaRows,
     legend: romeStreetLegend,
   ),
+  // Painted from its rows out of the tile atlas.
+  PlaceSpec(
+    id: PlaceId.termeDiocleziano,
+    area: AreaId.romeStreets,
+    rows: termeRows,
+    legend: termeLegend,
+    indoor: true,
+    // The open portal, and the thermal windows high in the walls.
+    daylight: 'E^',
+  ),
 ];
 
 final Place _termini = place(PlaceId.romeTermini);
@@ -102,6 +119,11 @@ final Place _farPlatform = place(PlaceId.terminiFarPlatform);
 final Place _concourse = place(PlaceId.terminiConcourse);
 final Place _piazza = place(PlaceId.piazzaCinquecento);
 final Place _marsala = place(PlaceId.viaMarsala);
+final Place _terme = place(PlaceId.termeDiocleziano);
+
+/// The portal of Santa Maria degli Angeli, in the front of the Baths of
+/// Diocletian where the road past Termini ends: the way inside.
+final GridPoint termePortalTile = _piazza.tileOf('¶');
 
 /// The passenger door of the train standing at Roma Termini, open onto
 /// the platform.
@@ -139,14 +161,23 @@ const Map<PlaceId, List<GridPoint>> romeZombieSpots =
         GridPoint(48, 15),
       ],
       PlaceId.piazzaCinquecento: <GridPoint>[
-        GridPoint(12, 12),
-        GridPoint(40, 14),
-        GridPoint(60, 8),
-        GridPoint(34, 24),
-        GridPoint(32, 33),
-        GridPoint(12, 44),
-        GridPoint(36, 45),
-        GridPoint(52, 42),
+        // On the road west to the Baths of Diocletian.
+        GridPoint(12, 11),
+        GridPoint(30, 14),
+        GridPoint(57, 12),
+        GridPoint(85, 14),
+        GridPoint(105, 8),
+        GridPoint(79, 24),
+        GridPoint(77, 33),
+        GridPoint(57, 44),
+        GridPoint(81, 45),
+        GridPoint(97, 42),
+      ],
+      PlaceId.termeDiocleziano: <GridPoint>[
+        GridPoint(10, 8),
+        GridPoint(25, 5),
+        GridPoint(33, 11),
+        GridPoint(21, 16),
       ],
       PlaceId.viaMarsala: <GridPoint>[
         GridPoint(15, 9),
@@ -172,7 +203,7 @@ final Map<GridPoint, String> romeCampfireNames = <GridPoint, String>{
 };
 
 /// The one sprinter of Rome, loose on the piazza.
-const GridPoint piazzaSprinterSpot = GridPoint(22, 12);
+const GridPoint piazzaSprinterSpot = GridPoint(67, 12);
 
 /// The wanderers on the platforms of Termini, `termini-wanderer-<n>`.
 const String terminiZombiePrefix = 'termini-wanderer-';
@@ -188,7 +219,7 @@ final List<FireSpot> romeFireSpots = <FireSpot>[
 /// front wall of a platform), the overpass's opening onto the concourse
 /// and the concourse's three doorways onto the piazza (each lands Mario a
 /// step past the door, facing on), and the breach out of the far platform
-/// onto Via Marsala.
+/// onto Via Marsala, and the portal of the Baths of Diocletian.
 Map<GridPoint, Portal> _portals() => <GridPoint, Portal>{
   ...pairedDoors(terminiStairsTiles, _overpass.tilesOf('D'), Direction.south),
   ...pairedDoors(_overpass.tilesOf('D'), terminiStairsTiles, Direction.north),
@@ -224,6 +255,14 @@ Map<GridPoint, Portal> _portals() => <GridPoint, Portal>{
   ),
   ...pairedDoors(terminiBreachTiles, _marsala.tilesOf('}'), Direction.north),
   ...pairedDoors(_marsala.tilesOf('}'), terminiBreachTiles, Direction.south),
+  ...pairedDoors(
+    <GridPoint>[termePortalTile],
+    _terme.tilesOf('E'),
+    Direction.north,
+  ),
+  ...pairedDoors(_terme.tilesOf('E'), <GridPoint>[
+    termePortalTile,
+  ], Direction.south),
 };
 
 /// What Rome holds when a game starts: the dead wandering Termini and
@@ -271,18 +310,18 @@ const int _cavourEnd = 39;
 /// facing up it towards Termini: nobody gets onto the square past them.
 final GridPoint marcelloTile = _onGrid(
   PlaceId.piazzaCinquecento,
-  const GridPoint(33, _cavourEnd),
+  const GridPoint(78, _cavourEnd),
 );
 final GridPoint toninoTile = _onGrid(
   PlaceId.piazzaCinquecento,
-  const GridPoint(34, _cavourEnd),
+  const GridPoint(79, _cavourEnd),
 );
 
 /// The last stretch of Via Cavour, the two of them in full view at the
 /// bottom of it: walking into it plays the meeting.
 final GridRect maranzaSceneTrigger = _rectOnGrid(
   PlaceId.piazzaCinquecento,
-  const GridRect(30, _cavourEnd - 5, 37, _cavourEnd - 1),
+  const GridRect(75, _cavourEnd - 5, 82, _cavourEnd - 1),
 );
 
 /// Two steps from them and on, the whole square included: once they have

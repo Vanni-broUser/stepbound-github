@@ -106,10 +106,10 @@ void main() {
       'brings up the work-in-progress screen and nothing breaks', (tester) {
     return tester.runAsync(() async {
       final game = await pumpReadyGame(tester);
-      // West of Termini, two steps from where the piazza runs off the map.
+      // East of Termini, two steps from where the piazza runs off the map.
       final piazza = place(PlaceId.piazzaCinquecento);
       final mario = game.simulation.player.component<PositionComponent>()
-        ..position = GridPoint(piazza.origin.x + 2, piazza.origin.y + 8);
+        ..position = GridPoint(piazza.bounds.right - 2, piazza.origin.y + 8);
       await tester.pump(const Duration(milliseconds: 100));
 
       final thumb = await tester.createGesture(pointer: 1);
@@ -117,7 +117,7 @@ void main() {
         tester.getCenter(find.byKey(const ValueKey<String>('touch-move'))),
       );
       for (var i = 0; i < 6; i++) {
-        await thumb.moveBy(const Offset(-10, 0));
+        await thumb.moveBy(const Offset(10, 0));
         await tester.pump(const Duration(milliseconds: 50));
       }
       final screen = find.byKey(const ValueKey<String>('work-in-progress'));
@@ -125,11 +125,14 @@ void main() {
         await tester.pump(const Duration(milliseconds: 50));
       }
       expect(screen, findsOneWidget);
-      expect(mario.position, GridPoint(piazza.origin.x, piazza.origin.y + 8));
+      expect(
+        mario.position,
+        GridPoint(piazza.bounds.right, piazza.origin.y + 8),
+      );
       expect(find.byKey(const ValueKey<String>('touch-move')), findsNothing);
 
       // The thumb goes on over the screen, then lifts.
-      await thumb.moveBy(const Offset(-10, 5));
+      await thumb.moveBy(const Offset(10, 5));
       await thumb.up();
       await tester.pump();
       expect(tester.takeException(), isNull);
@@ -139,9 +142,9 @@ void main() {
       expect(screen, findsNothing);
       expect(
         mario.position,
-        GridPoint(piazza.origin.x + 1, piazza.origin.y + 8),
+        GridPoint(piazza.bounds.right - 1, piazza.origin.y + 8),
       );
-      expect(mario.facing, Direction.east);
+      expect(mario.facing, Direction.west);
     });
   });
 

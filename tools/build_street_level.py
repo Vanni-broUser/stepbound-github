@@ -26,11 +26,11 @@ LEVELS_DIR = os.path.join("lib", "core", "levels")
 
 ROAD_GLYPHS = set(".-|ZVc")
 WALK_GLYPHS = set("=")
-BUILDING_GLYPHS = set("BHfKMGW#%0")
+BUILDING_GLYPHS = set("BHfKMGW#%0\u00a7")
 FACADE_GLYPHS = set("Hf")
 # Street furniture: it stands on the footway, not in the road, so it
 # looks for its floor up and down its column as well as sideways.
-FOOTWAY_GLYPHS = set("T/F")
+FOOTWAY_GLYPHS = set("T/F¤")
 
 ASPHALT = (44, 46, 52)
 ASPHALT_SPECKLE = (52, 54, 60)
@@ -129,11 +129,14 @@ MALL_NORTH_STOREFRONTS = {
 }
 # On Piazza dei Cinquecento, in the palazzi west of Termini.
 ROME_PIAZZA_STOREFRONTS = {
-    1: [(4, 6, "souvenir")],
+    # On the road west to the Baths of Diocletian, three little shops, all
+    # shut; by the station, the souvenir shop.
+    1: [(19, 6, "tabacchi"), (30, 4, "forno"), (40, 5, "ferramenta"),
+        (49, 6, "souvenir")],
     # On Piazza di Santa Maria Maggiore, east of Via Cavour, each shop to
     # whole palazzi and a palazzo with none between them: the bar, the
     # trattoria across the ground floor of two, the accountants in one.
-    35: [(40, 5, "barroma"), (49, 11, "trattoria"), (64, 6, "studio")],
+    35: [(85, 5, "barroma"), (94, 11, "trattoria"), (109, 6, "studio")],
 }
 HARBOUR_STOREFRONTS = {
     7: [(123, 5, "arcobaleno")],  # up the alley, its door `h` at column 125
@@ -521,9 +524,15 @@ SHOPS = {
     "barroma": ((214, 176, 104), (236, 226, 204), (40, 40, 44), (240, 216, 150), "BAR", ()),
     "trattoria": ((170, 82, 58), (228, 214, 188), (36, 70, 44), (236, 226, 200), "TRATTORIA ROMANA", ()),
     "studio": ((222, 196, 150), (240, 232, 214), (30, 40, 70), (226, 226, 220), "COMMERCIALISTA", ()),
+    # Rome, on the road from Termini to the Baths of Diocletian: the
+    # tobacconist, the bakery and the ironmonger, their shutters down.
+    "tabacchi": ((200, 150, 90), (234, 222, 198), (30, 44, 92), (236, 232, 222), "TABACCHI", ()),
+    "forno": ((184, 98, 66), (230, 216, 192), (96, 58, 34), (240, 214, 160), "FORNO", ()),
+    "ferramenta": ((212, 186, 138), (238, 228, 208), (44, 52, 58), (226, 200, 120), "FERRAMENTA", (6,)),
 }
 # The shops whose palazzo keeps its own Roman floors above the shop front.
-ROMAN_SHOPS = ("souvenir", "barroma", "trattoria", "studio")
+ROMAN_SHOPS = ("souvenir", "barroma", "trattoria", "studio", "tabacchi",
+               "forno", "ferramenta")
 
 
 def paint_shutter(d, x, y, w, h, drop):
