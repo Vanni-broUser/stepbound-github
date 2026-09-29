@@ -190,6 +190,7 @@ PickedUpEvent pickedUp(
   bool episcopalRing = false,
   bool cultistRobe = false,
   bool duomoKey = false,
+  bool grapplingHook = false,
   int molotovs = 0,
 }) => PickedUpEvent(
   pickupId: id,
@@ -200,6 +201,7 @@ PickedUpEvent pickedUp(
   episcopalRing: episcopalRing,
   cultistRobe: cultistRobe,
   duomoKey: duomoKey,
+  grapplingHook: grapplingHook,
   molotovs: molotovs,
 );
 

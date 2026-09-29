@@ -50,11 +50,13 @@ final class WorldState {
     Map<GridPoint, GridRect> controls = const <GridPoint, GridRect>{},
     Iterable<GridPoint> travelMaps = const <GridPoint>[],
     Iterable<GridPoint> lookouts = const <GridPoint>[],
+    Map<GridPoint, Portal> grapples = const <GridPoint, Portal>{},
   }) : controls = Map<GridPoint, GridRect>.of(controls),
        portals = Map<GridPoint, Portal>.of(portals),
        campfires = Set<GridPoint>.unmodifiable(campfires),
        travelMaps = Set<GridPoint>.unmodifiable(travelMaps),
        lookouts = Set<GridPoint>.unmodifiable(lookouts),
+       grapples = Map<GridPoint, Portal>.unmodifiable(grapples),
        _entities = <String, Entity>{
          for (final entity in entities) entity.id: entity,
        },
@@ -94,6 +96,8 @@ final class WorldState {
         json['travelMaps'] as List<Object?>? ?? const <Object?>[];
     final encodedLookouts =
         json['lookouts'] as List<Object?>? ?? const <Object?>[];
+    final encodedGrapples =
+        json['grapples'] as List<Object?>? ?? const <Object?>[];
     return WorldState(
       map: map ?? TileMap.fromJson(json['map']! as Map<String, Object?>),
       entities: encodedEntities.map(
@@ -134,6 +138,11 @@ final class WorldState {
       lookouts: encodedLookouts.map(
         (point) => GridPoint.fromJson(point! as Map<String, Object?>),
       ),
+      grapples: <GridPoint, Portal>{
+        for (final encoded in encodedGrapples.cast<Map<String, Object?>>())
+          GridPoint.fromJson(encoded['at']! as Map<String, Object?>):
+              Portal.fromJson(encoded),
+      },
     );
   }
 
@@ -184,6 +193,12 @@ final class WorldState {
   /// Places worth a closer look: interacting with one says what the
   /// player is looking at, and leaves it there to be looked at again.
   final Set<GridPoint> lookouts;
+
+  /// The edges of the roofs a gap away from the next: with the grappling
+  /// hook, interacting with one carries the player to its [Portal.to] on
+  /// the far side, where another brings him back. Without it, the edge is
+  /// only a lookout.
+  final Map<GridPoint, Portal> grapples;
   final String playerId;
   final SeededRandom random;
   final List<NoisePulse> _pendingNoises;
@@ -393,5 +408,9 @@ final class WorldState {
     ],
     'travelMaps': <Object?>[for (final point in travelMaps) point.toJson()],
     'lookouts': <Object?>[for (final point in lookouts) point.toJson()],
+    'grapples': <Object?>[
+      for (final entry in grapples.entries)
+        <String, Object?>{'at': entry.key.toJson(), ...entry.value.toJson()},
+    ],
   };
 }

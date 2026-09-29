@@ -179,6 +179,19 @@ final class HometownStage extends LevelStage implements HometownActions {
         tile: hospitalRoofLookoutTile,
         active: canInteract,
       ),
+      // The way back across each gap, for as long as there is a hook to
+      // go back with.
+      for (final edge in <GridPoint>[
+        rooftopFarEdgeTile,
+        duomoFarTowerEdgeTile,
+        hospitalNextRoofEdgeTile,
+      ])
+        InteractGlintComponent(
+          tile: edge,
+          active: () =>
+              canInteract() &&
+              simulation.player.component<AmmoComponent>().grapplingHook,
+        ),
       InteractGlintComponent(tile: shoppingStreetFireTile, active: canInteract),
       InteractGlintComponent(tile: stationTrackFireTile, active: canInteract),
       // On the closed leaf, until the key opens it.

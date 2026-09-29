@@ -4,6 +4,7 @@ import 'package:stepbound/core/entities/components.dart';
 import 'package:stepbound/core/grid/grid_point.dart';
 import 'package:stepbound/core/grid/tile.dart';
 import 'package:stepbound/core/grid/tile_map.dart';
+import 'package:stepbound/core/items/pickup.dart';
 import 'package:stepbound/core/world.dart';
 import 'package:stepbound/core/world_event.dart';
 
@@ -130,6 +131,13 @@ final class InteractAction extends PlayerAction {
       return;
     }
 
+    final ammo = world.player.component<AmmoComponent>();
+    final grapple = world.grapples[target];
+    if (grapple != null && ammo.grapplingHook) {
+      _grapple(world, grapple);
+      return;
+    }
+
     if (world.lookouts.contains(target)) {
       world.emit(LookedOutEvent(at: target));
       return;
@@ -153,11 +161,14 @@ final class InteractAction extends PlayerAction {
       pickup
         ..active = false
         ..collected = true;
-      final ammo = world.player.component<AmmoComponent>()
+      ammo
         ..add(pickup.ammo)
         ..molotovs += pickup.molotovs;
       if (pickup.gun) {
         ammo.hasGun = true;
+      }
+      if (pickup.grapplingHook) {
+        ammo.grapplingHook = true;
       }
       world.emit(
         PickedUpEvent(
@@ -170,6 +181,7 @@ final class InteractAction extends PlayerAction {
           episcopalRing: pickup.episcopalRing,
           cultistRobe: pickup.cultistRobe,
           duomoKey: pickup.duomoKey,
+          grapplingHook: pickup.grapplingHook,
         ),
       );
       return;
@@ -212,6 +224,34 @@ final class InteractAction extends PlayerAction {
           TileKind.fire:
         world.emit(NoInteractionEvent(target));
     }
+  }
+
+  /// Over the gap to [grapple]'s roof, unless somebody stands on the spot
+  /// the hook would put Mario down on.
+  static void _grapple(WorldState world, Portal grapple) {
+    if (world.entityAt(grapple.to, excluding: world.playerId) != null) {
+      world.emit(
+        BlockedEvent(
+          entityId: world.playerId,
+          at: grapple.to,
+          reason: 'entity',
+        ),
+      );
+      return;
+    }
+    final position = world.player.component<PositionComponent>();
+    final from = position.position;
+    position
+      ..position = grapple.to
+      ..facing = grapple.facing;
+    world.emit(
+      TeleportedEvent(
+        entityId: world.playerId,
+        from: from,
+        to: grapple.to,
+        grappled: true,
+      ),
+    );
   }
 }
 

@@ -19,6 +19,10 @@ final class BackpacksScript extends StoryScript {
   static const String ringFound = 'Hai trovato un anello episcopale';
   static const String duomoKeyFound =
       'Hai trovato la Chiave del Duomo vicino il cadavere di Don Angelo';
+  static const String grapplingHookFound = 'Hai trovato un rampino';
+  static const String grapplingHookLesson =
+      'Con il rampino puoi raggiungere i tetti vicini che non riuscivi a '
+      'raggiungere';
   static String molotovFound(int count) => 'Hai trovato $count molotov';
   static const String molotovLesson = 'Le molotov fanno danno ad area';
 
@@ -71,10 +75,24 @@ final class BackpacksScript extends StoryScript {
       :final episcopalRing,
       :final cultistRobe,
       :final duomoKey,
+      :final grapplingHook,
     )) {
       host.playPickupAnimation();
       // The Duomo's script tells of the robe: it dresses Mario in it.
       if (cultistRobe) {
+        return;
+      }
+      if (grapplingHook) {
+        say(
+          StoryPrompt(
+            const <StoryLine>[
+              StoryLine(grapplingHookFound),
+              StoryLine(grapplingHookLesson),
+            ],
+            delay: StoryDirector.pickupDelay,
+            onShown: () => host.unlock(HudElement.grapplingHook),
+          ),
+        );
         return;
       }
       if (duomoKey) {

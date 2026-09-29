@@ -84,10 +84,10 @@ const List<GridPoint> airlinerCabinLamps = <GridPoint>[
 /// it and with its parapet `^` along the front -- with its own chimney
 /// stacks `k`, gravel `;` and the open stairwell `S` going down into that
 /// block, eastward: its head at the west end, its foot at the east. Its
-/// wall is broken open `<` straight across from `>`: where a grappling
-/// hook would bring Mario in. Only a
-/// grappling hook would get Mario over there, and the game has none yet,
-/// so the stairs lead nowhere for now.
+/// wall is broken open `<` straight across from `>`: where the grappling
+/// hook brings Mario in, and where it takes him back from. Only the hook,
+/// found in Rome, gets him over there, and the stairs lead nowhere for
+/// now.
 ///
 /// The airliner struck the building at the north-west corner of the upper
 /// terrace on its way down, and the fuel it spilt there is still burning

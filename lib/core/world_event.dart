@@ -452,12 +452,14 @@ final class LookedOutEvent extends WorldEvent {
   };
 }
 
-/// The player went through a door into another place.
+/// The player went through a door into another place, or, [grappled],
+/// swung across to the roof on the far side of a gap.
 final class TeleportedEvent extends WorldEvent {
   const TeleportedEvent({
     required this.entityId,
     required this.from,
     required this.to,
+    this.grappled = false,
   });
 
   factory TeleportedEvent.fromJson(Map<String, Object?> json) {
@@ -465,6 +467,7 @@ final class TeleportedEvent extends WorldEvent {
       entityId: json['entityId']! as String,
       from: GridPoint.fromJson(json['from']! as Map<String, Object?>),
       to: GridPoint.fromJson(json['to']! as Map<String, Object?>),
+      grappled: json['grappled'] as bool? ?? false,
     );
   }
 
@@ -472,8 +475,13 @@ final class TeleportedEvent extends WorldEvent {
   final GridPoint from;
   final GridPoint to;
 
+  /// Across a gap with the grappling hook rather than through a door.
+  final bool grappled;
+
   @override
-  String get description => '$entityId goes through the door $from -> $to';
+  String get description => grappled
+      ? '$entityId grapples across $from -> $to'
+      : '$entityId goes through the door $from -> $to';
 
   @override
   Map<String, Object?> toJson() => <String, Object?>{
@@ -481,6 +489,7 @@ final class TeleportedEvent extends WorldEvent {
     'entityId': entityId,
     'from': from.toJson(),
     'to': to.toJson(),
+    if (grappled) 'grappled': true,
   };
 }
 
@@ -495,6 +504,7 @@ final class PickedUpEvent extends WorldEvent {
     this.episcopalRing = false,
     this.cultistRobe = false,
     this.duomoKey = false,
+    this.grapplingHook = false,
   });
 
   factory PickedUpEvent.fromJson(Map<String, Object?> json) {
@@ -508,6 +518,7 @@ final class PickedUpEvent extends WorldEvent {
       episcopalRing: json['episcopalRing']! as bool,
       cultistRobe: json['cultistRobe']! as bool,
       duomoKey: json['duomoKey'] as bool? ?? false,
+      grapplingHook: json['grapplingHook'] as bool? ?? false,
     );
   }
 
@@ -520,6 +531,7 @@ final class PickedUpEvent extends WorldEvent {
   final bool episcopalRing;
   final bool cultistRobe;
   final bool duomoKey;
+  final bool grapplingHook;
 
   @override
   String get description =>
@@ -529,7 +541,8 @@ final class PickedUpEvent extends WorldEvent {
       '${incense ? ' and the incense' : ''}'
       '${episcopalRing ? ' and the episcopal ring' : ''}'
       '${cultistRobe ? ' and the occultist robe' : ''}'
-      '${duomoKey ? ' and the key of the Duomo' : ''}';
+      '${duomoKey ? ' and the key of the Duomo' : ''}'
+      '${grapplingHook ? ' and a grappling hook' : ''}';
 
   @override
   Map<String, Object?> toJson() => <String, Object?>{
@@ -543,6 +556,7 @@ final class PickedUpEvent extends WorldEvent {
     'episcopalRing': episcopalRing,
     'cultistRobe': cultistRobe,
     'duomoKey': duomoKey,
+    if (grapplingHook) 'grapplingHook': true,
   };
 }
 

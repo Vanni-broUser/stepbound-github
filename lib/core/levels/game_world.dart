@@ -57,6 +57,7 @@ final class LevelContents {
     this.controls = const <GridPoint, GridRect>{},
     this.travelMaps = const <GridPoint>[],
     this.lookouts = const <GridPoint>[],
+    this.grapples = const <GridPoint, Portal>{},
   });
 
   final List<Entity> entities;
@@ -66,6 +67,7 @@ final class LevelContents {
   final Map<GridPoint, GridRect> controls;
   final List<GridPoint> travelMaps;
   final List<GridPoint> lookouts;
+  final Map<GridPoint, Portal> grapples;
 }
 
 /// Campfires, by tile, with the name shown in the save slots. Aboard, the
@@ -180,6 +182,9 @@ WorldState createGameWorld({int seed = 20260920}) {
     },
     travelMaps: <GridPoint>[for (final level in levels) ...level.travelMaps],
     lookouts: <GridPoint>[for (final level in levels) ...level.lookouts],
+    grapples: <GridPoint, Portal>{
+      for (final level in levels) ...level.grapples,
+    },
     playerId: 'player',
     random: SeededRandom(seed),
   );
@@ -253,6 +258,7 @@ WorldState restoreGameWorld(Map<String, Object?> json) {
     // the newly added train and use its locomotive map.
     'portals': _levelJson['portals'],
     'travelMaps': _levelJson['travelMaps'],
+    'grapples': _levelJson['grapples'],
     'entities': <Object?>[
       ...savedEntities,
       for (final entity in levelEntities)

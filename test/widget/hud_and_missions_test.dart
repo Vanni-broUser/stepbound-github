@@ -38,6 +38,31 @@ void main() {
     });
   });
 
+  testWidgets("in Rome, Molfetta's keys are out of sight and the grappling "
+      'hook is not', (tester) {
+    return tester.runAsync(() async {
+      final game = await pumpReadyGame(tester);
+      game.progress.level = LevelId.rome;
+      // Luigi's welcome to Rome would cover the corner.
+      game.story.restore(<String, Object?>{
+        ...game.story.toJson(),
+        'rome': <String, Object?>{'welcomed': true},
+      });
+      game
+        ..unlock(HudElement.duomoKey)
+        ..unlock(HudElement.barKey)
+        ..unlock(HudElement.grapplingHook);
+      await tester.pump();
+      expect(find.byKey(const ValueKey<String>('hud-duomo-key')), findsNothing);
+      expect(find.byKey(const ValueKey<String>('hud-bar-key')), findsNothing);
+      final hook = find.byKey(const ValueKey<String>('hud-grappling-hook'));
+      expect(hook, findsOneWidget);
+      await tester.tap(hook);
+      await tester.pump();
+      expect(find.text('Rampino'), findsOneWidget);
+    });
+  });
+
   testWidgets('quest inventory badges show their item name when tapped', (
     tester,
   ) {

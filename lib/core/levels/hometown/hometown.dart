@@ -486,7 +486,17 @@ final GridPoint duomoRoofHatchTile = _duomoRoof.tileOf('D');
 /// over it tells Mario what it would take to get across.
 final GridPoint duomoTowerLookoutTile = _duomoRoof.tileOf('>');
 
-/// The backpack on the roof of the other tower, seen and out of reach.
+/// The stretch of the other tower's parapet straight across from
+/// [duomoTowerLookoutTile], seven cells east over the nave: where the
+/// grappling hook brings Mario back from. The picture of the towers is
+/// one painting, so it is found from the lookout, not by a glyph.
+final GridPoint duomoFarTowerEdgeTile = GridPoint(
+  duomoTowerLookoutTile.x + 7,
+  duomoTowerLookoutTile.y,
+);
+
+/// The backpack on the roof of the other tower, out of reach without the
+/// grappling hook.
 final GridPoint duomoFarTowerBackpackTile = _duomoRoof.tileOf('9');
 const String duomoFarTowerBackpackId = 'backpack-duomo-tower';
 
@@ -549,6 +559,10 @@ final GridPoint hospitalRoofCampfireTile = _hospitalRoof.tileOf('S');
 /// The stretch of the roof's east wall knocked down low, facing the next
 /// block across the gap: looking over it, Mario measures the gap.
 final GridPoint hospitalRoofLookoutTile = _hospitalRoof.tileOf('>');
+
+/// The next block's wall broken open straight across from
+/// [hospitalRoofLookoutTile]: the way back with the grappling hook.
+final GridPoint hospitalNextRoofEdgeTile = _hospitalRoof.tileOf('<');
 
 /// The wanderers left in the hospital, floor by floor, `hospital-wanderer-<n>`.
 const String hospitalZombiePrefix = 'hospital-wanderer-';
@@ -837,9 +851,36 @@ final List<GridPoint> airlinerTailBreak = _airlinerCabin.doorRow('O');
 final List<GridPoint> airlinerRoofBreak = _airlinerRoofs.doorRow('D');
 
 /// The low stretch of parapet at the south edge of the lower terrace,
-/// where the next block stands just across the gap: looking at it is all
-/// Mario can do about it for now.
+/// where the next block stands just across the gap: without the grappling
+/// hook, looking at it is all Mario can do about it.
 final GridPoint rooftopGapTile = _airlinerRoofs.tileOf('>');
+
+/// The next block's wall broken open straight across from
+/// [rooftopGapTile]: the way back with the grappling hook.
+final GridPoint rooftopFarEdgeTile = _airlinerRoofs.tileOf('<');
+
+/// Where the grappling hook crosses in Molfetta: the three gaps between
+/// roofs, each both ways, from the edge Mario looks over to the one facing
+/// it and back again. Each lands him just inside the other edge, looking
+/// on the way he swung.
+final Map<GridPoint, Portal> hometownGrapples = <GridPoint, Portal>{
+  ..._bothWays(rooftopGapTile, rooftopFarEdgeTile, Direction.south),
+  ..._bothWays(duomoTowerLookoutTile, duomoFarTowerEdgeTile, Direction.east),
+  ..._bothWays(
+    hospitalRoofLookoutTile,
+    hospitalNextRoofEdgeTile,
+    Direction.east,
+  ),
+};
+
+Map<GridPoint, Portal> _bothWays(
+  GridPoint near,
+  GridPoint far,
+  Direction across,
+) => <GridPoint, Portal>{
+  near: Portal(to: far.step(across), facing: across),
+  far: Portal(to: near.step(across.opposite), facing: across.opposite),
+};
 
 /// The east end of the fuel burning across the middle lane of the
 /// shopping street, west of the campfire behind the hypermarket: the gap in
@@ -1138,7 +1179,8 @@ LevelContents hometownContents(EntityFactory factory) {
       duomoKey: true,
       active: false,
     ),
-    // On the roof of the other tower: seen from this one, never reached.
+    // On the roof of the other tower: seen from this one, reached with
+    // the grappling hook.
     Pickup(
       id: duomoFarTowerBackpackId,
       position: duomoFarTowerBackpackTile,
@@ -1249,6 +1291,7 @@ LevelContents hometownContents(EntityFactory factory) {
       shoppingStreetFireTile,
       stationTrackFireTile,
     ],
+    grapples: hometownGrapples,
   );
 }
 
