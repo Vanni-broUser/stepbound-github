@@ -71,7 +71,12 @@ void main() {
           "Trova dell'incenso",
           "Trova l'anello episcopale",
           'Partecipa alla cerimonia di iniziazione',
+          'Usa il rampino per esplorare i terrazzi',
         ],
+      );
+      expect(
+        Mission.values.where((mission) => mission.hiddenUntilGiven),
+        <Mission>[Mission.exploreTerraces],
       );
       expect(Mission.of(LevelId.rome).map((mission) => mission.text), <String>[
         'Trova delle provviste',
@@ -117,7 +122,7 @@ void main() {
         ..complete(Mission.freeLuigi)
         ..complete(Mission.findSurvivors);
       await pump(tester, statsOf(progress));
-      expect(score(tester), '3 / 7');
+      expect(score(tester), '3 / 8');
       double top(Mission mission) => tester
           .getTopLeft(
             find.byKey(ValueKey<String>('mission-row-${mission.name}')),
@@ -142,6 +147,35 @@ void main() {
       );
     });
 
+    testWidgets('the terraces count from the start, but are listed only '
+        'once handed out, not crossed out', (tester) async {
+      final progress = Progress.newGame();
+      var stats = statsOf(progress);
+      expect(stats.missions, contains(Mission.exploreTerraces));
+      expect(stats.hiddenMissions, <Mission>[Mission.exploreTerraces]);
+      await pump(tester, stats);
+      expect(score(tester), '0 / 8');
+      final row = find.byKey(
+        ValueKey<String>('mission-row-${Mission.exploreTerraces.name}'),
+      );
+      expect(row, findsNothing);
+
+      progress.missions.give(Mission.exploreTerraces);
+      stats = statsOf(progress);
+      expect(stats.hiddenMissions, isEmpty);
+      await pump(tester, stats);
+      expect(score(tester), '0 / 8');
+      await tester.scrollUntilVisible(
+        row,
+        50,
+        scrollable: find.descendant(
+          of: find.byKey(const ValueKey<String>('missions-list')),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      expect(row, findsOneWidget);
+    });
+
     testWidgets('the gate, cleared twice, is one mission done', (tester) async {
       final progress = Progress.newGame();
       progress.missions
@@ -157,7 +191,7 @@ void main() {
         Mission.findIncense,
       ]);
       await pump(tester, stats);
-      expect(score(tester), '2 / 7');
+      expect(score(tester), '2 / 8');
       expect(
         find.byKey(ValueKey<String>('mission-row-${Mission.clearGate.name}')),
         findsOneWidget,
@@ -172,11 +206,11 @@ void main() {
         ..complete(Mission.freeLuigi)
         ..complete(Mission.reachLuigi);
       await pump(tester, statsOf(progress), finale: Mission.reachLuigi);
-      expect(score(tester), '2 / 7', reason: 'not crossed out yet');
+      expect(score(tester), '2 / 8', reason: 'not crossed out yet');
       // A moment to take the screen in, then down the list and the cross.
       await tester.pump(const Duration(milliseconds: 800));
       await tester.pumpAndSettle();
-      expect(score(tester), '3 / 7');
+      expect(score(tester), '3 / 8');
       expect(
         find.text(Mission.reachLuigi.text).hitTestable(),
         findsOneWidget,
