@@ -12,7 +12,10 @@ import 'package:stepbound/game/anim/turn_presentation_controller.dart';
 import 'package:stepbound/game/audio/game_audio.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/audio/soundscape.dart';
+import 'package:stepbound/game/campfire_rest.dart';
+import 'package:stepbound/game/cover_controller.dart';
 import 'package:stepbound/game/game_cover.dart';
+import 'package:stepbound/game/game_snapshot.dart';
 import 'package:stepbound/game/haptics/game_haptics.dart';
 import 'package:stepbound/game/input/game_input_controller.dart';
 import 'package:stepbound/game/input/mission_board.dart';
@@ -22,6 +25,7 @@ import 'package:stepbound/game/levels/rome_stage.dart';
 import 'package:stepbound/game/levels/train_stage.dart';
 import 'package:stepbound/game/place_transition_controller.dart';
 import 'package:stepbound/game/progress.dart';
+import 'package:stepbound/game/put_down_copy.dart';
 import 'package:stepbound/game/render/aim_line_component.dart';
 import 'package:stepbound/game/render/burning_ground_component.dart';
 import 'package:stepbound/game/render/character_component.dart';
@@ -40,27 +44,19 @@ import 'package:stepbound/game/render/tile_place_component.dart';
 import 'package:stepbound/game/render/torch_component.dart';
 import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/game/world_event_presenter.dart';
-import 'package:stepbound/report/breadcrumbs.dart';
 
 export 'package:stepbound/game/game_cover.dart';
+export 'package:stepbound/game/game_snapshot.dart';
 export 'package:stepbound/game/world_event_presenter.dart' show CharacterCue;
-
-/// What a save stores: the simulation, the story's scripts, the
-/// player's progress, the unlocked controls and the name of the place.
-typedef GameSnapshot = ({
-  Map<String, Object?> world,
-  Map<String, Object?> story,
-  Map<String, Object?> progress,
-  List<String> hud,
-  String place,
-});
 
 /// The game: the simulation, drawn and animated, played with the keyboard
 /// or the touch controls. Whatever covers it (a text box, a story scene, a
 /// place card, the books on the train, game over) is a [GameCover] the app
-/// draws. The turn's events are presented by a [WorldEventPresenter], for
-/// which the game is the [EventStage]; the way from place to place is a
-/// [PlaceTransitionController]'s.
+/// draws, put up and taken down by a [CoverController]. The turn's events
+/// are presented by a [WorldEventPresenter], for which the game is the
+/// [EventStage]; the way from place to place is a
+/// [PlaceTransitionController]'s; the rest at a fire, with its save, a
+/// [CampfireRest]'s.
 final class StepboundGame extends FlameGame
     with KeyboardEvents
     implements StoryHost, EventStage {
@@ -149,12 +145,29 @@ final class StepboundGame extends FlameGame
     goldenPistol: () => progress.hasGoldenPistol,
   );
   late final FollowCamera _camera = FollowCamera(camera);
+  late final CoverController _covers = CoverController(
+    onShow: () => input.stop(),
+    progress: progress,
+    onStoryViewed: onStoryViewed,
+  );
   late final PlaceTransitionController _transitions = PlaceTransitionController(
-    cover: cover,
-    show: _cover,
+    cover: _covers.cover,
+    show: _covers.show,
     fadeScreen: fadeScreen,
     stopInput: input.stop,
   );
+  late final CampfireRest _camp = CampfireRest(
+    progress: progress,
+    covers: _covers,
+    checkpoint: (place) =>
+        _storeCheckpoint(snapshot(place: place, confirmStory: true)),
+    onKneel: (campfire) {
+      _campfires[campfire]?.flare();
+      _characters[playerId]?.playRest(_facingOf(playerId));
+    },
+    placeName: () => placeName,
+  );
+  final PutDownCopy _putDownCopy = PutDownCopy();
 
   /// What the turn's events become on the stage; made once the story is,
   /// in [onLoad].
@@ -185,7 +198,7 @@ final class StepboundGame extends FlameGame
   final Map<GridPoint, FireComponent> _campfires = <GridPoint, FireComponent>{};
 
   /// What covers the game, if anything.
-  final ValueNotifier<GameCover?> cover = ValueNotifier<GameCover?>(null);
+  ValueNotifier<GameCover?> get cover => _covers.cover;
 
   late final ValueNotifier<int> ammoLoaded;
 
@@ -359,11 +372,6 @@ final class StepboundGame extends FlameGame
   /// True while Mario takes a step the story makes him take.
   bool _storyStep = false;
 
-  /// The campfire Mario is resting at (kneeling, then saving).
-  GridPoint? _campfire;
-  double _restLeft = 0;
-  bool _restSaving = false;
-
   @override
   String get playerId => simulation.playerId;
 
@@ -497,8 +505,8 @@ final class StepboundGame extends FlameGame
   void onRemove() {
     _places.release();
     input.dispose();
+    _covers.dispose();
     for (final notifier in <ChangeNotifier>[
-      cover,
       hud,
       ammoLoaded,
       hasGun,
@@ -529,8 +537,12 @@ final class StepboundGame extends FlameGame
     for (final stage in _stages) {
       stage.update(dt);
     }
-    _updateRest(dt);
-    _keepPutDownCopy(dt);
+    _camp.update(dt);
+    _putDownCopy.keep(
+      dt,
+      canBePutDown: canBeSuspended,
+      take: () => snapshot(place: placeName),
+    );
     _transitions.update(dt);
     input.update(dt);
     _syncPresentation();
@@ -542,7 +554,7 @@ final class StepboundGame extends FlameGame
         !_storyStep &&
         !_stages.any((stage) => stage.holdsMario) &&
         story.isIdle &&
-        _campfire == null;
+        !_camp.resting;
     if (freeToMove.value != free) {
       freeToMove.value = free;
     }
@@ -558,7 +570,7 @@ final class StepboundGame extends FlameGame
     final mix = soundscape.update(
       dt,
       indoor: shown.indoor,
-      resting: _campfire != null && scene == null,
+      resting: _camp.resting && scene == null,
       gameOver: scene is GameOverCover,
       theme: _musicOf(shown.id),
       scene: scene is CutsceneCover ? scene.music : null,
@@ -669,7 +681,7 @@ final class StepboundGame extends FlameGame
   void playerDied() {
     // Dead is not a state to pick up again, nor is the moment before it:
     // the way back is the game over's.
-    _putDownCopy = null;
+    _putDownCopy.drop();
     _acceptsInput = false;
     input.stop();
     _gameOverCountdown = CharacterComponent.deathDuration + 0.45;
@@ -683,50 +695,22 @@ final class StepboundGame extends FlameGame
       !_storyStep &&
       !_stages.any((stage) => stage.holdsMario) &&
       !story.holdsInput &&
-      cover.value == null &&
-      _campfire == null &&
+      !_covers.isCovered &&
+      !_camp.resting &&
       !_transitions.holdsMario;
 
-  void _cover(GameCover what) {
-    input.stop();
-    cover.value = what;
-  }
-
   @override
-  bool get isPromptVisible => cover.value != null;
+  bool get isPromptVisible => _covers.isCovered;
 
   @override
   void stopWalking() => input.stopWalking();
 
   @override
-  void showPrompt(List<StoryLine> lines, {void Function()? onDismissed}) {
-    if (lines.isNotEmpty) {
-      final first = lines.first;
-      final more = lines.length > 1 ? ' (+${lines.length - 1})' : '';
-      Breadcrumbs.shared.add(
-        'battuta: ${first.speaker ?? '—'}: ${_clip(first.text)}$more',
-      );
-    }
-    _cover(
-      PromptCover(
-        List<StoryLine>.unmodifiable(lines),
-        onDismissed: onDismissed,
-      ),
-    );
-  }
-
-  /// Enough of a line to know which one it is.
-  static String _clip(String text) =>
-      text.length <= 60 ? text : '${text.substring(0, 57)}...';
+  void showPrompt(List<StoryLine> lines, {void Function()? onDismissed}) =>
+      _covers.showPrompt(lines, onDismissed: onDismissed);
 
   /// Called by the dialogue overlay after the last line.
-  void dismissPrompt() {
-    final prompt = cover.value;
-    if (prompt is PromptCover) {
-      cover.value = null;
-      prompt.onDismissed?.call();
-    }
-  }
+  void dismissPrompt() => _covers.dismissPrompt();
 
   @override
   void playCutscene(
@@ -736,42 +720,20 @@ final class StepboundGame extends FlameGame
     void Function()? onBlack,
     bool stayBlack = false,
     Music? music,
-  }) {
-    final canSkip = memories.isNotEmpty && memories.every(progress.hasViewed);
-    _cover(
-      CutsceneCover(
-        List<CutsceneFrame>.unmodifiable(frames),
-        onFinished: () {
-          for (final memory in memories) {
-            progress.view(memory);
-            onStoryViewed?.call(memory);
-          }
-          onFinished?.call();
-        },
-        onBlack: onBlack,
-        stayBlack: stayBlack,
-        canSkip: canSkip,
-        music: music,
-      ),
-    );
-  }
+  }) => _covers.playCutscene(
+    frames,
+    memories: memories,
+    onFinished: onFinished,
+    onBlack: onBlack,
+    stayBlack: stayBlack,
+    music: music,
+  );
 
   /// Called by the cutscene overlay once its last frame has faded to black.
-  void cutsceneBlack() {
-    final cutscene = cover.value;
-    if (cutscene is CutsceneCover) {
-      cutscene.onBlack?.call();
-    }
-  }
+  void cutsceneBlack() => _covers.cutsceneBlack();
 
   /// Called by the cutscene overlay once the game has faded back in.
-  void finishCutscene() {
-    final cutscene = cover.value;
-    if (cutscene is CutsceneCover) {
-      cover.value = null;
-      cutscene.onFinished?.call();
-    }
-  }
+  void finishCutscene() => _covers.finishCutscene();
 
   @override
   void completeLevel() {
@@ -818,36 +780,22 @@ final class StepboundGame extends FlameGame
 
   @override
   void showWorkInProgress({void Function()? onClosed}) =>
-      _cover(WorkInProgressCover(onClosed: onClosed));
+      _covers.showWorkInProgress(onClosed: onClosed);
 
   /// Called by the work-in-progress screen once it is tapped away.
-  void closeWorkInProgress() {
-    final end = cover.value;
-    if (end is WorkInProgressCover) {
-      cover.value = null;
-      end.onClosed?.call();
-    }
-  }
+  void closeWorkInProgress() => _covers.closeWorkInProgress();
 
   @override
-  void openZombieBook() => _cover(const ZombieBookCover());
+  void openZombieBook() => _covers.openZombieBook();
 
   @override
-  void openAdventureStats() => _cover(const AdventureStatsCover());
+  void openAdventureStats() => _covers.openAdventureStats();
 
   /// Called by the figures of the adventure once they are closed.
-  void closeAdventureStats() {
-    if (cover.value is AdventureStatsCover) {
-      cover.value = null;
-    }
-  }
+  void closeAdventureStats() => _covers.closeAdventureStats();
 
   /// Called by the book once it is closed.
-  void closeZombieBook() {
-    if (cover.value is ZombieBookCover) {
-      cover.value = null;
-    }
-  }
+  void closeZombieBook() => _covers.closeZombieBook();
 
   /// The memories of [level], played from the figures of the adventure
   /// with the story's sound; the game's comes back when they end.
@@ -857,15 +805,14 @@ final class StepboundGame extends FlameGame
       ..silenceAmbience()
       ..setMusicLevel(1)
       ..playMusic(Music.story);
-    _cover(MemoriesCover(level));
+    _covers.showMemories(level);
   }
 
   /// Called once the memories are over, or left: back to the figures of
   /// the city they were played from.
   void closeMemories() {
-    if (cover.value case MemoriesCover(:final level)) {
+    if (_covers.closeMemories()) {
       soundscapePaused = false;
-      cover.value = AdventureStatsCover(level: level);
     }
   }
 
@@ -878,84 +825,19 @@ final class StepboundGame extends FlameGame
 
   // ------------------------------------------------------------- camps
 
-  /// Mario kneels by the fire, which roars up, or stops at the table
-  /// aboard for a bite; when the moment is over the game is saved, and a
-  /// line says so.
+  /// Mario has used a fire, or the table aboard (see [CampfireRest]).
   @override
   void restAt(GridPoint campfire) {
     input.stop();
-    _campfire = campfire;
-    if (campfireNames[campfire] case final name?
-        when !trainFoodTiles.contains(campfire)) {
-      progress.lightCampfire(name);
-    }
-    _restLeft = CharacterComponent.restDuration;
-    _restSaving = false;
-    if (_atTable) {
-      return;
-    }
-    _campfires[campfire]?.flare();
-    _characters[playerId]?.playRest(_facingOf(playerId));
+    _camp.restAt(campfire);
   }
 
-  bool get _atTable => trainFoodTiles.contains(_campfire);
-
-  void _updateRest(double dt) {
-    if (_campfire == null || _restSaving) {
-      return;
-    }
-    _restLeft -= dt;
-    if (_restLeft <= 0) {
-      _restSaving = true;
-      unawaited(_saveAtCamp());
-    }
-  }
-
-  static const String savedLine = 'Salvataggio completato';
-  static const String saveFailedLine =
-      'Salvataggio non riuscito. Riposati di nuovo accanto al fuoco per '
-      'riprovare';
-  static const String mealSaveFailedLine =
-      'Salvataggio non riuscito. Torna al tavolo per riprovare';
-
-  /// Saves the game as it is at this campfire, then says whether it
-  /// worked; Mario gets up once the line is gone either way, and a failed
-  /// save is tried again by resting at the fire again.
-  Future<void> _saveAtCamp() async {
-    var saved = true;
-    try {
-      saved =
-          await _storeCheckpoint(
-            snapshot(place: campfireNames[_campfire] ?? '', confirmStory: true),
-          ) ??
-          true;
-    } on Object catch (error) {
-      debugPrint('save: $error');
-      saved = false;
-    }
-    if (saved) {
-      showPrompt(<StoryLine>[
-        const StoryLine(savedLine),
-      ], onDismissed: () => _campfire = null);
-      return;
-    }
-    Breadcrumbs.shared.add('salvataggio non riuscito: $placeName');
-    _cover(
-      SaveFailedCover(
-        _atTable ? mealSaveFailedLine : saveFailedLine,
-        onDismissed: () => _campfire = null,
-      ),
-    );
-  }
+  static const String savedLine = CampfireRest.savedLine;
+  static const String saveFailedLine = CampfireRest.saveFailedLine;
+  static const String mealSaveFailedLine = CampfireRest.mealSaveFailedLine;
 
   /// Called by the notice of a failed save once the player goes on.
-  void dismissSaveFailed() {
-    final notice = cover.value;
-    if (notice is SaveFailedCover) {
-      cover.value = null;
-      notice.onDismissed?.call();
-    }
-  }
+  void dismissSaveFailed() => _covers.dismissSaveFailed();
 
   // -------------------------------------------------------- pause menu
 
@@ -964,21 +846,16 @@ final class StepboundGame extends FlameGame
   /// Nothing doing while something else already covers the game, or while
   /// Mario is kneeling at a fire: the game is being saved.
   void openMenu() {
-    if (cover.value != null || _campfire != null) {
-      return;
+    if (!_camp.resting) {
+      _covers.openMenu();
     }
-    _cover(const PauseCover());
   }
 
   @override
-  void openWardrobe() => _cover(const PauseCover(wardrobe: true));
+  void openWardrobe() => _covers.openWardrobe();
 
   /// Closes it and gives Mario back to the player.
-  void closeMenu() {
-    if (cover.value is PauseCover) {
-      cover.value = null;
-    }
-  }
+  void closeMenu() => _covers.closeMenu();
 
   /// Whether the game can be put down as it is and picked up again from
   /// the menu: playing, Mario alive and free to act, or the pause menu
@@ -990,7 +867,7 @@ final class StepboundGame extends FlameGame
     return readyToShow.value &&
         _acceptsInput &&
         !_levelCompleted &&
-        _campfire == null &&
+        !_camp.resting &&
         !_transitions.inTransit &&
         !story.holdsInput &&
         !_stages.any((stage) => stage.holdsMario) &&
@@ -998,39 +875,22 @@ final class StepboundGame extends FlameGame
   }
 
   /// How often, while the game can be put down, a copy of it is kept for
-  /// when the app leaves at a moment it cannot (see [putDownSnapshot]).
-  static const double putDownCopyInterval = 3;
-
-  /// The game as it last was when it could be put down: taken as soon as
-  /// it can be again, and every [putDownCopyInterval] seconds after.
-  GameSnapshot? _putDownCopy;
-  double _sincePutDownCopy = 0;
-  bool _couldBePutDown = false;
-
-  void _keepPutDownCopy(double dt) {
-    if (!canBeSuspended) {
-      _couldBePutDown = false;
-      return;
-    }
-    _sincePutDownCopy += dt;
-    if (!_couldBePutDown || _sincePutDownCopy >= putDownCopyInterval) {
-      _putDownCopy = snapshot(place: placeName);
-      _sincePutDownCopy = 0;
-    }
-    _couldBePutDown = true;
-  }
+  /// when the app leaves at a moment it cannot (see [PutDownCopy]).
+  static const double putDownCopyInterval = PutDownCopy.defaultInterval;
 
   /// What to write when the app leaves: the game as it is when it can be
   /// put down, or else the copy of the last moment it could, a few steps
   /// back (a story line, a place card, a scene is on); null when there is
   /// none, such as once Mario is dead or a fire's save is newer.
-  GameSnapshot? get putDownSnapshot =>
-      canBeSuspended ? snapshot(place: placeName) : _putDownCopy;
+  GameSnapshot? get putDownSnapshot => _putDownCopy.snapshot(
+    canBePutDown: canBeSuspended,
+    take: () => snapshot(place: placeName),
+  );
 
   /// A save of the slot's own, at a fire or aboard the train: whatever was
   /// copied before it is older, and never written over it.
   Future<bool>? _storeCheckpoint(GameSnapshot checkpoint) {
-    _putDownCopy = null;
+    _putDownCopy.drop();
     return onRest?.call(checkpoint);
   }
 
@@ -1059,7 +919,7 @@ final class StepboundGame extends FlameGame
     }
     _gameOverCountdown -= dt;
     if (_gameOverCountdown <= 0) {
-      cover.value = const GameOverCover();
+      _covers.gameOver();
       audio.play(Sfx.gameOver);
     }
   }

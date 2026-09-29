@@ -42,7 +42,7 @@ Cosa fare quando si disegna un posto:
 `test/work_in_progress_test.dart` controlla che ogni tile di bordo
 calpestabile di ogni posto sia una porta o un punto work in progress, e che
 il passo indietro cada dentro lo stesso posto; il test in
-`test/widget_test.dart` ("walking off a map with no next map, thumb still
+`test/widget/dialogue_box_test.dart` ("walking off a map with no next map, thumb still
 down...") rifa il caso segnalato a ovest di Termini col pollice ancora sul
 joystick mentre la schermata toglie i controlli.
 
