@@ -1,7 +1,9 @@
 import 'dart:collection';
 
 import 'package:stepbound/core/core.dart';
+import 'package:stepbound/game/render/character_component.dart';
 import 'package:stepbound/game/render/grapple_component.dart';
+import 'package:stepbound/game/render/molotov_blast_component.dart';
 
 final class VisualPosition {
   const VisualPosition(this.x, this.y);
@@ -46,12 +48,25 @@ final class TurnPresentationController {
   double _elapsed = 0;
 
   /// This turn's length: [turnDuration], or longer for a swing across a
-  /// gap with the grappling hook.
+  /// gap with the grappling hook, or for a molotov in the air.
   double _duration = 0.13;
   bool _isAnimating = false;
   int _turnCount = 0;
 
+  /// The burst of the molotov in the air, played as soon as it lands:
+  /// before anything Mario asked for meanwhile, which waits for it.
+  MolotovBurstAction? _burst;
+
+  /// Seconds from the throw to the bottle breaking: Mario's swing, then
+  /// its flight. Nobody moves until then.
+  static const double molotovHoldSeconds =
+      CharacterComponent.throwReleaseDelay +
+      MolotovBlastComponent.flightSeconds;
+
   bool get isAnimating => _isAnimating;
+
+  /// Whether a molotov is in the air: thrown, and not burst yet.
+  bool get holdsMolotov => _burst != null;
   int get bufferedActionCount => _buffer.length;
   int get turnCount => _turnCount;
   double get progress => _isAnimating ? (_elapsed / _duration).clamp(0, 1) : 1;
@@ -77,7 +92,10 @@ final class TurnPresentationController {
       }
       remaining -= untilComplete;
       _finishCurrentTurn();
-      if (_buffer.isNotEmpty) {
+      if (_burst case final burst?) {
+        _burst = null;
+        _start(burst);
+      } else if (_buffer.isNotEmpty) {
         _start(_buffer.removeFirst());
       }
     }
@@ -126,6 +144,10 @@ final class TurnPresentationController {
       );
     _duration = turnDuration;
     for (final event in _lastEvents) {
+      if (event case MolotovThrownEvent(:final target)) {
+        _duration = molotovHoldSeconds;
+        _burst = MolotovBurstAction(target);
+      }
       if (event case TeleportedEvent(
         grappled: true,
         :final entityId,

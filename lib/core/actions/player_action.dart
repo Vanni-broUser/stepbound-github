@@ -323,20 +323,15 @@ final class ShootAction extends PlayerAction {
 }
 
 /// Throws a molotov in an arc, over whatever stands in between, to
-/// [target]: everyone on the 3x3 square around it takes [damage], and the
-/// blast is heard far off. [target] must be at least [minRange] tiles off
-/// on one axis, so the square never reaches Mario, and no further than
+/// [target]. Throwing takes no time of its own: nothing moves while the
+/// bottle flies, and the [MolotovBurstAction] that follows once it lands
+/// is what burns and is heard. [target] must be at least [minRange] tiles
+/// off on one axis, so the square never reaches Mario, and no further than
 /// [maxRange] tiles as the crow flies.
 final class ThrowMolotovAction extends PlayerAction {
-  const ThrowMolotovAction(
-    this.target, {
-    this.damage = 3,
-    this.noiseRadius = 16,
-  });
+  const ThrowMolotovAction(this.target);
 
   final GridPoint target;
-  final int damage;
-  final int noiseRadius;
 
   static const int minRange = 2;
   static const int maxRange = 6;
@@ -375,7 +370,7 @@ final class ThrowMolotovAction extends PlayerAction {
   }
 
   @override
-  int get tickCost => 1;
+  int get tickCost => 0;
 
   @override
   void resolve(WorldState world) {
@@ -399,7 +394,31 @@ final class ThrowMolotovAction extends PlayerAction {
         target: target,
       ),
     );
-    for (final tile in blastArea(target, world.map)) {
+  }
+}
+
+/// The bottle thrown at [target] breaks: everyone on the 3x3 square
+/// around it takes [damage], whoever stands there as it lands, and the
+/// blast is heard far off. Then the zombies have their turn, those that
+/// heard it turning toward the fire.
+final class MolotovBurstAction extends PlayerAction {
+  const MolotovBurstAction(
+    this.target, {
+    this.damage = 3,
+    this.noiseRadius = 16,
+  });
+
+  final GridPoint target;
+  final int damage;
+  final int noiseRadius;
+
+  @override
+  int get tickCost => 1;
+
+  @override
+  void resolve(WorldState world) {
+    final player = world.player;
+    for (final tile in ThrowMolotovAction.blastArea(target, world.map)) {
       final victim = world.entityAt(tile);
       if (victim != null) {
         world.damage(

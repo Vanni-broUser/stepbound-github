@@ -215,6 +215,40 @@ void main() {
     });
   });
 
+  testWidgets('a molotov thrown stays the weapon in hand while there are '
+      'more; after the last one the pistol is back', (tester) {
+    return tester.runAsync(() async {
+      final game = await pumpReadyGame(tester)
+        ..unlock(HudElement.ammo)
+        ..unlock(HudElement.molotov);
+      final ammo = game.simulation.player.component<AmmoComponent>()
+        ..hasGun = true
+        ..molotovs = 2;
+      void play(double seconds) {
+        for (var t = 0.0; t < seconds; t += 1 / 30) {
+          game.update(1 / 30);
+        }
+      }
+
+      void throwOne() {
+        game.input
+          ..selectWeapon(Weapon.molotov)
+          ..beginAim()
+          ..throwMolotov();
+        play(1);
+      }
+
+      play(0.1);
+      throwOne();
+      expect(ammo.molotovs, 1);
+      expect(game.input.weapon.value, Weapon.molotov);
+
+      throwOne();
+      expect(ammo.molotovs, 0);
+      expect(game.input.weapon.value, Weapon.pistol);
+    });
+  });
+
   testWidgets('the bullets sit in the row of carried things, and a tap '
       'tells of them', (tester) {
     return tester.runAsync(() async {
