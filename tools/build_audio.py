@@ -189,6 +189,21 @@ SFX = [
 # One-shots mixed from several sounds: (output, peak dBFS, layers), each
 # layer (source, start, end, delay s, gain dB, extra filter) as in SFX.
 LAYERED = [
+    # The grappling hook: the rope whipping through the air from the
+    # release of the throw (0.14 s, CharacterComponent.throwReleaseDelay),
+    # the hook biting into the stone across the gap as it catches (0.49 s,
+    # GrappleComponent.throwSeconds), then the rope creaking under Mario
+    # all the way over.
+    ("sfx/grapple.mp3", -4, [
+        ("rpg", RPG + "knifeSlice.ogg", None, 0.1, 0,
+         "asetrate=44100*0.72,aresample=44100,lowpass=f=2600,"
+         "afade=t=out:st=0.25:d=0.2"),
+        ("impact", IMPACT + "impactMetal_light_002.ogg", None, 0.47, -2,
+         None),
+        ("rpg", RPG + "creak1.ogg", None, 0.56, -2, None),
+        ("rpg", RPG + "creak3.ogg", None, 0.94, -5,
+         "afade=t=out:st=0.15:d=0.2"),
+    ]),
     # A bottle shattering, then the petrol catching with a roar.
     ("sfx/molotov_1.mp3", -2, [
         ("impact", IMPACT + "impactGlass_heavy_001.ogg", None, 0.0, 0,

@@ -67,6 +67,54 @@ def build_grappling_hook(path: str) -> None:
     image.save(path, optimize=True)
 
 
+def build_rocket_launcher(path: str) -> None:
+    image = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    d = ImageDraw.Draw(image)
+    olive_dark = (54, 66, 34, 255)
+    olive = (98, 116, 58, 255)
+    olive_light = (146, 164, 92, 255)
+    black = (34, 34, 38, 255)
+    red = (190, 44, 34, 255)
+    red_light = (238, 104, 80, 255)
+    # The tube, lying along the badge and tipped up a little at the muzzle.
+    d.polygon([(1, 9), (13, 6), (14, 9), (2, 12)], fill=olive_dark)
+    d.polygon([(1, 9), (13, 6), (13, 8), (1, 11)], fill=olive)
+    d.line([(2, 9), (12, 7)], fill=olive_light)
+    # The flared back end, and the rocket's red warhead out of the muzzle.
+    d.rectangle([0, 9, 1, 12], fill=black)
+    d.polygon([(13, 6), (15, 5), (15, 9), (14, 9)], fill=red)
+    d.point((14, 6), fill=red_light)
+    # The sight on top and the grip and trigger underneath.
+    d.rectangle([6, 5, 7, 7], fill=black)
+    d.point((6, 5), fill=olive_light)
+    d.rectangle([7, 11, 8, 14], fill=black)
+    d.rectangle([4, 11, 5, 13], fill=olive_dark)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    image.save(path, optimize=True)
+
+
+def build_grappling_hook_held(path: str) -> None:
+    # The hook in Mario's hand as he winds up the throw: 8x8, like
+    # molotov_held.png, drawn at the same attachment points.
+    image = Image.new("RGBA", (8, 8), (0, 0, 0, 0))
+    d = ImageDraw.Draw(image)
+    dark = (92, 98, 110, 255)
+    steel = (196, 204, 214, 255)
+    rope = (222, 164, 84, 255)
+    d.point((4, 0), fill=rope)
+    d.point((5, 0), fill=rope)
+    d.rectangle([3, 0, 3, 5], fill=steel)
+    d.point((4, 1), fill=dark)
+    d.line([(3, 6), (1, 6), (0, 5), (0, 4)], fill=steel)
+    d.line([(3, 6), (5, 6), (6, 5), (6, 4)], fill=steel)
+    d.line([(1, 7), (5, 7)], fill=dark)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    image.save(path, optimize=True)
+
+
 if __name__ == "__main__":
     build_episcopal_ring(os.path.join("assets", "objects", "episcopal_ring.png"))
     build_grappling_hook(os.path.join("assets", "objects", "grappling_hook.png"))
+    build_grappling_hook_held(
+        os.path.join("assets", "objects", "grappling_hook_held.png"))
+    build_rocket_launcher(os.path.join("assets", "objects", "rocket_launcher.png"))

@@ -163,7 +163,8 @@ final class InteractAction extends PlayerAction {
         ..collected = true;
       ammo
         ..add(pickup.ammo)
-        ..molotovs += pickup.molotovs;
+        ..molotovs += pickup.molotovs
+        ..rockets += pickup.rockets;
       if (pickup.gun) {
         ammo.hasGun = true;
       }
@@ -182,6 +183,7 @@ final class InteractAction extends PlayerAction {
           cultistRobe: pickup.cultistRobe,
           duomoKey: pickup.duomoKey,
           grapplingHook: pickup.grapplingHook,
+          rockets: pickup.rockets,
         ),
       );
       return;

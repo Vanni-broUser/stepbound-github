@@ -495,10 +495,27 @@ final GridPoint duomoFarTowerEdgeTile = GridPoint(
   duomoTowerLookoutTile.y,
 );
 
-/// The backpack on the roof of the other tower, out of reach without the
-/// grappling hook.
+/// The backpack on the roof of the other tower, in sight from this one and
+/// out of reach without the grappling hook: a round for a rocket launcher.
 final GridPoint duomoFarTowerBackpackTile = _duomoRoof.tileOf('9');
 const String duomoFarTowerBackpackId = 'backpack-duomo-tower';
+
+/// Where the cultist up on the other tower comes out, in its far corner,
+/// the first time the hook lands Mario there: nothing of it shows from
+/// this tower.
+final GridPoint duomoFarTowerCultistTile = GridPoint(
+  duomoFarTowerEdgeTile.x + 6,
+  duomoFarTowerEdgeTile.y - 2,
+);
+const String duomoFarTowerCultistId = 'duomo-tower-cultist';
+
+/// The cultist on the other tower, turned towards where Mario lands.
+Entity createDuomoTowerCultist() =>
+    EntityFactory(BalanceConfig.standard()).zombie(
+      id: duomoFarTowerCultistId,
+      kind: EntityKind.cultist,
+      position: duomoFarTowerCultistTile,
+    );
 
 /// What the mass leaves behind in the nave, once the community has eaten
 /// of the crucified zombie and turned on Don Angelo: the four mutated
@@ -1184,7 +1201,7 @@ LevelContents hometownContents(EntityFactory factory) {
     Pickup(
       id: duomoFarTowerBackpackId,
       position: duomoFarTowerBackpackTile,
-      ammo: 2,
+      rockets: 1,
     ),
     Pickup(
       id: stationBackpackId,

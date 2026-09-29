@@ -82,6 +82,8 @@ final class AmmoComponent extends EntityComponent {
     this.hasGun = true,
     this.molotovs = 0,
     this.grapplingHook = false,
+    this.rockets = 0,
+    this.hasRocketLauncher = false,
   });
 
   factory AmmoComponent.fromJson(Map<String, Object?> json) {
@@ -90,6 +92,8 @@ final class AmmoComponent extends EntityComponent {
       hasGun: json['hasGun'] as bool? ?? true,
       molotovs: json['molotovs']! as int,
       grapplingHook: json['grapplingHook'] as bool? ?? false,
+      rockets: json['rockets'] as int? ?? 0,
+      hasRocketLauncher: json['hasRocketLauncher'] as bool? ?? false,
     );
   }
 
@@ -109,6 +113,13 @@ final class AmmoComponent extends EntityComponent {
   /// It is not used up, so like the pistol it goes wherever he goes.
   bool grapplingHook;
 
+  /// Rounds for the rocket launcher. Like the bullets, they can be carried
+  /// before the weapon is found.
+  int rockets;
+
+  /// The rocket launcher itself, which nobody has found yet.
+  bool hasRocketLauncher;
+
   void add(int rounds) => loaded += rounds;
 
   @override
@@ -121,6 +132,8 @@ final class AmmoComponent extends EntityComponent {
     'hasGun': hasGun,
     'molotovs': molotovs,
     if (grapplingHook) 'grapplingHook': true,
+    if (rockets > 0) 'rockets': rockets,
+    if (hasRocketLauncher) 'hasRocketLauncher': true,
   };
 }
 

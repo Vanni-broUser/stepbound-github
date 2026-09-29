@@ -33,6 +33,7 @@ import 'package:stepbound/game/render/debug_overlay.dart';
 import 'package:stepbound/game/render/depth_sorted_world.dart';
 import 'package:stepbound/game/render/fire_component.dart';
 import 'package:stepbound/game/render/follow_camera.dart';
+import 'package:stepbound/game/render/grapple_component.dart';
 import 'package:stepbound/game/render/molotov_blast_component.dart';
 import 'package:stepbound/game/render/offscreen_culled.dart';
 import 'package:stepbound/game/render/pickup_component.dart';
@@ -96,6 +97,12 @@ final class StepboundGame extends FlameGame
     );
     molotovs = ValueNotifier<int>(
       simulation.player.component<AmmoComponent>().molotovs,
+    );
+    rockets = ValueNotifier<int>(
+      simulation.player.component<AmmoComponent>().rockets,
+    );
+    hasRocketLauncher = ValueNotifier<bool>(
+      simulation.player.component<AmmoComponent>().hasRocketLauncher,
     );
     // Where the missions stand as the game is made, not as the corner
     // first catches up: whatever the story does before that is news.
@@ -208,6 +215,13 @@ final class StepboundGame extends FlameGame
 
   /// The molotovs Mario carries, for their badge.
   late final ValueNotifier<int> molotovs;
+
+  /// The rounds for the rocket launcher Mario carries, for its badge.
+  late final ValueNotifier<int> rockets;
+
+  /// Whether Mario has the rocket launcher itself: until then its badge
+  /// waits dimmed, as the pistol's does.
+  late final ValueNotifier<bool> hasRocketLauncher;
 
   /// Touch controls unlocked so far by the tutorial (walking is always
   /// available).
@@ -511,6 +525,8 @@ final class StepboundGame extends FlameGame
       ammoLoaded,
       hasGun,
       molotovs,
+      rockets,
+      hasRocketLauncher,
       readyToShow,
       pinching,
       freeToMove,
@@ -588,6 +604,12 @@ final class StepboundGame extends FlameGame
     if (molotovs.value != ammo.molotovs) {
       molotovs.value = ammo.molotovs;
     }
+    if (rockets.value != ammo.rockets) {
+      rockets.value = ammo.rockets;
+    }
+    if (hasRocketLauncher.value != ammo.hasRocketLauncher) {
+      hasRocketLauncher.value = ammo.hasRocketLauncher;
+    }
     // The last one thrown (or the level left behind): the pistol is back.
     // Molotovs and no pistol yet: the molotov is the one weapon in hand.
     if (!input.aiming.value) {
@@ -625,6 +647,8 @@ final class StepboundGame extends FlameGame
         character.playFire(facing);
       case CharacterCue.throwWeapon:
         character.playThrow(facing);
+      case CharacterCue.throwGrapple:
+        character.playThrow(facing, thrown: PlayerWeaponSprite.grapplingHook);
       case CharacterCue.hit:
         character.playHit(facing);
       case CharacterCue.bite:
@@ -663,6 +687,19 @@ final class StepboundGame extends FlameGame
   @override
   void goThrough({required GridPoint from, required GridPoint to}) =>
       _transitions.goThrough(from: from, to: to);
+
+  @override
+  void grapple({
+    required GridPoint from,
+    required GridPoint anchor,
+    required GridPoint to,
+  }) => addToWorld(
+    GrappleComponent(
+      from: from,
+      anchor: anchor,
+      mario: () => _characters[playerId]!.position,
+    ),
+  );
 
   /// Only in a place that is loaded: one that is not scans its map for
   /// burning tiles when it comes in.

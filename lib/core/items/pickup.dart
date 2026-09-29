@@ -16,6 +16,7 @@ final class Pickup {
     this.cultistRobe = false,
     this.duomoKey = false,
     this.grapplingHook = false,
+    this.rockets = 0,
     this.active = true,
     this.collected = false,
   });
@@ -32,6 +33,7 @@ final class Pickup {
       cultistRobe: json['cultistRobe']! as bool,
       duomoKey: json['duomoKey'] as bool? ?? false,
       grapplingHook: json['grapplingHook'] as bool? ?? false,
+      rockets: json['rockets'] as int? ?? 0,
       active: json['active']! as bool,
       collected: json['collected'] as bool? ?? false,
     );
@@ -62,6 +64,9 @@ final class Pickup {
   /// The grappling hook, in the Baths of Diocletian.
   final bool grapplingHook;
 
+  /// Rounds for the rocket launcher.
+  final int rockets;
+
   /// False while hidden by a script and after it has been collected.
   bool active;
 
@@ -79,6 +84,7 @@ final class Pickup {
     'cultistRobe': cultistRobe,
     'duomoKey': duomoKey,
     if (grapplingHook) 'grapplingHook': true,
+    if (rockets > 0) 'rockets': rockets,
     'active': active,
     'collected': collected,
   };

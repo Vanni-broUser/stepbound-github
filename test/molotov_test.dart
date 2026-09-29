@@ -299,6 +299,19 @@ void main() {
     });
   });
 
+  test('rounds for the rocket launcher stay in their level too', () {
+    final progress = Progress.newGame();
+    expect(progress.swapRockets(LevelId.rome, rockets: 1), 0);
+    progress.travel(LevelId.rome, rounds: 3);
+    expect(progress.swapRockets(LevelId.hometown, rockets: 0), 1);
+    final restored = Progress.fromJson(progress.toJson());
+    expect(restored.rocketsLeft, <LevelId, int>{
+      LevelId.hometown: 1,
+      LevelId.rome: 0,
+    });
+    expect(Progress.newGame().toJson().containsKey('rocketsLeft'), isFalse);
+  });
+
   test(
     'the molotov backpack lies on the park path, before the carabiniere',
     () {
