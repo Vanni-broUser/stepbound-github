@@ -272,15 +272,18 @@ void main() {
 
   test('the crossroads opens north and east but not south', () {
     final map = createGameWorld().map;
-    expect(map.tileAt(const GridPoint(16, 20)).isWalkable, isTrue);
-    expect(map.tileAt(const GridPoint(30, 36)).isWalkable, isTrue);
-    expect(map.tileAt(const GridPoint(16, 40)).isWalkable, isFalse);
+    expect(map.tileAt(const GridPoint(16, 30)).isWalkable, isTrue);
+    expect(map.tileAt(const GridPoint(30, 46)).isWalkable, isTrue);
+    expect(map.tileAt(const GridPoint(16, 50)).isWalkable, isFalse);
   });
 
   test('the streets end against buildings, the north one at the barracks', () {
     final map = createGameWorld().map;
-    expect(map.tileAt(const GridPoint(3, 36)).isWalkable, isFalse);
-    expect(map.tileAt(const GridPoint(40, 36)).isWalkable, isFalse);
+    expect(map.tileAt(const GridPoint(3, 46)).isWalkable, isFalse);
+    expect(map.tileAt(const GridPoint(40, 46)).isWalkable, isFalse);
+    // The dead-end street off the road north ends as far east.
+    expect(map.tileAt(const GridPoint(40, 19)).isWalkable, isFalse);
+    expect(map.tileAt(const GridPoint(39, 18)).isWalkable, isTrue);
     expect(map.tileAt(const GridPoint(15, 6)).isWalkable, isFalse);
     expect(map.tileAt(const GridPoint(16, 6)).isWalkable, isTrue);
   });
@@ -306,9 +309,13 @@ void main() {
       )
       .toList();
 
-  test('the only zombie on the street waits east of the crossroads', () {
+  test('the only zombie on the street, but for the one before the '
+      'barracks, waits east of the crossroads', () {
     final world = createGameWorld();
-    final zombies = zombiesIn(world, place(PlaceId.street));
+    final zombies = zombiesIn(
+      world,
+      place(PlaceId.street),
+    ).where((zombie) => zombie.id != barracksRoadZombieId).toList();
     expect(zombies, hasLength(1));
     expect(zombies.single.id, tutorialZombieId);
     final position = zombies.single.component<PositionComponent>().position;
@@ -461,7 +468,7 @@ void main() {
     final world = createGameWorld();
     world.player.component<PositionComponent>().position = const GridPoint(
       12,
-      35,
+      45,
     );
     final events = const TurnScheduler().advance(
       world,
@@ -480,9 +487,10 @@ void main() {
   test('the top sidewalk, where it turns north, is part of the crossroads: '
       'nobody slips up the road past the first zombie', () {
     final world = createGameWorld();
-    world.player.component<PositionComponent>().position = const GridPoint(
-      12,
-      33,
+    // On the sidewalk, one step short of the crossroads.
+    world.player.component<PositionComponent>().position = GridPoint(
+      tutorialZombieTrigger.left - 1,
+      tutorialZombieTrigger.top,
     );
     final events = const TurnScheduler().advance(
       world,
@@ -498,6 +506,53 @@ void main() {
         expect(tutorialZombieTrigger.contains(south), isTrue, reason: '$x');
       }
     }
+  });
+
+  test('the zombie before the barracks stands on the road north a few steps '
+      'past the dead-end street, whose backpack is clear of it', () {
+    final world = createGameWorld();
+    final zombie = world.entities[barracksRoadZombieId]!;
+    expect(zombie.kind, EntityKind.wanderer);
+    final zombieTile = zombie.component<PositionComponent>().position;
+    final backpack = world.pickups[alleyBackpackId]!;
+    expect(backpack.ammo, 2);
+    final street = place(PlaceId.street);
+    final barracksDoor = street.tileOf('E');
+    // The first row where the road north opens east into the street.
+    final opening = <GridPoint>[
+      for (var y = barracksDoor.y; y < backpack.position.y; y++)
+        GridPoint(zombieTile.x + 4, y),
+    ].firstWhere((tile) => world.map.tileAt(tile).isWalkable);
+    expect(zombieTile.x, barracksDoor.x, reason: 'mid-road');
+    expect(opening.y - zombieTile.y, inInclusiveRange(1, 4));
+
+    bool reaches(GridPoint goal) {
+      final start = world.player.component<PositionComponent>().position;
+      final seen = <GridPoint>{start};
+      final queue = <GridPoint>[start];
+      while (queue.isNotEmpty) {
+        final here = queue.removeLast();
+        if (here == goal) {
+          return true;
+        }
+        for (final direction in Direction.values) {
+          final next = here.step(direction);
+          if (seen.contains(next) ||
+              (next != goal && !world.map.tileAt(next).isWalkable) ||
+              next.manhattanDistanceTo(zombieTile) <= 1) {
+            continue;
+          }
+          seen.add(next);
+          queue.add(next);
+        }
+      }
+      return false;
+    }
+
+    expect(reaches(backpack.position), isTrue);
+    expect(backpack.position.x, greaterThan(zombieTile.x), reason: 'east');
+    expect(tutorialZombieId, isNot(barracksRoadZombieId));
+    expect(world.entities[tutorialZombieId]!.kind, EntityKind.wanderer);
   });
 
   group('doors', () {
@@ -2780,9 +2835,11 @@ void main() {
     int count(List<FireSpot> spots, FireKind kind) =>
         spots.where((s) => s.kind == kind).length;
     final street = streetFireSpots;
-    expect(count(street, FireKind.car), 2);
+    // The dead-end street off the road north has two burning cars and a
+    // window on fire of its own.
+    expect(count(street, FireKind.car), 4);
     expect(count(street, FireKind.bin), 2);
-    expect(count(street, FireKind.window), 3);
+    expect(count(street, FireKind.window), 4);
     final all = hometownFireSpots;
     final behindMall = place(PlaceId.mallNorthStreet).bounds;
     expect(
@@ -2795,10 +2852,10 @@ void main() {
           'pile-up under the park',
     );
     // And two on the overturned car burning at the station.
-    expect(count(all, FireKind.car), 13 + stationWreckFireSpots.length);
+    expect(count(all, FireKind.car), 15 + stationWreckFireSpots.length);
     expect(stationWreckFireSpots, hasLength(2));
     expect(count(all, FireKind.bin), 9);
-    expect(count(all, FireKind.window), 14);
+    expect(count(all, FireKind.window), 15);
     expect(count(all, FireKind.campfire), 4);
     // One camp in the north district, one in the dead end the wrecks
     // leave at the west end of the shopping street behind the mall, and

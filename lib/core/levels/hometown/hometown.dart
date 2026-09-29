@@ -354,10 +354,17 @@ Iterable<Place> get _streets => <Place>[
 /// The zombie waiting on the east arm of the crossroads.
 const String tutorialZombieId = 'wanderer-0';
 
+/// The wanderer on the road north, `9`, a few steps past where the
+/// dead-end street opens: it is in the way to the barracks, and the street
+/// is where there is room to draw it and go round it. Its own id, so that
+/// it does not take the tutorial zombie's for being further up the map.
+const String barracksRoadZombieId = 'barracks-road-wanderer';
+
 /// Backpack ids, see the glyph lists in street.dart and barracks.dart.
 const String ammoBackpackId = 'backpack-ammo';
 const String parkingBackpackId = 'backpack-parking';
 const String accidentBackpackId = 'backpack-accident';
+const String alleyBackpackId = 'backpack-alley';
 const String gunBackpackId = 'backpack-gun';
 const String boatBackpackId = 'backpack-boat';
 const String shipyardBackpackId = 'backpack-shipyard';
@@ -496,11 +503,22 @@ const String barDrunkZombiePrefix = 'bar-drunk-';
 const String barDrunkZombieId = '${barDrunkZombiePrefix}0';
 
 /// Walking into the crossroads makes the tutorial zombie notice the player
-/// even if it is not looking that way.
-const GridRect tutorialZombieTrigger = GridRect(13, 33, 23, 39);
+/// even if it is not looking that way: from the west zebra crossing to a
+/// few steps down the east arm, between the two sidewalks.
+final GridRect tutorialZombieTrigger = () {
+  final crossing = _street.tilesOf('V').first;
+  return GridRect(crossing.x - 1, crossing.y, crossing.x + 9, crossing.y + 6);
+}();
 
-/// The forecourt in front of the barracks: reaching it makes Mario speak.
-const GridRect barracksForecourt = GridRect(13, 7, 19, 8);
+/// The forecourt in front of the barracks, from the flagpole west along
+/// the sidewalk and the row of road under it: reaching it makes Mario
+/// speak.
+final GridRect barracksForecourt = GridRect(
+  flagpoleTile.x - 6,
+  flagpoleTile.y,
+  flagpoleTile.x,
+  flagpoleTile.y + 1,
+);
 
 /// The two harbour fires, in row order: first on the gated Duomo sagrato,
 /// then at the south-east end of the harbour road.
@@ -961,10 +979,20 @@ LevelContents hometownContents(EntityFactory factory) {
               position: point,
             ),
           );
+        case '9':
+          entities.add(
+            factory.zombie(
+              id: barracksRoadZombieId,
+              kind: EntityKind.wanderer,
+              position: point,
+            ),
+          );
         case '1':
           pickups.add(Pickup(id: ammoBackpackId, position: point, ammo: 4));
         case '2':
           pickups.add(Pickup(id: accidentBackpackId, position: point, ammo: 2));
+        case '3':
+          pickups.add(Pickup(id: alleyBackpackId, position: point, ammo: 2));
         case '4':
           pickups.add(Pickup(id: parkingBackpackId, position: point, ammo: 2));
         case '5':
@@ -1099,9 +1127,7 @@ LevelContents hometownContents(EntityFactory factory) {
     entities: entities,
     pickups: pickups,
     portals: _portals(),
-    alertTriggers: const <String, GridRect>{
-      tutorialZombieId: tutorialZombieTrigger,
-    },
+    alertTriggers: <String, GridRect>{tutorialZombieId: tutorialZombieTrigger},
     controls: <GridPoint, GridRect>{mallPanelTile: luigiBars},
     lookouts: <GridPoint>[
       rooftopGapTile,

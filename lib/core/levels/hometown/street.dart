@@ -1,4 +1,7 @@
-/// The street where Mario wakes up, a crossroads under the barracks.
+/// The street where Mario wakes up, a crossroads under the barracks. Up the
+/// road north, past the backpack, a dead-end street turns east, a zombie
+/// standing on the road a few steps past where it opens; further up, before
+/// the barracks, a pile-up.
 ///
 /// Glyphs of the outdoor places (the street, the north district and the
 /// harbour share them; tools/build_street_level.py reads these rows to
@@ -16,7 +19,8 @@
 ///   `v`/`k` car / burning car parked north-south (vertical pairs), `D` pile
 ///   of corpses, `F` burning bin, `T` traffic light: obstacles you can see
 ///   and shoot over. `/` a road sign on its post.
-/// - `:` debris (walkable but noisy), `d` a lone corpse (walkable).
+/// - `:` debris (walkable but noisy), `d` a lone corpse (walkable), `>` a
+///   pool of blood on the road (walkable).
 /// - `S` a camp with a campfire: rest there to save (an obstacle).
 /// - `I` flagpole on the barracks forecourt (the flag is animated in game).
 /// - `P` paving of a square, `L` parking lot, `Y` stairs: floor. `O`
@@ -45,9 +49,11 @@
 ///   water.
 /// - Zombies: `w` wanderer, `z` sprinter, `u` brute, `r` carabiniere; `t`
 ///   the two wanderers outside the churchyard gate.
-/// - `@` player, `w` wanderer.
+/// - `@` player, `w` wanderer; `9` the wanderer on the road north, just
+///   past the dead-end street, which has an id of its own.
 /// - Backpacks: `1` four rounds, there from the start; `2` two rounds by the
-///   accident, waiting there from the start (the zombie guards it); `4` two
+///   accident, waiting there from the start (the zombie guards it); `3` two
+///   rounds at the far end of the dead-end street off the road north; `4` two
 ///   rounds at the far corner of the hypermarket's car park; `5` two rounds
 ///   on the rowboat moored at the harbour's second pier; `6` two rounds in
 ///   the shipyard; `7` two rounds at the rightmost old-town dead end; `8`
@@ -65,9 +71,19 @@ const List<String> streetLevelRows = <String>[
   'BBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBB=:....=BBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBB',
-  'BBBBBBBBBBBBB=.v...=BBBBBBBBBBBBBBBBBBBBBBBB',
-  'BBBBBBBBBBBBB=.v|..=BBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBB=CC..UUBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBB=.....=BBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBBBBBBBBBBBB=..|..=HHHHHHHHHHHHHHHHHHHHBBBB',
+  'BBBBBBBBBBBBB=.....=HHHHHHHHHHHHHfHHHHHHBBBB',
+  'BBBBBBBBBBBBB=..9..=HHHHHHHHHHHHHHHHHHHHBBBB',
+  'BBBBBBBBBBBBB=.....=======:=============BBBB',
+  'BBBBBBBBBBBBB=..|.....>..CC...d....D..>.BBBB',
+  'BBBBBBBBBBBBB=.......d....v......>..CC..BBBB',
+  'BBBBBBBBBBBBB=..|...-.-.-.v.-d-.->-.-.3.BBBB',
+  'BBBBBBBBBBBBB=........UU....>...D...k.>.BBBB',
+  'BBBBBBBBBBBBB=......>....XX.....>...k..dBBBB',
+  'BBBBBBBBBBBBB=.....==========:==========BBBB',
   'BBBBBBBBBBBBB=..|.:=BBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBBF.....=BBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBB',
