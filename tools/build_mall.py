@@ -14,13 +14,12 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from build_street_level import (  # noqa: E402
+from street_buildings import paint_boards, paint_smashed_display  # noqa: E402
+from street_paint import (  # noqa: E402
     BLOOD,
     BLOOD_DARK,
     OUTLINE,
     TILE,
-    paint_boards,
-    paint_smashed_display,
     paint_text,
     rect,
     text_width,

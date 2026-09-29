@@ -17,7 +17,7 @@ from PIL import Image, ImageDraw
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import build_airliner as airliner  # noqa: E402
-from build_street_level import (  # noqa: E402
+from street_paint import (  # noqa: E402
     ASPHALT,
     ASPHALT_SPECKLE,
     LANE,
@@ -1411,7 +1411,7 @@ def paint_tower_view(rows, rng) -> Image.Image:
 def duomo_tower_roof_view(rng) -> dict:
     """The picture round the tower tops, as a placed object over the rows
     it was painted for."""
-    from build_street_level import read_rows  # noqa: PLC0415
+    from street_paint import read_rows  # noqa: PLC0415
 
     rows = read_rows("duomo-roof-rows")
     return {"at": [0, 0], "image": "duomo_tower_view.png",

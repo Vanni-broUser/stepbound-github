@@ -18,15 +18,15 @@ from PIL import Image, ImageDraw
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import build_airliner as airliner  # noqa: E402
-from build_street_level import (  # noqa: E402
+from street_paint import (  # noqa: E402
     BLOOD,
     BLOOD_DARK,
     OUTLINE,
     TILE,
-    paint_campfire,
     rect,
     shade,
 )
+from street_props import paint_campfire  # noqa: E402
 from tile_atlas_core import (  # noqa: E402
     TRANSPARENT,
     Atlas,

@@ -16,11 +16,7 @@ import sys
 from PIL import Image, ImageDraw
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from build_street_level import (  # noqa: E402
-    TILE,
-    rect,
-    shade,
-)
+from street_paint import TILE, rect, shade  # noqa: E402
 from build_mall import Room  # noqa: E402
 from tile_atlas_core import (  # noqa: E402
     Atlas,
@@ -1078,7 +1074,7 @@ def train_nose(room):
 
 def train_interior(atlas: Atlas, rng) -> dict:
     """The rules that paint PlaceId.trainInterior."""
-    from build_street_level import read_rows  # noqa: PLC0415 - the nose
+    from street_paint import read_rows  # noqa: PLC0415 - the nose
 
     rows = read_rows(TR_ROWS)
     # Not under Mario's desk (K, q, k): it stands on black, a dark edge

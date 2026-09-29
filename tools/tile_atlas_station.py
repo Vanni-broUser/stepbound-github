@@ -19,7 +19,7 @@ from PIL import Image, ImageDraw
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import build_station as station  # noqa: E402
-from build_street_level import (  # noqa: E402
+from street_paint import (  # noqa: E402
     TILE,
     paint_text,
     rect,

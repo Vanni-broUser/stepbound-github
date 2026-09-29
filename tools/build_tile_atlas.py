@@ -42,9 +42,7 @@ import tempfile
 from PIL import Image, ImageChops
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from build_street_level import (  # noqa: E402
-    TILE,
-)
+from street_paint import TILE  # noqa: E402
 import tile_atlas_city as city  # noqa: E402
 import tile_atlas_hospital as hospital  # noqa: E402
 import tile_atlas_terme as terme  # noqa: E402
@@ -326,7 +324,7 @@ PREVIEW_ROWS = {
 
 
 def preview(root: str) -> None:
-    from build_street_level import read_rows  # noqa: PLC0415 - preview only
+    from street_paint import read_rows  # noqa: PLC0415 - preview only
 
     atlas, built = build()
     tiles = atlas.tiles
@@ -347,7 +345,7 @@ def compare(dump: str) -> None:
     """Hold the renderer in lib/game/render to this file's reference draw.
     `dump` holds what the game drew, one <place>.rgba per converted place,
     written by test/levels/tile_place_render_test.dart."""
-    from build_street_level import read_rows  # noqa: PLC0415 - compare only
+    from street_paint import read_rows  # noqa: PLC0415 - compare only
 
     atlas, built = build()
     failures = []
