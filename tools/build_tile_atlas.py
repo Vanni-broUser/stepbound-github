@@ -63,6 +63,7 @@ import build_station as station  # noqa: E402
 import build_termini as termini  # noqa: E402
 import tile_atlas_city as city  # noqa: E402
 import tile_atlas_hospital as hospital  # noqa: E402
+import tile_atlas_terme as terme  # noqa: E402
 from tile_atlas_core import (  # noqa: E402
     LAYERS,
     SEED,
@@ -100,7 +101,7 @@ PLACES_DIR = os.path.join("assets", "levels", "places")
 def place_group(filename: str) -> str:
     """Return the level-area folder that owns a generated prop."""
     if filename.startswith(("duomo_", "termini_", "piazzaCinquecento_",
-                            "viaMarsala_")):
+                            "viaMarsala_", "termeDiocleziano_")):
         return "rome"
     if filename.startswith("train_"):
         return "train"
@@ -5143,6 +5144,7 @@ PLACES = {
     "trainInterior": train_interior,
     **city.PLACES,
     **hospital.PLACES,
+    **terme.PLACES,
 }
 
 
@@ -5303,6 +5305,7 @@ PREVIEW_ROWS = {
     "trainInterior": "train-interior-rows",
     **city.PREVIEW_ROWS,
     **hospital.PREVIEW_ROWS,
+    **terme.PREVIEW_ROWS,
 }
 
 

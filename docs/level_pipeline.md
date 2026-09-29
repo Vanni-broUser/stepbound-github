@@ -43,8 +43,10 @@ Cosa fare quando si disegna un posto:
 calpestabile di ogni posto sia una porta o un punto work in progress, e che
 il passo indietro cada dentro lo stesso posto; il test in
 `test/widget/dialogue_box_test.dart` ("walking off a map with no next map, thumb still
-down...") rifa il caso segnalato a ovest di Termini col pollice ancora sul
-joystick mentre la schermata toglie i controlli.
+down...") rifa, sul bordo est di piazza dei Cinquecento, il caso segnalato
+col pollice ancora sul joystick mentre la schermata toglie i controlli (a
+ovest, dove fu segnalato, oggi la strada finisce contro le Terme di
+Diocleziano).
 
 ## Cosa resta da fare
 

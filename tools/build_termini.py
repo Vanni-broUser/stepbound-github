@@ -1106,3 +1106,228 @@ def paint_street_banner(d, px, py, w, text):
     paint_text(d, tx, py + 6 + mid - 1, text, (150, 24, 24))
     for i in range(0, text_width(text), 6):
         rect(d, tx + i, py + 11 + mid, 1, 3, (150, 24, 24))
+
+
+# ------------------------------------------------- the Baths of Diocletian
+
+TERME = "§"
+# The portal of Santa Maria degli Angeli in their front, the way in,
+# and the brown sign with their name on the pavement before them.
+TERME_DOOR = "¶"
+TERME_SIGN = "¤"
+SIGN_BROWN = (112, 64, 36)
+SIGN_BROWN_DARK = (78, 44, 26)
+TERME_BRICK = (164, 96, 64)
+TERME_BRICK_DARK = (124, 68, 44)
+TERME_BRICK_LIGHT = (190, 124, 86)
+TERME_MORTAR = (140, 104, 80)
+TERME_TOP = (132, 92, 66)
+TERME_MOSS = (86, 104, 58)
+TERME_GRASS = (110, 128, 66)
+TERME_HOLE = (22, 16, 16)
+
+
+def _brickwork(d, rng, x, y, w, h, base=TERME_BRICK):
+    """Roman brick in thin courses, bonded, a darker brick here and there
+    and the mortar gone from the joints."""
+    rect(d, x, y, w, h, base)
+    for cy in range(y + 3, y + h, 4):
+        rect(d, x, cy, w, 1, shade(base, -26))
+        shift = 3 if (cy // 4) % 2 else 0
+        for cx in range(x + shift, x + w, 7):
+            rect(d, cx, cy - 3, 1, 3, shade(base, -18))
+    for _ in range(w * h // 40):
+        rect(d, x + rng.randrange(w), y + rng.randrange(h), rng.randint(2, 5),
+             1, rng.choice((TERME_BRICK_DARK, TERME_BRICK_LIGHT, TERME_MORTAR)))
+
+
+def _ruined_top(d, rng, x, y, w, h):
+    """What is left over the halls: the stumps of the vaults, their brick
+    rings seen end on, grass and saplings rooted in the rubble between."""
+    rect(d, x, y, w, h, TERME_TOP)
+    for _ in range(w * h // 30):
+        rect(d, x + rng.randrange(w), y + rng.randrange(h), rng.randint(2, 6),
+             rng.randint(1, 2), rng.choice((TERME_BRICK_DARK, TERME_MORTAR,
+                                            shade(TERME_TOP, 14))))
+    # The vaults, broken off: half-rings of brick standing in rows.
+    for vx in range(x + 10, x + w - 30, 46):
+        r = rng.randint(14, 19)
+        cy = y + h - 4
+        for dy in range(r):
+            half = int(math.sqrt(r * r - dy * dy))
+            inner = int(math.sqrt(max(0, (r - 5) ** 2 - dy * dy)))
+            rect(d, vx + r - half, cy - dy, half - inner, 1,
+                 TERME_BRICK_LIGHT if dy < r - 3 else TERME_BRICK)
+            rect(d, vx + r + inner, cy - dy, half - inner, 1, TERME_BRICK)
+        if rng.random() < 0.5:  # this one has lost its crown
+            rect(d, vx + r - 6, cy - r, 12, 6, TERME_TOP)
+    for _ in range(w * h // 60):  # the green that has taken the top
+        gx, gy = x + rng.randrange(w - 4), y + rng.randrange(h - 3)
+        rect(d, gx, gy, rng.randint(2, 5), 2, rng.choice((TERME_MOSS,
+                                                          TERME_GRASS)))
+        if rng.random() < 0.15 and gy - 8 >= y:  # a sapling
+            rect(d, gx + 1, gy - 5, 1, 5, (92, 70, 48))
+            rect(d, gx - 2, gy - 8, 6, 4, TERME_MOSS)
+
+
+def _thermal_window(d, cx, base, r):
+    """A thermal window: the half-moon of a bath hall, its arch ringed in
+    brick, parted by two mullions into three lights; the dark of the empty
+    hall behind."""
+    for dy in range(r + 4):
+        half = int(math.sqrt(max(0, (r + 4) ** 2 - dy * dy)))
+        rect(d, cx - half, base - dy, 2 * half, 1, TERME_BRICK_LIGHT)
+    for dy in range(r):
+        half = int(math.sqrt(r * r - dy * dy))
+        rect(d, cx - half, base - dy, 2 * half, 1, TERME_HOLE)
+    rect(d, cx - r - 4, base, 2 * r + 8, 3, shade(TERME_BRICK_LIGHT, 12))
+    for mx in (cx - r // 3, cx + r // 3):
+        top = base - int(math.sqrt(max(0, r * r - (mx - cx) ** 2)))
+        rect(d, mx - 1, top, 3, base - top, TERME_BRICK)
+
+
+def _arch(d, x, top, w, bottom, fill):
+    """A round-headed opening in the wall, `fill` inside it."""
+    r = w // 2
+    rect(d, x - 2, top + r - 2, w + 4, bottom - top - r + 2,
+         TERME_BRICK_LIGHT)
+    d.ellipse([x - 2, top - 2, x + w + 1, top + w + 1], fill=TERME_BRICK_LIGHT)
+    rect(d, x, top + r, w, bottom - top - r, fill)
+    d.ellipse([x, top, x + w - 1, top + w - 1], fill=fill)
+
+
+def paint_terme_diocleziano(d, rng, level):
+    """The Baths of Diocletian, `§`, where the road past Termini ends, west
+    of Piazza dei Cinquecento: the biggest baths Rome ever built, a wall
+    of Roman brick along the north side of the road, as tall as the
+    station's front, and a wing of them across the end of it. Over the
+    top, the stumps of the vaults and the green grown on them; down the
+    front, the three great half-moon windows of the halls; at the foot,
+    arches, bricked up long ago or gaping, and in the middle the plain
+    portal of Santa Maria degli Angeli, the church Michelangelo made of the
+    frigidarium. The end of the world has added little to a ruin: soot,
+    brick fallen off the wing, the portal barred."""
+    cells = [(x, y) for y in range(level.height) for x in range(level.width)
+             if level.at(x, y) in TERME + TERME_DOOR]
+    if not cells:
+        return
+    door = next(((x, y) for x, y in cells if level.at(x, y) == TERME_DOOR),
+                None)
+    signs = [(x, y) for y in range(level.height) for x in range(level.width)
+             if level.at(x, y) == TERME_SIGN]
+    widths = {}
+    for x, y in cells:
+        widths.setdefault(y, []).append(x)
+    full = max(len(xs) for xs in widths.values())
+    main = sorted(y for y, xs in widths.items() if len(xs) == full)
+    X0 = min(widths[main[0]]) * TILE
+    X1 = (max(widths[main[0]]) + 1) * TILE
+    Y0, B = main[0] * TILE, (main[-1] + 1) * TILE
+    W = X1 - X0
+    wing = sorted(y for y in widths if y > main[-1])
+    WX1 = (max(max(widths[y]) for y in wing) + 1) * TILE if wing else X0
+    WB = (wing[-1] + 1) * TILE if wing else B
+
+    # The wing across the end of the road: its broken top, the end wall
+    # of the halls at its foot, its side facing up the road in the shade
+    # and its shadow on the road.
+    if wing:
+        _ruined_top(d, rng, X0, B, WX1 - X0, WB - B - 26)
+        _brickwork(d, rng, X0, WB - 26, WX1 - X0, 26, TERME_BRICK_DARK)
+        _arch(d, X0 + (WX1 - X0) // 2 - 9, WB - 24, 18, WB, TERME_HOLE)
+        rect(d, WX1 - 5, B, 5, WB - B, shade(TERME_BRICK_DARK, -18))
+        for sy in range(B, WB - 4):
+            rect(d, WX1, sy, 4, 1, (30, 26, 28))
+        # Brick come down off its top, spilt at the foot of its side.
+        for _ in range(30):
+            rect(d, WX1 - 8 + rng.randrange(10), WB - 30 + rng.randrange(24),
+                 rng.randint(2, 4), rng.randint(1, 3),
+                 rng.choice((TERME_BRICK, TERME_BRICK_DARK, TERME_MORTAR)))
+
+    # The front, taller than the palazzi: the ruined top, then the wall.
+    front = Y0 + max(20, (B - Y0) // 3)
+    _ruined_top(d, rng, X0, Y0, W, front - Y0)
+    _brickwork(d, rng, X0, front, W, B - front)
+    rect(d, X0, front, W, 3, TERME_BRICK_LIGHT)  # the cornice, broken
+    for _ in range(6):
+        gap = X0 + rng.randrange(W - 20)
+        rect(d, gap, front, rng.randint(8, 18), 4, TERME_TOP)
+    # The three thermal windows of the halls.
+    lunette = front + (B - front) * 11 // 20
+    for i in range(3):
+        _thermal_window(d, X0 + W * (2 * i + 1) // 6, lunette,
+                        min(22, lunette - front - 8))
+    # Pilasters of brick between them, down to the arcade.
+    for i in range(1, 3):
+        px = X0 + W * i // 3
+        rect(d, px - 3, front + 6, 6, B - front - 6, TERME_BRICK_LIGHT)
+        rect(d, px + 2, front + 6, 1, B - front - 6, TERME_BRICK_DARK)
+    # The arcade at the foot: arches bricked up long ago, a few gaping,
+    # and the portal of the church in the middle.
+    cx = door[0] * TILE + TILE // 2 if door else X0 + W // 2
+    foot = lunette + 6
+    for i, ax in enumerate(range(X0 + 8, X1 - 22, 34)):
+        if abs(ax + 10 - cx) < 26:
+            continue
+        infill = TERME_HOLE if i % 3 == 1 else shade(TERME_BRICK, 16)
+        _arch(d, ax, foot, 20, B, infill)
+        if infill != TERME_HOLE:
+            for cy in range(foot + 12, B, 4):
+                rect(d, ax, cy, 20, 1, shade(TERME_BRICK, -6))
+    # Santa Maria degli Angeli: the plain portal of travertine in the
+    # rough brick, its little pediment, and the planks somebody nailed
+    # over it torn away, the dark of the church behind: the way in.
+    rect(d, cx - 16, foot - 2, 32, B - foot + 2, (206, 196, 174))
+    for dy in range(9):
+        half = 20 * dy // 8
+        rect(d, cx - half, foot - 11 + dy, 2 * half, 1, (214, 204, 182))
+    rect(d, cx - 11, foot + 4, 22, B - foot - 4, (20, 16, 16))
+    rect(d, cx - 13, foot + 7, 8, 3, (126, 94, 60))  # a plank left on
+    for k, (ox, oy) in enumerate(((-17, B - 5), (8, B - 3))):
+        rect(d, cx + ox, oy, 12, 3, (126, 94, 60) if k else (100, 74, 48))
+    # Soot run down the front in streaks, moss, cracks, and the damp at
+    # the foot.
+    for _ in range(7):
+        sx = X0 + rng.randrange(W - 4)
+        top = front + rng.randrange(4, 24)
+        for k in range(B - top):
+            if rng.random() < 0.85:
+                rect(d, sx, top + k, 2 if k < (B - top) // 2 else 1, 1,
+                     shade(TERME_BRICK, -34))
+    for _ in range(W // 8):
+        rect(d, X0 + rng.randrange(W - 3), front + rng.randrange(8, 30),
+             rng.randint(1, 3), rng.randint(2, 6), TERME_MOSS)
+    for _ in range(4):
+        x, y = X0 + rng.randrange(W - 10), front + rng.randrange(6, 40)
+        for k in range(rng.randint(6, 14)):
+            rect(d, x + (k * 3) % 5 - 2, y + k, 1, 1, TERME_HOLE)
+    rect(d, X0, B - 4, W, 4, shade(TERME_BRICK_DARK, -10))
+    if door:  # the damp at the foot stops at the doorway
+        rect(d, cx - 11, B - 4, 22, 4, (20, 16, 16))
+    for sx, sy in signs:
+        _brown_sign(d, sx * TILE, sy * TILE, ("TERME DI", "DIOCLEZIANO"))
+
+
+def _brown_sign(d, px, py, lines):
+    """The brown sign Italy puts up by its monuments, white lettering in
+    a white border, on two posts planted in the pavement at `px`, `py` and
+    standing up into the rows above, where it can be read over the heads
+    of whoever walks past."""
+    w = max(len(line) for line in lines) * 4 + 7
+    h = len(lines) * 7 + 5
+    x = px + TILE // 2 - w // 2
+    top = py + TILE - 6 - 16 - h
+    for post in (x + 5, x + w - 7):
+        rect(d, post, top + h, 2, py + TILE - 2 - top - h, (150, 150, 146))
+        rect(d, post + 1, top + h, 1, py + TILE - 2 - top - h,
+             (110, 110, 106))
+    rect(d, x + 3, py + TILE - 2, w - 6, 2, (30, 26, 26))  # the shadow
+    rect(d, x, top, w, h, SIGN_BROWN)
+    rect(d, x, top, w, 1, (238, 236, 228))
+    rect(d, x, top + h - 1, w, 1, (238, 236, 228))
+    rect(d, x, top, 1, h, (238, 236, 228))
+    rect(d, x + w - 1, top, 1, h, (238, 236, 228))
+    rect(d, x + 1, top + h - 2, w - 2, 1, SIGN_BROWN_DARK)
+    for i, line in enumerate(lines):
+        lx = x + (w - len(line) * 4 + 1) // 2
+        paint_text(d, lx, top + 3 + i * 7, line, (238, 236, 228))

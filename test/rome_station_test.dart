@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/core/core.dart';
 
@@ -145,14 +147,104 @@ void main() {
     final ends = workInProgressEnds.keys;
     expect(ends.where(piazza.bounds.contains), isNotEmpty);
     expect(ends.where(marsala.bounds.contains), isNotEmpty);
-    // West of Termini, where the piazza runs off the map.
+    // East of Termini, where the piazza runs off the map.
     expect(
-      workInProgressEnds[GridPoint(piazza.origin.x, piazza.origin.y + 8)],
-      Direction.east,
+      workInProgressEnds[GridPoint(piazza.bounds.right, piazza.origin.y + 8)],
+      Direction.west,
     );
+    // West, the road ends against the Baths of Diocletian.
+    for (var y = piazza.origin.y; y <= piazza.bounds.bottom; y++) {
+      expect(
+        workInProgressEnds.containsKey(GridPoint(piazza.origin.x, y)),
+        isFalse,
+        reason: '$y',
+      );
+    }
     for (final station in <Place>[termini, overpass, farPlatform, concourse]) {
       expect(ends.where(station.bounds.contains), isEmpty, reason: '$station');
     }
+  });
+
+  test('west of Termini the road runs on past more palazzi, up to the '
+      'Baths of Diocletian, and ends against them', () {
+    final world = createGameWorld();
+    final termini = piazza.tilesOf('{').first;
+    final baths = piazza.tilesOf('§');
+    expect(baths, isNotEmpty);
+    // Their front along the north side, from the top of the map down to
+    // the pavement, as tall as the station's.
+    final front = baths.where((tile) => tile.y == piazza.origin.y);
+    expect(front.map((tile) => tile.x).reduce(math.max), lessThan(termini.x));
+    // The road, walked west from in front of the station, gets as far as
+    // the wing of them across its end.
+    final road = GridPoint(termini.x, piazza.origin.y + 13);
+    final reached = from(
+      world,
+      road,
+      piazza,
+    ).keys.where((tile) => tile.y == road.y);
+    final westmost = reached.map((tile) => tile.x).reduce(math.min);
+    expect(piazza.tilesOf('§'), contains(GridPoint(westmost - 1, road.y)));
+    expect(termini.x - westmost, greaterThan(40), reason: 'a good way on');
+  });
+
+  group('the Baths of Diocletian', () {
+    final terme = place(PlaceId.termeDiocleziano);
+
+    test('the portal of Santa Maria degli Angeli leads inside, and back '
+        'out onto the pavement', () {
+      final world = createGameWorld();
+      final inside = travel(world, termePortalTile, Direction.north);
+      expect(terme.bounds.contains(inside), isTrue);
+      expect(world.map.tileAt(inside).isWalkable, isTrue);
+      final out = travel(world, terme.tilesOf('E').single, Direction.south);
+      expect(out, termePortalTile.step(Direction.south));
+      expect(piazza.bounds.contains(out), isTrue);
+    });
+
+    test('the vestibule opens onto the great hall, all of it within reach, '
+        'the brass meridian running down it between the pews', () {
+      final world = createGameWorld();
+      final start = terme.tilesOf('E').single.step(Direction.north);
+      final reached = from(world, start, terme).keys.toSet();
+      for (final (tile, glyph) in terme.glyphs) {
+        if (world.map.tileAt(tile).isWalkable) {
+          expect(reached, contains(tile), reason: '$glyph at $tile');
+        }
+      }
+      expect(terme.tilesOf('O'), hasLength(8), reason: 'the eight columns');
+      final meridian = terme.tilesOf('m');
+      expect(meridian.map((tile) => tile.x).toSet(), hasLength(1));
+      expect(meridian.length, greaterThan(5));
+      expect(workInProgressEnds.keys.where(terme.bounds.contains), isEmpty);
+    });
+
+    test('the dead wander inside too, where they can walk', () {
+      final world = createGameWorld();
+      final inside = world.entities.values.where(
+        (entity) =>
+            entity.kind != EntityKind.player &&
+            terme.bounds.contains(
+              entity.component<PositionComponent>().position,
+            ),
+      );
+      expect(
+        inside,
+        hasLength(romeZombieSpots[PlaceId.termeDiocleziano]!.length),
+      );
+      for (final zombie in inside) {
+        final at = zombie.component<PositionComponent>().position;
+        expect(world.map.tileAt(at).isWalkable, isTrue, reason: '$at');
+      }
+    });
+
+    test('a brown sign stands on the pavement in front of them, and Mario '
+        'walks round it', () {
+      final world = createGameWorld();
+      final sign = piazza.tileOf('¤');
+      expect(world.map.tileAt(sign).isWalkable, isFalse);
+      expect(sign.y, termePortalTile.y + 1, reason: 'on the pavement');
+    });
   });
 
   test('fires burn in the streets of Rome too', () {

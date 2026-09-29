@@ -30,23 +30,23 @@ void main() {
   test('a step off the edge of a map with no next map shows the '
       'work-in-progress screen, and Mario is back inside once it is '
       'tapped away', () {
-    // West of Termini, where Piazza dei Cinquecento runs off the map.
+    // East of Termini, where Piazza dei Cinquecento runs off the map.
     final piazza = place(PlaceId.piazzaCinquecento);
-    final end = GridPoint(piazza.origin.x, piazza.origin.y + 8);
+    final end = GridPoint(piazza.bounds.right, piazza.origin.y + 8);
     final mario = world.player.component<PositionComponent>()
-      ..position = end.step(Direction.east)
-      ..facing = Direction.west;
+      ..position = end.step(Direction.west)
+      ..facing = Direction.east;
 
     final events = const TurnScheduler().advance(
       world,
-      const MoveAction(Direction.west),
+      const MoveAction(Direction.east),
     );
     expect(mario.position, end);
     director.onEvents(events);
 
     expect(host.workInProgressShown, 1);
-    expect(mario.position, end.step(Direction.east));
-    expect(mario.facing, Direction.east);
+    expect(mario.position, end.step(Direction.west));
+    expect(mario.facing, Direction.west);
   });
 
   test('the locked bar door explains that it needs a key', () {

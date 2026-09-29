@@ -50,7 +50,7 @@ from tile_atlas_core import (  # noqa: E402
 )
 
 ROAD = "".join(sorted(sl.ROAD_GLYPHS))
-BUILDINGS = "BHfKMGW#%0]\""
+BUILDINGS = "BHfKMGW#%0]\"\u00a7"
 FACADE = "Hf"
 
 GROUND = ground_config(
@@ -58,7 +58,7 @@ GROUND = ground_config(
     roads=".-|ZVc",
     walks="={}",
     floors="PLY,",
-    footway="T/F",
+    footway="T/F¤",
     keep="~bRlo5g",
     lawn="g",
     lawnProps="Apn^<",
@@ -1297,6 +1297,15 @@ def city_place(atlas: Atlas, rng, name: str, marker, storefront_table,
             1)]))
         rules.append(rule("structures", ">`", [atlas.bucket(lambda: tile_of(
             lambda d: rect(d, 3, 10, 12, 5, (40, 38, 40))), 1)]))
+    if termini.TERME in glyphs:
+        # Under the Baths of Diocletian, which are their own picture, and
+        # the dark of their open portal.
+        rules.append(rule("structures", termini.TERME, [atlas.bucket(
+            lambda: tile_of(lambda d: rect(d, 0, 0, TILE, TILE,
+                                           termini.TERME_TOP)), 1)]))
+        rules.append(rule("structures", termini.TERME_DOOR, [atlas.bucket(
+            lambda: tile_of(lambda d: rect(d, 0, 0, TILE, TILE,
+                                           (20, 16, 16))), 1)]))
     if "}" in glyphs:
         rules.append(rule("structures", "}", [
             atlas.bucket(lambda f=first: tile_of(
@@ -1334,6 +1343,8 @@ def city_place(atlas: Atlas, rng, name: str, marker, storefront_table,
             d, rng, lv)),
         ('">`', "basilica", lambda d, lv: termini.paint_santa_maria_maggiore(
             d, rng, lv)),
+        (termini.TERME + termini.TERME_DOOR + termini.TERME_SIGN, "terme",
+         lambda d, lv: termini.paint_terme_diocleziano(d, rng, lv)),
     )
     for marks, what, paint in specials:
         if marks[0] in glyphs:
