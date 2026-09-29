@@ -132,21 +132,6 @@ debug key no longer conflicts with the release one. What remains:
   project has no team and the privacy policy already names iOS. Either
   configure the signing or say Android only until it is.
 
-## P3 — What is left of the save hardening
-
-Slots are now read as a typed result, damaged ones fall back on the save they
-replaced, failed writes never leave the game stuck, and a slot is only
-offered once its world, progress and story scripts have been rebuilt, and
-the train's save at the end of the level is awaited, with the results
-saying when it failed. One corner remains:
-
-- `_onLifecycle` (`lib/app.dart`) raises `_putDown` as soon as the app
-  goes inactive, even when `_suspend` wrote nothing because the game was
-  not in a state it can come back to; if it became so before `paused`,
-  nothing is written until the next `resumed`. Theoretical today, since
-  the game does not move between the two; raise the flag only once a save
-  is written.
-
 ## P3 — Smaller portrait files
 
 The portraits are decoded at the height they are drawn (`PortraitImage`),

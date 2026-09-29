@@ -86,6 +86,7 @@ final class AppFlowController extends ChangeNotifier {
   LinkNotice? _linkNotice;
   int _linkNoticeRevision = 0;
   bool _putDown = false;
+  Future<void>? _puttingDown;
   bool _disposed = false;
 
   AppPhase get phase => _phase;
@@ -140,15 +141,20 @@ final class AppFlowController extends ChangeNotifier {
 
   /// The app has left the front, whatever the step (inactive, hidden,
   /// paused): the sound stops, the clock stops, and the game is written
-  /// down once, since Android may kill the app in the background and
-  /// everything since the last fire would go.
+  /// down, since Android may kill the app in the background and
+  /// everything since the last fire would go. Once written it is not
+  /// written again until the app has been back; while nothing could be
+  /// written (no game, or one with nothing to come back to yet) every
+  /// step on the way out tries again.
   void leftFront() {
     audio.pause();
     session.pauseClock();
-    if (!_putDown) {
-      _putDown = true;
-      unawaited(suspend());
+    if (_putDown || _puttingDown != null) {
+      return;
     }
+    _puttingDown = suspend()
+        .then((written) => _putDown = written)
+        .whenComplete(() => _puttingDown = null);
   }
 
   /// Writes the game as it is beside the slot's save, to be picked up from
@@ -156,15 +162,16 @@ final class AppFlowController extends ChangeNotifier {
   /// playing, and only in a state the game can come back to: when it is
   /// in the middle of something, the last such state a few steps back (see
   /// [StepboundGame.putDownSnapshot]); with none, the slot keeps what it
-  /// had.
-  Future<void> suspend() async {
+  /// had. True once written.
+  Future<bool> suspend() async {
     final game = _game;
     if (game == null || _phase != AppPhase.playing) {
-      return;
+      return false;
     }
     if (game.putDownSnapshot case final snapshot?) {
-      await session.suspend(snapshot);
+      return session.suspend(snapshot);
     }
+    return false;
   }
 
   // --------------------------------------------------------------- menu
