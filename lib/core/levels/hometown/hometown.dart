@@ -421,6 +421,11 @@ const String tutorialZombieId = 'wanderer-0';
 /// it does not take the tutorial zombie's for being further up the map.
 const String barracksRoadZombieId = 'barracks-road-wanderer';
 
+/// The other `9`, four rows up the road north from [barracksRoadZombieId]
+/// and to the east of it, closer to the barracks and looking south: going
+/// round the first, Mario walks into it.
+const String barracksRoadUpperZombieId = 'barracks-road-upper-wanderer';
+
 /// Backpack ids, see the glyph lists in street.dart and barracks.dart.
 const String ammoBackpackId = 'backpack-ammo';
 const String parkingBackpackId = 'backpack-parking';
@@ -1118,11 +1123,14 @@ LevelContents hometownContents(EntityFactory factory) {
             ),
           );
         case '9':
+          // The upper of the two is the one further up the road.
+          final upper = point.y < _street.tilesOf('9').last.y;
           entities.add(
             factory.zombie(
-              id: barracksRoadZombieId,
+              id: upper ? barracksRoadUpperZombieId : barracksRoadZombieId,
               kind: EntityKind.wanderer,
               position: point,
+              facing: upper ? Direction.south : Direction.west,
             ),
           );
         case '1':
