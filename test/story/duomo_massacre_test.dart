@@ -412,6 +412,35 @@ void main() {
     expect(lines.last.portrait, isNotNull);
   });
 
+  test('the first zombie is introduced as soon as it is in sight, before '
+      'it notices Mario', () {
+    host.visible.add(zombiePosition());
+    director.update(0.1, turnAnimating: false);
+    expect(host.shown, hasLength(1), reason: 'no need to walk up to it');
+    expect(host.shown.single.map((line) => line.text), <String>[
+      zombieLore[EntityKind.wanderer]!.lesson,
+      StreetScript.zombieSpotted,
+    ]);
+    host.dismiss();
+    director
+      ..onEvents(<WorldEvent>[
+        AlertedEvent(entityId: tutorialZombieId, at: zombiePosition()),
+      ])
+      ..update(0.1, turnAnimating: false);
+    expect(host.shown, hasLength(1), reason: 'its alert says nothing again');
+  });
+
+  test('the first zombie waits for the opening lines to be read', () {
+    host
+      ..visible.add(zombiePosition())
+      ..inPlay = false;
+    director.update(0.1, turnAnimating: false);
+    expect(host.shown, isEmpty);
+    host.inPlay = true;
+    director.update(0.1, turnAnimating: false);
+    expect(host.shown, hasLength(1));
+  });
+
   test('the first carabiniere to notice the player gets its own lesson', () {
     final zombies = <Entity>[
       for (final (index, spawn) in carabiniereSpawns.indexed)

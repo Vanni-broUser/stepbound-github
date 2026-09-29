@@ -22,6 +22,9 @@ final class FakeStoryHost implements StoryHost, HometownActions {
   int wholeViews = 0;
 
   @override
+  bool inPlay = true;
+
+  @override
   bool isPromptVisible = false;
 
   @override

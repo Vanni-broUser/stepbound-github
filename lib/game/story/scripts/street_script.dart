@@ -1,9 +1,13 @@
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/story/story_director.dart';
 
-/// The first street: the zombie east of the crossroads spots Mario and
-/// steps closer, then the wanderers' pace is explained and Mario decides
-/// to get away from it.
+/// The first street: the zombie east of the crossroads is introduced as
+/// soon as the whole of it is on screen and the player has the controls,
+/// wherever Mario is standing and whatever the screen, with the view as it
+/// is: nothing waits for him to walk into the crossroads, where the view
+/// starts following him and the zombie steps closer. Then the wanderers'
+/// pace is explained and Mario decides to get away from it. Its alert is
+/// only a fallback, should it notice him before it is in sight.
 final class StreetScript extends StoryScript {
   StreetScript(super.director);
 
@@ -15,16 +19,34 @@ final class StreetScript extends StoryScript {
   String get key => 'street';
 
   @override
+  void update({required bool turnAnimating}) {
+    if (_zombieLessonGiven || !host.inPlay || !director.isIdle) {
+      return;
+    }
+    final zombie = world.entities[tutorialZombieId];
+    if (zombie == null ||
+        !zombie.isAlive ||
+        !host.isTileVisible(zombie.component<PositionComponent>().position)) {
+      return;
+    }
+    _introduce(zombie);
+  }
+
+  @override
   void onEvent(WorldEvent event) {
     if (event case AlertedEvent(
       entityId: tutorialZombieId,
     ) when !_zombieLessonGiven) {
-      _zombieLessonGiven = true;
-      director.introduceZombie(
-        world.entities[tutorialZombieId]!,
-        then: const <StoryLine>[StoryLine.mario(zombieSpotted)],
-      );
+      _introduce(world.entities[tutorialZombieId]!);
     }
+  }
+
+  void _introduce(Entity zombie) {
+    _zombieLessonGiven = true;
+    director.introduceZombie(
+      zombie,
+      then: const <StoryLine>[StoryLine.mario(zombieSpotted)],
+    );
   }
 
   @override

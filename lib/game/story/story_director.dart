@@ -151,6 +151,10 @@ abstract interface class StoryHost {
   /// Shows [lines] one per tap; the game pauses until [onDismissed].
   void showPrompt(List<StoryLine> lines, {void Function()? onDismissed});
 
+  /// True once the player has the controls: not while the opening lines
+  /// over the first street are still being read.
+  bool get inPlay;
+
   /// True while anything covers the game (a text box, a story scene...):
   /// prompts wait for it to go.
   bool get isPromptVisible;

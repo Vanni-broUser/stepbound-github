@@ -740,6 +740,9 @@ final class StepboundGame extends FlameGame
       !_transitions.holdsMario;
 
   @override
+  bool get inPlay => _acceptsInput && !inputLocked;
+
+  @override
   bool get isPromptVisible => _covers.isCovered;
 
   @override
