@@ -14,14 +14,8 @@ import sys
 from PIL import Image, ImageDraw
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from build_street_level import (  # noqa: E402
-    BLOOD,
-    BLOOD_DARK,
-    OUTLINE,
-    TILE,
-    paint_emblem,
-    rect,
-)
+from street_buildings import paint_emblem  # noqa: E402
+from street_paint import BLOOD, BLOOD_DARK, OUTLINE, TILE, rect  # noqa: E402
 from tile_atlas_core import (  # noqa: E402
     Atlas,
     TRANSPARENT,

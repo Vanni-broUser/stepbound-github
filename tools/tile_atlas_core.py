@@ -15,7 +15,7 @@ import sys
 from PIL import Image, ImageDraw
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from build_street_level import TILE, rect  # noqa: E402
+from street_paint import TILE, rect  # noqa: E402
 
 # How many times the same kind of tile is painted with fresh grit. The
 # renderer picks between them with a hash of the tile's position: enough
@@ -333,7 +333,7 @@ def ground_config(**config) -> dict:
     - `lawn` and `lawnProps`: a prop of `lawnProps` next to `lawn` stands
       on the lawn.
 
-    This is Level.surface in tools/build_street_level.py, which the
+    This is Level.surface in tools/street_paint.py, which the
     reference draw calls, written down as data so the renderer in
     lib/game/render/tile_atlas.dart can repeat it."""
     return dict(config)
@@ -341,7 +341,7 @@ def ground_config(**config) -> dict:
 
 def ground_of(rows: list[str], config: dict, outside: str):
     """The floor under every cell, as the renderer works it out."""
-    from build_street_level import Level  # noqa: PLC0415 - the reference
+    from street_paint import Level  # noqa: PLC0415 - the reference
 
     level = Level(rows)
     height, width = len(rows), len(rows[0])

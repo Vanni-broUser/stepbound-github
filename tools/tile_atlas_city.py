@@ -28,9 +28,13 @@ import sys
 from PIL import Image, ImageDraw
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import build_street_level as sl  # noqa: E402
+import street_airliner as plane  # noqa: E402
+import street_buildings as buildings  # noqa: E402
+import street_ground as floors  # noqa: E402
+import street_paint as brushes  # noqa: E402
+import street_props as props  # noqa: E402
 import build_termini as termini  # noqa: E402
-from build_street_level import TILE, rect, shade  # noqa: E402
+from street_paint import TILE, rect, shade  # noqa: E402
 from tile_atlas_core import (  # noqa: E402
     SEED,
     TRANSPARENT,
@@ -49,7 +53,7 @@ from tile_atlas_core import (  # noqa: E402
     tile_of,
 )
 
-ROAD = "".join(sorted(sl.ROAD_GLYPHS))
+ROAD = "".join(sorted(brushes.ROAD_GLYPHS))
 BUILDINGS = "BHfKMGW#%0]\"\u00a7"
 FACADE = "Hf"
 
@@ -79,7 +83,7 @@ ROME_BASE = (206, 198, 176)
 
 # The asphalt the baker laid under everything, and what shows under the
 # buildings the objects stand on.
-VOID = "#%02x%02x%02x" % sl.ASPHALT
+VOID = "#%02x%02x%02x" % brushes.ASPHALT
 
 # The roof of the barracks, a pale concrete a shade warmer than the city's.
 BARRACKS_ROOF = (104, 98, 90)
@@ -114,10 +118,10 @@ class Around:
                               self.default)
 
     def is_road(self, x, y):
-        return self.at(x, y) in sl.ROAD_GLYPHS
+        return self.at(x, y) in brushes.ROAD_GLYPHS
 
     def is_building(self, x, y):
-        return self.at(x, y) in sl.BUILDING_GLYPHS
+        return self.at(x, y) in brushes.BUILDING_GLYPHS
 
     def surface(self, x, y):
         return self.surfaces.get((x - self.origin[0], y - self.origin[1]),
@@ -148,31 +152,31 @@ def randomly(atlas: Atlas, rng, paint):
 def paint_marking(d, glyph):
     """The markings the baker painted over a road tile of `glyph`."""
     if glyph == "-":
-        rect(d, 2, 7, 12, 2, sl.LANE)
+        rect(d, 2, 7, 12, 2, brushes.LANE)
     elif glyph == "|":
-        rect(d, 7, 2, 2, 12, sl.LANE)
+        rect(d, 7, 2, 2, 12, brushes.LANE)
     elif glyph == "Z":
         for i in range(0, 16, 4):
-            rect(d, 2, i + 1, 12, 2, sl.ZEBRA)
+            rect(d, 2, i + 1, 12, 2, brushes.ZEBRA)
     elif glyph == "V":
         for i in range(0, 16, 4):
-            rect(d, i + 1, 2, 2, 12, sl.ZEBRA)
+            rect(d, i + 1, 2, 2, 12, brushes.ZEBRA)
 
 
 def paint_curb(d, side):
     """The kerb along one side of a pavement tile that touches the road."""
     if side == "s":
-        rect(d, 0, 14, TILE, 2, sl.CURB)
-        rect(d, 0, 13, TILE, 1, sl.CURB_SHADOW)
+        rect(d, 0, 14, TILE, 2, brushes.CURB)
+        rect(d, 0, 13, TILE, 1, brushes.CURB_SHADOW)
     elif side == "n":
-        rect(d, 0, 0, TILE, 2, sl.CURB)
-        rect(d, 0, 2, TILE, 1, sl.CURB_SHADOW)
+        rect(d, 0, 0, TILE, 2, brushes.CURB)
+        rect(d, 0, 2, TILE, 1, brushes.CURB_SHADOW)
     elif side == "e":
-        rect(d, 14, 0, 2, TILE, sl.CURB)
-        rect(d, 13, 0, 1, TILE, sl.CURB_SHADOW)
+        rect(d, 14, 0, 2, TILE, brushes.CURB)
+        rect(d, 13, 0, 1, TILE, brushes.CURB_SHADOW)
     else:
-        rect(d, 0, 0, 2, TILE, sl.CURB)
-        rect(d, 2, 0, 1, TILE, sl.CURB_SHADOW)
+        rect(d, 0, 0, 2, TILE, brushes.CURB)
+        rect(d, 2, 0, 1, TILE, brushes.CURB_SHADOW)
 
 
 def paint_algae(d, rng):
@@ -190,8 +194,8 @@ def paint_algae(d, rng):
                 continue
             if inside > 0.55 and (px + py) % 2:
                 continue
-            colour = sl.ALGAE[0] if inside > 0.55 else \
-                sl.ALGAE[1 + (rng.random() < 0.25)]
+            colour = brushes.ALGAE[0] if inside > 0.55 else \
+                brushes.ALGAE[1 + (rng.random() < 0.25)]
             rect(d, px, py, 1, 1, colour)
 
 
@@ -203,21 +207,21 @@ def ground_rules(atlas: Atlas, rng) -> list[dict]:
     # The carriageway, and the markings on it, which belong to the glyph:
     # a car in the road stands on bare asphalt.
     rules.append(rule("ground", ".", randomly(
-        atlas, rng, lambda d, r, x, y: sl.paint_road(d, r, Around(), x, y))))
+        atlas, rng, lambda d, r, x, y: floors.paint_road(d, r, Around(), x, y))))
     for glyph in "-|ZV":
         rules.append(rule("ground", glyph, [atlas.bucket(lambda g=glyph:
                           tile_of(lambda d: paint_marking(d, g)), 1)],
                           on="glyph"))
     # The car park, a stall line on every row but the aisles, y % 3 == 2.
     rules.append(rule("ground", "L", [atlas.bucket(lambda a=aisle: cell(
-        lambda d, gx, gy: sl.paint_parking(
+        lambda d, gx, gy: floors.paint_parking(
             d, rng, Around(default="L", origin=(gx, gy)), gx, gy),
         0, 2 if a else 0)) for aisle in (False, True)],
         [pattern_key(0, 1, 3, 2)]))
 
     # The pavement, its slabs alternating, a kerb on each side the road is.
     rules.append(rule("ground", "=", [atlas.bucket(lambda p=parity: cell(
-        lambda d, gx, gy: sl.paint_sidewalk(
+        lambda d, gx, gy: floors.paint_sidewalk(
             d, rng, Around(default="=", origin=(gx, gy)), gx, gy), p, 0))
         for parity in (0, 1)], [parity_key()]))
     for side, (dx, dy) in (("s", (0, 1)), ("n", (0, -1)), ("e", (1, 0)),
@@ -233,7 +237,7 @@ def ground_rules(atlas: Atlas, rng) -> list[dict]:
         gx, gy = find_cell(lambda x, y: (x + y) % 2 == odd
                            and y % 2 == odd_row)
         return atlas.bucket(lambda: cell(
-            lambda d, x, y: sl.paint_paving(d, rng, x, y), gx, gy))
+            lambda d, x, y: floors.paint_paving(d, rng, x, y), gx, gy))
     rules.append(rule("ground", "P", [paving(i) for i in range(4)],
                       [parity_key(), pattern_key(0, 1, 2, 1)]))
 
@@ -245,7 +249,7 @@ def ground_rules(atlas: Atlas, rng) -> list[dict]:
         level = Around(origin=(gx, gy), surfaces={
             (-1, 0): "Y" if left else "=", (1, 0): "Y" if right else "="})
         return atlas.bucket(lambda: cell(
-            lambda d, x, y: sl.paint_stairs(d, level, x, y), gx, gy), 1)
+            lambda d, x, y: buildings.paint_stairs(d, level, x, y), gx, gy), 1)
     rules.append(rule("ground", "Y", [stairs(i) for i in range(8)],
                       [neighbour_key(-1, 0, "Y", ground=True),
                        neighbour_key(1, 0, "Y", ground=True),
@@ -257,7 +261,7 @@ def ground_rules(atlas: Atlas, rng) -> list[dict]:
         gx, gy = find_cell(lambda x, y: ((x // 4 + y // 4) % 2 == 1) == slab
                            and (x % 4 == 0) == west and (y % 4 == 0) == north)
         return atlas.bucket(lambda: cell(
-            lambda d, x, y: sl.paint_yard_floor(d, rng, x, y), gx, gy))
+            lambda d, x, y: floors.paint_yard_floor(d, rng, x, y), gx, gy))
     rules.append(rule("ground", ",", [yard(i) for i in range(8)],
                       [pattern_key(1, 1, 2, 1, div=(4, 4)),
                        pattern_key(1, 0, 4, 0), pattern_key(0, 1, 4, 0)]))
@@ -270,13 +274,13 @@ def ground_rules(atlas: Atlas, rng) -> list[dict]:
         want = 1 if one_ else 2 if two else 0
         gx, gy = find_cell(lambda x, y: (x * 3 + y * 5) % 3 == want)
         return atlas.bucket(lambda: cell(
-            lambda d, x, y: sl.paint_grass(d, rng, x, y), gx, gy))
+            lambda d, x, y: floors.paint_grass(d, rng, x, y), gx, gy))
     rules.append(rule("ground", "g", [lawn(i) for i in range(4)],
                       [pattern_key(3, 5, 3, 1), pattern_key(3, 5, 3, 2)]))
 
     # The sea, with the scum on it, and under the boats.
     rules.append(rule("ground", "~bo5", randomly(
-        atlas, rng, lambda d, r, x, y: sl.paint_water(d, r, x, y))))
+        atlas, rng, lambda d, r, x, y: floors.paint_water(d, r, x, y))))
     algae = atlas.odds(lambda: tile_of(
         lambda d: paint_algae(d, rng) if rng.random() < 0.35 else None), 24)
     rules.append(rule("ground", "~", [algae]))
@@ -288,7 +292,7 @@ def ground_rules(atlas: Atlas, rng) -> list[dict]:
         west = sea_west and not sea_south
         gx, gy = find_cell(lambda x, y: (x % 2 == 1) == odd_x
                            and (y % 2 == 1) == odd_y)
-        paint = sl.paint_parapet_west if west else sl.paint_parapet
+        paint = floors.paint_parapet_west if west else floors.paint_parapet
         return atlas.bucket(lambda: cell(
             lambda d, x, y: paint(d, rng, x, y), gx, gy))
     rules.append(rule("ground", "R", [parapet(i) for i in range(16)],
@@ -306,7 +310,7 @@ def ground_rules(atlas: Atlas, rng) -> list[dict]:
                         (0, 1): "l" if below else "~"}, default="~")
         tx, ty = find_cell(lambda x, y: (x % 3 == 0) == post, (0, 1))
         level.origin = (tx, ty)
-        return (lambda d, px, py: sl.paint_pier(
+        return (lambda d, px, py: floors.paint_pier(
             d, rng, level, px // TILE, py // TILE)), (tx, ty)
     buckets, pieces = spread(atlas, pier, keys, (0, 1, 0, 0))
     rules.append(rule("ground", "l", buckets, keys, pieces))
@@ -508,8 +512,8 @@ def facade_rules(atlas: Atlas, rng, old_town: bool,
     it, split where the roofs are: a colour to each building, a cornice
     along the top, windows, and on the street a shop or a door."""
     keys = facade_keys()
-    colours = (sl.OLD_TOWN_STONE if old_town
-               else ROME_FACADES if rome else sl.FACADES)
+    colours = (brushes.OLD_TOWN_STONE if old_town
+               else ROME_FACADES if rome else brushes.FACADES)
 
     def building(index):
         first, second, odd_band = bits(index, 3)
@@ -576,9 +580,9 @@ def facade_rules(atlas: Atlas, rng, old_town: bool,
             stone = c
             wx, wy = 5, 3
             rect(d, wx - 1, wy - 1, 8, 12, shade(stone, 18))
-            rect(d, wx, wy, 6, 10, sl.PANE if r.random() > 0.2
-                 else sl.PANE_BROKEN)
-            green = r.choice(sl.SHUTTERS)
+            rect(d, wx, wy, 6, 10, brushes.PANE if r.random() > 0.2
+                 else brushes.PANE_BROKEN)
+            green = r.choice(brushes.SHUTTERS)
             slat = shade(green, -30)
             roll = r.random()
             if roll < 0.4:
@@ -609,8 +613,8 @@ def facade_rules(atlas: Atlas, rng, old_town: bool,
             wall, trim = c
             wx, wy = 5, 4
             rect(d, wx - 1, wy - 1, 8, 12, trim)
-            rect(d, wx, wy, 6, 10, sl.PANE if r.random() > 0.2
-                 else sl.PANE_BROKEN)
+            rect(d, wx, wy, 6, 10, brushes.PANE if r.random() > 0.2
+                 else brushes.PANE_BROKEN)
             if r.random() < 0.5:
                 d.polygon([(wx - 2, wy - 1), (wx + 3, wy - 4),
                            (wx + 8, wy - 1)], fill=trim)
@@ -639,12 +643,12 @@ def facade_rules(atlas: Atlas, rng, old_town: bool,
             return
         _, trim = c
         roll = r.random()
-        pane = sl.PANE if roll > 0.25 else (
-            sl.PANE_LIT if roll > 0.12 else sl.PANE_BROKEN)
+        pane = brushes.PANE if roll > 0.25 else (
+            brushes.PANE_LIT if roll > 0.12 else brushes.PANE_BROKEN)
         rect(d, 4, 3, 8, 10, trim)
         rect(d, 5, 4, 6, 8, pane)
-        if pane == sl.PANE_BROKEN:
-            rect(d, 6, 5, 2, 3, sl.PANE)
+        if pane == brushes.PANE_BROKEN:
+            rect(d, 6, 5, 2, 3, brushes.PANE)
 
     # A window on every floor above the street: the key holds where there
     # is more front below. The palazzi of the old town keep the floor over
@@ -700,12 +704,12 @@ def paint_shop(d, px, py, c, rng):
     """The shut shop at the foot of a tall building, under its striped
     awning, which the baker hung two pixels into the floor above."""
     shop_top = py + 2
-    rect(d, px, shop_top, TILE, TILE - 2, sl.SHOP_DARK)
+    rect(d, px, shop_top, TILE, TILE - 2, brushes.SHOP_DARK)
     rect(d, px, shop_top + 4, TILE, 1, (48, 40, 40))
     for i in range(0, TILE, 4):
         torn = rng.random() < 0.2
         rect(d, px + i, shop_top - 4, 4, 2 if torn else 4 + (i * 5 % 3),
-             sl.RED if (i // 4) % 2 else sl.CREAM)
+             brushes.RED if (i // 4) % 2 else brushes.CREAM)
 
 
 def paint_street_door(d, px, py, c, door, rng):
@@ -720,7 +724,7 @@ def paint_street_door(d, px, py, c, door, rng):
         rect(d, door_x, door_y, 12, 14, (50, 36, 30))
         rect(d, door_x + 2, door_y + 2, 8, 1, (80, 60, 50))
         if rng.random() < 0.65:
-            sl.paint_boarded_door(d, rng, door_x, door_y, 12, 14)
+            buildings.paint_boarded_door(d, rng, door_x, door_y, 12, 14)
         return
     roll = rng.random()
     if roll < 0.3:
@@ -733,8 +737,8 @@ def paint_street_door(d, px, py, c, door, rng):
         rect(d, px + 2, py + 11, 12, 1, (190, 60, 150))
     else:
         rect(d, px + 4, py + 2, 8, 10, trim)
-        rect(d, px + 5, py + 3, 6, 8, sl.PANE if rng.random() > 0.3
-             else sl.PANE_BROKEN)
+        rect(d, px + 5, py + 3, 6, 8, brushes.PANE if rng.random() > 0.3
+             else brushes.PANE_BROKEN)
 
 
 def paint_rome_street(d, px, py, c, door, tall, rng):
@@ -755,7 +759,7 @@ def paint_rome_street(d, px, py, c, door, tall, rng):
             rect(d, px + 5, sy, 1, 1, (150, 120, 70))
             rect(d, px + 11, sy, 1, 1, (150, 120, 70))
         if rng.random() < 0.3:
-            sl.paint_boards(d, px + 4, py + 7, 8, 8)
+            buildings.paint_boards(d, px + 4, py + 7, 8, 8)
         return
     if tall:
         rect(d, px + 1, py + 3, 14, TILE - 3, (40, 38, 38))
@@ -788,9 +792,9 @@ def paint_old_town_street(d, px, py, stone, door, rng):
         surround = shade(stone, 16)
         rect(d, door_x - 2, door_y + 1, door_w + 4, TILE - 2, surround)
         rect(d, door_x - 1, door_y - 1, door_w + 2, 2, surround)
-        rect(d, door_x, door_y + 1, door_w, TILE - 2, sl.DOOR_GREEN)
+        rect(d, door_x, door_y + 1, door_w, TILE - 2, brushes.DOOR_GREEN)
         rect(d, door_x + door_w // 2, door_y + 1, 1, TILE - 2,
-             shade(sl.DOOR_GREEN, -18))
+             shade(brushes.DOOR_GREEN, -18))
         rect(d, door_x + 1, door_y + 1, door_w - 2, 3, (70, 70, 70))
         for i in range(1, door_w - 1, 2):
             rect(d, door_x + i, door_y + 2, 1, 1, (30, 30, 30))
@@ -799,7 +803,7 @@ def paint_old_town_street(d, px, py, stone, door, rng):
             rect(d, door_x + 1, door_y + 5, door_w - 2, TILE - 6,
                  (16, 12, 14))
         elif roll < 0.4:
-            sl.paint_boards(d, door_x, door_y + 5, door_w, 8)
+            buildings.paint_boards(d, door_x, door_y + 5, door_w, 8)
     elif rng.random() < 0.5:
         rect(d, px + 5, py + 4, 6, 6, (30, 30, 34))
         for i in range(0, 6, 2):
@@ -864,29 +868,29 @@ def prop_rules(atlas: Atlas, rng) -> list[dict]:
     def debris(index):
         heap, wreck = bits(index, 2)
         if heap:
-            return lambda d, px, py: sl.paint_rubbish(d, rng, px, py, False)
+            return lambda d, px, py: props.paint_rubbish(d, rng, px, py, False)
         if wreck:
-            return lambda d, px, py: sl.paint_airliner_wreckage(
+            return lambda d, px, py: plane.paint_airliner_wreckage(
                 d, rng, px, py)
-        return lambda d, px, py: sl.paint_debris(d, rng, px, py)
+        return lambda d, px, py: props.paint_debris(d, rng, px, py)
     single(":", debris, [near_heap, near_wreck])
-    single("d", lambda i: lambda d, px, py: sl.paint_corpse(
+    single("d", lambda i: lambda d, px, py: props.paint_corpse(
         image_of(d), rng, px, py), reach=(1, 0, 1, 1))
-    single("D", lambda i: lambda d, px, py: sl.paint_corpse_pile(
+    single("D", lambda i: lambda d, px, py: props.paint_corpse_pile(
         image_of(d), rng, px, py), reach=(1, 1, 1, 1))
-    single("F", lambda i: sl.paint_bin, count=1)
-    single("S", lambda i: sl.paint_campfire, count=1)
-    single("J", lambda i: sl.paint_road_block, count=1)
-    single("Q", lambda i: sl.paint_cafe_table, count=1)
-    single("h", lambda i: sl.paint_bar_doorway, count=1)
-    single(";", lambda i: lambda d, px, py: sl.paint_rubbish(
+    single("F", lambda i: props.paint_bin, count=1)
+    single("S", lambda i: props.paint_campfire, count=1)
+    single("J", lambda i: props.paint_road_block, count=1)
+    single("Q", lambda i: props.paint_cafe_table, count=1)
+    single("h", lambda i: buildings.paint_bar_doorway, count=1)
+    single(";", lambda i: lambda d, px, py: props.paint_rubbish(
         d, rng, px, py))
     # A trolley on its side where (x + y) is even.
-    single("y", lambda i: lambda d, px, py: sl.paint_trolley(
+    single("y", lambda i: lambda d, px, py: props.paint_trolley(
         d, px, py, tipped=not i), [parity_key()], count=1)
     # The churchyard gate: a pier where the gate ends, its leaf folded
     # flat against it.
-    single("x", lambda i: lambda d, px, py: sl.paint_gate(
+    single("x", lambda i: lambda d, px, py: buildings.paint_gate(
         d, Around({(-1, 0): "x" if i & 1 else ".",
                    (1, 0): "x" if i & 2 else "."}, origin=(px // TILE, 0)),
         px, py, px // TILE, 0),
@@ -894,13 +898,13 @@ def prop_rules(atlas: Atlas, rng) -> list[dict]:
         (0, 1, 0, 0), 1)
     # The park: its railing, the gates in it, the rides of the playground,
     # (x * 7 + y * 3) % 3 of them.
-    single("^", lambda i: lambda d, px, py: sl.paint_railing(
+    single("^", lambda i: lambda d, px, py: buildings.paint_railing(
         d, Around({(-1, 0): "^" if i & 1 else ".",
                    (1, 0): "^" if i & 2 else "."}, origin=(px // TILE,
                                                              py // TILE)),
         px // TILE, py // TILE),
         [neighbour_key(-1, 0, "^"), neighbour_key(1, 0, "^")], count=1)
-    single("<", lambda i: lambda d, px, py: sl.paint_park_gate(
+    single("<", lambda i: lambda d, px, py: buildings.paint_park_gate(
         d, Around({(0, 1): "g" if i else "."}, origin=(px // TILE,
                                                        py // TILE)),
         px // TILE, py // TILE),
@@ -909,11 +913,11 @@ def prop_rules(atlas: Atlas, rng) -> list[dict]:
     def ride(index):
         one_, two = bits(index, 2)
         kind = 1 if one_ else 2 if two else 0
-        return lambda d, px, py: sl.paint_playground(d, px, py, kind)
+        return lambda d, px, py: props.paint_playground(d, px, py, kind)
     single("p", ride, [pattern_key(7, 3, 3, 1), pattern_key(7, 3, 3, 2)],
            (0, 1, 0, 0), 1)
     # A flower bed, its earth darker along the top of a run of them.
-    single("&", lambda i: lambda d, px, py: sl.paint_flower_bed(
+    single("&", lambda i: lambda d, px, py: buildings.paint_flower_bed(
         d, rng, Around({(0, -1): "&" if i else "."}, origin=(px // TILE,
                                                              py // TILE)),
         px // TILE, py // TILE), [neighbour_key(0, -1, "&")])
@@ -922,10 +926,10 @@ def prop_rules(atlas: Atlas, rng) -> list[dict]:
 
     def chair(index):
         def paint(d, px, py):
-            sl.paint_chair(d, px, py, toppled=not index)
+            props.paint_chair(d, px, py, toppled=not index)
             for _ in range(3):
                 rect(d, px + rng.randrange(14), py + rng.randrange(14), 2, 1,
-                     rng.choice(sl.DEBRIS))
+                     rng.choice(brushes.DEBRIS))
         return paint
     single("q", chair, [pattern_key(1, 1, 3, 0)])
 
@@ -935,7 +939,7 @@ def prop_rules(atlas: Atlas, rng) -> list[dict]:
                (198, 166, 112)]
 
     def car(burnt, flipped):
-        return lambda i: lambda d, px, py: sl.paint_car(
+        return lambda i: lambda d, px, py: props.paint_car(
             d, px, py, rng.choice(colours), burnt=burnt, flipped=flipped)
     # Pile-ups stack cars of a kind lane on lane, so a car only looks
     # west for its other half.
@@ -948,22 +952,22 @@ def prop_rules(atlas: Atlas, rng) -> list[dict]:
     for glyph, burnt in (("v", False), ("k", True)):
         rules.append(anchored(
             atlas, "foreground", glyph,
-            lambda i, b=burnt: lambda d, px, py: sl.paint_car_vertical(
+            lambda i, b=burnt: lambda d, px, py: props.paint_car_vertical(
                 d, px, py, rng.choice(colours), burnt=b),
             (0, 0, 0, 1), count=8))
     rules.append(anchored(atlas, "foreground", "a",
-                          lambda i: sl.paint_ambulance, (1, 1, 1, 0),
+                          lambda i: props.paint_ambulance, (1, 1, 1, 0),
                           count_one=True))
     rules.append(anchored(atlas, "foreground", "n",
-                          lambda i: sl.paint_bench, (0, 0, 1, 0),
+                          lambda i: props.paint_bench, (0, 0, 1, 0),
                           count_one=True))
     # A half-sunk boat, and from some, (x + y) % 3 == 1, two hands.
     rules.append(anchored(
         atlas, "foreground", "b",
-        lambda i: lambda d, px, py: sl.paint_boat(d, px, py, hands=bool(i)),
+        lambda i: lambda d, px, py: buildings.paint_boat(d, px, py, hands=bool(i)),
         (0, 1, 2, 0), [pattern_key(1, 1, 3, 1)], count_one=True))
     rules.append(anchored(atlas, "foreground", "!",
-                          lambda i: sl.paint_street_fountain, (0, 1, 1, 1),
+                          lambda i: buildings.paint_street_fountain, (0, 1, 1, 1),
                           count_one=True))
     # The back passage through the barracks and the hypermarket's fire
     # door, holes in the roofs round them.
@@ -973,7 +977,7 @@ def prop_rules(atlas: Atlas, rng) -> list[dict]:
            reach=(1, 0, 1, 1), count=1)
     # A window on fire: the scorch on its frame; the flames are the game's.
     single("f", lambda i: lambda d, px, py: (
-        rect(d, px + 2, py - 2, 12, 16, sl.SCORCH),
+        rect(d, px + 2, py - 2, 12, 16, brushes.SCORCH),
         rect(d, px + 4, py + 4, 8, 9, (60, 20, 14)),
         rect(d, px + 3, py + 13, 10, 2, (40, 36, 36))),
         reach=(0, 1, 0, 0), count=1)
@@ -1013,18 +1017,18 @@ def paint_road_blood(d, rng, px, py):
     if rng.random() < 0.5:
         w, h = rng.randint(7, 11), rng.randint(5, 8)
         x, y = px + rng.randint(1, 15 - w), py + rng.randint(2, 15 - h)
-        rect(d, x, y + 1, w, h - 2, sl.BLOOD)
-        rect(d, x + 1, y, w - 2, h, sl.BLOOD)
+        rect(d, x, y + 1, w, h - 2, brushes.BLOOD)
+        rect(d, x + 1, y, w - 2, h, brushes.BLOOD)
         rect(d, x + w // 3, y + h // 3, max(2, w // 3), max(2, h // 3),
-             sl.BLOOD_DARK)
+             brushes.BLOOD_DARK)
     else:
         y = py + rng.randint(4, 10)
         for i in range(rng.randint(10, 14)):
             rect(d, px + 1 + i, y + (i // 4) % 2, 1, rng.randint(2, 3),
-                 sl.BLOOD_DARK if i % 3 else sl.BLOOD)
+                 brushes.BLOOD_DARK if i % 3 else brushes.BLOOD)
     for _ in range(rng.randint(3, 6)):
         rect(d, px + rng.randrange(15), py + rng.randrange(15), 1, 1,
-             sl.BLOOD)
+             brushes.BLOOD)
 
 
 def paint_lane_bend(d, px, py):
@@ -1035,7 +1039,7 @@ def paint_lane_bend(d, px, py):
     for step in range(0, 91, 3):
         a = math.radians(step)
         rect(d, round(cx + radius * math.sin(a)) - 1,
-             round(cy - radius * math.cos(a)) - 1, 2, 2, sl.LANE)
+             round(cy - radius * math.cos(a)) - 1, 2, 2, brushes.LANE)
 
 
 def overhead_rules(atlas: Atlas, rng) -> list[dict]:
@@ -1048,7 +1052,7 @@ def overhead_rules(atlas: Atlas, rng) -> list[dict]:
         buckets, pieces = spread(atlas, paint, keys, reach, count)
         rules.append(rule("overhead", glyph, buckets, keys, pieces))
 
-    single("T", lambda i: sl.paint_traffic_light, reach=(0, 1, 0, 0),
+    single("T", lambda i: props.paint_traffic_light, reach=(0, 1, 0, 0),
            count=1)
 
     # Give way where the road runs alongside, no entry where a road block
@@ -1056,19 +1060,19 @@ def overhead_rules(atlas: Atlas, rng) -> list[dict]:
     def sign(index):
         road, closed = bits(index, 2)
         kind = 0 if road else 1 if closed else 2
-        return lambda d, px, py: sl.paint_sign(d, px, py, kind)
+        return lambda d, px, py: props.paint_sign(d, px, py, kind)
     single("/", sign, [any_key(((-1, 0), (1, 0)), ROAD),
                        any_key(((-2, 0), (-1, 0), (1, 0), (2, 0)), "JCXU")],
            (0, 1, 0, 0), 1)
-    single("A", lambda i: lambda d, px, py: sl.paint_tree(d, rng, px, py),
+    single("A", lambda i: lambda d, px, py: props.paint_tree(d, rng, px, py),
            reach=(0, 2, 0, 0))
-    single("N", lambda i: lambda d, px, py: sl.paint_palm(d, rng, px, py),
+    single("N", lambda i: lambda d, px, py: buildings.paint_palm(d, rng, px, py),
            reach=(1, 2, 1, 0))
 
     def speck(d):
         if rng.random() < 0.33:
             rect(d, rng.randrange(TILE), rng.randrange(TILE),
-                 rng.randint(1, 3), 1, rng.choice(sl.DEBRIS))
+                 rng.randint(1, 3), 1, rng.choice(brushes.DEBRIS))
     rules.append(rule("overhead", ROAD + "=:PL,", [atlas.odds(
         lambda: tile_of(speck), 24)]))
     return rules
@@ -1103,16 +1107,16 @@ def picture(rows: list[str], level, name: str, paint, glyphs: str) -> dict:
 
 def storefronts(rows, level, name, rng) -> list[dict]:
     """The named shops along the bands of fronts, by the tables in
-    build_street_level.py: each is painted for its band's height and
+    street_buildings.py: each is painted for its band's height and
     placed where the table puts it."""
     out = []
-    for x0, width, top, bottom in sl.column_runs(level, sl.FACADE_GLYPHS):
+    for x0, width, top, bottom in brushes.column_runs(level, brushes.FACADE_GLYPHS):
         for sx, sw, kind in level.storefronts.get(top, []):
             if not x0 <= sx < x0 + width:
                 continue
             h = bottom - top + 1
             sprite = Image.new("RGBA", (sw * TILE, h * TILE), TRANSPARENT)
-            sl.paint_storefront(ImageDraw.Draw(sprite), rng, 0, 0,
+            buildings.paint_storefront(ImageDraw.Draw(sprite), rng, 0, 0,
                                 sw * TILE, h * TILE, kind)
             out.append({
                 "image": f"{name}_shop_{sx}_{top}.png",
@@ -1176,7 +1180,7 @@ def barracks_lots(rows: list[str]) -> list[tuple[tuple, tuple]]:
     bottom = max(y for _, y in cells)
     west = building_start(left - 2)
     east = building_end(right + 4)
-    palette = sl.ROOFS
+    palette = brushes.ROOFS
     lots = [
         ((left, 0, right, top - 1), BARRACKS_ROOF),
         ((west, 0, left - 1, top), palette[0]),
@@ -1261,8 +1265,8 @@ def barracks_block(rows: list[str], name: str) -> dict:
 
 def city_place(atlas: Atlas, rng, name: str, marker, storefront_table,
                old_town=False, one_roof=None, rome=False) -> dict:
-    rows = sl.read_rows(marker) if marker else sl.read_rows()
-    level = sl.Level(rows, storefront_table, old_town=old_town,
+    rows = brushes.read_rows(marker) if marker else brushes.read_rows()
+    level = brushes.Level(rows, storefront_table, old_town=old_town,
                      one_roof=one_roof)
     glyphs = set("".join(rows))
     ground_glyphs = "".join(sorted(glyphs - set(BUILDINGS)))
@@ -1273,8 +1277,8 @@ def city_place(atlas: Atlas, rng, name: str, marker, storefront_table,
         row, column = one_roof
         region = [first_row_key("j", -1, "le"),
                   pattern_key(1, 0, 2, 1, div=(column, 1))]
-    palette = (sl.OLD_TOWN_ROOFS if old_town
-               else ROME_ROOFS if rome else sl.ROOFS)
+    palette = (brushes.OLD_TOWN_ROOFS if old_town
+               else ROME_ROOFS if rome else brushes.ROOFS)
     style = "/rome" if rome else ""
     rules += shared(atlas, f"roofs/{old_town}/{bool(region)}{style}",
                     lambda r: roof_rules(atlas, r, palette, region,
@@ -1323,7 +1327,7 @@ def city_place(atlas: Atlas, rng, name: str, marker, storefront_table,
     if glyphs & set("_+["):
         scorched = "".join(sorted(set(ground_glyphs) - set("_+[")))
         rules.append(rule("structures", scorched, [[], atlas.bucket(
-            lambda: tile_of(lambda d: sl.paint_airliner_scorch(
+            lambda: tile_of(lambda d: plane.paint_airliner_scorch(
                 d, rng, None, 0, 0)))], [any_key(around(1), "_+[")]))
     rules += shared(atlas, "props", lambda r: prop_rules(atlas, r))
     # The roadblock east of Termini, in Rome only (Molfetta's `m`, `s`,
@@ -1349,13 +1353,13 @@ def city_place(atlas: Atlas, rng, name: str, marker, storefront_table,
     if "K" in glyphs:
         objects.insert(0, barracks_block(rows, name))
     specials = (
-        ("KE", "barracks", lambda d, lv: sl.paint_barracks(d, lv)),
-        ("Mm", "hypermarket", lambda d, lv: sl.paint_hypermarket(d, rng, lv)),
-        ("G$", "hospital", lambda d, lv: sl.paint_hospital(d, rng, lv)),
-        ("0()", "station", lambda d, lv: sl.paint_station(d, rng, lv)),
-        ("W", "duomo", lambda d, lv: sl.paint_duomo(d, rng, lv)),
-        ("#(", "church", lambda d, lv: sl.paint_small_church(d, rng, lv)),
-        ("_+[", "airliner", lambda d, lv: sl.paint_airliner(d, rng, lv)),
+        ("KE", "barracks", lambda d, lv: buildings.paint_barracks(d, lv)),
+        ("Mm", "hypermarket", lambda d, lv: buildings.paint_hypermarket(d, rng, lv)),
+        ("G$", "hospital", lambda d, lv: buildings.paint_hospital(d, rng, lv)),
+        ("0()", "station", lambda d, lv: buildings.paint_station(d, rng, lv)),
+        ("W", "duomo", lambda d, lv: buildings.paint_duomo(d, rng, lv)),
+        ("#(", "church", lambda d, lv: buildings.paint_small_church(d, rng, lv)),
+        ("_+[", "airliner", lambda d, lv: plane.paint_airliner(d, rng, lv)),
         ("]{", "termini", lambda d, lv: termini.paint_termini_front(
             d, rng, lv)),
         ('">`', "basilica", lambda d, lv: termini.paint_santa_maria_maggiore(
@@ -1379,27 +1383,27 @@ def city_place(atlas: Atlas, rng, name: str, marker, storefront_table,
         x, y, w, h = hull
         objects.append(picture(
             rows, level, f"{name}_hull",
-            lambda d, lv: sl.paint_hull(d, rng, x * TILE, y * TILE,
+            lambda d, lv: buildings.paint_hull(d, rng, x * TILE, y * TILE,
                                         w * TILE, h * TILE), "*"))
     gantry = run_of(rows, "i")
     if gantry:
         objects.append(picture(
             rows, level, f"{name}_gantry",
-            lambda d, lv: sl.paint_gantry(d, *(v * TILE for v in gantry)),
+            lambda d, lv: buildings.paint_gantry(d, *(v * TILE for v in gantry)),
             "i"))
     fountain = run_of(rows, "O")
     if fountain:
         x, y, w, _ = fountain
         objects.append(picture(
             rows, level, f"{name}_fountain",
-            lambda d, lv: sl.paint_fountain(image_of(d), rng, x * TILE,
+            lambda d, lv: props.paint_fountain(image_of(d), rng, x * TILE,
                                             y * TILE, w), "O"))
     boat = run_of(rows, "o5")
     if boat:
         x, y, w, h = boat
         objects.append(picture(
             rows, level, f"{name}_moored_boat",
-            lambda d, lv: sl.paint_moored_boat(d, x * TILE, y * TILE,
+            lambda d, lv: buildings.paint_moored_boat(d, x * TILE, y * TILE,
                                                w * TILE, h * TILE), "o5"))
     return {
         "void": VOID,
@@ -1424,29 +1428,29 @@ def yard_wall_rule(atlas: Atlas, rng) -> dict:
         level = Around({(0, 1): "%" if below else ",",
                         (1, 0): "%" if east else ","}, origin=(gx, gy))
         return atlas.bucket(lambda: cell(
-            lambda d, x, y: sl.paint_yard_wall(d, rng, level, x, y), gx, gy))
+            lambda d, x, y: buildings.paint_yard_wall(d, rng, level, x, y), gx, gy))
     return rule("structures", "%", [wall(i) for i in range(8)], keys)
 
 
 def street(atlas: Atlas, rng) -> dict:
-    return city_place(atlas, rng, "street", None, sl.STREET_STOREFRONTS)
+    return city_place(atlas, rng, "street", None, brushes.STREET_STOREFRONTS)
 
 
 def north_district(atlas: Atlas, rng) -> dict:
     return city_place(atlas, rng, "northDistrict", "north-rows",
-                      sl.NORTH_STOREFRONTS)
+                      brushes.NORTH_STOREFRONTS)
 
 
 def harbour(atlas: Atlas, rng) -> dict:
     return city_place(atlas, rng, "harbour", "harbour-rows",
-                      sl.HARBOUR_STOREFRONTS, old_town=True)
+                      brushes.HARBOUR_STOREFRONTS, old_town=True)
 
 
 def mall_north_street(atlas: Atlas, rng) -> dict:
-    rows = sl.read_rows("mall-north-rows")
+    rows = brushes.read_rows("mall-north-rows")
     rear = next(y for y, row in enumerate(rows) if "j" in row)
     return city_place(atlas, rng, "mallNorthStreet", "mall-north-rows",
-                      sl.MALL_NORTH_STOREFRONTS, one_roof=(rear, 50))
+                      brushes.MALL_NORTH_STOREFRONTS, one_roof=(rear, 50))
 
 
 BRICK = (150, 84, 60)
@@ -1512,12 +1516,12 @@ def paint_ruined_fronts(d, rng, rows, x0, x1, y0, y1):
             continue
         px, py = at(x, y1)
         rect(d, px + 3, py + 2, 10, 14, (46, 32, 24))
-        sl.paint_boarded_door(d, rng, px + 3, py + 2, 10, 14)
+        buildings.paint_boarded_door(d, rng, px + 3, py + 2, 10, 14)
     # Blood: thrown across the fronts, run down in drips, hands smeared.
     for _ in range(x1 - x0 + 1):
         px, py = at(rng.randint(x0, x1), rng.randint(y0, y1))
         cx, cy = px + rng.randrange(T), py + rng.randrange(4, T)
-        colour = rng.choice((sl.BLOOD, sl.BLOOD_DARK, (120, 20, 20)))
+        colour = rng.choice((brushes.BLOOD, brushes.BLOOD_DARK, (120, 20, 20)))
         r = rng.randint(1, 3)
         d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=colour)
         for _ in range(rng.randint(3, 7)):
@@ -1530,16 +1534,16 @@ def paint_ruined_fronts(d, rng, rows, x0, x1, y0, y1):
         px, py = at(rng.randint(x0, x1), y1)
         hx, hy = px + rng.randrange(2, 10), py + rng.randrange(1, 6) - 6
         for i in range(4):  # the fingers dragged down
-            rect(d, hx + i * 2, hy, 1, rng.randint(6, 10), sl.BLOOD)
-        rect(d, hx, hy + 5, 8, 3, sl.BLOOD)
+            rect(d, hx + i * 2, hy, 1, rng.randint(6, 10), brushes.BLOOD)
+        rect(d, hx, hy + 5, 8, 3, brushes.BLOOD)
 
 
 def piazza_cinquecento(atlas: Atlas, rng) -> dict:
     place = city_place(atlas, rng, "piazzaCinquecento",
-                       "piazza-cinquecento-rows", sl.ROME_PIAZZA_STOREFRONTS,
+                       "piazza-cinquecento-rows", brushes.ROME_PIAZZA_STOREFRONTS,
                        rome=True)
     # The palazzi east of the station: their whole band of fronts.
-    rows = sl.read_rows("piazza-cinquecento-rows")
+    rows = brushes.read_rows("piazza-cinquecento-rows")
     east = max(x for row in rows for x, glyph in enumerate(row)
                if glyph == "]") + 1
     cells = [(x, y) for y, row in enumerate(rows)

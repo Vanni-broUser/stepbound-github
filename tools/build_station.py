@@ -15,7 +15,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from build_street_level import TILE, rect, shade  # noqa: E402
+from street_paint import TILE, rect, shade  # noqa: E402
 
 VOID = (6, 6, 8)
 HALL_A = (172, 162, 146)

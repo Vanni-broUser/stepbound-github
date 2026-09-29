@@ -15,8 +15,13 @@ import math
 
 from PIL import Image, ImageDraw
 
-from build_street_level import OUTLINE, TILE, paint_text, rect, shade, \
-    text_width
+from street_paint import (  # noqa: E402
+    TILE,
+    paint_text,
+    rect,
+    shade,
+    text_width,
+)
 import build_station as station
 
 TRANSPARENT = (0, 0, 0, 0)

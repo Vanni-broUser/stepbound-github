@@ -14,13 +14,7 @@ import sys
 from PIL import Image, ImageDraw
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from build_street_level import (  # noqa: E402
-    DOOR_GREEN,
-    OUTLINE,
-    TILE,
-    rect,
-    shade,
-)
+from street_paint import DOOR_GREEN, OUTLINE, TILE, rect, shade  # noqa: E402
 from build_mall import paint_blood  # noqa: E402
 from tile_atlas_core import (  # noqa: E402
     Atlas,

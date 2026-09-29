@@ -5,7 +5,8 @@ di `assets/levels/tiles` generato da `tools/build_tile_atlas.py`, che elenca
 i posti, impacchetta i tile e scrive il manifest. L'arte di ogni posto sta in
 un modulo suo, `tools/tile_atlas_<posto>.py` (citta, Duomo, bar, stazione,
 aereo, caserma, treno, ipermercato, San Nicola, Termini, ospedale, Terme),
-sulla macchina comune di `tools/tile_atlas_core.py`.
+sulla macchina comune di `tools/tile_atlas_core.py`. I painter della citta
+stanno in `tools/street_*.py` (vedi "Dividere i file troppo grandi").
 
 ## Strade incomplete: la schermata work in progress
 
@@ -70,8 +71,17 @@ quattro posti della citta, dove tetti e facciate sono cambiati.
   verificato da `build_tile_atlas.py --check`: atlas, manifest e oggetti
   identici pixel per pixel a prima. L'ordine dei posti in `PLACES` decide
   come i tile sono impacchettati: chi ne aggiunge uno lo mette in coda.
-- `tools/build_street_level.py`, oggi solo painter della citta, e ancora
-  circa 2300 righe: va diviso in pavimenti, edifici e oggetti di scena.
+- Fatto (2026-09-29): `tools/build_street_level.py`, i painter della
+  citta, e diviso in `tools/street_paint.py` (tavolozza, glifi, font,
+  `rect` e `shade`, le righe e `Level`), `tools/street_ground.py`
+  (pavimenti: strada, marciapiedi, selciato, cortili, erba, acqua e
+  parapetti), `tools/street_buildings.py` (edifici, dai palazzi al Duomo,
+  all'ospedale e alla stazione), `tools/street_props.py` (oggetti di scena:
+  auto, cestini, cartelli, corpi) e `tools/street_airliner.py` (l'aereo
+  caduto visto dalla strada). Ogni modulo prende solo da `street_paint`;
+  chi li usa importa dal modulo giusto, `tile_atlas_city.py` con un alias
+  per modulo. Verificato da `build_tile_atlas.py --check`, identico pixel
+  per pixel.
 
 ## Riferimenti
 

@@ -17,7 +17,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from PIL import Image, ImageDraw
 
-from build_street_level import (  # noqa: E402
+from street_paint import (  # noqa: E402
     BLOOD,
     BLOOD_DARK,
     OUTLINE,

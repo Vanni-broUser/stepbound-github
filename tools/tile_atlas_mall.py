@@ -15,11 +15,8 @@ from PIL import Image, ImageDraw
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import build_mall as mall  # noqa: E402
-from build_street_level import (  # noqa: E402
-    TILE,
-    paint_trolley,
-    rect,
-)
+from street_paint import TILE, rect  # noqa: E402
+from street_props import paint_trolley  # noqa: E402
 from tile_atlas_core import (  # noqa: E402
     Atlas,
     Neighbourhood,
@@ -97,7 +94,7 @@ def mall_floor(atlas: Atlas, name: str, rng) -> dict:
     """The rules that paint PlaceId.mallGround and PlaceId.mallFirst. The
     first floor has what the ground floor has not: Luigi's grocery, the
     service area behind the gate, the railing over the atrium."""
-    from build_street_level import read_rows  # noqa: PLC0415 - the shops
+    from street_paint import read_rows  # noqa: PLC0415 - the shops
 
     rows = read_rows(MALL_ROWS[name])
     first = name == "mallFirst"

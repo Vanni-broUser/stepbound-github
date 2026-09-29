@@ -32,7 +32,8 @@
       "paths": [
         "lib/ui/",
         "lib/app.dart",
-        "lib/app_flow.dart"
+        "lib/app_flow.dart",
+        "lib/app_services.dart"
       ],
       "minimum": 92
     },

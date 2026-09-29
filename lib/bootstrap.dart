@@ -3,10 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:stepbound/app.dart';
-import 'package:stepbound/game/audio/player_audio.dart';
+import 'package:stepbound/app_services.dart';
 import 'package:stepbound/report/error_report.dart';
 import 'package:stepbound/report/share_report.dart';
-import 'package:stepbound/save/save_game.dart';
 import 'package:stepbound/save/vanni_deploy.dart';
 import 'package:stepbound/ui/crash_guard.dart';
 
@@ -30,7 +29,10 @@ Future<void> bootstrap() async {
     ]);
   }
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-  final saves = PreferencesSaveRepository();
+  // In the browser, where the game is only tested, it starts silent. The
+  // app owns these from here and closes them when the engine lets go.
+  final services = AppServices.device(silent: kIsWeb);
+  final saves = services.saves;
   if (vanniDeployEnabled) {
     try {
       await installVanniDeploySave(saves);
@@ -43,16 +45,13 @@ Future<void> bootstrap() async {
       debugPrint('VANNI_DEPLOY: could not give the test skins ($error)');
     }
   }
-  // In the browser, where the game is only tested, it starts silent.
-  final audio = PlayerAudio(startMuted: kIsWeb);
   runApp(
     CrashGuard(
       reporter: reporter,
-      audio: audio,
+      audio: services.audio,
       share: shareReportFile,
       child: StepboundApp(
-        saves: saves,
-        audio: audio,
+        services: services,
         skinLinks: skinLinks,
         reporter: reporter,
         share: shareReportFile,
