@@ -9,17 +9,39 @@ as MP3, the one format Android, iOS and the browsers all play.
 
 Needs ffmpeg on the PATH. Downloads are cached in build/audio_src/.
 
-Run from the repository root:  python tools/build_audio.py
+Run from the repository root:
+
+    python tools/build_audio.py            bake every sound into assets/audio
+    python tools/build_audio.py --check    bake into a temporary folder and
+                                           fail if any file differs from the
+                                           committed one
+
+The bake is reproducible to the byte with the ffmpeg build named in
+FFMPEG_VERSION (verified 2026-09-29: 39 files of 39 identical). Another
+build encodes MP3 a little differently, so `--check` refuses to judge with
+one: it says which ffmpeg it found and stops. That is also why this check
+is not in CI yet: it would need an image with that exact build and the
+sources cached (see docs/maintainability_and_scalability_backlog.md).
 """
 from __future__ import annotations
 
+import argparse
+import filecmp
 import os
 import re
 import subprocess
+import sys
+import tempfile
 import zipfile
 
 CACHE = os.path.join("build", "audio_src")
 OUTPUT = os.path.join("assets", "audio")
+
+# The build every committed sound was baked with, as `ffmpeg -version`
+# names it (the first token after "ffmpeg version"). gyan.dev's full build
+# of that day; another ffmpeg gives files that play the same but are not
+# the same bytes.
+FFMPEG_VERSION = "2023-04-24-git-2aad9765ef-full_build-www.gyan.dev"
 
 INCOMPETECH = "https://incompetech.com/music/royalty-free/mp3-royaltyfree/"
 SOUNDIMAGE = "https://soundimage.org/wp-content/uploads/"
@@ -217,6 +239,12 @@ def duration(path: str) -> float:
     return float(result.stdout)
 
 
+def ffmpeg_version() -> str:
+    banner = subprocess.run(["ffmpeg", "-version"], capture_output=True,
+                            text=True, check=True).stdout
+    return banner.split()[2]
+
+
 def out_path(name: str) -> str:
     path = os.path.join(OUTPUT, name)
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -288,19 +316,85 @@ def bake_layered(output, peak, layers):
            *encode_args(stereo=False), out_path(output))
 
 
-def main() -> None:
+def bake_all() -> list[str]:
+    """Bakes every sound into OUTPUT; returns their paths under it."""
+    made = []
     for output, source, start, end, fade, lufs in MUSIC:
         bake_loop(output, source, start, end, fade, lufs)
+        made.append(output)
         print(output)
     for output, source, start, end, fade, lufs, extra in AMBIENCE:
         bake_loop(output, source, start, end, fade, lufs, extra, stereo=False)
+        made.append(output)
         print(output)
     for output, source, start, end, peak, extra in SFX:
         bake_one_shot(output, source, start, end, peak, extra)
+        made.append(output)
         print(output)
     for output, peak, layers in LAYERED:
         bake_layered(output, peak, layers)
+        made.append(output)
         print(output)
+    return made
+
+
+def check() -> None:
+    """Bakes into a temporary folder and compares every file, byte by
+    byte, with the one committed under assets/audio."""
+    global OUTPUT
+    found = ffmpeg_version()
+    if found != FFMPEG_VERSION:
+        raise SystemExit(
+            f"ffmpeg {found} found, the sounds were baked with "
+            f"{FFMPEG_VERSION}: another build encodes differently, so this "
+            f"check cannot tell drift from encoder noise. Install that "
+            f"build to check, or bake with `python tools/build_audio.py` "
+            f"and listen.")
+    committed = OUTPUT
+    with tempfile.TemporaryDirectory(prefix="stepbound-audio-") as temp:
+        OUTPUT = temp
+        try:
+            made = bake_all()
+        finally:
+            OUTPUT = committed
+        differing = [
+            name for name in made
+            if not os.path.exists(os.path.join(committed, name))
+            or not filecmp.cmp(os.path.join(temp, name),
+                               os.path.join(committed, name), shallow=False)
+        ]
+    on_disk = sorted(
+        os.path.relpath(os.path.join(directory, file), committed)
+        .replace(os.sep, "/")
+        for directory, _, files in os.walk(committed)
+        for file in files if file.endswith(".mp3"))
+    left_over = sorted(set(on_disk) - set(made))
+    if differing or left_over:
+        lines = [f"{name}: differs from what the bake makes"
+                 for name in differing]
+        lines += [f"{name}: no bake makes it any more" for name in left_over]
+        raise SystemExit(
+            "assets/audio is not what tools/build_audio.py makes:\n  "
+            + "\n  ".join(lines)
+            + "\nBake and commit: python tools/build_audio.py")
+    print(f"every sound of {len(made)} is what the bake makes "
+          f"(ffmpeg {found})")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--check", action="store_true",
+                        help="bake into a temporary folder and fail if any "
+                             "sound differs from the committed one")
+    if parser.parse_args().check:
+        check()
+    else:
+        found = ffmpeg_version()
+        if found != FFMPEG_VERSION:
+            print(f"note: ffmpeg {found}, not {FFMPEG_VERSION}: the files "
+                  f"will play the same but differ in bytes from the last "
+                  f"bake", file=sys.stderr)
+        bake_all()
 
 
 if __name__ == "__main__":

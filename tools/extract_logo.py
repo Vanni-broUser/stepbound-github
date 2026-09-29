@@ -13,8 +13,8 @@ import os
 
 from PIL import Image, ImageDraw, ImageFilter
 
-SOURCE = os.path.join("assets", "story", "title_loading.jpg")
-OUTPUT = os.path.join("assets", "story", "logo.png")
+SOURCE = os.path.join("assets", "story", "ui", "title_loading.jpg")
+OUTPUT = os.path.join("assets", "story", "ui", "logo.png")
 BOX = (300, 28, 1082, 240)
 FEATHER = 10
 
