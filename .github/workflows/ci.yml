@@ -3,8 +3,8 @@
 # dove vivono le pull request di questo mirror, e in piu pubblica l'APK di
 # debug come artefatto scaricabile dalla pagina della run.
 #
-# I job rispecchiano quelli di GitLab: `analyze`, `unit_tests` e
-# `levels_check` bloccano, `android_debug` produce il pacchetto. Quando si
+# I job rispecchiano quelli di GitLab: `analyze`, `unit_tests`, `levels_check`
+# e `sprites_check` bloccano, `android_debug` produce il pacchetto. Quando si
 # cambia un job qui va cambiato anche il suo gemello in gitlab/, e viceversa.
 name: CI
 
@@ -77,6 +77,17 @@ jobs:
           python-version: "3.11.15"
       - run: python -m pip install --no-cache-dir -r tools/requirements.txt
       - run: python tools/build_levels.py --check
+
+  sprites_check:
+    name: Sprite e icone rigenerati
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11.15"
+      - run: python -m pip install --no-cache-dir -r tools/requirements.txt
+      - run: python tools/build_sprites.py --check
 
   android_debug:
     name: APK di debug

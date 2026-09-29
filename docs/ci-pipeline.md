@@ -28,6 +28,17 @@ e `deploy`, per la pubblicazione su Google Play (`deploy_play`), TestFlight
   Bloccante dal 2026-09-27, dopo una settimana verde. Il confronto e sui pixel
   decodificati e non sui byte del file perche la codifica PNG non e
   garantita stabile fra versioni di Pillow o di zlib.
+- `sprites_check`: lo stesso per tutto il resto che i generatori in `tools/`
+  dipingono: gli sprite di zombi e azioni, le tenute di Mario, gli oggetti,
+  l'insegna del menu e le icone dell'app. `python tools/build_sprites.py
+  --check` fa ripartire la catena dei generatori, nell'ordine in cui si
+  leggono l'un l'altro, in una copia temporanea del repository e confronta
+  pixel per pixel ogni immagine riscritta con quella committata. Le anteprime
+  di `docs/previews` non contano: sono documentazione, disegnata col font che
+  la macchina ha. `clean_portraits.py` e `process_story_images.py` non fanno
+  parte della catena (il primo taglierebbe i contorni di alcuni ritratti,
+  il secondo vuole l'arte sorgente). Stessa immagine Python e stesso
+  `tools/requirements.txt` di `levels_check`.
   Le righe ASCII di un posto non hanno piu una copia dipinta da tenere
   d'accordo: il gioco le dipinge. Cio che dipende ancora dalle righe -- un
   oggetto dipinto per una certa disposizione, come il vagone o un negozio
@@ -65,8 +76,8 @@ per provarlo in locale con `flutter build web` o `flutter run -d chrome`, e
 Il repository e specchiato su GitHub, dove vivono le pull request, e
 `.github/workflows/ci.yml` rifa li le stesse verifiche: `analyze` (con
 `generate_balance.dart --check`, formato e analisi), `unit_tests` (test,
-copertura e `check_coverage.dart`, con `lcov.info` come artefatto) e
-`levels_check`, bloccante come il suo gemello.
+copertura e `check_coverage.dart`, con `lcov.info` come artefatto),
+`levels_check` e `sprites_check`, bloccanti come i loro gemelli.
 
 In piu c'e `android_debug`, che non ha un equivalente automatico su GitLab:
 costruisce l'APK di debug e lo carica come artefatto scaricabile. Si prende da

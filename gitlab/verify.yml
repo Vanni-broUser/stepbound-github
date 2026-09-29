@@ -58,3 +58,19 @@ levels_check:
     - python -m pip install --no-cache-dir --quiet -r tools/requirements.txt
   script:
     - python tools/build_levels.py --check
+
+# Gli sprite dei personaggi, gli oggetti, l'insegna del menu e le icone
+# dell'app sono dipinti dai generatori in tools/ e committati: qui la catena
+# dei generatori riparte in una copia temporanea del repository e ogni
+# immagine che riscrive viene confrontata pixel per pixel con quella
+# committata (tools/build_sprites.py). Stesso ambiente Python di
+# levels_check.
+sprites_check:
+  stage: verify
+  needs: []
+  image: python:3.11.15-slim
+  cache: []
+  before_script:
+    - python -m pip install --no-cache-dir --quiet -r tools/requirements.txt
+  script:
+    - python tools/build_sprites.py --check
