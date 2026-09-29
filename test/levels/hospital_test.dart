@@ -196,4 +196,30 @@ void main() {
       );
     }
   });
+
+  test('the horde on the hospital stairs and in the forecourt faces every '
+      'way; the zombies out on the street all still look west', () {
+    final world = createGameWorld();
+    final north = place(PlaceId.northDistrict);
+    final outdoors = world.entities.values.where(
+      (entity) =>
+          entity.kind != EntityKind.player &&
+          north.bounds.contains(entity.component<PositionComponent>().position),
+    );
+    final milling = <Direction, int>{};
+    for (final zombie in outdoors) {
+      final position = zombie.component<PositionComponent>();
+      if (hospitalForecourt.contains(position.position)) {
+        milling.update(position.facing, (n) => n + 1, ifAbsent: () => 1);
+      } else if (!zombie.id.startsWith(barracksRoadZombieId)) {
+        expect(position.facing, Direction.west, reason: zombie.id);
+      }
+    }
+    expect(milling.keys.toSet(), Direction.values.toSet());
+    final total = milling.values.reduce((a, b) => a + b);
+    expect(total, greaterThan(20));
+    for (final count in milling.values) {
+      expect(count, greaterThanOrEqualTo(total ~/ 4 - 1));
+    }
+  });
 }
