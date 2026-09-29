@@ -36,7 +36,8 @@ void main() {
   }
 
   /// Molfetta played, then Rome: a backpack and the grappling hook found,
-  /// Tonino and Marcello met, a zombie type met there.
+  /// Tonino and Marcello met, a zombie type met there and the wanderers,
+  /// known from Molfetta, seen there too.
   void molfettaThenRome(ScenarioBuilder story) {
     story
       ..collect(ammoBackpackId)
@@ -58,6 +59,7 @@ void main() {
       ..missions(done: const <Mission>[Mission.findSupplies]);
     story.progress
       ..meet(EntityKind.sprinter)
+      ..meet(EntityKind.wanderer)
       ..steps[LevelId.rome] = 40;
     story.world.player.component<AmmoComponent>()
       ..loaded = 9
@@ -129,6 +131,12 @@ void main() {
       expect(progress.memories, contains(StoryMemory.maranzaMet));
       expect(progress.missions.isDone(Mission.findSupplies), isTrue);
       expect(progress.knownZombies, contains(EntityKind.sprinter));
+      expect(progress.knowsIn(EntityKind.wanderer, LevelId.rome), isTrue);
+      expect(
+        progress.knowsIn(EntityKind.wanderer, LevelId.hometown),
+        isFalse,
+        reason: 'Molfetta, started over, has not met one yet',
+      );
       expect(progress.steps[LevelId.rome], 40);
       expect(ammoOf(molfetta).grapplingHook, isTrue);
       expect(badges, <HudElement>{HudElement.grapplingHook});
@@ -194,6 +202,7 @@ void main() {
       expect(progress.missions.isOpen(Mission.findSupplies), isFalse);
       expect(progress.missions.isDone(Mission.findSupplies), isFalse);
       expect(progress.knownZombies, isNot(contains(EntityKind.sprinter)));
+      expect(progress.knowsIn(EntityKind.wanderer, LevelId.rome), isFalse);
       expect(progress.steps[LevelId.rome], isNull);
       expect(progress.litCampfires, isEmpty);
     });
@@ -204,7 +213,7 @@ void main() {
       final world = restoreGameWorld(restarted.world);
       expect(world.pickups[ammoBackpackId]!.collected, isTrue);
       expect(progress.memories, contains(StoryMemory.luigiAtStation));
-      expect(progress.knownZombies, contains(EntityKind.wanderer));
+      expect(progress.knowsIn(EntityKind.wanderer, LevelId.hometown), isTrue);
       expect(progress.unlockedOutfits, contains(PlayerOutfit.cultist));
       expect(progress.steps[LevelId.hometown], 100);
       expect(restarted.hud, contains(HudElement.molotov.name));
@@ -222,6 +231,10 @@ void main() {
       ));
       expect(home.simulation.pickups[ammoBackpackId]!.collected, isTrue);
       expect(home.progress.memories, contains(StoryMemory.luigiAtStation));
+      // The grappling hook is Rome's: straight back home, Mario has not got
+      // it, and its badge is gone, until he has picked it up in Rome again.
+      expect(ammoOf(home).grapplingHook, isFalse);
+      expect(home.hud.value, isNot(contains(HudElement.grapplingHook)));
     });
   });
 }

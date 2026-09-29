@@ -65,7 +65,10 @@ final class LevelStats {
           )
           .length,
       totalZombies: zombies.length,
-      knownZombieKinds: progress.knownZombies.where(zombies.contains).length,
+      knownZombieKinds: progress
+          .zombiesKnownIn(level)
+          .where(zombies.contains)
+          .length,
       totalZombieKinds: zombies.toSet().length,
       litCampfires: progress.litCampfires.where(campfires.contains).length,
       totalCampfires: campfires.length,

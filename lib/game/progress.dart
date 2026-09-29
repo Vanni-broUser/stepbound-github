@@ -180,7 +180,8 @@ extension StoryMemoryLevel on StoryMemory {
 final class Progress {
   Progress({
     Iterable<EntityKind> knownZombies = const <EntityKind>[],
-    Map<EntityKind, LevelId> zombiesMetIn = const <EntityKind, LevelId>{},
+    Map<EntityKind, Iterable<LevelId>> zombieCities =
+        const <EntityKind, Iterable<LevelId>>{},
     Iterable<StoryMemory> memories = const <StoryMemory>[],
     Iterable<StoryMemory> viewedMemories = const <StoryMemory>[],
     Iterable<PlayerOutfit> unlockedOutfits = const <PlayerOutfit>[
@@ -203,8 +204,12 @@ final class Progress {
        molotovsLeft = Map<LevelId, int>.of(molotovsLeft),
        rocketsLeft = Map<LevelId, int>.of(rocketsLeft),
        litCampfires = Set<String>.of(litCampfires),
-       knownZombies = Set<EntityKind>.of(knownZombies),
-       _zombiesMetIn = Map<EntityKind, LevelId>.of(zombiesMetIn),
+       _zombieCities = <EntityKind, Set<LevelId>>{
+         for (final kind in knownZombies)
+           kind: Set<LevelId>.of(
+             zombieCities[kind] ?? const <LevelId>[LevelId.hometown],
+           ),
+       },
        memories = Set<StoryMemory>.of(memories),
        _viewedMemories = Set<StoryMemory>.of(viewedMemories),
        // Mario has his own clothes from the start: first, unless something
@@ -248,14 +253,15 @@ final class Progress {
             in (json['knownZombies']! as List<Object?>).cast<String>())
           EntityKind.values.byName(name),
       ],
-      zombiesMetIn: <EntityKind, LevelId>{
+      zombieCities: <EntityKind, List<LevelId>>{
         for (final MapEntry(:key, :value)
-            in (json['zombiesMetIn'] as Map<String, Object?>? ??
+            in (json['zombieCities'] as Map<String, Object?>? ??
                     const <String, Object?>{})
                 .entries)
-          EntityKind.values.byName(key): LevelId.values.byName(
-            value! as String,
-          ),
+          EntityKind.values.byName(key): <LevelId>[
+            for (final city in (value! as List<Object?>).cast<String>())
+              LevelId.values.byName(city),
+          ],
       },
       memories: <StoryMemory>[
         for (final name in (json['memories']! as List<Object?>).cast<String>())
@@ -309,13 +315,23 @@ final class Progress {
   }
 
   /// The zombie types met, in the order they were: the book lists them so.
-  final Set<EntityKind> knownZombies;
+  Set<EntityKind> get knownZombies =>
+      Set<EntityKind>.unmodifiable(_zombieCities.keys);
 
-  /// The city each of [knownZombies] was met in first, when it is not
-  /// Molfetta: starting that city over forgets it.
-  final Map<EntityKind, LevelId> _zombiesMetIn;
+  /// The cities each of [knownZombies] is known in: met there, or seen
+  /// there once already known. Starting a city over forgets what is known
+  /// in it, and a type is known as long as one city knows it.
+  final Map<EntityKind, Set<LevelId>> _zombieCities;
 
-  LevelId _metIn(EntityKind kind) => _zombiesMetIn[kind] ?? LevelId.hometown;
+  /// Whether [kind] is known in [city].
+  bool knowsIn(EntityKind kind, LevelId city) =>
+      _zombieCities[kind]?.contains(city) ?? false;
+
+  /// The zombie types known in [city], in the order they were met.
+  Iterable<EntityKind> zombiesKnownIn(LevelId city) => <EntityKind>[
+    for (final MapEntry(key: kind, value: cities) in _zombieCities.entries)
+      if (cities.contains(city)) kind,
+  ];
 
   /// The scenes seen so far, in the order they were lived: a `Set` keeps
   /// what was put in it first, and a save writes and reads it in that same
@@ -426,20 +442,20 @@ final class Progress {
     LevelId.rome => false,
   };
 
-  void meet(EntityKind kind) {
-    if (knownZombies.add(kind) && level != LevelId.hometown) {
-      _zombiesMetIn[kind] = level;
-    }
-  }
+  /// [kind] is known, and known in the city Mario is in.
+  void meet(EntityKind kind) =>
+      (_zombieCities[kind] ??= <LevelId>{}).add(level);
 
-  /// Forgets everything [city] gave: the zombies first met there, its
+  /// Forgets everything [city] gave: the zombies known there, its
   /// story, its clothes, its fires, its figures, its missions and the
   /// ammunition left in it. What the rest of the game gave stays, the
   /// secret missions too.
   void forget(LevelId city) {
     bool ofCity(StoryMemory memory) => memory.level == city;
-    knownZombies.removeWhere((kind) => _metIn(kind) == city);
-    _zombiesMetIn.removeWhere((kind, _) => !knownZombies.contains(kind));
+    for (final cities in _zombieCities.values) {
+      cities.remove(city);
+    }
+    _zombieCities.removeWhere((_, cities) => cities.isEmpty);
     memories.removeWhere(ofCity);
     _pendingMemories.removeWhere(ofCity);
     unlockedOutfits.removeWhere((outfit) => outfit.foundIn == city);
@@ -468,10 +484,9 @@ final class Progress {
   /// Takes on what [other] knows besides: its zombies, story, clothes,
   /// fires, figures and missions, and the ammunition left in its cities.
   void absorb(Progress other) {
-    for (final kind in other.knownZombies) {
-      if (knownZombies.add(kind) && other._metIn(kind) != LevelId.hometown) {
-        _zombiesMetIn[kind] = other._metIn(kind);
-      }
+    for (final MapEntry(key: kind, value: cities)
+        in other._zombieCities.entries) {
+      (_zombieCities[kind] ??= <LevelId>{}).addAll(cities);
     }
     memories.addAll(other.memories);
     unlockedOutfits.addAll(other.unlockedOutfits);
@@ -544,9 +559,9 @@ final class Progress {
     bool confirmPendingMemories = false,
   }) => <String, Object?>{
     'knownZombies': <String>[for (final kind in knownZombies) kind.name],
-    'zombiesMetIn': <String, String>{
-      for (final MapEntry(:key, :value) in _zombiesMetIn.entries)
-        key.name: value.name,
+    'zombieCities': <String, List<String>>{
+      for (final MapEntry(key: kind, value: cities) in _zombieCities.entries)
+        kind.name: <String>[for (final city in cities) city.name],
     },
     'memories': <String>[
       for (final memory in memories) memory.name,

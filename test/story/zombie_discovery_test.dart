@@ -89,6 +89,39 @@ void main() {
       expect(host.wholeViews, 0);
     });
 
+    test('a type known in another city becomes known in this one too the '
+        'first time it is seen here, without a word', () {
+      final elsewhere = Progress(
+        knownZombies: <EntityKind>[EntityKind.mutilated],
+        zombieCities: <EntityKind, List<LevelId>>{
+          EntityKind.mutilated: <LevelId>[LevelId.rome],
+        },
+      );
+      final known = StoryDirector(
+        world: world,
+        host: host,
+        progress: elsewhere,
+      );
+      expect(
+        elsewhere.knowsIn(EntityKind.mutilated, LevelId.hometown),
+        isFalse,
+      );
+      host.visible.add(at(mutilated().first));
+      for (var i = 0; i < 20; i++) {
+        known.update(0.1, turnAnimating: false);
+      }
+      expect(host.shown, isEmpty);
+      expect(host.wholeViews, 0);
+      expect(elsewhere.knowsIn(EntityKind.mutilated, LevelId.hometown), isTrue);
+
+      elsewhere.forget(LevelId.rome);
+      expect(
+        elsewhere.knownZombies,
+        contains(EntityKind.mutilated),
+        reason: 'Rome started over, Molfetta still knows it',
+      );
+    });
+
     test('it survives a save through the progress, not the story scripts', () {
       host.visible.add(at(mutilated().first));
       settle();
