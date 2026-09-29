@@ -62,6 +62,7 @@ import build_mall as mall  # noqa: E402
 import build_station as station  # noqa: E402
 import build_termini as termini  # noqa: E402
 import tile_atlas_city as city  # noqa: E402
+import tile_atlas_hospital as hospital  # noqa: E402
 from tile_atlas_core import (  # noqa: E402
     LAYERS,
     SEED,
@@ -4691,7 +4692,7 @@ def airliner_roofs(atlas: Atlas, rng) -> dict:
         """The neighbourhood of the cell `at` of `glyph`, in which the
         named neighbours (`l`, `r`, `u` for left, right, up) show what is
         given and the rest is bare."""
-        offsets = {"l": (-1, 0), "r": (1, 0), "u": (0, -1)}
+        offsets = {"l": (-1, 0), "r": (1, 0), "u": (0, -1), "d": (0, 1)}
         cells = {(at[0] + offsets[k][0], at[1] + offsets[k][1]): v
                  for k, v in shown.items()}
         return Neighbourhood(glyph, lambda x, y: cells.get((x, y), "."), at)
@@ -4718,8 +4719,10 @@ def airliner_roofs(atlas: Atlas, rng) -> dict:
     rules.append(rule("structures", "W", walls,
                       [neighbour_key(-1, 0, "W"), neighbour_key(1, 0, "W"),
                        neighbour_key(1, 0, "xW")]))
-    rules.append(rule("structures", "^", [atlas.bucket(lambda: tile_of(
-        lambda d: airliner.roof_parapet(d, near("^"), 0, 0, False)), 1)]))
+    rules.append(rule("structures", "^", [atlas.bucket(
+        lambda c=corner: tile_of(lambda d: airliner.roof_parapet(
+            d, near("^", u="W" if c else "."), 0, 0, False)), 1)
+        for corner in (False, True)], [neighbour_key(0, -1, "W")]))
     rules.append(rule(
         "structures", ">",
         [atlas.bucket(lambda i=i: tile_of(
@@ -4739,29 +4742,28 @@ def airliner_roofs(atlas: Atlas, rng) -> dict:
     rules.append(rule("structures", "T", randomly(airliner.roof_stack)))
     rules.append(rule("structures", "n", one(airliner.roof_mast)))
 
-    # The roof of the next block across the gap, its coping along the near
-    # edge, what stands on it, and the gap itself.
+    # The roof of the next block across the gap, felted like the lower
+    # terrace and walled like it (its walls and parapet are the rules
+    # above), and what stands on it.
     rules.append(rule(
-        "ground", airliner.FAR_DECK,
-        [atlas.bucket(lambda p=parity, u=up: cell(
-            lambda d, gx, gy: airliner.roof_far(
-                d, rng, near("%", (p, 0), u="%" if u else "."), gx, gy),
-            p, 0)) for parity in (0, 1) for up in (False, True)],
-        [neighbour_key(0, -1, airliner.FAR_DECK), parity_key()]))
+        "ground", airliner.FAR_DECK, [deck(2, 0), deck(1, 0)],
+        [pattern_key(0, 1, 2, 1)]))
     rules.append(rule("structures", "k", randomly(airliner.roof_stack)))
     rules.append(rule("structures", ";", randomly(airliner.roof_rubble)))
     rules.append(rule(
         "structures", "S",
         [atlas.bucket(lambda i=i: tile_of(
-            lambda d: airliner.roof_stairs_down(
-                d, near("S", u="S" if i & 1 else ".",
-                        l="S" if i & 2 else ".",
-                        r="S" if i & 4 else "."), 0, 0)), 1)
-         for i in range(8)],
-        [neighbour_key(0, -1, "S"), neighbour_key(-1, 0, "S"),
-         neighbour_key(1, 0, "S")]))
-    rules.append(rule("structures", "x", [[], atlas.bucket(lambda: tile_of(
-        lambda d: airliner.roof_drop(d, rng, 0, 0)))], [between_key("x")]))
+            lambda d: airliner.roof_stairs_across(
+                d, near("S", l="S" if i & 1 else ".",
+                        r="S" if i & 2 else ".",
+                        u="S" if i & 4 else ".",
+                        d="S" if i & 8 else "."), 0, 0)), 1)
+         for i in range(16)],
+        [neighbour_key(-1, 0, "S"), neighbour_key(1, 0, "S"),
+         neighbour_key(0, -1, "S"), neighbour_key(0, 1, "S")]))
+    rules.append(rule("structures", "<", [atlas.bucket(lambda: tile_of(
+        lambda d: airliner.roof_wall_breach(
+            d, near("<", l="W", r="W"), 0, 0)), 1)]))
 
     # The tail of the airliner, in the roofline: two rows deep, so the
     # tube is shaded over both at once, seamed every fourth column and
@@ -5140,6 +5142,7 @@ PLACES = {
     "terminiOverpass": termini_overpass,
     "trainInterior": train_interior,
     **city.PLACES,
+    **hospital.PLACES,
 }
 
 
@@ -5299,6 +5302,7 @@ PREVIEW_ROWS = {
     "terminiOverpass": "termini-overpass-rows",
     "trainInterior": "train-interior-rows",
     **city.PREVIEW_ROWS,
+    **hospital.PREVIEW_ROWS,
 }
 
 

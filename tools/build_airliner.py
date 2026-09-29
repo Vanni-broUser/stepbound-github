@@ -263,11 +263,12 @@ def roof_blood(d, rng, px, py):
 
 def roof_wall(d, room, x, y):
     """A party wall between two blocks, too high to climb. A wall running
-    east to west shows its face to the camera, so it gets the coping along
-    its top and its shadow below; one running north to south, down the
-    side of the map, shows only the top of it, so it is a single band of
-    slabs with the light on the roof side -- otherwise every tile of it
-    repeats a face nobody could see from here."""
+    east to west shows its face to the camera: brick in courses, the
+    coping along its top and its shadow below. One running north to south,
+    down the side of a roof, is built of the same brick and capped with the
+    same coping, and its courses are laid flat like the face's, never stood
+    on end: the coping runs along the side away from the roof, and the
+    wall throws its shadow on the roof beside it."""
     px, py = x * TILE, y * TILE
     rect(d, px, py, TILE, TILE, BRICK_DARK)
     if room.at(x - 1, y) == "W" or room.at(x + 1, y) == "W":
@@ -276,16 +277,82 @@ def roof_wall(d, room, x, y):
         rect(d, px, py, TILE, 2, COPING)
         rect(d, px, py + TILE - 2, TILE, 2, COPING_SHADOW)
         return
-    stone = shade(COPING, -34)
     roof_side = 1 if room.at(x + 1, y) not in "xW" else -1
-    inner, outer = (px + 12, px) if roof_side > 0 else (px + 1, px + 13)
-    rect(d, px + 1, py, 14, TILE, stone)
-    for sy in range(py, py + TILE, 8):  # the joints between the slabs
-        rect(d, px + 1, sy, 14, 1, shade(stone, -26))
-    rect(d, inner, py, 3, TILE, shade(stone, 26))
-    rect(d, outer, py, 2, TILE, COPING_SHADOW)
+    # the courses, flat, a joint staggered every other one
+    for course, sy in enumerate(range(py + 1, py + TILE, 4)):
+        rect(d, px + 1, sy, 14, 3, BRICK)
+        rect(d, px + (5 if course % 2 else 10), sy, 1, 3, BRICK_DARK)
+    outer = px if roof_side > 0 else px + TILE - 3
+    inner = px + TILE - 1 if roof_side > 0 else px
+    rect(d, outer, py, 3, TILE, COPING)
+    rect(d, outer + (2 if roof_side > 0 else 0), py, 1, TILE, COPING_DARK)
     # and the shadow it lays along the roof beside it
-    rect(d, px + (15 if roof_side > 0 else 0), py, 1, TILE, COPING_SHADOW)
+    rect(d, inner, py, 1, TILE, COPING_SHADOW)
+
+
+def roof_wall_breach(d, room, x, y):
+    """The opening in the next roof's wall, facing the stretch Mario looks
+    over from this side: the wall broken down to a stump of its brick, the
+    coping and the bricks fallen in on the roof, the ends of the wall
+    standing either side -- where a grappling hook would bring him in.
+    In a wall running east to west (its face to the camera, the roof below
+    it) or in one running north to south (the roof on the side of it that
+    is not the drop)."""
+    px, py = x * TILE, y * TILE
+    if room.at(x - 1, y) == "W" or room.at(x + 1, y) == "W":
+        rect(d, px, py, TILE, TILE, DROP)
+        rect(d, px + 2, py + 11, TILE - 4, 3, BRICK_DARK)
+        rect(d, px + 3, py + 12, TILE - 6, 1, BRICK)
+        rect(d, px, py + 14, TILE, 2, TAR_LOW)
+        for sx, sy in ((4, 13), (9, 14)):
+            rect(d, px + sx, py + sy, 3, 2, COPING_DARK)
+        for sx in (0, TILE - 2):  # the broken ends of the wall either side
+            rect(d, px + sx, py, 2, 14, BRICK)
+            rect(d, px + sx, py, 2, 2, COPING)
+            rect(d, px + sx, py + 14, 2, 2, COPING_SHADOW)
+        return
+    roof_side = 1 if room.at(x + 1, y) not in "xW" else -1
+    rect(d, px, py, TILE, TILE, TAR_LOW)
+    drop = px if roof_side > 0 else px + TILE - 5
+    stump = px + 5 if roof_side > 0 else px + TILE - 9
+    rect(d, drop, py, 5, TILE, DROP)
+    rect(d, stump, py, 4, TILE, BRICK_DARK)
+    for sy in range(py + 1, py + TILE, 4):
+        rect(d, stump, sy, 4, 3, BRICK)
+    rubble = px + 10 if roof_side > 0 else px + 1
+    for dx, sy in ((0, 3), (1, 8), (0, 12)):
+        rect(d, rubble + dx, py + sy, 5, 2, COPING_DARK)
+    for sy in (0, TILE - 3):  # the ends of the wall either side
+        rect(d, px + 1, py + sy, 14, 3, BRICK)
+        rect(d, drop if roof_side > 0 else px + TILE - 3, py + sy, 3, 3,
+             COPING)
+
+
+def roof_stairs_across(d, room, x, y):
+    """A stairwell on the next roof going down eastward, across the roof
+    rather than into it: its head, the top step, at the west end, its foot
+    in the dark at the east end, the steps darker the lower they go. A
+    kerb at the head, and a rail along the sides that are not the way in
+    or the way down."""
+    px, py = x * TILE, y * TILE
+    head = room.at(x - 1, y) != "S"
+    foot = room.at(x + 1, y) != "S"
+    top = room.at(x, y - 1) != "S"
+    bottom = room.at(x, y + 1) != "S"
+    depth = 0 if head else (2 if foot else 1)  # which cell of the flight
+    rect(d, px, py, TILE, TILE, DROP)
+    for i, sx in enumerate(range(px + (4 if head else 0), px + TILE, 4)):
+        step = shade(COPING, -30 - 16 * (i + depth * 3))
+        rect(d, sx, py, 3, TILE, step)
+        rect(d, sx + 3, py, 1, TILE, shade(step, -30))
+    if head:
+        rect(d, px, py, 3, TILE, COPING)
+        rect(d, px + 3, py, 1, TILE, COPING_SHADOW)
+    for side, dy in ((top, 0), (bottom, TILE - 2)):
+        if side:
+            rect(d, px, py + dy, TILE, 2, COPING)
+            rect(d, px, py + dy + (1 if dy else 0), TILE, 1,
+                 shade(COPING, -30))
 
 
 def roof_parapet(d, room, x, y, low):
@@ -295,6 +362,10 @@ def roof_parapet(d, room, x, y, low):
     px, py = x * TILE, y * TILE
     top = py + (9 if low else 2)
     rect(d, px, py, TILE, TILE, TAR_LOW)
+    if room.at(x, y - 1) == "W":
+        # A corner: the side wall comes down to it, the front runs on over
+        # the end of it.
+        rect(d, px, py, TILE, top - py, BRICK)
     rect(d, px, top, TILE, py + TILE - top - 2, BRICK)
     for sy in range(top + 1, py + TILE - 2, 4):
         rect(d, px, sy, TILE, 1, BRICK_DARK)

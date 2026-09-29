@@ -2856,10 +2856,11 @@ void main() {
     expect(stationWreckFireSpots, hasLength(2));
     expect(count(all, FireKind.bin), 9);
     expect(count(all, FireKind.window), 15);
-    expect(count(all, FireKind.campfire), 4);
+    expect(count(all, FireKind.campfire), 5);
     // One camp in the north district, one in the dead end the wrecks
-    // leave at the west end of the shopping street behind the mall, and
-    // two at the harbour: the Duomo sagrato and the south-east road end.
+    // leave at the west end of the shopping street behind the mall, two
+    // at the harbour: the Duomo sagrato and the south-east road end, and
+    // one on the hospital's roof.
     expect(
       all
           .where((spot) => spot.kind == FireKind.campfire)
@@ -2869,6 +2870,7 @@ void main() {
         PlaceId.northDistrict,
         PlaceId.mallNorthStreet,
         PlaceId.harbour,
+        PlaceId.hospitalRoof,
       },
     );
   });
@@ -2915,7 +2917,7 @@ void main() {
       final world = createGameWorld();
       final save = jsonEncode(saveGameWorld(world));
       // Every zombie of every level is in it, Rome's streets' too.
-      expect(save.length, lessThan(56 * 1024));
+      expect(save.length, lessThan(64 * 1024));
       expect(saveGameWorld(world).containsKey('map'), isFalse);
       expect(saveGameWorld(world)['mapChanges'], isEmpty);
     });
@@ -3174,7 +3176,7 @@ void main() {
       ),
     );
     expect(hometown, contains(EntityKind.cultist));
-    expect(levelCampfires(LevelId.hometown), hasLength(4));
+    expect(levelCampfires(LevelId.hometown), hasLength(5));
     expect(levelCampfires(LevelId.rome), <String>{'Piazza dei Cinquecento'});
   });
 

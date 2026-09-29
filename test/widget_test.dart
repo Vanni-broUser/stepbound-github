@@ -2595,7 +2595,7 @@ void main() {
       expect(stat('backpack-stat'), '0 / 18');
       expect(stat('kill-stat'), '1 / ${zombies.length}');
       expect(stat('zombie-kind-stat'), '1 / ${zombies.toSet().length}');
-      expect(stat('campfire-stat'), '1 / 4');
+      expect(stat('campfire-stat'), '1 / 5');
       expect(stat('step-stat'), '3');
 
       await tester.tap(
