@@ -20,7 +20,7 @@ LEVELS_DIR = os.path.join("lib", "core", "levels")
 
 ROAD_GLYPHS = set(".-|ZVc")
 WALK_GLYPHS = set("=")
-BUILDING_GLYPHS = set("BHfKMGW#%0\u00a7")
+BUILDING_GLYPHS = set("BHfKMGW#%0\u00a7\u00c6")
 FACADE_GLYPHS = set("Hf")
 # Street furniture: it stands on the footway, not in the road, so it
 # looks for its floor up and down its column as well as sideways.

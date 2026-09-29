@@ -90,7 +90,7 @@ void main() {
       ),
     );
     expect(hometown, contains(EntityKind.cultist));
-    expect(levelCampfires(LevelId.hometown), hasLength(5));
+    expect(levelCampfires(LevelId.hometown), hasLength(6));
     expect(levelCampfires(LevelId.rome), <String>{'Piazza dei Cinquecento'});
   });
 

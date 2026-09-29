@@ -29,15 +29,18 @@ void main() {
     });
 
     test('is got onto from the floor in front of its head, and climbed '
-        'down to the last step, the door', () {
+        'down to the last step, the door into the palazzo', () {
       step(head.step(Direction.west), Direction.east);
       expect(mario(), head);
       step(head, Direction.east);
       expect(mario(), middle);
       final events = step(middle, Direction.east);
-      expect(mario(), middle.step(Direction.east));
-      expect(rooftopFarStairsFoot, contains(mario()));
       expect(events.whereType<MovedEvent>().single.from, middle);
+      expect(
+        rooftopFarStairsFoot,
+        contains(events.whereType<MovedEvent>().single.to),
+      );
+      expect(mario(), palazzoRoofStairs.step(Direction.south));
     });
 
     test('is shut along its sides and its far end, where its rails are', () {

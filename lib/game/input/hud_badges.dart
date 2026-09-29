@@ -61,6 +61,13 @@ Widget? _badge(HudElement element, {required StepboundGame game}) =>
         drips: const <BloodDrip>[BloodDrip(0.28, 11, 4), BloodDrip(0.7, 9, 3)],
         icon: const CustomPaint(size: Size(28, 28), painter: ChurchKeyIcon()),
       ),
+      HudElement.palazzoKey => _QuestItemBadge(
+        key: const ValueKey<String>('hud-palazzo-key'),
+        game: game,
+        label: 'Chiave del terzo piano',
+        drips: const <BloodDrip>[BloodDrip(0.3, 10, 3), BloodDrip(0.72, 8, 3)],
+        icon: const CustomPaint(size: Size(28, 28), painter: KeyIcon()),
+      ),
       HudElement.grapplingHook => _QuestItemBadge(
         key: const ValueKey<String>('hud-grappling-hook'),
         game: game,

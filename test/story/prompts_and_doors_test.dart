@@ -52,10 +52,7 @@ void main() {
   test('the last step of the stairs down into a building with no map yet '
       'shows the work-in-progress screen, and Mario is back on the step '
       'before it, facing back up', () {
-    for (final door in <GridPoint>[
-      rooftopFarStairsFoot.first,
-      hospitalNextRoofStairsFoot.first,
-    ]) {
+    for (final door in <GridPoint>[hospitalNextRoofStairsFoot.first]) {
       host.workInProgressShown = 0;
       final way = world.stairs[door]!;
       final start = door.step(way.opposite);

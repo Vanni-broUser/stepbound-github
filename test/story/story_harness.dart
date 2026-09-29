@@ -191,6 +191,7 @@ PickedUpEvent pickedUp(
   bool cultistRobe = false,
   bool duomoKey = false,
   bool grapplingHook = false,
+  bool palazzoKey = false,
   int molotovs = 0,
   int rockets = 0,
 }) => PickedUpEvent(
@@ -203,6 +204,7 @@ PickedUpEvent pickedUp(
   cultistRobe: cultistRobe,
   duomoKey: duomoKey,
   grapplingHook: grapplingHook,
+  palazzoKey: palazzoKey,
   molotovs: molotovs,
   rockets: rockets,
 );

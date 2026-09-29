@@ -45,6 +45,11 @@ enum PlaceId {
   piazzaCinquecento,
   viaMarsala,
   termeDiocleziano,
+  palazzoThirdFloor,
+  palazzoSecondFloor,
+  palazzoFirstFloor,
+  palazzoGroundFloor,
+  industryStreet,
 }
 
 /// The levels of the game, one city each. The train Mario and Luigi live
@@ -156,6 +161,7 @@ final class PlaceSpec {
     this.lamps = const <GridPoint>[],
     this.flickeringLamps = const <GridPoint>[],
     this.darkness = defaultDarkness,
+    this.litAreas = const <GridRect>[],
     this.art,
   });
 
@@ -192,6 +198,11 @@ final class PlaceSpec {
   /// places that are not [lit].
   final double darkness;
 
+  /// Parts of a room that are not [lit] as a whole where every light is
+  /// on, so no darkness falls there at all: the stairwell of a block of
+  /// flats, whose flats stay dim. In the place's own tile coordinates.
+  final List<GridRect> litAreas;
+
   /// The place whose art in the tile atlas this one is painted with, when
   /// it has none of its own: its rows then keep to that place's glyphs.
   final PlaceId? art;
@@ -226,6 +237,17 @@ final class Place {
   /// The place whose art in the tile atlas paints this one.
   PlaceId get artId => spec.art ?? id;
   double get darkness => spec.darkness;
+
+  /// [PlaceSpec.litAreas], on the level's grid.
+  late final List<GridRect> litAreas = <GridRect>[
+    for (final area in spec.litAreas)
+      GridRect(
+        origin.x + area.left,
+        origin.y + area.top,
+        origin.x + area.right,
+        origin.y + area.bottom,
+      ),
+  ];
 
   /// The [PlaceSpec.torches], on the shared grid.
   late final List<GridPoint> torches = <GridPoint>[

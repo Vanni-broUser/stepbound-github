@@ -449,11 +449,13 @@ void main() {
           PlaceId.trainInterior,
           PlaceId.duomoUpper,
           PlaceId.terminiConcourse,
+          PlaceId.palazzoGroundFloor,
         ]),
         reason:
             'every other room stays in the dark but the upper floor of '
-            'the Duomo, where the community lives, and the concourse of '
-            'Termini, under its glass',
+            'the Duomo, where the community lives, the concourse of '
+            'Termini, under its glass, and the entrance hall of the '
+            'palazzo past the airliner',
       );
     });
 

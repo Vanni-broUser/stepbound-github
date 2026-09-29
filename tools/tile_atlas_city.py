@@ -54,8 +54,11 @@ from tile_atlas_core import (  # noqa: E402
 )
 
 ROAD = "".join(sorted(brushes.ROAD_GLYPHS))
-BUILDINGS = "BHfKMGW#%0]\"\u00a7"
+BUILDINGS = "BHfKMGW#%0]\"\u00a7\u00c6"
 FACADE = "Hf"
+# A front and the doors set in it at street level: the floor over a door
+# is not the street level, it has its windows like the rest.
+FRONT = FACADE + "\u00ab"
 
 GROUND = ground_config(
     buildings=BUILDINGS,
@@ -654,7 +657,7 @@ def facade_rules(atlas: Atlas, rng, old_town: bool,
     # is more front below. The palazzi of the old town keep the floor over
     # the street for their tall doorways, so there it takes two.
     window_keys = colour_keys + [neighbour_key(0, 2 if old_town else 1,
-                                               FACADE)]
+                                               FRONT)]
     windows = []
     for index in range(2 ** len(window_keys)):
         c = building(index & 7)
@@ -666,7 +669,7 @@ def facade_rules(atlas: Atlas, rng, old_town: bool,
     # The street level: a door on the middle tile of each building. The
     # shops of Molfetta are the named ones (see storefronts); only Rome
     # tells its tall palazzi apart.
-    keys = colour_keys + [neighbour_key(0, 1, FACADE),
+    keys = colour_keys + [neighbour_key(0, 1, FRONT),
                           neighbour_key(0, -3, FACADE),
                           pattern_key(1, 0, SPAN, values=(1, 6, 12))]
 
@@ -870,6 +873,9 @@ def prop_rules(atlas: Atlas, rng) -> list[dict]:
     single("J", lambda i: props.paint_road_block, count=1)
     single("Q", lambda i: props.paint_cafe_table, count=1)
     single("h", lambda i: buildings.paint_bar_doorway, count=1)
+    # Wide open, its light falling out on the pavement below it.
+    single("\u00ab", lambda i: buildings.paint_portone,
+           reach=(0, 0, 0, 1), count=1)
     single(";", lambda i: lambda d, px, py: props.paint_rubbish(
         d, rng, px, py))
     # A trolley on its side where (x + y) is even.
@@ -1343,6 +1349,8 @@ def city_place(atlas: Atlas, rng, name: str, marker, storefront_table,
         ("KE", "barracks", lambda d, lv: buildings.paint_barracks(d, lv)),
         ("Mm", "hypermarket", lambda d, lv: buildings.paint_hypermarket(d, rng, lv)),
         ("G$", "hospital", lambda d, lv: buildings.paint_hospital(d, rng, lv)),
+        ("\u00c6\u00d8", "factory",
+         lambda d, lv: buildings.paint_factory(d, rng, lv)),
         ("0()", "station", lambda d, lv: buildings.paint_station(d, rng, lv)),
         ("W", "duomo", lambda d, lv: buildings.paint_duomo(d, rng, lv)),
         ("#(", "church", lambda d, lv: buildings.paint_small_church(d, rng, lv)),
@@ -1569,6 +1577,11 @@ def piazza_cinquecento(atlas: Atlas, rng) -> dict:
     return place
 
 
+def industry_street(atlas: Atlas, rng) -> dict:
+    return city_place(atlas, rng, "industryStreet", "industry-street-rows",
+                      {})
+
+
 def via_marsala(atlas: Atlas, rng) -> dict:
     return city_place(atlas, rng, "viaMarsala", "via-marsala-rows", {},
                       rome=True)
@@ -1576,6 +1589,7 @@ def via_marsala(atlas: Atlas, rng) -> dict:
 
 PLACES = {
     "harbour": harbour,
+    "industryStreet": industry_street,
     "mallNorthStreet": mall_north_street,
     "northDistrict": north_district,
     "piazzaCinquecento": piazza_cinquecento,
@@ -1585,6 +1599,7 @@ PLACES = {
 
 PREVIEW_ROWS = {
     "harbour": "harbour-rows",
+    "industryStreet": "industry-street-rows",
     "mallNorthStreet": "mall-north-rows",
     "northDistrict": "north-rows",
     "piazzaCinquecento": "piazza-cinquecento-rows",

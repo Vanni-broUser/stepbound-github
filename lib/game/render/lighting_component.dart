@@ -23,6 +23,7 @@ final class LightingComponent extends Component {
     required this.lights,
     required this.playerPosition,
     this.darkness = PlaceSpec.defaultDarkness,
+    this.litAreas = const <ui.Rect>[],
     this.tileSize = 16,
   }) : super(priority: 28);
 
@@ -40,6 +41,10 @@ final class LightingComponent extends Component {
 
   /// How dark the room is between its lights.
   final double darkness;
+
+  /// Where no darkness falls at all, in world pixels: cut out whole, so
+  /// they cost nothing once the darkness is composed.
+  final List<ui.Rect> litAreas;
 
   /// (radius, how much of the darkness it removes) from outer to inner.
   static const List<(double, double)> _lampRings = <(double, double)>[
@@ -67,6 +72,10 @@ final class LightingComponent extends Component {
     ..isAntiAlias = false;
   final ui.Paint _cut = ui.Paint()
     ..blendMode = ui.BlendMode.dstOut
+    ..isAntiAlias = false;
+  final ui.Paint _clear = ui.Paint()
+    ..blendMode = ui.BlendMode.dstOut
+    ..color = const ui.Color(0xff000000)
     ..isAntiAlias = false;
   final ui.Paint _warm = ui.Paint()..isAntiAlias = false;
   final ui.Paint _image = ui.Paint()
@@ -167,6 +176,12 @@ final class LightingComponent extends Component {
     return noise > 0.55 ? 0.12 : 1;
   }
 
+  void _clearLitAreas(ui.Canvas canvas) {
+    for (final lit in litAreas) {
+      canvas.drawRect(lit, _clear);
+    }
+  }
+
   void _pool(
     ui.Canvas canvas,
     ui.Offset center,
@@ -189,6 +204,7 @@ final class LightingComponent extends Component {
       ..translate(-area.left, -area.top)
       ..saveLayer(area, ui.Paint())
       ..drawRect(area, _dark);
+    _clearLitAreas(canvas);
     for (final light in lights) {
       if (!_isLive(light)) {
         _pool(canvas, _centre(light), _rings(light), 1);
@@ -225,6 +241,7 @@ final class LightingComponent extends Component {
     canvas
       ..saveLayer(area, ui.Paint())
       ..drawRect(area, _dark);
+    _clearLitAreas(canvas);
     for (final (index, light) in lights.indexed) {
       _pool(canvas, _centre(light), _rings(light), _intensity(light, index));
     }

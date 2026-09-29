@@ -189,6 +189,7 @@ final class InteractAction extends PlayerAction {
           cultistRobe: pickup.cultistRobe,
           duomoKey: pickup.duomoKey,
           grapplingHook: pickup.grapplingHook,
+          palazzoKey: pickup.palazzoKey,
           rockets: pickup.rockets,
         ),
       );
