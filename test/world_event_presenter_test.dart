@@ -6,7 +6,6 @@ import 'package:stepbound/game/audio/soundscape.dart';
 import 'package:stepbound/game/haptics/game_haptics.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/character_component.dart';
-import 'package:stepbound/game/render/molotov_blast_component.dart';
 import 'package:stepbound/game/world_event_presenter.dart';
 import 'package:stepbound/report/breadcrumbs.dart';
 
@@ -28,9 +27,6 @@ final class _Stage implements EventStage {
   @override
   void play(String entityId, CharacterCue cue) =>
       log.add('$entityId:${cue.name}');
-
-  @override
-  void holdDeath(String entityId) => log.add('$entityId:holdDeath');
 
   @override
   void later(double seconds, void Function() then) =>
@@ -231,45 +227,27 @@ void main() {
     expect(stage.log, <String>['player:died']);
   });
 
-  test('a molotov’s hits wait for the bottle to land', () {
+  test('a molotov flies from Mario’s hand and is heard as it breaks', () {
     presenter.present(1, const <WorldEvent>[
       MolotovThrownEvent(
         entityId: 'player',
         origin: GridPoint(1, 1),
         target: GridPoint(4, 1),
       ),
-      damaged,
-      DiedEvent('zombie'),
     ]);
-    expect(stage.log, <String>['player:throwWeapon', 'zombie:holdDeath']);
+    expect(stage.log, <String>['player:throwWeapon']);
     expect(stage.pending.map((job) => job.$1), <double>[
       CharacterComponent.throwReleaseDelay,
-      CharacterComponent.throwReleaseDelay +
-          MolotovBlastComponent.flightSeconds,
-      CharacterComponent.throwReleaseDelay +
-          MolotovBlastComponent.flightSeconds,
     ]);
     expect(audio.played, isNot(contains(Sfx.molotov)));
     stage.runPending();
-    expect(stage.log, <String>[
-      'player:throwWeapon',
-      'zombie:holdDeath',
-      'molotov:(1, 1)>(4, 1)',
-      'zombie:hit',
-      'zombie:death',
-    ]);
+    expect(stage.log, <String>['player:throwWeapon', 'molotov:(1, 1)>(4, 1)']);
     expect(audio.played, contains(Sfx.molotov));
   });
 
-  test('a hit before the throw in the same turn shows at once', () {
-    presenter.present(1, const <WorldEvent>[
-      damaged,
-      MolotovThrownEvent(
-        entityId: 'player',
-        origin: GridPoint(1, 1),
-        target: GridPoint(4, 1),
-      ),
-    ]);
-    expect(stage.log, <String>['zombie:hit', 'player:throwWeapon']);
+  test('the burst’s hits and deaths show as its turn is played', () {
+    presenter.present(1, const <WorldEvent>[damaged, DiedEvent('zombie')]);
+    expect(stage.log, <String>['zombie:hit', 'zombie:death']);
+    expect(stage.pending, isEmpty);
   });
 }

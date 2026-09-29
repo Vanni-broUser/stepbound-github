@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/core/core.dart';
+import 'package:stepbound/game/anim/turn_presentation_controller.dart';
 import 'package:stepbound/game/input/game_input_controller.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/molotov_blast_component.dart';
@@ -74,7 +75,28 @@ final class _Harness {
 
 void main() {
   group('ThrowMolotovAction', () {
-    test('burns everyone on the 3x3 square, and nobody off it', () {
+    test('spends the bottle and turns Mario, but burns nothing yet', () {
+      final world = _room(
+        zombies: <(String, GridPoint)>[('middle', const GridPoint(8, 5))],
+      );
+      const action = ThrowMolotovAction(GridPoint(8, 5));
+      expect(action.tickCost, 0, reason: 'nobody moves while it flies');
+      action.resolve(world);
+      expect(world.entities['middle']!.isAlive, isTrue);
+      expect(world.player.component<AmmoComponent>().molotovs, 1);
+      expect(
+        world.pendingEvents.whereType<MolotovThrownEvent>().single.target,
+        const GridPoint(8, 5),
+      );
+      expect(world.pendingEvents.whereType<DamagedEvent>(), isEmpty);
+      expect(world.pendingEvents.whereType<NoiseEvent>(), isEmpty);
+      expect(
+        world.player.component<PositionComponent>().facing,
+        Direction.east,
+      );
+    });
+
+    test('its burst burns everyone on the 3x3 square, and nobody off it', () {
       final world = _room(
         zombies: <(String, GridPoint)>[
           ('corner', const GridPoint(7, 4)),
@@ -83,27 +105,16 @@ void main() {
           ('outside', const GridPoint(10, 5)),
         ],
       );
-      const ThrowMolotovAction(GridPoint(8, 5)).resolve(world);
+      const MolotovBurstAction(GridPoint(8, 5)).resolve(world);
 
       bool alive(String id) => world.entities[id]!.isAlive;
       expect(alive('corner'), isFalse);
       expect(alive('middle'), isFalse);
       expect(alive('edge'), isFalse);
       expect(alive('outside'), isTrue);
-      expect(world.player.component<AmmoComponent>().molotovs, 1);
-      final events = world.pendingEvents;
       expect(
-        events.whereType<MolotovThrownEvent>().single.target,
+        world.pendingEvents.whereType<NoiseEvent>().single.origin,
         const GridPoint(8, 5),
-      );
-      // The throw is told before the hits, which wait for the landing.
-      expect(
-        events.indexWhere((e) => e is MolotovThrownEvent),
-        lessThan(events.indexWhere((e) => e is DamagedEvent)),
-      );
-      expect(
-        world.player.component<PositionComponent>().facing,
-        Direction.east,
       );
     });
 
@@ -159,6 +170,86 @@ void main() {
     });
   });
 
+  group('a molotov in play', () {
+    const hold = TurnPresentationController.molotovHoldSeconds;
+
+    test('nobody moves while it flies; it burns, is heard, and only then '
+        'do the zombies and the steps asked for meanwhile go', () {
+      final world = _room(
+        zombies: <(String, GridPoint)>[
+          ('burnt', const GridPoint(9, 5)),
+          // Out of sight behind a corner of the room, in earshot.
+          ('listener', const GridPoint(13, 1)),
+        ],
+      );
+      final presentation = TurnPresentationController(world: world);
+      final listener = world.entities['listener']!
+          .component<PositionComponent>();
+      final tick = world.tick;
+
+      presentation.submit(const ThrowMolotovAction(GridPoint(9, 5)));
+      expect(
+        presentation.lastEvents.whereType<MolotovThrownEvent>(),
+        hasLength(1),
+      );
+      expect(presentation.lastEvents.whereType<DamagedEvent>(), isEmpty);
+      expect(world.tick, tick, reason: 'the throw takes no turn of its own');
+      expect(presentation.holdsMolotov, isTrue);
+
+      presentation
+        ..submit(const MoveAction(Direction.south))
+        ..update(hold - 0.01);
+      expect(presentation.turnCount, 1, reason: 'still in the air');
+      expect(world.entities['burnt']!.isAlive, isTrue);
+      expect(listener.position, const GridPoint(13, 1));
+      expect(
+        world.player.component<PositionComponent>().position,
+        const GridPoint(3, 5),
+        reason: 'the step waits for the burst',
+      );
+
+      presentation.update(0.02);
+      expect(presentation.turnCount, 2);
+      expect(presentation.holdsMolotov, isFalse);
+      final burst = presentation.lastEvents;
+      expect(burst.whereType<DiedEvent>().single.entityId, 'burnt');
+      expect(
+        burst.whereType<NoiseEvent>().single.origin,
+        const GridPoint(9, 5),
+      );
+      expect(world.tick, tick + 1);
+      expect(
+        burst.whereType<NoiseHeardEvent>().map((e) => e.entityId),
+        contains('listener'),
+        reason: 'the blast is heard, only now',
+      );
+      expect(
+        world.player.component<PositionComponent>().position,
+        const GridPoint(3, 5),
+      );
+
+      presentation.update(presentation.turnDuration + 0.01);
+      expect(presentation.turnCount, 3);
+      expect(
+        world.player.component<PositionComponent>().position,
+        const GridPoint(3, 6),
+      );
+    });
+
+    test('dropping the steps asked for never drops the burst', () {
+      final world = _room(
+        zombies: <(String, GridPoint)>[('burnt', const GridPoint(9, 5))],
+      );
+      final presentation = TurnPresentationController(world: world)
+        ..submit(const ThrowMolotovAction(GridPoint(9, 5)))
+        ..submit(const MoveAction(Direction.south))
+        ..clearBuffer()
+        ..update(hold + 0.01);
+      expect(world.entities['burnt']!.isAlive, isFalse);
+      expect(presentation.bufferedActionCount, 0);
+    });
+  });
+
   group('aiming a molotov', () {
     test('raising it puts the square three tiles ahead', () {
       final h = _Harness();
@@ -183,22 +274,25 @@ void main() {
       expect(h.facing, Direction.west);
     });
 
-    test('letting go throws at the square, then the pistol is back', () {
-      final h = _Harness(molotovs: 1);
-      h.input
-        ..toggleWeapon()
-        ..beginAim()
-        ..aimThrow(const Offset(0.7, -0.7))
-        ..throwMolotov();
-      final action = h.submitted.single as ThrowMolotovAction;
-      expect(
-        ThrowMolotovAction.canReach(const GridPoint(3, 5), action.target),
-        isTrue,
-      );
-      expect(h.input.aiming.value, isFalse);
-      expect(h.input.throwTarget.value, isNull);
-      expect(h.input.weapon.value, Weapon.pistol);
-    });
+    test(
+      'letting go throws at the square; with more left, it stays in hand',
+      () {
+        final h = _Harness();
+        h.input
+          ..toggleWeapon()
+          ..beginAim()
+          ..aimThrow(const Offset(0.7, -0.7))
+          ..throwMolotov();
+        final action = h.submitted.single as ThrowMolotovAction;
+        expect(
+          ThrowMolotovAction.canReach(const GridPoint(3, 5), action.target),
+          isTrue,
+        );
+        expect(h.input.aiming.value, isFalse);
+        expect(h.input.throwTarget.value, isNull);
+        expect(h.input.weapon.value, Weapon.molotov);
+      },
+    );
 
     test('the square stops at the edge of the place Mario is in', () {
       final h = _Harness(area: const GridRect(0, 0, 7, 10));
@@ -285,6 +379,31 @@ void main() {
       frame();
     }
     expect(landed, 1);
+  });
+
+  test('flames rise only from the tiles of the square that can be walked '
+      'on', () {
+    final map = TileMap.fromAscii(<String>['#####', '#.#.#', '#...#', '#####']);
+    final blast = MolotovBlastComponent(
+      origin: const GridPoint(2, 2),
+      target: const GridPoint(2, 1),
+      burns: (tile) => map.contains(tile) && map.tileAt(tile).isWalkable,
+    );
+    expect(blast.burningTiles, const <GridPoint>[
+      GridPoint(1, 1),
+      GridPoint(3, 1),
+      GridPoint(1, 2),
+      GridPoint(2, 2),
+      GridPoint(3, 2),
+    ]);
+    expect(
+      MolotovBlastComponent(
+        origin: const GridPoint(2, 2),
+        target: const GridPoint(2, 1),
+      ).burningTiles,
+      hasLength(9),
+      reason: 'without a map, the whole square',
+    );
   });
 
   test('molotovs stay in the level they were carried out of', () {

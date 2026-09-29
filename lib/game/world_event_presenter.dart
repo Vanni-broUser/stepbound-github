@@ -5,7 +5,6 @@ import 'package:stepbound/game/audio/soundscape.dart';
 import 'package:stepbound/game/haptics/game_haptics.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/character_component.dart';
-import 'package:stepbound/game/render/molotov_blast_component.dart';
 import 'package:stepbound/report/breadcrumbs.dart';
 
 /// What a character is asked to play for an event.
@@ -22,9 +21,6 @@ abstract interface class EventStage {
 
   /// [entityId] plays [cue], facing the way it faces in the simulation.
   void play(String entityId, CharacterCue cue);
-
-  /// [entityId] is dead but stays standing until its death is played.
-  void holdDeath(String entityId);
 
   /// Runs [then] [seconds] from now, on the game's own clock.
   void later(double seconds, void Function() then);
@@ -136,16 +132,12 @@ final class WorldEventPresenter {
 
   void _animate(List<WorldEvent> events) {
     final playerId = stage.playerId;
-    // The hits of a molotov show once the bottle has landed, not as it
-    // leaves Mario's hand: they follow its event in the same turn.
-    var blastDelay = 0.0;
     for (final event in events) {
       switch (event) {
+        // Its hits come with the burst, the turn after, once it has landed
+        // (see TurnPresentationController.molotovHoldSeconds).
         case MolotovThrownEvent(:final origin, :final target):
           stage.play(playerId, CharacterCue.throwWeapon);
-          blastDelay =
-              CharacterComponent.throwReleaseDelay +
-              MolotovBlastComponent.flightSeconds;
           stage.later(
             CharacterComponent.throwReleaseDelay,
             () => stage.launchMolotov(
@@ -154,13 +146,6 @@ final class WorldEventPresenter {
               onLanded: () => audio.play(Sfx.molotov),
             ),
           );
-        case DamagedEvent(entityId: final target, sourceEntityId: final source)
-            when source == playerId && blastDelay > 0:
-          stage.later(blastDelay, () => stage.play(target, CharacterCue.hit));
-        case DiedEvent(entityId: final victim)
-            when victim != playerId && blastDelay > 0:
-          stage.holdDeath(victim);
-          stage.later(blastDelay, () => stage.play(victim, CharacterCue.death));
         case CampfireUsedEvent(:final at):
           stage.restAt(at);
         case MovedEvent(:final entityId) when entityId == playerId:

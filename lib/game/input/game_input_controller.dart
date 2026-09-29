@@ -361,8 +361,9 @@ final class GameInputController {
     }
   }
 
-  /// Throws the molotov in hand at the square picked. The last one gone,
-  /// the pistol is back in hand.
+  /// Throws the molotov in hand at the square picked. It stays the weapon
+  /// in hand while there are more: the game puts the pistol back once the
+  /// last one is gone (see StepboundGame.update).
   void throwMolotov() {
     final target = throwTarget.value;
     if (!canAct() || !throwing || target == null) {
@@ -370,9 +371,6 @@ final class GameInputController {
     }
     submit(ThrowMolotovAction(target));
     cancelAim();
-    if (_mario.component<AmmoComponent>().molotovs <= 1) {
-      weapon.value = Weapon.pistol;
-    }
   }
 
   /// Puts [choice] in Mario's hand, the other weapon away: one at a time.

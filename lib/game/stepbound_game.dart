@@ -660,11 +660,6 @@ final class StepboundGame extends FlameGame
     }
   }
 
-  @override
-  void holdDeath(String entityId) {
-    _characters[entityId]?.deathPending = true;
-  }
-
   /// Runs [then] [seconds] from now, on the game's own clock.
   @override
   void later(double seconds, void Function() then) {
@@ -681,7 +676,14 @@ final class StepboundGame extends FlameGame
     required GridPoint target,
     required void Function() onLanded,
   }) => addToWorld(
-    MolotovBlastComponent(origin: origin, target: target, onLanded: onLanded),
+    MolotovBlastComponent(
+      origin: origin,
+      target: target,
+      onLanded: onLanded,
+      burns: (tile) =>
+          simulation.map.contains(tile) &&
+          simulation.map.tileAt(tile).isWalkable,
+    ),
   );
 
   @override
@@ -906,6 +908,8 @@ final class StepboundGame extends FlameGame
         !_levelCompleted &&
         !_camp.resting &&
         !_transitions.inTransit &&
+        // A bottle in the air: spent, and its burst not played yet.
+        !presentation.holdsMolotov &&
         !story.holdsInput &&
         !_stages.any((stage) => stage.holdsMario) &&
         (scene == null || scene is PauseCover);

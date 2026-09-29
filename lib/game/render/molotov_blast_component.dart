@@ -7,8 +7,9 @@ import 'package:stepbound/game/render/throw_preview_component.dart';
 
 /// A molotov on its way and what it does on landing: the bottle turns
 /// over and over along the same arc the aim showed, its rag alight, then
-/// bursts in a flash over the 3x3 square, flames licking every tile of it,
-/// sparks flying and smoke rising after. Drawn over the dark, since it
+/// bursts in a flash over the 3x3 square, flames licking every tile of it
+/// that can be walked on (see [burns]), sparks flying and smoke rising
+/// after. Drawn over the dark, since it
 /// lights itself; removes itself once the smoke has gone.
 final class MolotovBlastComponent extends Component {
   MolotovBlastComponent({
@@ -16,6 +17,7 @@ final class MolotovBlastComponent extends Component {
     required this.target,
     this.tileSize = 16,
     this.onLanded,
+    this.burns,
   }) : _random = math.Random(Object.hash(target.x, target.y, origin.x)),
        super(priority: 29);
 
@@ -25,6 +27,10 @@ final class MolotovBlastComponent extends Component {
 
   /// Called once, as the bottle breaks.
   final void Function()? onLanded;
+
+  /// Whether flames rise from a tile of the square: only from the ground,
+  /// never out of a wall or a parked car. Every tile when not given.
+  final bool Function(GridPoint tile)? burns;
 
   /// Seconds from the throw to the bottle breaking.
   static const double flightSeconds = 0.45;
@@ -140,15 +146,16 @@ final class MolotovBlastComponent extends Component {
     canvas.drawCircle(_to, tileSize * 2.6, paint);
   }
 
-  /// The first instant: a white ball that swells past the square and is
-  /// gone.
+  /// The first instant: a white ball that swells to the edges of the
+  /// square it burns, no further, and is gone.
   void _renderFlash(Canvas canvas, double t) {
     const span = 0.2;
     if (t > span) {
       return;
     }
     final k = t / span;
-    final radius = 6 + k * tileSize * 1.9;
+    const edge = ThrowMolotovAction.blastRadius + 0.5;
+    final radius = 6 + k * (tileSize * edge - 6);
     // Drawn in pixel rings, from the outside in.
     for (final (scale, color) in <(double, Color)>[
       (1, _red),
@@ -174,25 +181,40 @@ final class MolotovBlastComponent extends Component {
     }
   }
 
+  /// The tiles of the square the flames rise from.
+  late final List<GridPoint> burningTiles = <GridPoint>[
+    for (
+      var ty = -ThrowMolotovAction.blastRadius;
+      ty <= ThrowMolotovAction.blastRadius;
+      ty++
+    )
+      for (
+        var tx = -ThrowMolotovAction.blastRadius;
+        tx <= ThrowMolotovAction.blastRadius;
+        tx++
+      )
+        if (burns?.call(GridPoint(target.x + tx, target.y + ty)) ?? true)
+          GridPoint(target.x + tx, target.y + ty),
+  ];
+
   List<_Flame> _makeFlames() {
     final flames = <_Flame>[];
-    const radius = ThrowMolotovAction.blastRadius;
-    for (var ty = -radius; ty <= radius; ty++) {
-      for (var tx = -radius; tx <= radius; tx++) {
-        final count = tx == 0 && ty == 0 ? 5 : 3;
-        for (var i = 0; i < count; i++) {
-          flames.add(
-            _Flame(
-              x: (target.x + tx) * tileSize + 2 + _random.nextDouble() * 12,
-              y: (target.y + ty) * tileSize + 10 + _random.nextDouble() * 5,
-              height: 6 + _random.nextDouble() * (tx == 0 && ty == 0 ? 10 : 7),
-              phase: _random.nextDouble() * math.pi * 2,
-              speed: 14 + _random.nextDouble() * 10,
-              // The outer tiles catch a moment after the middle one.
-              delay: (tx.abs() + ty.abs()) * 0.03,
-            ),
-          );
-        }
+    for (final tile in burningTiles) {
+      final middle = tile == target;
+      final count = middle ? 5 : 3;
+      for (var i = 0; i < count; i++) {
+        flames.add(
+          _Flame(
+            x: tile.x * tileSize + 2 + _random.nextDouble() * 12,
+            y: tile.y * tileSize + 10 + _random.nextDouble() * 5,
+            height: 6 + _random.nextDouble() * (middle ? 10 : 7),
+            phase: _random.nextDouble() * math.pi * 2,
+            speed: 14 + _random.nextDouble() * 10,
+            // The outer tiles catch a moment after the middle one.
+            delay:
+                ((tile.x - target.x).abs() + (tile.y - target.y).abs()) * 0.03,
+          ),
+        );
       }
     }
     // Back to front, so nearer flames cover the ones behind.
