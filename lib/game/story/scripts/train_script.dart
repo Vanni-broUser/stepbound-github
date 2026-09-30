@@ -46,7 +46,7 @@ final class TrainScript extends StoryScript {
   ];
   static const List<StoryLine> chiaraRomeLines = <StoryLine>[
     StoryLine(
-      'Cosa? Non sei mai stato a Roma?!',
+      'Cosa?! Non eri mai stato a Roma?',
       speaker: CompanyScript.chiara,
       portrait: CompanyScript.chiaraPortrait,
     ),
