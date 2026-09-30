@@ -34,7 +34,8 @@
     "zombies/sprites/mutilated.png",
     "zombies/sprites/burning.png",
     "zombies/sprites/drunk.png",
-    "zombies/sprites/cultist.png"
+    "zombies/sprites/cultist.png",
+    "zombies/sprites/caparezza.png"
   ],
   "actionSheets": [
     {
@@ -747,6 +748,43 @@
     },
     {
       "file": "zombies/sprites/cultist_death.png",
+      "columns": [
+        "death_0",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5"
+      ],
+      "actions": [
+        "death"
+      ]
+    },
+    {
+      "file": "zombies/sprites/caparezza_hit.png",
+      "columns": [
+        "hit_0",
+        "hit_1",
+        "hit_2"
+      ],
+      "actions": [
+        "hit"
+      ]
+    },
+    {
+      "file": "zombies/sprites/caparezza_bite.png",
+      "columns": [
+        "bite_0",
+        "bite_1",
+        "bite_2",
+        "bite_3"
+      ],
+      "actions": [
+        "bite"
+      ]
+    },
+    {
+      "file": "zombies/sprites/caparezza_death.png",
       "columns": [
         "death_0",
         "death_1",

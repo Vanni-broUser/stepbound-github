@@ -16,6 +16,8 @@ import 'package:stepbound/core/levels/place.dart';
 /// By the camp, the Elettronica: the same shop as the one on the road east
 /// of the monument's square, its shutter down over the door `¦` (an
 /// obstacle) until Mario opens it from inside (electronics_shop.dart).
+/// By the fountain, `♪` is the Caparezza wanderer (see
+/// [caparezzaZombieId]).
 // north-rows-start
 const List<String> northDistrictRows = <String>[
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
@@ -55,7 +57,7 @@ const List<String> northDistrictRows = <String>[
   'BB...................w.w..d............PQqPPPPOOOOOPPP:PPPP.....CC...............:...UUBBB',
   'BB-.-.-.-.-.-.-.-.-.w.:.w.-r-.-.-.-.-.-qPPdPPwOOOOOPPPPPPPP.-.-.-.-:-.-.-.-.-.-.-.-.S.-BBB',
   'BB....................w..w....XX.......PPdPPPPOOOOOPPPPPPPP..........CC.d..............BBB',
-  'BB=================w====w==============PPPPPPPOOOOOwPPPPPP=====================F=======BBB',
+  'BB=================w====w==============PPPPPPPOOOOO♪PPPPPP=====================F=======BBB',
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=PPPPPPPOOOOOPPPPPPP=BBBBBBBBBBBBBBBBeBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=PPPPPPPPPPPPPPDPPPP=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=PAPnnPPPPPPPPPPPPAP=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
@@ -82,6 +84,12 @@ const List<String> northDistrictRows = <String>[
 // north-rows-end
 
 final Place _north = place(PlaceId.northDistrict);
+
+/// A tribute to Caparezza, Molfetta's own: the wanderer `♪` east of the
+/// fountain wears his great mop of dark curls, a black T-shirt and black
+/// trousers. Only the look is his: he walks and bites like any wanderer,
+/// has no portrait and is not among the known zombies.
+const String caparezzaZombieId = 'caparezza';
 
 /// The back door of the barracks, `e`, seen from the north district.
 final GridPoint northDistrictBackExitTile = _north.tileOf('e');

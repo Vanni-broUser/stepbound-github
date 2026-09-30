@@ -153,7 +153,10 @@ final class CharacterComponent extends PositionComponent with StandsOnFloor {
           );
       wearOutfit(playerOutfit);
     } else {
-      final name = _atlasName(entity.kind);
+      // The Caparezza wanderer is a wanderer in his own clothes and curls.
+      final name = entity.id == caparezzaZombieId
+          ? 'caparezza'
+          : _atlasName(entity.kind);
       _atlas = await _loadImage(
         assets,
         'assets/characters/zombies/sprites/$name.png',

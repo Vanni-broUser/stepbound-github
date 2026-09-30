@@ -14426,7 +14426,7 @@
         },
         {
           "layer": "structures",
-          "glyphs": "$-.4:=ACDFJLOPQSUXYadekmnqrvwyz|\u00a6",
+          "glyphs": "$-.4:=ACDFJLOPQSUXYadekmnqrvwyz|\u00a6\u266a",
           "keys": [
             {
               "kind": "neighbour",
