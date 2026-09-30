@@ -9,7 +9,7 @@ void main() {
     String glyph(int x, int y) => harbourRows[y][x];
 
     test('the promenade ends at the parapet over the sea, round the corner '
-        'too, cut across it at forty-five degrees, but for the two piers', () {
+        'too, jutting out square at it, but for the two piers', () {
       final map = createGameWorld().map;
       void wall(int x, int y) {
         expect(map.tileAt(at(x, y)).isWalkable, isFalse, reason: '$x,$y');
@@ -24,23 +24,54 @@ void main() {
         }
         wall(x, parapet);
       }
-      // The cut: a step down and east each row, the cell under each step
-      // parapet too, the paving behind it and the sea in front.
+      // By the corner the paving juts out square into the sea: the
+      // parapet turns south, runs down its west side, turns east at its
+      // point, along its south side, and turns south again onto the one
+      // along the road.
       var x = end + 1;
       var y = parapet;
-      while (glyph(x, y) == 'ò') {
+      expect(glyph(x, y), 'ò', reason: 'turning south, inside');
+      wall(x, y);
+      for (y++; glyph(x, y) == 'R'; y++) {
         wall(x, y);
-        expect(glyph(x + 1, y), anyOf('P', 'ê'), reason: '$x,$y');
-        if (glyph(x, y + 1) == 'ó') {
-          wall(x, y + 1);
-          expect(glyph(x - 1, y + 1), '~', reason: '$x,${y + 1}');
-        }
-        x++;
-        y++;
+        expect(glyph(x - 1, y), '~', reason: 'the sea west, row $y');
       }
-      final corner = x - 1;
-      expect(corner - end, greaterThanOrEqualTo(3), reason: 'a real cut');
-      expect(harbourRows.join().contains('ê'), isTrue);
+      expect(glyph(x, y), 'ó', reason: 'the point');
+      wall(x, y);
+      for (x++; glyph(x, y) == 'R'; x++) {
+        wall(x, y);
+        expect(glyph(x, y + 1), '~', reason: 'the sea south, column $x');
+      }
+      expect(glyph(x, y), 'ò', reason: 'back onto the road, inside');
+      wall(x, y);
+      final corner = x;
+      expect(corner - end, greaterThanOrEqualTo(4), reason: 'room for it');
+      y++;
+
+      // The newsstand on it, with a cell of paving all the way round.
+      final stand = <GridPoint>[
+        for (var sy = 0; sy < harbourRows.length; sy++)
+          for (var sx = 0; sx < harbourRows[sy].length; sx++)
+            if (glyph(sx, sy) == 'ê') GridPoint(sx, sy),
+      ];
+      expect(stand, hasLength(6));
+      final left = stand.map((t) => t.x).reduce((a, b) => a < b ? a : b);
+      final right = stand.map((t) => t.x).reduce((a, b) => a > b ? a : b);
+      final top = stand.map((t) => t.y).reduce((a, b) => a < b ? a : b);
+      final bottom = stand.map((t) => t.y).reduce((a, b) => a > b ? a : b);
+      expect(left, greaterThan(end + 1));
+      expect(right, lessThan(corner));
+      for (var ry = top - 1; ry <= bottom + 1; ry++) {
+        for (var rx = left - 1; rx <= right + 1; rx++) {
+          if (rx < left || rx > right || ry < top || ry > bottom) {
+            expect(
+              map.tileAt(at(rx, ry)).isWalkable,
+              isTrue,
+              reason: 'the way round it, $rx,$ry',
+            );
+          }
+        }
+      }
       var piers = 0;
       for (; glyph(corner, y) != 'B'; y++) {
         if (glyph(corner, y) == 'l') {
