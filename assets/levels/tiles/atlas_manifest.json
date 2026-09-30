@@ -7190,6 +7190,26 @@
       ],
       "objects": [
         {
+          "image": "hometown/harbour_shop_94_15.png",
+          "at": [94, 15],
+          "under": [
+            "HHHHHH",
+            "HHHHHH",
+            "HHHHHH",
+            "HHHHHH"
+          ]
+        },
+        {
+          "image": "hometown/harbour_shop_124_15.png",
+          "at": [124, 15],
+          "under": [
+            "HHHHHH",
+            "HHHHHH",
+            "HHHHHH",
+            "HHHHHH"
+          ]
+        },
+        {
           "image": "hometown/harbour_shop_123_7.png",
           "at": [123, 7],
           "under": [

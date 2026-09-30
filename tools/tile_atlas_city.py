@@ -1209,7 +1209,7 @@ def lone_columns(level) -> list[int]:
     for x0, width, top, _ in brushes.column_runs(level,
                                                  brushes.FACADE_GLYPHS):
         x1 = x0 + width - 1
-        shops = [(sx, sx + sw - 1) for sx, sw, _ in
+        shops = [(sx, sx + sw - 1) for sx, sw, *_ in
                  level.storefronts.get(top, []) if x0 <= sx <= x1]
         pieces, x = [], x0
         while x <= x1:
@@ -1244,12 +1244,14 @@ def storefronts(rows, level, name, rng) -> list[dict]:
     placed where the table puts it."""
     out = []
     for x0, width, top, bottom in brushes.column_runs(level, brushes.FACADE_GLYPHS):
-        for sx, sw, kind in level.storefronts.get(top, []):
+        for sx, sw, kind, *own in level.storefronts.get(top, []):
             if not x0 <= sx < x0 + width:
                 continue
             h = bottom - top + 1
             sprite = Image.new("RGBA", (sw * TILE, h * TILE), TRANSPARENT)
-            buildings.paint_storefront(ImageDraw.Draw(sprite), rng, 0, 0,
+            shop_rng = (random.Random(f"{SEED}/{name}/shop/{sx}/{top}")
+                        if own else rng)
+            buildings.paint_storefront(ImageDraw.Draw(sprite), shop_rng, 0, 0,
                                 sw * TILE, h * TILE, kind)
             out.append({
                 "image": f"{name}_shop_{sx}_{top}.png",
