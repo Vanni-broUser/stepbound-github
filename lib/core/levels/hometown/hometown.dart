@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:stepbound/core/entities/balance.dart';
+import 'package:stepbound/core/entities/components.dart';
 import 'package:stepbound/core/entities/entity.dart';
 import 'package:stepbound/core/entities/entity_factory.dart';
 import 'package:stepbound/core/grid/grid_point.dart';
@@ -489,6 +490,26 @@ const List<PlaceSpec> hometownPlaces = <PlaceSpec>[
     lamps: <GridPoint>[GridPoint(29, 8)],
     name: 'Azienda',
   ),
+  // The floors above: the same call centre, the lamps still on here and
+  // there. Painted from their rows out of the tile atlas.
+  PlaceSpec(
+    id: PlaceId.companyFirst,
+    area: AreaId.hometownTown,
+    rows: companyFirstRows,
+    legend: companyLegend,
+    indoor: true,
+    darkness: companyDarkness,
+    name: 'Azienda',
+  ),
+  PlaceSpec(
+    id: PlaceId.companySecond,
+    area: AreaId.hometownTown,
+    rows: companySecondRows,
+    legend: companyLegend,
+    indoor: true,
+    darkness: companyDarkness,
+    name: 'Azienda',
+  ),
   PlaceSpec(
     id: PlaceId.monumentSquare,
     area: AreaId.hometownTown,
@@ -539,6 +560,8 @@ final Place _palazzoSecond = place(PlaceId.palazzoSecondFloor);
 final Place _palazzoThird = place(PlaceId.palazzoThirdFloor);
 final Place _industryStreet = place(PlaceId.industryStreet);
 final Place _company = place(PlaceId.companyGround);
+final Place _companyFirst = place(PlaceId.companyFirst);
+final Place _companySecond = place(PlaceId.companySecond);
 final Place _monumentSquare = place(PlaceId.monumentSquare);
 final Place _electronicsShop = place(PlaceId.electronicsShop);
 
@@ -1113,7 +1136,6 @@ final List<GridPoint> hospitalNextRoofStairsFoot = lastSteps(
 /// Molfetta's doors to places not drawn yet (see `workInProgressDoors`).
 final Set<GridPoint> hometownWorkInProgressDoors = <GridPoint>{
   ...hospitalNextRoofStairsFoot,
-  ...companyStairs,
 };
 
 /// The palazzo's stairs, bottom to top: on each floor the flight `U` up
@@ -1156,10 +1178,45 @@ final GridPoint industryStreetCampfireTile = _industryStreet.tileOf('S');
 final List<GridPoint> industryStreetGate = _industryStreet.tilesOf('Ø');
 final List<GridPoint> companyGate = _company.tilesOf('E');
 
-/// The company's two flights up, one in each wing, west first: both go up
-/// to the floor that is not drawn yet, the way round from one wing to the
-/// other.
+/// The company's two flights up, one in each wing, west first: the way
+/// round from one wing to the other is by the floors above.
 final List<GridPoint> companyStairs = _company.tilesOf('U');
+
+/// The company's flights, bottom to top, west before east: on each floor
+/// the flight `U` up in the back wall and where it comes out, the flight
+/// `v` down in the front wall of the floor above. The ground floor's west
+/// flight and the first floor's west one lead up to the second floor, and
+/// down from it the east ones back to the ground floor's east wing.
+final List<(GridPoint, GridPoint)> companyFlights = <(GridPoint, GridPoint)>[
+  for (final (below, above) in <(Place, Place)>[
+    (_company, _companyFirst),
+    (_companyFirst, _companySecond),
+  ])
+    for (final (index, up) in below.tilesOf('U').indexed)
+      (up, above.tilesOf('v')[index]),
+];
+
+/// The backpack with two rounds, against the west wall of the top floor.
+const String companyBackpackId = 'backpack-company';
+final GridPoint companyBackpackTile = _companySecond.tileOf('9');
+
+/// The call-centre operators turned, `company-caller-<n>`, floor by floor:
+/// each on the cord of its handset to the desk beside it.
+const String companyCallerPrefix = 'company-caller-';
+
+/// How far the cord of a handset reaches from its desk, in tiles.
+const int companyCordLength = 3;
+
+/// The desk each operator at [tile] is tied to: the workstation next to
+/// it.
+GridPoint companyDeskOf(Place floor, GridPoint tile) =>
+    <GridPoint>[
+      for (final direction in Direction.values) tile.step(direction),
+    ].firstWhere(
+      (next) => 'DB'.contains(
+        floor.rows[next.y - floor.origin.y][next.x - floor.origin.x],
+      ),
+    );
 
 /// The company's two wings, either side of the glass wall, from the back
 /// wall to the front one: the west one Mario walks into, the east one
@@ -1182,9 +1239,6 @@ final int _glassColumn = _company.tilesOf('G').first.x;
 
 /// Chiara, at her workstation in the east wing, her back to the room.
 final GridPoint chiaraTile = _company.tileOf('Y');
-
-/// The wanderers in the company's west wing, `company-wanderer-<n>`.
-const String companyZombiePrefix = 'company-wanderer-';
 
 /// The road south off the street of the company, where it runs off the
 /// bottom of that map, and where it comes into the top of the monument's
@@ -1467,6 +1521,10 @@ Map<GridPoint, Portal> _portals() {
     ),
     ...pairedDoors(industryStreetGate, companyGate, Direction.north),
     ...pairedDoors(companyGate, industryStreetGate, Direction.south),
+    for (final (below, above) in companyFlights) ...<GridPoint, Portal>{
+      ...pairedDoors(<GridPoint>[below], <GridPoint>[above], Direction.north),
+      ...pairedDoors(<GridPoint>[above], <GridPoint>[below], Direction.south),
+    },
     ...pairedDoors(
       industryStreetSouthEdge,
       monumentSquareNorthEdge,
@@ -1656,6 +1714,7 @@ LevelContents hometownContents(EntityFactory factory) {
       ammo: rooftopBackpackAmmo,
     ),
     Pickup(id: palazzoBackpackId, position: palazzoBackpackTile, ammo: 2),
+    Pickup(id: companyBackpackId, position: companyBackpackTile, ammo: 2),
     Pickup(id: palazzoKeyPickupId, position: palazzoKeyTile, palazzoKey: true),
   ]);
   var indoorZombies = 0;
@@ -1701,15 +1760,24 @@ LevelContents hometownContents(EntityFactory factory) {
       );
     }
   }
-  var companyZombies = 0;
-  for (final tile in _company.tilesOf('Z')) {
-    entities.add(
-      factory.zombie(
-        id: '$companyZombiePrefix${companyZombies++}',
-        kind: EntityKind.wanderer,
-        position: tile,
-      ),
-    );
+  var callers = 0;
+  for (final floor in <Place>[_company, _companyFirst, _companySecond]) {
+    for (final tile in floor.tilesOf('Q')) {
+      final desk = companyDeskOf(floor, tile);
+      entities.add(
+        factory.zombie(
+          id: '$companyCallerPrefix${callers++}',
+          kind: EntityKind.callCenter,
+          position: tile,
+          // Its back to the desk, turned to the room: it sees who comes
+          // down the aisle in front of it.
+          facing: Direction.values.firstWhere(
+            (direction) => tile.step(direction.opposite) == desk,
+          ),
+          tether: TetherComponent(anchor: desk, length: companyCordLength),
+        ),
+      );
+    }
   }
   for (final (index, tile) in _electronicsShop.tilesOf('Z').indexed) {
     entities.add(
@@ -1782,6 +1850,8 @@ LevelContents hometownContents(EntityFactory factory) {
       hospitalRoofLookoutTile,
       shoppingStreetFireTile,
       stationTrackFireTile,
+      // Chiara at her desk, to talk to once she has been reached.
+      chiaraTile,
     ],
     grapples: hometownGrapples,
     stairs: hometownStairs,

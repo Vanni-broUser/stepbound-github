@@ -56,24 +56,11 @@ void main() {
   test('the doors to buildings with no map yet are the last steps of '
       'walkable stairs inside their place, and none is a real door', () {
     final world = createGameWorld();
-    expect(workInProgressDoors, <GridPoint>{
-      ...hospitalNextRoofStairsFoot,
-      ...companyStairs,
-    });
+    expect(workInProgressDoors, <GridPoint>{...hospitalNextRoofStairsFoot});
     expect(rooftopFarStairs, hasLength(6));
     expect(rooftopFarStairsFoot, hasLength(2));
     expect(hospitalNextRoofStairs, hasLength(4));
     expect(hospitalNextRoofStairsFoot, hasLength(2));
-    // The company's flights are one cell in the back wall, like the
-    // palazzo's: the wall either side is their railing.
-    for (final door in companyStairs) {
-      expect(world.map.tileAt(door).isWalkable, isTrue, reason: '$door');
-      expect(world.portals.containsKey(door), isFalse, reason: '$door');
-      for (final side in <Direction>[Direction.east, Direction.west]) {
-        expect(world.map.tileAt(door.step(side)).isWalkable, isFalse);
-      }
-      expect(world.map.tileAt(door.step(Direction.south)).isWalkable, isTrue);
-    }
     for (final door in hospitalNextRoofStairsFoot) {
       expect(world.map.tileAt(door).isWalkable, isTrue, reason: '$door');
       expect(world.portals.containsKey(door), isFalse, reason: '$door');

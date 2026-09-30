@@ -262,8 +262,12 @@ void _molfettaDone(ScenarioBuilder story) {
   // memory among the others below.
   story.progress.secretMissions.add(SecretMission.unarmedToLuigi);
 
-  // Every zombie type of Molfetta met, as the book on the train shows.
-  levelZombieKinds(LevelId.hometown).forEach(story.progress.meet);
+  // Every zombie type of Molfetta met, as the book on the train shows,
+  // but the operators of the call centre: the company is only reached with
+  // the grappling hook, after Rome.
+  levelZombieKinds(
+    LevelId.hometown,
+  ).where((kind) => kind != EntityKind.callCenter).forEach(story.progress.meet);
 
   // Keep this scenario complete when another Molfetta memory is added.
   for (final memory in StoryMemory.values) {

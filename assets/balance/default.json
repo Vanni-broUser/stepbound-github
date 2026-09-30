@@ -9,6 +9,7 @@
     "mutilated": {"tickCost": 1, "health": 1, "vision": 4, "hearing": 6, "contactDamage": 1, "stationary": true},
     "burning": {"tickCost": 2, "health": 1, "vision": 6, "hearing": 8, "contactDamage": 1, "trailsFire": true},
     "drunk": {"tickCost": 2, "health": 1, "vision": 6, "hearing": 8, "contactDamage": 1, "staggers": true},
-    "cultist": {"tickCost": 2, "health": 3, "vision": 6, "hearing": 8, "contactDamage": 1}
+    "cultist": {"tickCost": 2, "health": 3, "vision": 6, "hearing": 8, "contactDamage": 1},
+    "callCenter": {"tickCost": 1, "health": 1, "vision": 8, "hearing": 12, "contactDamage": 1}
   }
 }

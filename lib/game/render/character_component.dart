@@ -327,6 +327,7 @@ final class CharacterComponent extends PositionComponent with StandsOnFloor {
   }
 
   void _renderCharacter(ui.Canvas canvas) {
+    _drawCord(canvas);
     if (_action == CharacterAction.death) {
       final atlas = _deathAtlas;
       if (atlas == null) {
@@ -407,6 +408,63 @@ final class CharacterComponent extends PositionComponent with StandsOnFloor {
     }
     if (_alertElapsed < alertDuration) {
       _drawAlertBalloon(canvas);
+    }
+  }
+
+  /// The telephone on the desk a call-centre zombie is tied to: where on
+  /// its tile, in pixels, the cord comes out of it.
+  static const ui.Offset deskPhone = ui.Offset(12, 7);
+
+  /// Where the cord meets the handset in the sprite, in the cell's own
+  /// pixels: the bottom of the receiver held up at the right of the head,
+  /// at the left when the sheet is mirrored facing east, and by the
+  /// hand on the floor once fallen.
+  static ui.Offset handset(int row, {bool fallen = false}) => fallen
+      ? const ui.Offset(12, 21)
+      : row == rowFor(Direction.east)
+      ? const ui.Offset(2, 6)
+      : const ui.Offset(13, 6);
+
+  static const ui.Color _cordLight = ui.Color(0xffd2be8e);
+  static const ui.Color _cordDark = ui.Color(0xff2f2622);
+
+  /// The coiled cord from the phone on the desk to the handset, drawn
+  /// before the zombie so the receiver is held over it: pixel by pixel,
+  /// sagging the slacker it is, a dark turn of the coil every third pixel.
+  void _drawCord(ui.Canvas canvas) {
+    final tether = entity.maybeComponent<simulation.TetherComponent>();
+    if (tether == null) {
+      return;
+    }
+    final dying = _action == CharacterAction.death;
+    if (dying ? _actionElapsed >= actionDuration : !entity.isAlive) {
+      return;
+    }
+    final row = dying
+        ? _actionRow
+        : rowFor(entity.component<simulation.PositionComponent>().facing);
+    final fallen = dying && _actionElapsed / actionDuration >= 4 / 6;
+    final end = handset(row, fallen: fallen);
+    final start = ui.Offset(
+      tether.anchor.x * 16 + deskPhone.dx - (position.x - 8),
+      tether.anchor.y * 16 + deskPhone.dy - (position.y - 24),
+    );
+    final along = end - start;
+    final distance = along.distance;
+    final reach = tether.length * 16.0;
+    final sag = ((reach - distance) / 8).clamp(0.0, 5.0);
+    final steps = distance.ceil().clamp(1, 1 << 12);
+    for (var i = 0; i <= steps; i++) {
+      final t = i / steps;
+      final x = (start.dx + along.dx * t).roundToDouble();
+      final y = (start.dy + along.dy * t + sag * 4 * t * (1 - t))
+          .roundToDouble();
+      _paint.color = i % 3 == 0 ? _cordDark : _cordLight;
+      canvas.drawRect(ui.Rect.fromLTWH(x, y, 1, 1), _paint);
+      if (i % 3 == 0) {
+        _paint.color = _cordDark;
+        canvas.drawRect(ui.Rect.fromLTWH(x, y + 1, 1, 1), _paint);
+      }
     }
   }
 
@@ -681,6 +739,12 @@ final class CharacterComponent extends PositionComponent with StandsOnFloor {
           PixelPalette.cultistRobe,
           PixelPalette.cultistVein,
         ),
+        EntityKind.callCenter => (
+          PixelPalette.zombie,
+          PixelPalette.hair,
+          PixelPalette.jacket,
+          PixelPalette.zombieDark,
+        ),
       };
 
   String _atlasName(EntityKind kind) => switch (kind) {
@@ -694,6 +758,7 @@ final class CharacterComponent extends PositionComponent with StandsOnFloor {
     EntityKind.burning => 'burning',
     EntityKind.drunk => 'drunk',
     EntityKind.cultist => 'cultist',
+    EntityKind.callCenter => 'call_center',
   };
 }
 

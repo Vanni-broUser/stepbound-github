@@ -264,6 +264,40 @@ final class ActorComponent extends EntityComponent {
   };
 }
 
+/// What keeps a zombie within reach of a fixed point: the call-centre
+/// operator's handset, still on its cord to the phone on the desk at
+/// [anchor]. It never stands further than [length] tiles from it, in a
+/// straight line, the way the cord would stretch.
+final class TetherComponent extends EntityComponent {
+  TetherComponent({required this.anchor, required this.length});
+
+  factory TetherComponent.fromJson(Map<String, Object?> json) =>
+      TetherComponent(
+        anchor: GridPoint.fromJson(json['anchor']! as Map<String, Object?>),
+        length: json['length']! as int,
+      );
+
+  final GridPoint anchor;
+  final int length;
+
+  /// Whether the cord reaches [tile].
+  bool reaches(GridPoint tile) {
+    final dx = tile.x - anchor.x;
+    final dy = tile.y - anchor.y;
+    return dx * dx + dy * dy <= length * length;
+  }
+
+  @override
+  String get type => 'tether';
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+    'type': type,
+    'anchor': anchor.toJson(),
+    'length': length,
+  };
+}
+
 EntityComponent componentFromJson(Map<String, Object?> json) {
   return switch (json['type']) {
     'position' => PositionComponent.fromJson(json),
@@ -272,6 +306,7 @@ EntityComponent componentFromJson(Map<String, Object?> json) {
     'vision' => VisionComponent.fromJson(json),
     'hearing' => HearingComponent.fromJson(json),
     'actor' => ActorComponent.fromJson(json),
+    'tether' => TetherComponent.fromJson(json),
     _ => throw FormatException('Unknown component type: ${json['type']}'),
   };
 }

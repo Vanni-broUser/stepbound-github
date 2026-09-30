@@ -35,6 +35,29 @@ final class TrainScript extends StoryScript {
       'Hai già abbastanza munizioni. Torna qui quando avrai meno di '
       '$trainAmmoRefill proiettili per ricaricare';
 
+  /// Chiara in her corner of the second coach, once she is aboard: where
+  /// the train is taking them, and in Rome what she makes of it.
+  static const List<StoryLine> chiaraHometownLines = <StoryLine>[
+    StoryLine(
+      'Dobbiamo arrivare fino in Norvegia? Sembra un sacco di strada',
+      speaker: CompanyScript.chiara,
+      portrait: CompanyScript.chiaraPortrait,
+    ),
+  ];
+  static const List<StoryLine> chiaraRomeLines = <StoryLine>[
+    StoryLine(
+      'Cosa? Non sei mai stato a Roma?!',
+      speaker: CompanyScript.chiara,
+      portrait: CompanyScript.chiaraPortrait,
+    ),
+    StoryLine(
+      'È la città eterna, ti ritrovi tra le rovine romane senza rendertene '
+      'conto',
+      speaker: CompanyScript.chiara,
+      portrait: CompanyScript.chiaraPortrait,
+    ),
+  ];
+
   /// What the books say before they open.
   static const String zombieNotes = 'Appunti sugli zombi conosciuti';
 
@@ -47,6 +70,17 @@ final class TrainScript extends StoryScript {
   @override
   void onEvent(WorldEvent event) {
     if (event is! LookedOutEvent) {
+      return;
+    }
+    if (event.at == trainChiaraTile) {
+      if (director.scripts.whereType<CompanyScript>().first.aboard) {
+        say(
+          StoryPrompt(switch (progress.level) {
+            LevelId.hometown => chiaraHometownLines,
+            LevelId.rome => chiaraRomeLines,
+          }),
+        );
+      }
       return;
     }
     if (event.at == trainLuigiTile) {

@@ -664,6 +664,44 @@ def paint_train_cot(d, room, x, y, glyph):
             rect(d, px + 10, py + 13, 6, 3, TR_LUIGI_BLANKET)
 
 
+def paint_train_washing(d, rng, px, py, left_end, right_end):
+    """Chiara's washing, hung out to dry on a line strung from the back of
+    one seat to the other: the line across the tile, sagging, and on it,
+    pegged, a blouse, a sock, a pair of trousers or a towel, dripping on
+    the floor."""
+    sag = (0, 1, 1, 2, 2, 2, 3, 3, 3, 3, 2, 2, 2, 1, 1, 0)
+    for i in range(TILE):
+        rect(d, px + i, py + 3 + sag[i] // 2, 1, 1, TR_OUTLINE)
+    if left_end:
+        rect(d, px, py + 1, 2, 4, TR_METAL_DARK)  # tied round the seat back
+    if right_end:
+        rect(d, px + TILE - 2, py + 1, 2, 4, TR_METAL_DARK)
+    kind = rng.randrange(4)
+    hx = px + 3
+    top = py + 4
+    if kind == 0:  # a blouse, navy like her polo
+        rect(d, hx, top, 10, 9, TR_OUTLINE)
+        rect(d, hx + 1, top + 1, 8, 7, (38, 53, 94))
+        rect(d, hx - 1, top + 1, 2, 4, (38, 53, 94))
+        rect(d, hx + 9, top + 1, 2, 4, (38, 53, 94))
+        rect(d, hx + 4, top + 1, 2, 2, (220, 220, 214))
+    elif kind == 1:  # a pair of socks
+        _sock(d, hx + 1, top, TR_SOCK_BLUE)
+        _sock(d, hx + 6, top + 1, (200, 60, 60))
+    elif kind == 2:  # trousers, legs down
+        rect(d, hx, top, 9, 10, TR_OUTLINE)
+        rect(d, hx + 1, top + 1, 7, 2, (63, 58, 63))
+        rect(d, hx + 1, top + 3, 3, 6, (63, 58, 63))
+        rect(d, hx + 5, top + 3, 3, 6, (63, 58, 63))
+    else:  # a pink towel
+        rect(d, hx, top, 10, 8, TR_OUTLINE)
+        rect(d, hx + 1, top + 1, 8, 6, (216, 150, 176))
+        rect(d, hx + 1, top + 5, 8, 1, (190, 120, 150))
+    rect(d, hx + 2, top - 1, 1, 2, (200, 180, 90))  # the pegs
+    rect(d, hx + 7, top - 1, 1, 2, (200, 180, 90))
+    rect(d, hx + rng.randrange(1, 8), py + 14, 1, 1, (120, 150, 190))
+
+
 def paint_train_bag(d, px, py):
     """A full black bin bag, as big as the tile, knotted with its yellow
     ties: lumpy with what is in it, creased between the lumps, and shiny
@@ -1079,7 +1117,7 @@ def train_interior(atlas: Atlas, rng) -> dict:
     rows = read_rows(TR_ROWS)
     # Not under Mario's desk (K, q, k): it stands on black, a dark edge
     # above and below it.
-    floored = ".SLTCh*bBuofEPlVaGYROcm"
+    floored = ".SLTCh*bBuofEPlVaGYROcm~j"
     floor = [
         atlas.bucket(lambda p=parity: cell(
             lambda d, gx, gy: paint_train_floor(d, rng, gx, gy), p, 0))
@@ -1184,6 +1222,12 @@ def train_interior(atlas: Atlas, rng) -> dict:
                            before_run_key(TR_COT_WALLS)]))
     rules.append(rule("structures", "u", one(paint_train_bag)))
     rules.append(rule("structures", "o", randomly(paint_train_litter)))
+    # The line tied round a seat back at either end of its run.
+    ends = [neighbour_key(-1, 0, "~"), neighbour_key(1, 0, "~")]
+    rules.append(rule("structures", "~", [atlas.bucket(
+        lambda i=index: tile_of(lambda d: paint_train_washing(
+            d, rng, 0, 0, not i & 1, not i & 2)))
+        for index in range(4)], ends))
     rules.append(rule("structures", "f", randomly(paint_train_papers)))
     rules.append(rule("structures", "K", one(
         lambda d, px, py: paint_train_books(d, px, py, True))))

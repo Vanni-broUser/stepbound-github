@@ -51,6 +51,7 @@ final class HometownStage extends LevelStage implements HometownActions {
   static const int crossHearingFar = 18;
 
   NpcComponent? _luigi;
+  NpcComponent? _chiara;
   NpcComponent? _priest;
   NpcComponent? _stairCultist;
   NpcComponent? _welcomingCultist;
@@ -68,6 +69,8 @@ final class HometownStage extends LevelStage implements HometownActions {
       game.story.scripts.whereType<MallScript>().first;
   DuomoScript get _duomoScript =>
       game.story.scripts.whereType<DuomoScript>().first;
+  CompanyScript get _companyScript =>
+      game.story.scripts.whereType<CompanyScript>().first;
 
   /// The gates and doors the story has opened are in the save's map, and
   /// what Mario carries in its HUD: only where the people stand is read
@@ -87,6 +90,9 @@ final class HometownStage extends LevelStage implements HometownActions {
     }
     if (_mallScript.luigiGone) {
       _vacate(luigiTile);
+    }
+    if (_companyScript.aboard) {
+      _vacate(chiaraTile);
     }
   }
 
@@ -121,12 +127,14 @@ final class HometownStage extends LevelStage implements HometownActions {
           asset: NpcComponent.cultistAsset,
           tile: duomoWelcomingCultistTile,
         ),
-      // At her workstation in the company, behind the glass, on the phone.
-      NpcComponent(
-        asset: NpcComponent.chiaraAsset,
-        tile: chiaraTile,
-        facing: Direction.north,
-      ),
+      // At her workstation in the company, behind the glass, on the phone,
+      // until she leaves for the train.
+      if (!_companyScript.aboard)
+        _chiara = NpcComponent(
+          asset: NpcComponent.chiaraAsset,
+          tile: chiaraTile,
+          facing: Direction.north,
+        ),
       ShutterComponent(bars: luigiBars, map: simulation.map),
       ChurchyardGateComponent(gate: priestGate, map: simulation.map),
       BarServiceDoorComponent(door: barLockedDoorTile, map: simulation.map),
@@ -144,6 +152,17 @@ final class HometownStage extends LevelStage implements HometownActions {
   void afterCharacters() {
     if (_duomoScript.massacrePlayed) {
       _applyDuomoMassacre(announce: false);
+    }
+  }
+
+  /// Once Mario has left her floor, Chiara has left her desk for the
+  /// train: gone from it, and her tile is free.
+  @override
+  void update(double dt) {
+    if (_chiara != null && _companyScript.aboard) {
+      _chiara!.removeFromParent();
+      _chiara = null;
+      _vacate(chiaraTile);
     }
   }
 

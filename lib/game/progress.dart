@@ -97,6 +97,9 @@ enum StoryMemory {
   /// Chiara at her workstation in the company past the palazzo, on the
   /// phone to someone who is not there any more.
   chiaraCall,
+
+  /// Mario beside Chiara at last, round by the company's floors above.
+  chiaraMet,
   presidentFled,
 
   /// Tonino and Marcello at the bottom of Via Cavour, who want something
