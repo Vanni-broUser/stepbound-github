@@ -9,27 +9,40 @@ void main() {
     String glyph(int x, int y) => harbourRows[y][x];
 
     test('the promenade ends at the parapet over the sea, round the corner '
-        'too, but for the two piers', () {
+        'too, cut across it at forty-five degrees, but for the two piers', () {
       final map = createGameWorld().map;
+      void wall(int x, int y) {
+        expect(map.tileAt(at(x, y)).isWalkable, isFalse, reason: '$x,$y');
+        expect(map.tileAt(at(x, y)).blocksSight, isFalse, reason: '$x,$y');
+      }
+
       final parapet = harbourRows.indexWhere((row) => row.startsWith('R'));
-      final corner = harbourRows[parapet].lastIndexOf('R');
-      for (var x = 0; x <= corner; x++) {
+      final end = harbourRows[parapet].lastIndexOf('R');
+      for (var x = 0; x <= end; x++) {
         if (glyph(x, parapet) == 'l') {
           continue; // the shipyard's slipway runs down through it
         }
-        // Across from the crossroads the paving juts out over the sea and
-        // the parapet goes round it.
-        var y = parapet;
-        while (glyph(x, y) != 'R') {
-          expect(glyph(x, y), anyOf('P', 'ê'), reason: 'column $x');
-          y++;
-        }
-        expect(y - parapet, lessThanOrEqualTo(2), reason: 'column $x');
-        expect(map.tileAt(at(x, y)).isWalkable, isFalse);
-        expect(map.tileAt(at(x, y)).blocksSight, isFalse);
+        wall(x, parapet);
       }
+      // The cut: a step down and east each row, the cell under each step
+      // parapet too, the paving behind it and the sea in front.
+      var x = end + 1;
+      var y = parapet;
+      while (glyph(x, y) == 'ò') {
+        wall(x, y);
+        expect(glyph(x + 1, y), anyOf('P', 'ê'), reason: '$x,$y');
+        if (glyph(x, y + 1) == 'ó') {
+          wall(x, y + 1);
+          expect(glyph(x - 1, y + 1), '~', reason: '$x,${y + 1}');
+        }
+        x++;
+        y++;
+      }
+      final corner = x - 1;
+      expect(corner - end, greaterThanOrEqualTo(3), reason: 'a real cut');
+      expect(harbourRows.join().contains('ê'), isTrue);
       var piers = 0;
-      for (var y = parapet + 1; glyph(corner, y) != 'B'; y++) {
+      for (; glyph(corner, y) != 'B'; y++) {
         if (glyph(corner, y) == 'l') {
           piers++;
           continue;

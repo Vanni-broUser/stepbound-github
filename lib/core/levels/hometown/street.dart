@@ -129,11 +129,12 @@ const List<String> streetLevelRows = <String>[
 /// the hypermarket (mall_north_street.dart), the street out of the palazzo
 /// (industry_street.dart) and the monument's square past it
 /// (monument_square.dart): `Ω` the monument, `ç` the harbour's carousel,
-/// `ê` its newsstand and `¦` the Elettronica's door behind the barracks
-/// while its shutter is down are obstacles.
+/// `ê` its newsstand, `ò` and `ó` the parapet cut across its corner
+/// and `¦` the Elettronica's door behind the barracks while its shutter
+/// is down are obstacles.
 const Legend outdoorLegend = Legend(
   walls: 'BHfKMGW#%0_Æ',
-  obstacles: 'CXUvkDFTSOyJQaAnI~RNbpx*i&!^;/+Ωçê¦',
+  obstacles: 'CXUvkDFTSOyJQaAnI~RNbpx*i&!^;/+Ωçêòó¦',
   debris: ':q',
   fire: '?',
 );

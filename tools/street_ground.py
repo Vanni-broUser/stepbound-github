@@ -204,6 +204,31 @@ def paint_parapet_west(d, rng, x, y):
         rect(d, px + rng.randrange(4, 8), py + rng.randrange(2, 14), 5, 1, (110, 64, 40))
 
 
+def paint_parapet_diagonal(d, rng, x, y, lower):
+    """The parapet cut across a corner of the seafront at forty-five
+    degrees, the promenade to the north-east and the sea to the south-west.
+    The line runs through two cells a step: the one it enters from the west
+    and, `lower`, the one under it it leaves through the south. Its bands
+    are the plain parapet's, read along v - u instead of v, so that it
+    meets the seafront's parapet west of it and the one running south under
+    its last step without a seam."""
+    px, py = x * TILE, y * TILE
+    paint_water(d, rng, x, y)
+    face, capping = (126, 118, 102), (178, 168, 146)
+    for v in range(TILE):
+        for u in range(TILE):
+            s = v - u + (TILE if lower else 0)
+            if s >= 14:
+                continue  # the water, already painted
+            colour = (PAVING if (u + v) // 8 % 2 else PAVING_ALT) if s <= 2                 else (92, 86, 76) if s == 3                 else capping if s <= 5                 else (140, 130, 112) if s == 6                 else (104, 98, 84) if s == 10                 else (58, 70, 50) if s == 12                 else SEA_DARK if s == 13                 else face
+            rect(d, px + u, py + v, 1, 1, colour)
+    if rng.random() < 0.3:  # a chunk knocked out of the capping
+        u = rng.randrange(3, 10)
+        v = u + 4 - (TILE if lower else 0)
+        if 0 <= v < TILE - 2:
+            rect(d, px + u, py + v, 2, 2, (86, 80, 70))
+
+
 def paint_pier(d, rng, level, x, y):
     """Wooden pier over the water: grey weathered planks across it, a few
     missing, posts at the edges."""

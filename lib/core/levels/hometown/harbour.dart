@@ -11,9 +11,7 @@ import 'package:stepbound/core/levels/place.dart';
 /// town's palazzi and ends against them, the pavement carried across its
 /// mouth; the seafront road it feeds runs a long way west, and beyond
 /// that the promenade with its palms, then the parapet and the murky sea,
-/// scummed with green, where rowboats rot half-sunk. Across from the
-/// crossroads the paving juts out over the water, the parapet carried
-/// round it, and the newsstand `ê` stands there, wrecked.
+/// scummed with green, where rowboats rot half-sunk.
 ///
 /// West of the Duomo the alleys of the old town climb off the seafront
 /// road and cross one another, narrow and paved, the way they run in a
@@ -39,7 +37,10 @@ import 'package:stepbound/core/levels/place.dart';
 /// To the east a narrow alley climbs north off the seafront road, then
 /// turns east to the Bar Arcobaleno, whose door `h` leads inside. The road
 /// carries on east as far as the bar, then turns south along the sea: the
-/// promenade and its parapet turn the corner with it, and two wooden piers
+/// promenade turns the corner with it, the parapet cut across the corner
+/// at forty-five degrees, `ò` where its line enters a cell and `ó` the
+/// cell under it, and on the paving won from the sea there stands the
+/// wrecked newsstand `ê`; two wooden piers
 /// `l` reach west over the water. A rowboat `o` is moored at the end of the
 /// second one, a backpack `5` with two rounds on board. The harbour road
 /// ends short of the south-east corner, the pavement carried across its
@@ -82,14 +83,14 @@ const List<String> harbourRows = <String>[
   '%,,,,,,,,:,,,6,,,%=..............................:........................d............Z.....Z....XX....................................|..=BBBBHHBBBBBBBBBBBBBBBBB',
   '%,,,,,,,,,,,,,,,,%===================================================================F=====:==================================F=======..|..=BBBBHHBBBBBBBBBBBBBBBBB',
   '%,,:,,,,,,,,:,,,,,PPPNPPPPPPPPPPPNPPPPPPPPPPPNPPPPPPPPPPPPPPPPPPPPNPPPPPPPPPNPPPwPPPP:PPPPPPPPPPNPPPPPPPPPNPPPPPPPPPPPPPPPPPNPPPPPPPP=..|..=BBBBPPBBBBBBBBBBBBBBBBB',
-  '%,,,,,,,,,,,,,,,,,PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPnnPPPPPPPPPPPPPPDPPPêêêPPwPPPPnnPPPPPPPPdPPPPPPPPPPPPPPPnnPPPPP=..|..=BBBBPPBBBBBBBBBBBBBBBBB',
-  'RRRRRRllllRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRPPPêêêPPPRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRPP=..|..=HHHHPPHHHHHHHHHHHHBBBBB',
-  '~~~~~~llll~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~RPPPPPPPPPR~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~RPP=..|..=HHHHPPHHHHHHHHHHHHBBBBB',
-  '~~~~~~llll~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bb~~~~~~~~~~~~~~~RRRRRRRRRRR~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~RPP=..|..=PPPPPPPPPPPPPPPPPwBBBBB',
-  '~~~~~~llll~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~RPP=..|..=PPP:PPPPPPPPPPPPPPBBBBB',
-  '~~~~~~llll~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~RNP=..|..=BBBBBBBBBP&P!!P&PPBBBBB',
-  '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bb~~~~~~~~~~~~~~~~~~~~~~~~~~~RPP=..|.:=BBBBBBBBBP&P!!P&PPBBBBB',
-  '~~~~~~~~~~~~~~~~~~~~~bb~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~RPP=..|..=BBBBBBBBBPPdPPPPPPBBBBB',
+  '%,,,,,,,,,,,,,,,,,PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPnnPPPPPPPPPPPPPPPPPDPPPPPwPPPPnnPPPPPPPPdPPPPPPPPPPPPPPPnnPPPPP=..|..=BBBBPPBBBBBBBBBBBBBBBBB',
+  'RRRRRRllllRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRòPPPPPPPP=..|..=HHHHPPHHHHHHHHHHHHBBBBB',
+  '~~~~~~llll~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~óòPêêêPPP=..|..=HHHHPPHHHHHHHHHHHHBBBBB',
+  '~~~~~~llll~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bb~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~óòêêêPPP=..|..=PPPPPPPPPPPPPPPPPwBBBBB',
+  '~~~~~~llll~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~óòPPPPP=..|..=PPP:PPPPPPPPPPPPPPBBBBB',
+  '~~~~~~llll~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~óòPPNP=..|..=BBBBBBBBBP&P!!P&PPBBBBB',
+  '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bb~~~~~~~~~~~~~~~~~~~~~~~~~óòPPP=..|.:=BBBBBBBBBP&P!!P&PPBBBBB',
+  '~~~~~~~~~~~~~~~~~~~~~bb~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~óòPP=..|..=BBBBBBBBBPPdPPPPPPBBBBB',
   '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~bb~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~RPP=..|..=BBBBBBBBBPPPPPPPPPBBBBB',
   '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~llllllllllllllllllPP=..|v.=BBBBBBBBBBBBBBBBPPBBBBB',
   '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~llllllllllllllllllPP=..|v.=BBBBBBBBBBBBBBBBPPHHHBB',

@@ -67,8 +67,11 @@ BEND_EAST = "ɔ"
 MONUMENT = "Ω"
 # The children's carousel on the quay at the end of the harbour road.
 CAROUSEL = "ç"
-# The newsstand on the promenade across from the harbour's crossroads.
+# The newsstand on the corner where the seafront turns south.
 KIOSK = "ê"
+# The parapet cut across that corner at forty-five degrees: the cell its
+# line enters and the one under it.
+PARAPET_CUT, PARAPET_CUT_LOWER = "ò", "ó"
 BUILDINGS = "BHfKMGW#%0]\"\u00a7\u00c6\u00a3"
 FACADE = "Hf"
 # A front and the doors set in it at street level: the floor over a door
@@ -81,7 +84,7 @@ GROUND = ground_config(
     walks="={}¦",
     floors="PLY,°",
     footway="T/F¤",
-    keep="~bRlo5g",
+    keep="~bRlo5gòó",
     lawn="g",
     lawnProps="Apn^<",
 )
@@ -336,6 +339,15 @@ def ground_rules(atlas: Atlas, rng) -> list[dict]:
             d, rng, level, px // TILE, py // TILE)), (tx, ty)
     buckets, pieces = spread(atlas, pier, keys, (0, 1, 0, 0))
     rules.append(rule("ground", "l", buckets, keys, pieces))
+
+    # Where the seafront's corner is cut at forty-five degrees: the cell
+    # the parapet's line enters and the one under it. Their own stream, so
+    # the rest of the ground is painted as it was.
+    cut = random.Random(f"{SEED}/city/parapet-cut")
+    for glyph, lower in ((PARAPET_CUT, False), (PARAPET_CUT_LOWER, True)):
+        rules.append(rule("ground", glyph, [atlas.odds(
+            lambda lower=lower: cell(lambda d, x, y: floors.paint_parapet_diagonal(
+                d, cut, x, y, lower)), 4)]))
     return rules
 
 
