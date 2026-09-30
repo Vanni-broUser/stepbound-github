@@ -18,7 +18,10 @@ enum Mission {
 
   /// Handed out once Chiara has been seen on the phone behind the glass in
   /// the company past the palazzo.
-  reachSurvivor(LevelId.hometown, 'Raggiungi la sopravvissuta'),
+  reachSurvivor(
+    LevelId.hometown,
+    "Raggiungi Chiara dall'altra parte degli uffici",
+  ),
   findSupplies(LevelId.rome, 'Trova delle provviste in città'),
   findValuable(LevelId.rome, 'Cerca qualcosa di prezioso per avanzare');
 

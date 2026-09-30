@@ -58,9 +58,9 @@ Cosa fare quando si disegna un posto:
   schermata e rimette Mario dove era prima. Quando l'edificio viene
   disegnato, quelle tile escono dall'elenco e diventano una porta vera
   (`pairedDoors`), come e successo alle scale del palazzo dopo l'aereo.
-  Le scale di una sola cella nel muro di fondo (le due dell'azienda, una
-  per ala, verso il primo piano che ancora non c'e) vanno nello stesso
-  elenco: la cella stessa e la porta.
+  Le scale di una sola cella nel muro di fondo vanno nello stesso elenco:
+  la cella stessa e la porta. Cosi erano le due dell'azienda, una per ala,
+  finche non sono stati disegnati il primo e il secondo piano.
   Il test `test/work_in_progress_test.dart` controlla che nessuna sia
   anche una porta vera.
 - **Una porta chiusa a chiave davanti a un posto non ancora mappato** (la

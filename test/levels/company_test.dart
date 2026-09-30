@@ -86,18 +86,111 @@ void main() {
     expect(chiaraTile.x - companyGate.first.x, lessThan(12));
   });
 
-  test('both flights up go to the floor that is not drawn yet', () {
-    expect(companyStairs, hasLength(2));
-    for (final stairs in companyStairs) {
-      expect(workInProgressDoors, contains(stairs));
+  test('the way round: up the west side to the top floor, across it, and '
+      'down the east side into the east wing, where Chiara is', () {
+    final world = createGameWorld();
+    for (final entity in world.entities.values) {
+      if (entity.kind != EntityKind.player) {
+        entity.component<HealthComponent>().current = 0;
+      }
     }
+    final first = place(PlaceId.companyFirst);
+    final second = place(PlaceId.companySecond);
+    expect(companyFlights, hasLength(4));
+    for (final (below, above) in companyFlights) {
+      expect(workInProgressDoors, isNot(contains(below)));
+      final up = through(world, below.step(Direction.south), below);
+      expect(up, above.step(Direction.north));
+      final down = through(world, up, above);
+      expect(down, below.step(Direction.south));
+    }
+    GridPoint landing(GridPoint flight) => flight.step(
+      placeAt(flight) == company || companyFlights.any((f) => f.$1 == flight)
+          ? Direction.south
+          : Direction.north,
+    );
+    // On the first floor the two halves never meet: the heap is in the
+    // doorway between them.
+    final (westUp, westFirst) = companyFlights[0];
+    final (eastUp, eastFirst) = companyFlights[1];
+    final (firstWestUp, secondWest) = companyFlights[2];
+    final (firstEastUp, secondEast) = companyFlights[3];
+    expect(placeAt(westFirst), first);
+    expect(placeAt(secondWest), second);
+    final westHalf = reachedFrom(world, landing(westFirst));
+    expect(westHalf.containsKey(landing(firstWestUp)), isTrue);
+    expect(westHalf.containsKey(landing(eastFirst)), isFalse);
+    expect(westHalf.containsKey(landing(firstEastUp)), isFalse);
+    final eastHalf = reachedFrom(world, landing(eastFirst));
+    expect(eastHalf.containsKey(landing(firstEastUp)), isTrue);
+    // The top floor joins them.
     expect(
-      companyWestWing.contains(companyStairs.first.step(Direction.south)),
+      reachedFrom(world, landing(secondWest)).containsKey(landing(secondEast)),
       isTrue,
     );
+    // And the east flight comes down by Chiara.
+    expect(companyEastWing.contains(landing(eastUp)), isTrue);
+    expect(companyWestWing.contains(landing(westUp)), isTrue);
+    final byChiara = reachedFrom(world, landing(eastUp));
     expect(
-      companyEastWing.contains(companyStairs.last.step(Direction.south)),
+      Direction.values.any(
+        (side) => byChiara.containsKey(chiaraTile.step(side)),
+      ),
       isTrue,
+    );
+  });
+
+  test('the operators sit at their desks, each on a cord to it, none in '
+      'the west wing of the ground floor, two in the east one out of sight '
+      'from it', () {
+    final world = createGameWorld();
+    final callers = world.entities.values
+        .where((entity) => entity.kind == EntityKind.callCenter)
+        .toList();
+    expect(callers, isNotEmpty);
+    for (final caller in callers) {
+      expect(caller.id, startsWith(companyCallerPrefix));
+      final at = caller.component<PositionComponent>().position;
+      final tether = caller.component<TetherComponent>();
+      expect(at.manhattanDistanceTo(tether.anchor), 1, reason: caller.id);
+      expect(tether.length, companyCordLength);
+      expect(world.map.tileAt(tether.anchor).isWalkable, isFalse);
+      expect(companyWestWing.contains(at), isFalse, reason: caller.id);
+    }
+    final ground = callers
+        .where(
+          (caller) =>
+              placeAt(caller.component<PositionComponent>().position) ==
+              company,
+        )
+        .toList();
+    expect(ground, hasLength(2));
+    // From the west wing the view reaches twelve tiles past Mario at most,
+    // and Mario gets no closer to the glass than the tile before it.
+    final glass = company.tilesOf('G').first.x;
+    for (final caller in ground) {
+      final at = caller.component<PositionComponent>().position;
+      expect(companyEastWing.contains(at), isTrue);
+      expect(at.x - (glass - 1), greaterThan(12), reason: caller.id);
+    }
+    expect(
+      world.entities.values.where(
+        (entity) =>
+            entity.kind == EntityKind.wanderer &&
+            placeAt(entity.component<PositionComponent>().position) == company,
+      ),
+      isEmpty,
+    );
+  });
+
+  test('a backpack with two rounds against a wall of the top floor', () {
+    final world = createGameWorld();
+    final backpack = world.pickups[companyBackpackId]!;
+    expect(backpack.ammo, 2);
+    expect(placeAt(backpack.position), place(PlaceId.companySecond));
+    expect(
+      world.map.tileAt(backpack.position.step(Direction.west)).isWalkable,
+      isFalse,
     );
   });
 }

@@ -46,7 +46,7 @@ final List<ZombieCard> zombieCards = <ZombieCard>[
     portrait: _unknownPortrait,
     description: '',
   ),
-  for (var i = 0; i < 4; i++)
+  for (var i = 0; i < 3; i++)
     const ZombieCard(
       kind: null,
       name: '',
@@ -148,6 +148,10 @@ memoryScenes = <StoryMemory, List<StoryScene>>{
   ],
   StoryMemory.chiaraCall: <StoryScene>[
     for (final frame in CompanyScript.callFrames)
+      StoryScene(image: frame.image, speaker: frame.speaker, text: frame.text),
+  ],
+  StoryMemory.chiaraMet: <StoryScene>[
+    for (final frame in CompanyScript.meetingFrames)
       StoryScene(image: frame.image, speaker: frame.speaker, text: frame.text),
   ],
   StoryMemory.maranzaMet: <StoryScene>[

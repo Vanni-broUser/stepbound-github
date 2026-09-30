@@ -1407,6 +1407,25 @@ def paint_factory(d, rng, level):
         rect(d, rx, eaves + 2, 1, ground - eaves - 2, clad_dark)
     rect(d, px, ground - 6, w, 6, (150, 146, 136))
     rect(d, px, ground - 6, w, 1, (120, 116, 108))
+    # The two floors of offices over the ground floor: a ribbon of windows
+    # each, the blinds down in some, a screen still lit behind others.
+    for wy in (eaves + 6, eaves + 22):
+        rect(d, px + 30, wy - 1, w - 34, 1, clad_dark)
+        for wx in range(px + 30, px + w - 10, 12):
+            rect(d, wx, wy, 10, 9, (96, 104, 110))
+            roll = rng.random()
+            pane = ((30, 36, 46) if roll < 0.55 else
+                    (170, 176, 170) if roll < 0.8 else (54, 90, 96))
+            rect(d, wx + 1, wy + 1, 8, 7, pane)
+            if pane == (170, 176, 170):  # the blinds
+                for by in range(wy + 2, wy + 8, 2):
+                    rect(d, wx + 1, by, 8, 1, (140, 146, 140))
+            elif pane == (54, 90, 96):
+                rect(d, wx + 3, wy + 4, 3, 2, (110, 200, 170))
+            elif rng.random() < 0.2:  # smashed
+                rect(d, wx + 2, wy + 2, 2, 1, (200, 220, 230))
+                rect(d, wx + 5, wy + 5, 1, 2, (200, 220, 230))
+        rect(d, px + 30, wy + 9, w - 34, 1, clad_dark)
     # The gate: rolled up into its drum, the offices dark inside.
     gate = [x for x, y in cells if level.at(x, y) == "Ø"]
     gx0, gx1 = min(gate) * TILE, (max(gate) + 1) * TILE
@@ -1427,9 +1446,10 @@ def paint_factory(d, rng, level):
     tw = text_width(FACTORY_NAME) * 2
     tx = (gx0 + gx1) // 2 - tw // 2
     tx = max(px + 6, min(tx, px + w - tw - 6))
-    rect(d, tx - 4, eaves + 1, tw + 8, 12, (40, 70, 120))
-    rect(d, tx - 4, eaves + 12, tw + 8, 1, (24, 40, 70))
-    paint_text(d, tx, eaves + 2, FACTORY_NAME, (240, 236, 220),
+    sign = ground - 45
+    rect(d, tx - 4, sign, tw + 8, 12, (40, 70, 120))
+    rect(d, tx - 4, sign + 11, tw + 8, 1, (24, 40, 70))
+    paint_text(d, tx, sign + 1, FACTORY_NAME, (240, 236, 220),
                missing=(3,), scale=2)
     # loading bays either side of the gate, their shutters down, the dock
     # bumpers and the yellow and black edge

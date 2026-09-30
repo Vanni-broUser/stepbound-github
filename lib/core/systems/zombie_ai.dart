@@ -125,6 +125,11 @@ final class ZombieAi {
       return;
     }
 
+    if (zombie.maybeComponent<TetherComponent>() case final tether?) {
+      _pullAtTheCord(world, zombie, target, tether);
+      return;
+    }
+
     final next = world.map.shortestNextStep(
       start: zombiePosition.position,
       target: target,
@@ -149,6 +154,58 @@ final class ZombieAi {
       return;
     }
 
+    _step(world, zombie, next);
+  }
+
+  /// A zombie on a cord goes after [target] as far as the cord lets it:
+  /// of the tiles it can walk to without leaving [tether]'s reach, it
+  /// heads for the one nearest to [target], and waits there, turned
+  /// towards it, pulling at the cord. When Mario moves, the nearest tile
+  /// moves with him, and it comes round after him inside its reach.
+  void _pullAtTheCord(
+    WorldState world,
+    Entity zombie,
+    GridPoint target,
+    TetherComponent tether,
+  ) {
+    final position = zombie.component<PositionComponent>();
+    final start = position.position;
+    final cameFrom = <GridPoint, GridPoint>{start: start};
+    final queue = <GridPoint>[start];
+    var best = start;
+    var bestDistance = start.manhattanDistanceTo(target);
+    for (var i = 0; i < queue.length; i++) {
+      final here = queue[i];
+      for (final direction in Direction.values) {
+        final next = here.step(direction);
+        if (cameFrom.containsKey(next) ||
+            !tether.reaches(next) ||
+            !world.map.contains(next) ||
+            !world.map.tileAt(next).isWalkable ||
+            world.portals.containsKey(next) ||
+            !world.canStep(here, next) ||
+            world.isBlocked(next, excluding: zombie.id)) {
+          continue;
+        }
+        cameFrom[next] = here;
+        queue.add(next);
+        final distance = next.manhattanDistanceTo(target);
+        if (distance < bestDistance) {
+          best = next;
+          bestDistance = distance;
+        }
+      }
+    }
+    if (best == start) {
+      position.facing = _directionBetween(start, target);
+      world.emit(WaitedEvent(zombie.id));
+      return;
+    }
+    var next = best;
+    while (cameFrom[next] != start) {
+      next = cameFrom[next]!;
+    }
+    position.facing = _directionBetween(start, next);
     _step(world, zombie, next);
   }
 

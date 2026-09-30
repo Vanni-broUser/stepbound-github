@@ -9,11 +9,11 @@ export 'package:stepbound/core/levels/train/train_interior.dart';
 /// Inside the train the shell, the windscreen and the gangway partitions
 /// are walls. Seats, tables, luggage, the controls, the driver's seat and
 /// the map table can be seen over but not walked through, and so can the
-/// two cots, the bin bags, the books, Mario's ammunition crate, the table
-/// laid for eating and Luigi.
+/// cots, the bin bags, the books, Mario's ammunition crate, the table
+/// laid for eating, Luigi and the washing hung out in the second coach.
 const Legend trainLegend = Legend(
   walls: 'xWwIiV',
-  obstacles: 'STLCPhbBuklaGKqYRO',
+  obstacles: 'STLCPhbBuklaGKqYRO~',
 );
 
 /// Luigi's train, the one place every level shares: it carries Mario from
@@ -76,6 +76,10 @@ const String trainPlaceName = 'Treno';
 /// Luigi, at home in his corner of the locomotive.
 final GridPoint trainLuigiTile = _train.tileOf('l');
 
+/// Where Chiara stands aboard, in her corner of the second coach, once she
+/// has come to the train: until then an empty spot on the floor.
+final GridPoint trainChiaraTile = _train.tileOf('j');
+
 /// Mario's desk, west to east: the open books, the abacus and the
 /// calculator, the mug and the candle. From any of the three he reads up
 /// on the zombie types met so far; the glint is on the middle one.
@@ -134,6 +138,7 @@ LevelContents trainContents() => LevelContents(
   travelMaps: trainMapTiles,
   lookouts: <GridPoint>[
     trainLuigiTile,
+    trainChiaraTile,
     ...trainBookTiles,
     ...trainWardrobeTiles,
     ...trainCotTiles,

@@ -367,7 +367,12 @@ void main() {
       expect(trainFoodTiles.any(glinted), isTrue);
       for (final tile in <GridPoint>[
         ...world.campfires.where((camp) => !trainFoodTiles.contains(camp)),
-        ...world.lookouts.where((tile) => tile != trainLuigiTile),
+        ...world.lookouts.where(
+          (tile) =>
+              tile != trainLuigiTile &&
+              tile != chiaraTile &&
+              tile != trainChiaraTile,
+        ),
         ...world.controls.keys,
         // What the scripts answer when interacted with.
         barLockedDoorTile,
@@ -376,8 +381,13 @@ void main() {
       ]) {
         expect(glinted(tile), isTrue, reason: 'nothing glints near $tile');
       }
-      // Only objects glint: Luigi, whom Mario talks to, does not.
+      // Only objects glint: Luigi and Chiara, whom Mario talks to, do not.
       expect(glints.where((glint) => tileOf(glint) == trainLuigiTile), isEmpty);
+      expect(glints.where((glint) => tileOf(glint) == chiaraTile), isEmpty);
+      expect(
+        glints.where((glint) => tileOf(glint) == trainChiaraTile),
+        isEmpty,
+      );
       expect(
         world.travelMaps.any(glinted),
         isTrue,

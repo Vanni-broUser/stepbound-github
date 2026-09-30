@@ -51,6 +51,8 @@ enum PlaceId {
   palazzoGroundFloor,
   industryStreet,
   companyGround,
+  companyFirst,
+  companySecond,
   monumentSquare,
   electronicsShop,
 }

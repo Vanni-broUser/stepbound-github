@@ -18,11 +18,33 @@ final class TrainStage extends LevelStage {
   bool get _luigiRescued =>
       game.progress.hasExperienced(StoryMemory.luigiRescued);
 
+  /// Whether Chiara has come aboard, sent to the station from her desk:
+  /// Molfetta's story, so starting it over sends her back there.
+  bool get _chiaraAboard =>
+      game.story.scripts.whereType<CompanyScript>().first.aboard;
+
+  /// Chiara in her corner of the second coach, once she is aboard.
+  NpcComponent? _chiara;
+
   @override
   void restore() {
     _syncDoor();
     parkTrain(simulation, game.progress.level);
+    _syncChiaraTile();
   }
+
+  /// Nobody walks through a person: her spot is an obstacle while she is
+  /// there, and floor until she is.
+  void _syncChiaraTile() => simulation.map.setTile(
+    trainChiaraTile,
+    Tile(_chiaraAboard ? TileKind.obstacle : TileKind.floor),
+  );
+
+  NpcComponent _chiaraAboardComponent() => _chiara = NpcComponent(
+    asset: NpcComponent.chiaraAsset,
+    tile: trainChiaraTile,
+    facing: Direction.west,
+  );
 
   @override
   List<Component> build() {
@@ -31,6 +53,7 @@ final class TrainStage extends LevelStage {
       // Nobody gets aboard before Luigi has opened the door, so he can be
       // there all along.
       NpcComponent(asset: NpcComponent.luigiAsset, tile: trainLuigiTile),
+      if (_chiaraAboard) _chiaraAboardComponent(),
       InteractGlintComponent(
         tile: trainMapPanelTile,
         spot: const Offset(11, 6),
@@ -72,7 +95,15 @@ final class TrainStage extends LevelStage {
   }
 
   @override
-  void update(double dt) => _syncDoor();
+  void update(double dt) {
+    _syncDoor();
+    // She comes aboard while Mario is elsewhere: the moment he leaves her
+    // floor.
+    if (_chiara == null && _chiaraAboard) {
+      _syncChiaraTile();
+      game.addToWorld(_chiaraAboardComponent());
+    }
+  }
 
   /// The station reunion starts Luigi's music with its cutscene, not while
   /// Mario is still crossing the station.

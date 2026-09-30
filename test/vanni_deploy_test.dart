@@ -32,10 +32,17 @@ void main() {
     final progress = Progress.fromJson(save.progress);
     expect(progress.hasGoldenPistol, isTrue);
     expect(progress.memories, contains(StoryMemory.goldenPistol));
+    // Every type of Molfetta but the call centre's operators, only met
+    // in the company after Rome, with the grappling hook.
     expect(
       progress.knownZombies,
-      containsAll(levelZombieKinds(LevelId.hometown).toSet()),
+      containsAll(
+        levelZombieKinds(
+          LevelId.hometown,
+        ).where((kind) => kind != EntityKind.callCenter).toSet(),
+      ),
     );
+    expect(progress.knownZombies, isNot(contains(EntityKind.callCenter)));
     expect(
       restoreGameWorld(save.world).entities.values.where(
         (entity) => entity.kind != EntityKind.player && !entity.isAlive,

@@ -72,7 +72,7 @@ void main() {
           "Trova l'anello episcopale",
           'Partecipa alla cerimonia di iniziazione',
           'Usa il rampino per esplorare i terrazzi',
-          'Raggiungi la sopravvissuta',
+          "Raggiungi Chiara dall'altra parte degli uffici",
         ],
       );
       expect(Mission.of(LevelId.rome).map((mission) => mission.text), <String>[

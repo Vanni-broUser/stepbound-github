@@ -137,4 +137,19 @@ const Map<EntityKind, ZombieLore> zombieLore = <EntityKind, ZombieLore>{
         'due.',
     introducedOnSight: true,
   ),
+  EntityKind.callCenter: ZombieLore(
+    name: 'Call center',
+    portrait: 'assets/characters/zombies/portraits/call_center.png',
+    lesson:
+        'Gli zombi del call center sono veloci come te, ma il filo della '
+        'cornetta li tiene legati alla loro postazione: oltre la lunghezza '
+        'del filo non possono seguirti',
+    description:
+        'È morto in cuffia, a metà di una telefonata, e la cornetta non la '
+        'molla più. Scatta veloce quanto te, ma il filo lo tiene legato alla '
+        'sua scrivania: si allunga verso di te finché il filo tiene, poi '
+        'resta lì a tirare. Stagli lontano quanto basta, o sparagli prima di '
+        'passargli accanto.',
+    introducedOnSight: true,
+  ),
 };

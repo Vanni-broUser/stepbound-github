@@ -30,6 +30,12 @@
 /// Past it the two drivers' seats `h`, one above the other in line with
 /// the table, face the controls `C`, which follow the tapered nose round
 /// to the windscreen `V`. The bottles and the sheets are walked over.
+///
+/// In the second coach, the one in the middle, in the bottom right corner
+/// between the last seats, Chiara's corner once she is aboard: her camp
+/// bed `b` like Luigi's, her suitcases `O` open on the floor, her washing
+/// hung out to dry on a line strung from one seat to the other `~`, her
+/// clothes `c` and empty cans `o` about, and where she stands `j`.
 // train-interior-rows-start
 const List<String> trainInteriorRows = <String>[
   'xWWWWWWWWWWWWWWWWWWWWIIIWWWWWWWWWWWWWWWWWWWWIIIWWWWWWWWWWWWWWWWWWWWWWWxxxxxxx',
@@ -39,10 +45,10 @@ const List<String> trainInteriorRows = <String>[
   'xW..TT....LL....TT..WI.IW..TT....LL....TT..WI.IW....f...f..............*CCVxx',
   'xW............................................................PPPP...h..CCVxx',
   'xW..SS....SS....SS..WI.IW..SS....SS....SS..WI.IW..u....om.....PPPP...h..CCVxx',
-  'xW..SS....SS....SS..WI.IW..SS....SS....SS..WI.IWoc...m...cc...PPPP.....*CCVxx',
-  'xW....*........*....WI.IW....*........*....WI.IW...*c..cm..O...........CCVxxx',
-  'xW..SS....SS....SS..WI.IW..SS....SS....SS..WI.IW.o..l.m.uccm..........CCVxxxx',
-  'xW..SS....SS....SS..WI.IW..SS....SS....SS..WI.IWbbbm...oc.OO........CCVxxxxxx',
+  'xW..SS....SS....SS..WI.IW..SS....SS~~~~SS..WI.IWoc...m...cc...PPPP.....*CCVxx',
+  'xW....*........*....WI.IW....*......o.*...oWI.IW...*c..cm..O...........CCVxxx',
+  'xW..SS....SS....SS..WI.IW..SS....SS....SSjcWI.IW.o..l.m.uccm..........CCVxxxx',
+  'xW..SS....SS....SS..WI.IW..SS....SSbbboSSOOWI.IWbbbm...oc.OO........CCVxxxxxx',
   'xwwwwwwwEwwwwwwwwwwwwiiiwwwwwwwwwwwwwwwwwwwwiiiwwwwwwwwwwwwwwwwwwwwwwwxxxxxxx',
 ];
 // train-interior-rows-end

@@ -38,6 +38,7 @@ final class EntityFactory {
     required EntityKind kind,
     required GridPoint position,
     Direction facing = Direction.west,
+    TetherComponent? tether,
   }) {
     if (kind == EntityKind.player) {
       throw ArgumentError.value(kind, 'kind', 'A zombie cannot be a player.');
@@ -59,6 +60,7 @@ final class EntityFactory {
           trailsFire: stats.trailsFire,
           staggers: stats.staggers,
         ),
+        ?tether,
       ],
     );
   }

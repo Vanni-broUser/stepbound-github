@@ -462,8 +462,25 @@ FLOORS = (
 )
 
 
-def company_ground(atlas: Atlas, rng) -> dict:
-    """The rules that paint PlaceId.companyGround."""
+def paint_stairs_down(d, px, py):
+    """The top of a flight down, in the front wall: concrete treads with
+    their yellow nosings going down into the dark, the steel railing down
+    the side."""
+    rect(d, px, py, TILE, TILE, (16, 16, 18))
+    for step in range(4):
+        inset = step * 2
+        y = py + 2 + step * 3
+        rect(d, px + inset, y, TILE - inset, 2,
+             shade((150, 150, 146), -step * 30))
+        rect(d, px + inset, y, TILE - inset, 1, shade(CO_YELLOW, -step * 34))
+    rect(d, px + 14, py, 2, TILE, CO_STEEL_DARK)
+    rect(d, px + 14, py, 2, 1, CO_STEEL)
+
+
+def company_floor(atlas: Atlas, rng, marker: str, images: str) -> dict:
+    """The rules that paint one of the company's floors, whose rows are
+    between the `marker` lines; its flights up are drawn as `images`_west
+    and _east."""
     rules = []
     for glyph, paint in FLOORS:
         rules.append(rule("ground", glyph, [atlas.bucket(
@@ -506,6 +523,7 @@ def company_ground(atlas: Atlas, rng) -> dict:
     rules.append(rule("structures", "w", one(paint_front_wall)))
     rules.append(rule("structures", "E", one(paint_gate)))
     rules.append(rule("structures", "d", one(paint_doorway)))
+    rules.append(rule("structures", "v", one(paint_stairs_down)))
     rules.append(rule("structures", ":", randomly(paint_litter)))
     rules.append(rule("structures", "b", randomly(palazzo.paint_blood)))
     buckets, pieces = spread(atlas, lambda i: lambda d, px, py:
@@ -548,10 +566,10 @@ def company_ground(atlas: Atlas, rng) -> dict:
         rules.append(rule("structures", glyph, buckets, pieces=up))
 
     # One flight in each wing: each its own object, where it stands.
-    rows = read_rows("company-rows")
+    rows = read_rows(marker)
     flights = [(x, y) for y, row in enumerate(rows)
                for x, glyph in enumerate(row) if glyph == "U"]
-    objects = [{"glyph": "U", "image": f"company_stairs_up_{side}.png",
+    objects = [{"glyph": "U", "image": f"{images}_{side}.png",
                 "at": [x, y], "under": [rows[y][x]], "offsetY": -1,
                 "sprite": stair_door()}
                for side, (x, y) in zip(("west", "east"), flights)]
@@ -574,10 +592,31 @@ GROUND = ground_config(
 )
 
 
+def company_ground(atlas: Atlas, rng) -> dict:
+    """The rules that paint PlaceId.companyGround."""
+    return company_floor(atlas, rng, "company-rows", "company_stairs_up")
+
+
+def company_first(atlas: Atlas, rng) -> dict:
+    """The rules that paint PlaceId.companyFirst."""
+    return company_floor(atlas, rng, "company-first-rows",
+                         "company_first_stairs_up")
+
+
+def company_second(atlas: Atlas, rng) -> dict:
+    """The rules that paint PlaceId.companySecond: no flight up."""
+    return company_floor(atlas, rng, "company-second-rows",
+                         "company_second_stairs_up")
+
+
 PLACES = {
     "companyGround": company_ground,
+    "companyFirst": company_first,
+    "companySecond": company_second,
 }
 
 PREVIEW_ROWS = {
     "companyGround": "company-rows",
+    "companyFirst": "company-first-rows",
+    "companySecond": "company-second-rows",
 }

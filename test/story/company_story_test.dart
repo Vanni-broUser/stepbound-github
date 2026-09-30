@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/core/core.dart';
+import 'package:stepbound/game/level_restart.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/ui/level_complete.dart';
@@ -75,7 +76,10 @@ void main() {
 
       host.onCutsceneFinished!();
       expect(progress.missions.isOpen(Mission.reachSurvivor), isTrue);
-      expect(Mission.reachSurvivor.text, 'Raggiungi la sopravvissuta');
+      expect(
+        Mission.reachSurvivor.text,
+        "Raggiungi Chiara dall'altra parte degli uffici",
+      );
       expect(script().callPlayed, isTrue);
 
       standAt(inside(1));
@@ -114,6 +118,210 @@ void main() {
       expect(host.cutscenes, isEmpty);
       standAt(inside(6));
       expect(host.cutscenes, hasLength(1));
+    });
+
+    test('reached at last, a couple of cells from her workstation: they '
+        'meet, and the mission to reach her is done', () {
+      progress.missions.give(Mission.reachSurvivor);
+      // Along the aisle below her desk, from the glass.
+      GridPoint aisle(int fromHer) =>
+          GridPoint(chiaraTile.x - fromHer, chiaraTile.y + 1);
+      standAt(aisle(3));
+      expect(host.cutscenes, isEmpty, reason: 'four steps from her');
+      standAt(aisle(2));
+      expect(
+        aisle(2).manhattanDistanceTo(chiaraTile),
+        CompanyScript.meetingReach,
+      );
+      expect(host.cutscenes.single, CompanyScript.meetingFrames);
+      expect(host.cutscenes.single.map((frame) => frame.speaker), <String?>[
+        CompanyScript.mario,
+        CompanyScript.chiara,
+        CompanyScript.mario,
+        CompanyScript.chiara,
+      ]);
+      expect(host.cutscenes.single.map((frame) => frame.text), <String>[
+        'Ei ma che ci fai qui?',
+        'Ho degli straordinari da recuperare',
+        "Signora c'è l'apocalisse zombi qui!",
+        'Ecco perché non chiudevo più nessun contratto',
+      ]);
+      expect(progress.memories, contains(StoryMemory.chiaraMet));
+      expect(StoryMemory.chiaraMet.level, LevelId.hometown);
+      expect(progress.missions.isDone(Mission.reachSurvivor), isFalse);
+
+      host.onCutsceneFinished!();
+      settle();
+      // Back in the game, Mario sends her to the station before he can
+      // move; the mission is done once he has said it.
+      expect(host.shown.last.single.text, CompanyScript.sendToStation);
+      expect(host.shown.last.single.speaker, 'Mario Rossi');
+      expect(progress.missions.isDone(Mission.reachSurvivor), isFalse);
+      host.dismiss();
+      expect(progress.missions.isDone(Mission.reachSurvivor), isTrue);
+      expect(progress.missions.isOpen(Mission.reachSurvivor), isFalse);
+      expect(script().met, isTrue);
+      expect(script().aboard, isFalse, reason: 'still at her desk');
+      expect(
+        memoryScenes[StoryMemory.chiaraMet]!.map((scene) => scene.image),
+        CompanyScript.meetingFrames.map((frame) => frame.image),
+      );
+
+      standAt(aisle(3));
+      standAt(chiaraTile.step(Direction.south));
+      expect(host.cutscenes, hasLength(1), reason: 'only once');
+
+      final saved = script().toJson();
+      startStory();
+      script().restore(saved);
+      standAt(chiaraTile.step(Direction.south));
+      expect(host.cutscenes, isEmpty, reason: 'a save remembers it');
+    });
+
+    test('once met, talking to her again: she will see him at the station; '
+        'the moment he leaves her floor she has gone to the train, and '
+        'starting Molfetta over puts her back at her desk', () {
+      script().restore(<String, Object?>{
+        'seen': true,
+        'played': true,
+        'met': true,
+      });
+      final beside = chiaraTile.step(Direction.south);
+      world.player.component<PositionComponent>()
+        ..position = beside
+        ..facing = Direction.north;
+      expect(world.lookouts, contains(chiaraTile));
+      director.onEvents(
+        const TurnScheduler().advance(world, const InteractAction()),
+      );
+      settle();
+      final line = host.shown.last.single;
+      expect(line.text, 'Allora ci vediamo in stazione...');
+      expect(line.speaker, CompanyScript.chiara);
+      expect(line.portrait, 'assets/characters/npcs/portraits/chiara.png');
+      host.dismiss();
+      host.shown.clear();
+
+      // Up the stairs: another place, and she is gone.
+      standAt(companyStairs.last.step(Direction.south));
+      expect(script().aboard, isFalse, reason: 'still on her floor');
+      final (_, above) = companyFlights[1];
+      standAt(above.step(Direction.north));
+      expect(script().aboard, isTrue);
+      expect(script().toJson()['gone'], isTrue);
+
+      // Back by her desk, nobody there to talk to.
+      world.player.component<PositionComponent>()
+        ..position = beside
+        ..facing = Direction.north;
+      director.onEvents(<WorldEvent>[LookedOutEvent(at: chiaraTile)]);
+      settle();
+      expect(host.shown, isEmpty);
+
+      startStory();
+      expect(script().aboard, isFalse);
+      expect(
+        storyScriptCities.containsKey(script().key),
+        isFalse,
+        reason: "Molfetta's story, reset with it",
+      );
+    });
+
+    test('her corner aboard: in the second coach, bottom right, with her '
+        'cot, her suitcases, her washing on a line and cans about', () {
+      final train = place(PlaceId.trainInterior);
+      expect(placeAt(trainChiaraTile), train);
+      expect(
+        world.map.tileAt(trainChiaraTile).isWalkable,
+        isTrue,
+        reason: 'nobody there until she comes aboard',
+      );
+      final coaches = train.tilesOf('I').map((tile) => tile.x).toSet().toList()
+        ..sort();
+      expect(trainChiaraTile.x, greaterThan(coaches.first));
+      expect(trainChiaraTile.x, lessThan(coaches.last));
+      expect(trainChiaraTile.y, greaterThan(trainExitTile.y - 6));
+      for (final glyph in <String>['~', 'O', 'o', 'b', 'c']) {
+        expect(
+          train
+              .tilesOf(glyph)
+              .any((tile) => tile.manhattanDistanceTo(trainChiaraTile) <= 6),
+          isTrue,
+          reason: glyph,
+        );
+      }
+      expect(world.map.tileAt(train.tilesOf('~').first).isWalkable, isFalse);
+    });
+
+    test('aboard, she talks about the journey in Molfetta and about Rome '
+        'in Rome; before she has come aboard, nobody answers there', () {
+      void talk() {
+        director.onEvents(<WorldEvent>[LookedOutEvent(at: trainChiaraTile)]);
+        settle();
+      }
+
+      expect(world.lookouts, contains(trainChiaraTile));
+      talk();
+      expect(host.shown, isEmpty, reason: 'not aboard yet');
+
+      script().restore(<String, Object?>{'met': true, 'gone': true});
+      talk();
+      expect(host.shown.last.map((line) => line.text), <String>[
+        'Dobbiamo arrivare fino in Norvegia? Sembra un sacco di strada',
+      ]);
+      expect(host.shown.last.single.speaker, CompanyScript.chiara);
+      expect(host.shown.last.single.portrait, CompanyScript.chiaraPortrait);
+      host.dismiss();
+
+      progress.travel(LevelId.rome, rounds: 3);
+      for (settle(); host.isPromptVisible; settle()) {
+        host.dismiss();
+      }
+      talk();
+      expect(host.shown.last.map((line) => line.text), <String>[
+        'Cosa? Non sei mai stato a Roma?!',
+        TrainScript.chiaraRomeLines.last.text,
+      ]);
+      expect(
+        TrainScript.chiaraRomeLines.last.text,
+        'È la città eterna, ti ritrovi tra le rovine romane senza rendertene '
+        'conto',
+      );
+    });
+
+    test('Molfetta started over after she came aboard: she is back at her '
+        'desk, not on the train, not even in Rome if she is not found '
+        'again first', () {
+      final world = createGameWorld()
+        ..map.setTile(trainChiaraTile, const Tile(TileKind.obstacle));
+      final restarted = restartHometown((
+        world: saveGameWorld(world),
+        story: <String, Object?>{
+          'company': <String, Object?>{'met': true, 'gone': true},
+        },
+        progress: Progress().toJson(),
+        hud: const <String>[],
+        place: trainPlaceName,
+      ), Progress.newGame());
+      expect(restarted.story.containsKey('company'), isFalse);
+      final again = restoreGameWorld(restarted.world);
+      expect(again.map.tileAt(trainChiaraTile).isWalkable, isTrue);
+      expect(again.map.tileAt(chiaraTile).isWalkable, isFalse);
+
+      // And on to Rome in the new run, the company never entered.
+      script().restore(
+        restarted.story['company'] as Map<String, Object?>? ??
+            const <String, Object?>{},
+      );
+      progress.travel(LevelId.rome, rounds: 3);
+      for (settle(); host.isPromptVisible; settle()) {
+        host.dismiss();
+      }
+      host.shown.clear();
+      expect(script().aboard, isFalse);
+      director.onEvents(<WorldEvent>[LookedOutEvent(at: trainChiaraTile)]);
+      settle();
+      expect(host.shown, isEmpty);
     });
 
     test("her call is one of Molfetta's memories and the mission one of "
