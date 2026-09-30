@@ -22502,21 +22502,21 @@
           "tiles": [3, 1]
         },
         {
-          "at": [69, 0],
+          "at": [70, 0],
           "image": "train/train_nose.png",
           "under": [
-            "Wxxxxxxx",
-            "CVxxxxxx",
-            ".CCVxxxx",
-            "..CCVxxx",
-            "..*CCVxx",
-            "h..CCVxx",
-            "h..CCVxx",
-            "..*CCVxx",
-            "..CCVxxx",
-            ".CCVxxxx",
-            "CVxxxxxx",
-            "wxxxxxxx"
+            "xxxxxxx",
+            "Vxxxxxx",
+            "CCVxxxx",
+            ".CCVxxx",
+            ".*CCVxx",
+            "..CCVxx",
+            "..CCVxx",
+            ".*CCVxx",
+            ".CCVxxx",
+            "CCVxxxx",
+            "Vxxxxxx",
+            "xxxxxxx"
           ]
         }
       ]

@@ -9,6 +9,7 @@ tools/build_train.py, which the atlas replaced.
 """
 from __future__ import annotations
 
+import math
 import os
 import random
 import sys
@@ -134,8 +135,13 @@ TR_COT_WALLS = "xWwIiV"
 
 
 def paint_train_floor(d, rng, x, y):
-    px, py = x * TILE, y * TILE
-    rect(d, px, py, TILE, TILE, TR_FLOOR_A if (x + y) % 2 else TR_FLOOR_B)
+    paint_train_floor_tile(d, rng, x * TILE, y * TILE, (x + y) % 2)
+
+
+def paint_train_floor_tile(d, rng, px, py, parity):
+    """One tile of the floor at a pixel position: the two greys of the
+    chequer by `parity`, the joint along its top and left edges, grit."""
+    rect(d, px, py, TILE, TILE, TR_FLOOR_A if parity else TR_FLOOR_B)
     rect(d, px, py, TILE, 1, TR_FLOOR_LINE)
     rect(d, px, py, 1, TILE, TR_FLOOR_LINE)
     for _ in range(2):
@@ -1036,77 +1042,179 @@ def paint_train_lamp(d, px, py):
     rect(d, px + 6, py + 10, 4, 1, shade(TR_LAMP, -52))
 
 
-def train_nose_edge(room):
-    """The outer edge of the locomotive's nose, in pixels, for every pixel
-    row: through the outer side of each windscreen tile `V`, smoothed, and
-    closed at the top and bottom where the shell's straight walls end."""
-    anchors = []
-    for y in range(room.height):
-        vs = [x for x in range(room.width) if room.at(x, y) == "V"]
-        if vs:
-            anchors.append((y * TILE + TILE / 2, (vs[0] + 1) * TILE))
-        else:
-            walls = [x for x in range(room.width) if room.at(x, y) in "Ww"]
-            anchors.append((y * TILE + TILE / 2, (walls[-1] + 1) * TILE))
-    edge = []
-    for py in range(room.height * TILE):
-        # Interpolate between the anchors around this row, then average a
-        # little either side so the steps of the tiles melt into a curve.
-        def at(yy):
-            yy = min(max(yy, anchors[0][0]), anchors[-1][0])
-            for (y0, x0), (y1, x1) in zip(anchors, anchors[1:]):
-                if y0 <= yy <= y1:
-                    return x0 + (x1 - x0) * (yy - y0) / (y1 - y0)
-            return anchors[-1][1]
-        samples = [at(py + k) for k in range(-10, 11)]
-        edge.append(sum(samples) / len(samples))
-    return edge
+# The nose's wall is as thick as every other wall of the train: one tile,
+# measured straight across the curve.
+TR_NOSE_WALL = TILE
+# How far along the nose's edge the corners of the windscreen frame reach.
+TR_NOSE_PILLAR = 3
+
+
+def train_nose_outline(room):
+    """The outer edge of the locomotive's nose, clockwise from where the
+    roof's straight edge ends to where the belly's does, as a dense list
+    of points. A shoulder rounds off the roof into a slope at 45 degrees,
+    the slope runs out to the front, which is one arc from the top slope
+    to the bottom one; the same the other way round below. The slope is
+    set so that the wall's inner edge passes the corners of the driving
+    desk `C`, one tile in from the shell, and the front reaches one tile
+    past the farthest windscreen tile `V`: the picture is fuller than the
+    tiles say, which only matter as walls."""
+    x0 = (max(x for x in range(room.width) if room.at(x, 0) in "Ww") + 1) \
+        * TILE
+    x_max = (max(x for y in range(room.height) for x in range(room.width)
+                 if room.at(x, y) == "V") + 2) * TILE
+    height = room.height * TILE
+    slant = TR_NOSE_WALL * math.sqrt(2)
+    half_turn = math.tan(math.pi / 8)
+    shoulder = slant / half_turn
+    front_top = x_max - x0 - slant
+    front = (height / 2 - front_top) / half_turn
+    points = []
+
+    def arc(cx, cy, radius, a0, a1):
+        steps = max(2, int(abs(a1 - a0) * radius))
+        for i in range(steps + 1):
+            a = a0 + (a1 - a0) * i / steps
+            points.append((cx + radius * math.cos(a),
+                           cy + radius * math.sin(a)))
+
+    quarter = math.pi / 4
+    arc(x0, shoulder, shoulder, -2 * quarter, -quarter)
+    arc(x_max - front, height / 2, front, -quarter, quarter)
+    arc(x0, height - shoulder, shoulder, quarter, 2 * quarter)
+    return points
+
+
+def train_nose_segments(outline):
+    """The outline as segments: (x0, y0, x1, y1, length, distance along
+    the outline to the start, lighting). The lighting is how much the
+    outside of the wall there faces up: 1 along the roof, 0 at the front,
+    -1 along the belly, which is what tells the roof's bright edge from
+    the belly's shadow, as on the straight walls."""
+    segments = []
+    along = 0.0
+    for (ax, ay), (bx, by) in zip(outline, outline[1:]):
+        length = math.hypot(bx - ax, by - ay)
+        if length == 0:
+            continue
+        segments.append((ax, ay, bx, by, length, along, (bx - ax) / length))
+        along += length
+    return segments
+
+
+def train_nose_wall(depth, light, along, glass, frame_ends):
+    """The colour of a pixel of the nose's wall, `depth` pixels in from
+    its outer edge, in the layers the straight walls have: the dark rim
+    outside, the bright edge on top of whatever faces up, the shadow
+    under whatever faces down, the shell between them, and along the
+    front the windscreen set into it like the coaches' windows, between
+    its two pillars."""
+    rim = 3 if light > 0.5 else (2 if light > -0.5 else 1)
+    if depth < rim:
+        return TR_METAL_DARK
+    shadow = (0 if light > 0.6 else 1 if light > 0.3 else 2
+              if light > -0.3 else 3 if light > -0.6 else 4)
+    if depth < rim + shadow:
+        return TR_SHELL_DARK
+    if glass is not None:
+        start, end = glass
+        pillar = any(abs(along - edge) < frame_ends for edge in (start, end))
+        if start <= along <= end:
+            if pillar and 5 <= depth < 14:
+                return TR_METAL_DARK
+            if depth in (6, 12):
+                return TR_METAL_DARK
+            if 7 <= depth < 12:
+                shine = depth == 7 and ((along - start) // 6) % 3 == 0
+                return TR_GLASS_LIGHT if shine else TR_GLASS
+    lit_outside = min(1.0, max(0.0, (light - 0.3) / 0.4))
+    if depth < rim + shadow + 2 and lit_outside > 0:
+        return _blend(TR_SHELL, TR_SHELL_LIGHT, lit_outside)
+    if depth >= TR_NOSE_WALL - 2 and lit_outside < 1:
+        return _blend(TR_SHELL, TR_SHELL_LIGHT, 1 - lit_outside)
+    return TR_SHELL
+
+
+def _blend(a, b, t):
+    return tuple(int(round(u + (v - u) * t)) for u, v in zip(a, b))
 
 
 def train_nose(room):
-    """Clears everything past the nose's edge and draws the shell round it,
-    with the windscreen just inside: glass along the front, a frame line,
-    and the pillars at the two corners. Returns the picture and the tile
-    it starts from: from the column before the first windscreen tile to
-    the end of the row, over every row of the place."""
-    edge = train_nose_edge(room)
+    """The locomotive's nose: from the first windscreen column to the end
+    of the rows, over every row of the place. Outside its edge is the
+    void; inside, the wall runs round it one tile thick, and past the
+    wall the floor fills whatever cells the rows leave empty `x`, so that
+    the floor reaches the wall everywhere. Over the cells the rules paint
+    themselves the floor is left to them. Returns the picture and the
+    tile column it starts from."""
+    outline = train_nose_outline(room)
+    segments = train_nose_segments(outline)
     first = min(x for y in range(room.height) for x in range(room.width)
-                if room.at(x, y) == "V") - 1
+                if room.at(x, y) == "V")
     left = first * TILE
-    sprite = Image.new("RGBA", ((room.width - first) * TILE,
-                                room.height * TILE), TRANSPARENT)
+    width = (room.width - first) * TILE
+    height = room.height * TILE
+    # Which segments to measure from, by band of rows: only those a wall's
+    # thickness away can matter.
+    band = TILE
+    reach = TR_NOSE_WALL + 2
+    buckets = {}
+    for segment in segments:
+        low = int((min(segment[1], segment[3]) - reach) // band)
+        high = int((max(segment[1], segment[3]) + reach) // band)
+        for key in range(low, high + 1):
+            buckets.setdefault(key, []).append(segment)
+
+    def nearest(px, py):
+        best = (reach + 1, 0.0, 0.0)
+        for ax, ay, bx, by, length, along, light in buckets.get(
+                int(py // band), ()):
+            t = ((px - ax) * (bx - ax) + (py - ay) * (by - ay)) / (length ** 2)
+            t = min(1.0, max(0.0, t))
+            distance = math.hypot(px - ax - (bx - ax) * t,
+                                  py - ay - (by - ay) * t)
+            if distance < best[0]:
+                best = (distance, light, along + t * length)
+        return best
+
+    # The windscreen runs from the end of the shoulder round to the end
+    # of the other one.
+    shoulder_end = next(along for _, _, _, _, _, along, light in segments
+                        if light < 0.72)
+    total = segments[-1][5] + segments[-1][4]
+    glass = (shoulder_end, total - shoulder_end)
+
+    mask = Image.new("1", (width, height), 0)
+    ImageDraw.Draw(mask).polygon(
+        [(x - left, y) for x, y in outline] + [(-1, height), (-1, 0)],
+        fill=1)
+    floor = Image.new("RGBA", (width, height), TRANSPARENT)
+    grit = random.Random(len(outline))
+    floor_draw = ImageDraw.Draw(floor)
+    for gy in range(room.height):
+        for gx in range(first, room.width):
+            if room.at(gx, gy) == "x":
+                paint_train_floor_tile(floor_draw, grit, (gx - first) * TILE,
+                                       gy * TILE, (gx + gy) % 2)
+    sprite = Image.new("RGBA", (width, height), TRANSPARENT)
     pixels = sprite.load()
-    glass_top = min(y for y in range(room.height)
-                    if "V" in room.rows[y]) * TILE
-    glass_bottom = (max(y for y in range(room.height)
-                        if "V" in room.rows[y]) + 1) * TILE
+    inside = mask.load()
+    floored = floor.load()
     void = TR_VOID + (255,)
-    for py in range(room.height * TILE):
-        x_edge = int(round(edge[py]))
-        if x_edge < left:
-            continue
-        for px in range(left, room.width * TILE):
-            depth = x_edge - px
-            if depth <= 0:
-                colour = void
-            elif depth <= 2:
-                colour = TR_SHELL_DARK
-            elif depth <= 4:
-                colour = TR_SHELL
-            elif depth <= 10 and glass_top + 4 <= py < glass_bottom - 4:
-                light = 7 <= depth <= 8 and (py // 6) % 3 == 0
-                colour = TR_GLASS_LIGHT if light else TR_GLASS
-            elif depth == 11 and glass_top + 4 <= py < glass_bottom - 4:
-                colour = TR_WINDSCREEN_FRAME
-            else:
+    for py in range(height):
+        edge = max((px for px in range(width) if inside[px, py]), default=-1)
+        for px in range(width):
+            if not inside[px, py]:
+                pixels[px, py] = void
                 continue
-            pixels[px - left, py] = colour + (255,) if len(colour) == 3 \
-                else colour
-    # The pillars where the windscreen meets the roof and the floor.
-    d = ImageDraw.Draw(sprite)
-    for py in (glass_top + 3, glass_bottom - 6):
-        x_edge = int(round(edge[py]))
-        rect(d, x_edge - 12 - left, py, 9, 3, TR_SHELL_DARK)
+            far = (edge - px > reach and reach < py < height - reach)
+            depth, light, along = (reach + 1, 0.0, 0.0) if far else \
+                nearest(left + px + 0.5, py + 0.5)
+            if depth >= TR_NOSE_WALL:
+                pixels[px, py] = floored[px, py]
+                continue
+            pixels[px, py] = train_nose_wall(
+                int(depth), light, along, glass, TR_NOSE_PILLAR) + (255,)
     return sprite, first
 
 
