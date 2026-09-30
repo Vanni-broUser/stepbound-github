@@ -20,6 +20,8 @@ void main() {
     bool wardrobe = false,
     Iterable<PlayerOutfit> linkedOutfits = const <PlayerOutfit>[],
     Iterable<PlayerOutfit> giftsBeforeStart = const <PlayerOutfit>[],
+    bool? sendsData,
+    ValueChanged<bool>? onSendData,
   }) async {
     resumes = 0;
     restarts = 0;
@@ -44,6 +46,8 @@ void main() {
           key: ValueKey<ResumePoint?>(resumePoint),
           resumePoint: resumePoint,
           wardrobe: wardrobe,
+          sendsData: sendsData,
+          onSendData: onSendData,
           onResumeFromCamp: () => resumes++,
           onRestartLevel: () => restarts++,
           onMainMenu: () => quits++,
@@ -427,5 +431,26 @@ void main() {
       ),
     );
     expect(find.byKey(const ValueKey<String>('pause-share')), findsNothing);
+  });
+
+  testWidgets('the switch for the anonymous data turns it off and on', (
+    tester,
+  ) async {
+    final changes = <bool>[];
+    await pumpMenu(tester, sendsData: true, onSendData: changes.add);
+    expect(find.text(PauseMenu.sendDataLabel(on: true)), findsOneWidget);
+    await tester.ensureVisible(
+      find.byKey(const ValueKey<String>('pause-send-data')),
+    );
+    await tap(tester, 'pause-send-data');
+    expect(changes, <bool>[false]);
+    expect(find.text(PauseMenu.sendDataLabel(on: false)), findsOneWidget);
+    await tap(tester, 'pause-send-data');
+    expect(changes, <bool>[false, true]);
+  });
+
+  testWidgets('without anywhere to send, there is no switch', (tester) async {
+    await pumpMenu(tester, onSendData: (_) {});
+    expect(find.byKey(const ValueKey<String>('pause-send-data')), findsNothing);
   });
 }

@@ -109,7 +109,7 @@ build_ios_signed:
       </plist>
       PLIST
   script:
-    - flutter build ios --release --no-codesign --dart-define=VANNI_DEPLOY="${VANNI_DEPLOY:-0}" --dart-define=STEPBOUND_COMMIT="$CI_COMMIT_SHORT_SHA" --build-number="$CI_PIPELINE_IID"
+    - flutter build ios --release --no-codesign --dart-define=VANNI_DEPLOY="${VANNI_DEPLOY:-0}" --dart-define=STEPBOUND_COMMIT="$CI_COMMIT_SHORT_SHA" --dart-define=STEPBOUND_TELEMETRY_URL="${STEPBOUND_TELEMETRY_URL:-}" --dart-define=STEPBOUND_TELEMETRY_KEY="${STEPBOUND_TELEMETRY_KEY:-}" --build-number="$CI_PIPELINE_IID"
     - |
       cat >> ios/Flutter/Release.xcconfig <<XCCONFIG
 

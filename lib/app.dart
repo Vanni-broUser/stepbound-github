@@ -8,6 +8,7 @@ import 'package:stepbound/app_services.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/game_audio.dart';
 import 'package:stepbound/game/audio/sound.dart';
+import 'package:stepbound/game/game_session.dart';
 import 'package:stepbound/game/input/touch_controls.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
@@ -15,6 +16,7 @@ import 'package:stepbound/game/render/pixel_palette.dart';
 import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/report/breadcrumbs.dart';
 import 'package:stepbound/report/error_report.dart';
+import 'package:stepbound/report/telemetry.dart';
 import 'package:stepbound/save/save_game.dart';
 import 'package:stepbound/save/skin_links.dart';
 import 'package:stepbound/ui/audio_scope.dart';
@@ -102,6 +104,7 @@ final class _StepboundAppState extends State<StepboundApp> {
   late final AppFlowController _flow = AppFlowController(
     saves: _saves,
     audio: _audio,
+    onSaveFailed: _sendSaveFailure,
   );
 
   /// Silences the game whenever it is not the app in front.
@@ -180,15 +183,42 @@ final class _StepboundAppState extends State<StepboundApp> {
       return;
     }
     Breadcrumbs.shared.add('app: rapporto del salvataggio condiviso');
-    await _shareReport(
-      ErrorReport(
-        error: failure.error,
-        stack: failure.stack,
-        source: 'salvataggio: ${failure.place}',
-        at: failure.at,
-      ),
+    await _shareReport(_saveFailureReport(failure));
+  }
+
+  /// A save that could not be written is sent as an error is, on its
+  /// own: rendered like one, the failure in the error's place.
+  void _sendSaveFailure(SaveFailure failure) {
+    final telemetry = Telemetry.shared;
+    if (!telemetry.active) {
+      return;
+    }
+    final report = _saveFailureReport(failure);
+    final reporter = (widget.reporter ?? ErrorReporter())
+      ..context ??= _reportSections;
+    unawaited(
+      reporter
+          .render(report)
+          .then(
+            (text) => telemetry.sendReport(
+              at: report.at,
+              source: report.source,
+              summary: report.summary,
+              text: text,
+            ),
+          )
+          .catchError((Object error) {
+            debugPrint('report: could not send the save failure ($error)');
+          }),
     );
   }
+
+  ErrorReport _saveFailureReport(SaveFailure failure) => ErrorReport(
+    error: failure.error,
+    stack: failure.stack,
+    source: 'salvataggio: ${failure.place}',
+    at: failure.at,
+  );
 
   /// The report a player asks for from the pause menu, with no error in
   /// it: the trail is the point, for the bugs that throw nothing, a script
@@ -400,6 +430,8 @@ final class _StepboundAppState extends State<StepboundApp> {
       onShareReport: widget.share == null
           ? null
           : () => unawaited(_shareTrail()),
+      sendsData: Telemetry.shared.available ? Telemetry.shared.enabled : null,
+      onSendData: (on) => unawaited(Telemetry.shared.setEnabled(enabled: on)),
     ),
     LevelEndCover() => const ColoredBox(
       key: ValueKey<String>('level-end-black'),

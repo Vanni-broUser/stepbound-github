@@ -6,6 +6,7 @@ import 'package:stepbound/game/haptics/game_haptics.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/character_component.dart';
 import 'package:stepbound/report/breadcrumbs.dart';
+import 'package:stepbound/report/telemetry.dart';
 
 /// What a character is asked to play for an event.
 enum CharacterCue {
@@ -86,7 +87,10 @@ final class WorldEventPresenter {
     required this.progress,
     required this.onStoryEvents,
     Breadcrumbs? trail,
-  }) : trail = trail ?? Breadcrumbs.shared;
+    Telemetry? telemetry,
+    this.kindOf,
+  }) : trail = trail ?? Breadcrumbs.shared,
+       telemetry = telemetry ?? Telemetry.shared;
 
   final EventStage stage;
   final GameAudio audio;
@@ -97,6 +101,14 @@ final class WorldEventPresenter {
   /// The story's scripts read the events too (`StoryDirector.onEvents`).
   final void Function(List<WorldEvent> events) onStoryEvents;
   final Breadcrumbs trail;
+
+  /// Where the anonymous events of how the game is played go: places
+  /// reached, zombies killed, deaths.
+  final Telemetry telemetry;
+
+  /// What kind of character an entity is, by its id, for those events;
+  /// without it they say `unknown`.
+  final EntityKind? Function(String entityId)? kindOf;
 
   int _presentedTurn = 0;
 
@@ -114,6 +126,7 @@ final class WorldEventPresenter {
     }
     _presentedTurn = turn;
     _leaveBreadcrumbs(turn, events);
+    _track(events);
     onStoryEvents(events);
     haptics.onEvents(events, playerId: stage.playerId);
     for (final cue in <SfxCue>[
@@ -149,6 +162,51 @@ final class WorldEventPresenter {
       }
     }
   }
+
+  /// The turn's events worth counting: the place when Mario enters it,
+  /// every death and who caused Mario's.
+  void _track(List<WorldEvent> events) {
+    if (!telemetry.active) {
+      return;
+    }
+    final place = stage.placeName;
+    final level = progress.level.name;
+    if (place != _trackedPlace) {
+      _trackedPlace = place;
+      telemetry.track('place_entered', <String, Object?>{
+        'level': level,
+        'place': place,
+      });
+    }
+    final playerId = stage.playerId;
+    String kind(String id) => kindOf?.call(id)?.name ?? 'unknown';
+    for (final event in events) {
+      switch (event) {
+        case DiedEvent(entityId: final victim) when victim == playerId:
+          final bites = events.whereType<DamagedEvent>().where(
+            (hit) => hit.entityId == playerId,
+          );
+          telemetry.track('player_died', <String, Object?>{
+            'level': level,
+            'place': place,
+            'killer': bites.isEmpty
+                ? 'unknown'
+                : kind(bites.last.sourceEntityId),
+          });
+        case DiedEvent(entityId: final victim):
+          telemetry.track('zombie_killed', <String, Object?>{
+            'level': level,
+            'place': place,
+            'kind': kind(victim),
+          });
+        case _:
+          break;
+      }
+    }
+  }
+
+  /// The place the events last named.
+  String? _trackedPlace;
 
   void _animate(List<WorldEvent> events) {
     final playerId = stage.playerId;

@@ -8,9 +8,12 @@ import 'package:stepbound/game/audio/game_audio.dart';
 import 'package:stepbound/report/breadcrumbs.dart';
 import 'package:stepbound/report/device_info.dart';
 import 'package:stepbound/report/error_report.dart';
+import 'package:stepbound/report/telemetry.dart';
 import 'package:stepbound/save/save_game.dart';
 import 'package:stepbound/ui/crash_guard.dart';
 import 'package:stepbound/ui/error_screen.dart';
+
+import 'fake_telemetry.dart';
 
 void main() {
   final noon = DateTime(2026, 9, 28, 12);
@@ -31,6 +34,7 @@ void main() {
     ErrorReporter reporter, {
     required ShareReport share,
     GameAudio? audio,
+    Telemetry? telemetry,
   }) async {
     tester.view.physicalSize = const Size(768, 432);
     tester.view.devicePixelRatio = 1;
@@ -39,6 +43,7 @@ void main() {
       CrashGuard(
         reporter: reporter,
         share: share,
+        telemetry: telemetry,
         services: audio == null
             ? null
             : AppServices(saves: MemorySaveRepository(), audio: audio),
@@ -50,6 +55,25 @@ void main() {
   }
 
   group('CrashGuard', () {
+    testWidgets('says the report leaves on its own when it does', (
+      tester,
+    ) async {
+      final telemetry = (await tester.runAsync(startedTelemetry))!;
+      final errors = reporter();
+      await pumpGuard(
+        tester,
+        errors,
+        share: (_, _) async {},
+        telemetry: telemetry,
+      );
+      errors.record(StateError('rotto'), null, source: 'test');
+      await tester.pump();
+      expect(find.text(ErrorScreen.explanationSent), findsOneWidget);
+      expect(find.text(ErrorScreen.explanation), findsNothing);
+      expect(find.text(ErrorScreen.shareLabel), findsOneWidget);
+      telemetry.dispose();
+    });
+
     testWidgets('shows the game until an error is reported, then the '
         'screen, and pauses the sound', (tester) async {
       final errors = reporter();

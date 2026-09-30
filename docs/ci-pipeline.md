@@ -105,6 +105,20 @@ due: `android_debug` parte da solo a ogni push e pull request, mentre
 e su GitHub non ci sono i job di firma. Per il resto i job sono gemelli:
 cambiandone uno va cambiato anche l'altro.
 
+## Telemetria
+
+Le build release (`build_android_release`, `build_android_release_apk`,
+`build_ios_signed`) passano al gioco l'indirizzo e la chiave del server
+`stepbound-be` dalle variabili GitLab protette:
+
+- `STEPBOUND_TELEMETRY_URL`: per esempio `https://telemetry.example.org`,
+  solo HTTPS (iOS rifiuta l'HTTP in chiaro);
+- `STEPBOUND_TELEMETRY_KEY`: lo stesso valore di `INGEST_KEY` sul server.
+  Finisce nell'APK: tiene fuori il traffico a caso, non protegge nulla.
+
+Senza queste variabili, e in ogni build di debug o locale, il gioco non
+raccoglie e non invia nulla (`docs/telemetry.md`).
+
 ## Firma Android
 
 I job Android firmati girano su combusken (tag `combusken-docker`), una

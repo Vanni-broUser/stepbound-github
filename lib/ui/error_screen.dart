@@ -15,6 +15,7 @@ final class ErrorScreen extends StatelessWidget {
     required this.onShare,
     required this.onMenu,
     this.sharing = false,
+    this.sentOnItsOwn = false,
     super.key,
   });
 
@@ -26,6 +27,10 @@ final class ErrorScreen extends StatelessWidget {
   /// While the share sheet is being prepared: the button waits.
   final bool sharing;
 
+  /// Whether the report leaves the phone by itself (see `Telemetry`): the
+  /// screen then says so, and sharing it is only for whoever wants to.
+  final bool sentOnItsOwn;
+
   static const String title = 'QUALCOSA È ANDATO STORTO';
   static const String explanation =
       'Il gioco si è fermato per un errore. Il rapporto dice quale, con la '
@@ -33,6 +38,12 @@ final class ErrorScreen extends StatelessWidget {
       'salvataggio dello slot: niente di personale. Mandalo allo '
       'sviluppatore e poi torna al menù per riprendere dall’ultimo '
       'salvataggio.';
+  static const String explanationSent =
+      'Il gioco si è fermato per un errore. Il rapporto, con la versione '
+      'del gioco, il telefono, gli ultimi passi della partita e il '
+      'salvataggio dello slot (niente di personale), parte da solo verso lo '
+      'sviluppatore, anche più tardi se ora non c’è rete. Torna al menù per '
+      'riprendere dall’ultimo salvataggio.';
   static const String shareLabel = 'CONDIVIDI IL RAPPORTO';
   static const String sharingLabel = 'UN MOMENTO…';
   static const String menuLabel = 'TORNA AL MENÙ';
@@ -76,7 +87,12 @@ final class ErrorScreen extends StatelessWidget {
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: <Widget>[
-                                    MenuParagraph(explanation, unit: unit),
+                                    MenuParagraph(
+                                      sentOnItsOwn
+                                          ? explanationSent
+                                          : explanation,
+                                      unit: unit,
+                                    ),
                                     SizedBox(height: 4 * unit),
                                     MenuParagraph(
                                       summary,

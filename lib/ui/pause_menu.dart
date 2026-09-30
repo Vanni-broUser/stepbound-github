@@ -66,6 +66,8 @@ final class PauseMenu extends StatefulWidget {
     required this.onClose,
     required this.onWearOutfit,
     this.onShareReport,
+    this.sendsData,
+    this.onSendData,
     this.restartsFromStory = true,
     this.wardrobe = false,
     super.key,
@@ -81,6 +83,15 @@ final class PauseMenu extends StatefulWidget {
   final VoidCallback? onShareReport;
 
   static const String shareLabel = 'CONDIVIDI IL RAPPORTO';
+
+  /// Whether the app sends error reports and anonymous gameplay data on
+  /// its own (see `Telemetry`); with [onSendData], the switch that turns
+  /// it off and on. Not there in a build with nowhere to send.
+  final bool? sendsData;
+  final ValueChanged<bool>? onSendData;
+
+  static String sendDataLabel({required bool on}) =>
+      'INVIO DATI ANONIMI: ${on ? 'SÌ' : 'NO'}';
 
   final Progress progress;
 
@@ -112,7 +123,16 @@ final class _PauseMenuState extends State<PauseMenu> {
     widget.progress.activeOutfit,
   );
 
+  /// The switch as the player last left it.
+  late bool? _sendsData = widget.sendsData;
+
   void _open(_PausePage page) => setState(() => _page = page);
+
+  void _toggleSendData(ValueChanged<bool> change) {
+    final on = !(_sendsData ?? false);
+    setState(() => _sendsData = on);
+    change(on);
+  }
 
   /// What the player is about to lose, said plainly.
   String get _cost => switch (_page) {
@@ -214,6 +234,14 @@ final class _PauseMenuState extends State<PauseMenu> {
           unit: unit,
           compact: true,
           onPressed: share,
+        ),
+      if ((_sendsData, widget.onSendData) case (final on?, final change?))
+        MenuButton(
+          key: const ValueKey<String>('pause-send-data'),
+          label: PauseMenu.sendDataLabel(on: on),
+          unit: unit,
+          compact: true,
+          onPressed: () => _toggleSendData(change),
         ),
     ],
   );

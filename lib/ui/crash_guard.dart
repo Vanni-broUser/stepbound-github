@@ -5,6 +5,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:stepbound/app_services.dart';
 import 'package:stepbound/game/render/pixel_palette.dart';
 import 'package:stepbound/report/error_report.dart';
+import 'package:stepbound/report/telemetry.dart';
 import 'package:stepbound/ui/error_screen.dart';
 
 /// How a report leaves the phone: the file's name and its text.
@@ -23,12 +24,17 @@ final class CrashGuard extends StatefulWidget {
     required this.child,
     required this.share,
     this.services,
+    this.telemetry,
     super.key,
   });
 
   final ErrorReporter reporter;
   final Widget child;
   final ShareReport share;
+
+  /// Whether the report also leaves on its own, for the screen to say so;
+  /// the app's own when null.
+  final Telemetry? telemetry;
 
   /// What [child] runs on, owned here for as long as the process lives:
   /// its sound is paused while the error is on screen and resumed with
@@ -135,6 +141,7 @@ final class _CrashGuardState extends State<CrashGuard> {
       home: ErrorScreen(
         summary: report.summary,
         sharing: _sharing,
+        sentOnItsOwn: (widget.telemetry ?? Telemetry.shared).active,
         onShare: () => unawaited(_share(report)),
         onMenu: _backToMenu,
       ),

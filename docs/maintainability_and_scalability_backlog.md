@@ -52,51 +52,6 @@ an App Bundle on a Play track and main taking eighteen merges a day, the
 one risk is a build that reaches the public without that commit: tags
 start with it, and every later build that leaves the team gets one.
 
-### P1 — Errors in the field
-
-Until this branch, an error nobody caught went to a console nobody reads:
-`lib/bootstrap.dart` installed neither `FlutterError.onError` nor
-`PlatformDispatcher.onError`, the privacy policy rules out crash
-reporting, and the release manifest has no `INTERNET` permission. A player
-would have seen a game that no longer answered, and nobody would have
-known.
-
-**Done here (first stage, no network).** `ErrorReporter`
-(`lib/report/error_report.dart`) hooks both handlers and keeps the first
-error; `CrashGuard` (`lib/ui/crash_guard.dart`) sits over the app and
-swaps in `ErrorScreen`, sound paused, with two ways out: share the report
-through the system's share sheet (`share_plus`, as a text file), or back
-to the menu, which builds the app anew. The report holds the build
-(`versionName`, `versionCode` and the commit CI passes as
-`--dart-define=STEPBOUND_COMMIT`), the phone (model, Android version,
-memory, from a method channel in `MainActivity.kt`), the error with its
-stack trace, the slot, phase and place, the slot's save as JSON to load
-and play the error back, and the trail (`Breadcrumbs`): place changes,
-world events other than steps, bumps and noises, story lines shown and
-the app's own turns (new game, load, menu, level complete). Nothing in the
-report can stop it from being written: whatever fails says so in its
-place. Release stack traces stay readable as long as `--obfuscate` is not
-used.
-
-Since 2026-09-30 the trail also holds what the player asked for
-(`input: cammina verso est`, `input: alza la pistola`, and `input
-ignorato: interagisce` once per run when the game did not take it), a
-held direction noted once, and the pause menu has a "Condividi il
-rapporto" entry that sends the same report with no error in it: for the
-bugs that throw nothing, a script that never lets go of Mario or a button
-that does not answer.
-
-**Left for later (second stage, if the demo grows).**
-
-- An opt-in switch, off by default, "Invia i rapporti automaticamente",
-  posting the same file to a small endpoint. A Cloudflare Worker with R2
-  or D1 costs nothing and has no server to keep patched; the runner
-  machine would have to be exposed and kept up. Before the switch ships:
-  `INTERNET` in the main manifest, the privacy policy rewritten (it
-  promises no data leaves the phone), the Play data-safety form, a size
-  limit and a rate limit on the endpoint, no device identifier in the
-  payload.
-
 ### P2 — What is left of loading the places by area
 
 - An area's places are composed one at a time as Mario walks into it
@@ -144,9 +99,9 @@ that does not answer.
 
 What only a release build shows, to keep in mind while testing:
 
-- The `INTERNET` permission is only in the debug and profile manifests (for
-  hot reload): anything online added later needs it in
-  `android/app/src/main`, and the privacy policy with it.
+- Only release builds made by CI send error reports and gameplay events
+  (`STEPBOUND_TELEMETRY_URL`, `docs/telemetry.md`): a debug build shows the
+  error screen but sends nothing, and the pause menu has no data switch.
 - R8 shrinks the plugins' Java/Kotlin code; a plugin relying on reflection
   can break there only. `share_plus` is the newest plugin: try the share
   sheet on a release build once.
