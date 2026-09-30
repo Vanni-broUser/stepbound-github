@@ -242,6 +242,32 @@ def paint_locked_door(d, px, py):
     rect(d, px + 5, py + 13, 1, 3, BLOOD_DARK)
 
 
+def paint_unlocked_door(d, px, py):
+    """The locked door once the key has opened it: the armoured leaf swung
+    back against the frame, its plate and its lock whole, and the parquet
+    of the flat past the sill."""
+    rect(d, px, py, TILE, TILE, PZ_WALL_TOP)
+    for i, sy in enumerate(range(py, py + TILE, 4)):
+        rect(d, px + 2, sy, TILE - 4, 4, PZ_OAK if i % 2 else PZ_OAK_LIGHT)
+        rect(d, px + 2, sy + 3, TILE - 4, 1, PZ_OAK_JOINT)
+    rect(d, px + 2, py, TILE - 4, 2, shade(PZ_OAK_JOINT, -30))
+    rect(d, px + 10, py + 1, 4, TILE - 2, PZ_WOOD_DARK)  # the leaf
+    rect(d, px + 11, py + 2, 2, TILE - 4, PZ_WOOD_LIGHT)
+    rect(d, px + 11, py + 5, 2, 1, (210, 190, 110))  # the name plate
+    rect(d, px + 10, py + 8, 1, 2, (200, 180, 90))  # the lock
+    rect(d, px + 2, py + 15, TILE - 4, 1, PZ_MARBLE_BAND)
+
+
+def locked_door_sprites() -> tuple[Image.Image, Image.Image]:
+    """The third floor's locked door as an object, shut and opened: the key
+    swaps one for the other."""
+    shut = Image.new("RGBA", (TILE, TILE), TRANSPARENT)
+    paint_locked_door(ImageDraw.Draw(shut), 0, 0)
+    opened = Image.new("RGBA", (TILE, TILE), TRANSPARENT)
+    paint_unlocked_door(ImageDraw.Draw(opened), 0, 0)
+    return shut, opened
+
+
 def paint_stairs_down(d, px, py):
     """The top of the flight down, in the front wall: marble treads going
     down into the dark, the iron banister down the side."""
@@ -646,6 +672,8 @@ def palazzo_floor(atlas: Atlas, rng, glyphs: str, style=None) -> dict:
         rules.append(rule("structures", "P", one(s.paint_flat_door)))
     if "L" in glyphs:
         rules.append(rule("structures", "L", one(s.paint_locked_door)))
+    if "Y" in glyphs:
+        rules.append(rule("structures", "Y", one(s.paint_unlocked_door)))
     if "E" in glyphs:
         rules.append(rule("structures", "E", one(s.paint_portone)))
     if "M" in glyphs:
@@ -736,8 +764,21 @@ def palazzo_second_floor(atlas: Atlas, rng) -> dict:
 
 
 def palazzo_third_floor(atlas: Atlas, rng) -> dict:
-    """The rules that paint PlaceId.palazzoThirdFloor."""
-    return palazzo_floor(atlas, rng, "PLpcU" + FURNITURE)
+    """The rules that paint PlaceId.palazzoThirdFloor, and its locked door,
+    which the key opens."""
+    art = palazzo_floor(atlas, rng, "PLpcU" + FURNITURE)
+    shut, opened = locked_door_sprites()
+    art["objects"].append({"glyph": "L", "image": "palazzo_flat_door.png",
+                           "sprite": shut,
+                           "whenOpen": "palazzo_flat_door_open.png",
+                           "openSprite": opened})
+    return art
+
+
+def palazzo_locked_flat(atlas: Atlas, rng) -> dict:
+    """The rules that paint PlaceId.palazzoLockedFlat: the flat behind the
+    third floor's locked door, and that door `Y` from inside, open."""
+    return palazzo_floor(atlas, rng, "Ypc" + FURNITURE)
 
 
 PLACES = {
@@ -745,6 +786,7 @@ PLACES = {
     "palazzoFirstFloor": palazzo_first_floor,
     "palazzoSecondFloor": palazzo_second_floor,
     "palazzoThirdFloor": palazzo_third_floor,
+    "palazzoLockedFlat": palazzo_locked_flat,
 }
 
 PREVIEW_ROWS = {
@@ -752,4 +794,5 @@ PREVIEW_ROWS = {
     "palazzoFirstFloor": "palazzo-first-rows",
     "palazzoSecondFloor": "palazzo-second-rows",
     "palazzoThirdFloor": "palazzo-third-rows",
+    "palazzoLockedFlat": "palazzo-locked-flat-rows",
 }

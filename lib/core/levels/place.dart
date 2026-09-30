@@ -49,6 +49,7 @@ enum PlaceId {
   palazzoSecondFloor,
   palazzoFirstFloor,
   palazzoGroundFloor,
+  palazzoLockedFlat,
   industryStreet,
   romePalazzoGround,
   romePalazzoFirst,

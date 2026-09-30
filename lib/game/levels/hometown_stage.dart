@@ -187,9 +187,13 @@ final class HometownStage extends LevelStage implements HometownActions {
 
   /// The door the key opens stands open from then on.
   @override
-  bool showsOpened(PlaceId place) =>
-      place == PlaceId.duomoUpper &&
-      simulation.map.tileAt(duomoUpperLockedDoorTile).isWalkable;
+  bool showsOpened(PlaceId place) => switch (place) {
+    PlaceId.duomoUpper =>
+      simulation.map.tileAt(duomoUpperLockedDoorTile).isWalkable,
+    PlaceId.palazzoThirdFloor =>
+      simulation.map.tileAt(palazzoLockedDoorTile).isWalkable,
+    _ => false,
+  };
 
   /// The glint on every object Mario can use here, the same one the
   /// backpacks give off (they draw their own, as it rides their drop): the

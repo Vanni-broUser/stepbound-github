@@ -14,7 +14,9 @@ import 'package:stepbound/core/levels/place.dart';
 /// Glyphs of all four:
 /// - `x` darkness, `W` the back wall (two courses), `w` the front wall,
 ///   `I` a partition: walls. `L` the one flat door still shut, on the
-///   third floor: a wall, the flat behind it not drawn at all.
+///   third floor: a wall, until the key found on the first floor opens
+///   it for good on the flat behind it; `Y` that door from inside the
+///   flat: a door.
 /// - `U` the stairs up, `D` the stairs down, `E` the portone onto the
 ///   street: doors. `P` a flat's door onto the landing, kicked in, and
 ///   `d` a doorway between two rooms: floor.
@@ -28,8 +30,9 @@ import 'package:stepbound/core/levels/place.dart';
 ///   `p` a potted palm, `r` a heap where the ceiling came down:
 ///   obstacles.
 /// - `:` plaster down off the ceiling (noisy), `b` blood, `c` a body,
-///   `*` ceiling lamp, `+` flickering lamp, `Z` a wanderer, `9` the
-///   backpack with two rounds, `k` the key of the third floor.
+///   `*` ceiling lamp, `+` flickering lamp, `Z` a wanderer, `z` a
+///   sprinter, `9` the backpack with two rounds, `8` the one with two
+///   molotovs, `k` the key of the third floor.
 ///
 /// The entrance hall on the street: the letterboxes on the back wall and
 /// the stairs up between them, the portone in the front wall.
@@ -107,8 +110,9 @@ const List<String> palazzoSecondFloorRows = <String>[
 
 /// The third floor, the top one, where the stairs from the roof come
 /// down: the flat west of the landing and the one in front east of it
-/// stand open; the one behind them, east, is locked, `L`, and nothing of
-/// it is drawn.
+/// stand open; the one behind them, east, is locked, `L`, until the key
+/// opens it on a map of its own (`palazzoLockedFlatRows`): here nothing
+/// of it is drawn, so nothing in it is seen from the landing.
 // palazzo-third-rows-start
 const List<String> palazzoThirdFloorRows = <String>[
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
@@ -134,6 +138,28 @@ const List<String> palazzoThirdFloorRows = <String>[
 ];
 // palazzo-third-rows-end
 
+/// The flat behind the third floor's locked door, a map of its own, got
+/// into only through it (`Y`, on its west wall): the kitchen and the
+/// living room in one, a sprinter shut in there since whoever locked the
+/// door, and through the doorway east the bedroom, where the backpack
+/// with two molotovs lies.
+// palazzo-locked-flat-rows-start
+const List<String> palazzoLockedFlatRows = <String>[
+  'xxxxxxxxxxxxxxxxxxxxx',
+  'xWWWWWWWWWWWWWWWWWWWx',
+  'xWWWWWWWWWWWWWWWWWWWx',
+  'xIKKOKF,,SSaInBBn..Ax',
+  'xI,,,,,,,...I.BB...Ax',
+  'xI,hTTh,..*.I...+...x',
+  'xY....c....:I..b...8x',
+  'xI..z.......d.......x',
+  'xI.........bI..:....x',
+  'xIVV.:..+..lIA....clx',
+  'xwwwwwwwwwwwwwwwwwwwx',
+  'xxxxxxxxxxxxxxxxxxxxx',
+];
+// palazzo-locked-flat-rows-end
+
 /// The palazzo's stairwell on every floor, from its back wall to its
 /// front wall: the landing, the stairs up and the stairs down, lit
 /// throughout (see `PlaceSpec.litAreas`).
@@ -155,6 +181,7 @@ final Place _palazzoGround = place(PlaceId.palazzoGroundFloor);
 final Place _palazzoFirst = place(PlaceId.palazzoFirstFloor);
 final Place _palazzoSecond = place(PlaceId.palazzoSecondFloor);
 final Place _palazzoThird = place(PlaceId.palazzoThirdFloor);
+final Place _palazzoFlat = place(PlaceId.palazzoLockedFlat);
 
 /// The palazzo's stairs, bottom to top: on each floor the flight `U` up
 /// in the back wall, and where it comes out, the flight `D` down in the
@@ -173,9 +200,20 @@ final GridPoint palazzoRoofStairs = _palazzoThird.tileOf('U');
 /// [industryStreetPortone]).
 final GridPoint palazzoPortone = _palazzoGround.tileOf('E');
 
-/// The flat door on the third floor still locked: the flat behind it is
-/// not drawn.
+/// The flat door on the third floor still locked, until the key opens it.
 final GridPoint palazzoLockedDoorTile = _palazzoThird.tileOf('L');
+
+/// The same door from inside the flat behind it.
+final GridPoint palazzoLockedFlatDoor = _palazzoFlat.tileOf('Y');
+
+/// The sprinter shut in the flat behind the locked door.
+const String palazzoSprinterId = 'palazzo-sprinter';
+final GridPoint palazzoSprinterTile = _palazzoFlat.tileOf('z');
+
+/// The backpack with two molotovs, in the bedroom of the flat behind the
+/// locked door.
+const String palazzoMolotovBackpackId = 'backpack-palazzo-molotov';
+final GridPoint palazzoMolotovBackpackTile = _palazzoFlat.tileOf('8');
 
 /// The backpack with two rounds, in the second floor's front flat.
 const String palazzoBackpackId = 'backpack-palazzo';
@@ -200,7 +238,8 @@ final List<GridPoint> palazzoZombieTiles = <GridPoint>[
 
 /// Down the stairwell on the roof past the airliner into the palazzo's top
 /// floor and back up onto its lowest step but one, the flights between the
-/// floors, and the portone onto the street. All both ways.
+/// floors, the locked door into the flat behind it, and the portone onto
+/// the street. All both ways.
 final Map<GridPoint, Portal> palazzoPortals = <GridPoint, Portal>{
   for (final step in rooftopFarStairsFoot)
     step: Portal(
@@ -215,6 +254,18 @@ final Map<GridPoint, Portal> palazzoPortals = <GridPoint, Portal>{
     ...pairedDoors(<GridPoint>[below], <GridPoint>[above], Direction.north),
     ...pairedDoors(<GridPoint>[above], <GridPoint>[below], Direction.south),
   },
+  // The locked door is a wall until the key opens it: then it leads into
+  // the flat behind it, and back.
+  ...pairedDoors(
+    <GridPoint>[palazzoLockedDoorTile],
+    <GridPoint>[palazzoLockedFlatDoor],
+    Direction.east,
+  ),
+  ...pairedDoors(
+    <GridPoint>[palazzoLockedFlatDoor],
+    <GridPoint>[palazzoLockedDoorTile],
+    Direction.west,
+  ),
   ...pairedDoors(
     <GridPoint>[palazzoPortone],
     <GridPoint>[industryStreetPortone],

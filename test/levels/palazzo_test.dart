@@ -99,27 +99,49 @@ void main() {
     expect(rooftopFarStairs, contains(at));
   });
 
-  test('every flat of every floor is walked into from its landing: no room '
-      'is shut off, and the one behind the locked door is not drawn', () {
-    final world = createGameWorld();
-    for (final floor in <Place>[third, second, first, hall]) {
-      final landing = floor == hall
-          ? palazzoPortone.step(Direction.north)
-          : floor.tileOf('D').step(Direction.north);
-      final reached = world.map.floodFillDistances(landing, maxDistance: 2000);
-      for (final (tile, _) in floor.glyphs) {
-        if (!world.map.tileAt(tile).isWalkable ||
-            world.portals.containsKey(tile)) {
-          continue;
+  test(
+    'every flat of every floor is walked into from its landing: no room '
+    'is shut off, and the one behind the locked door is a map of its own',
+    () {
+      final world = createGameWorld();
+      for (final floor in <Place>[third, second, first, hall]) {
+        final landing = floor == hall
+            ? palazzoPortone.step(Direction.north)
+            : floor.tileOf('D').step(Direction.north);
+        final reached = world.map.floodFillDistances(
+          landing,
+          maxDistance: 2000,
+        );
+        for (final (tile, _) in floor.glyphs) {
+          if (!world.map.tileAt(tile).isWalkable ||
+              world.portals.containsKey(tile)) {
+            continue;
+          }
+          expect(reached.containsKey(tile), isTrue, reason: '$tile shut off');
         }
-        expect(reached.containsKey(tile), isTrue, reason: '$tile shut off');
       }
-    }
-    expect(world.map.tileAt(palazzoLockedDoorTile).isWalkable, isFalse);
-    // East of the locked door, the dark: the flat is not there at all.
-    final behind = palazzoLockedDoorTile.step(Direction.east);
-    expect(third.glyphs.firstWhere((cell) => cell.$1 == behind).$2, 'x');
-  });
+      expect(world.map.tileAt(palazzoLockedDoorTile).isWalkable, isFalse);
+      // East of the locked door, the dark: nothing of the flat is seen from
+      // the landing.
+      final behind = palazzoLockedDoorTile.step(Direction.east);
+      expect(third.glyphs.firstWhere((cell) => cell.$1 == behind).$2, 'x');
+      // Through it, the flat, every room of it walked into from its door,
+      // and its door back out onto the landing.
+      final flat = place(PlaceId.palazzoLockedFlat);
+      final inside = world.portals[palazzoLockedDoorTile]!.to;
+      expect(placeAt(inside), flat);
+      expect(
+        world.portals[palazzoLockedFlatDoor]!.to,
+        palazzoLockedDoorTile.step(Direction.west),
+      );
+      final reached = world.map.floodFillDistances(inside, maxDistance: 2000);
+      for (final (tile, _) in flat.glyphs) {
+        if (world.map.tileAt(tile).isWalkable) {
+          expect(reached.containsKey(tile), isTrue, reason: '$tile shut off');
+        }
+      }
+    },
+  );
 
   test('the key is on the first floor, the backpack with two rounds on the '
       'second, and only the portone on the ground floor', () {
