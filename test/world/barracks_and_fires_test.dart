@@ -82,11 +82,12 @@ void main() {
     );
     // And two on the overturned car burning at the station, and one on
     // the street out of the palazzo past the airliner, with a bin and
-    // two windows on fire.
-    expect(count(all, FireKind.car), 16 + stationWreckFireSpots.length);
+    // two windows on fire; and on the monument's square past it, a car, two
+    // bins and three windows.
+    expect(count(all, FireKind.car), 17 + stationWreckFireSpots.length);
     expect(stationWreckFireSpots, hasLength(2));
-    expect(count(all, FireKind.bin), 10);
-    expect(count(all, FireKind.window), 17);
+    expect(count(all, FireKind.bin), 12);
+    expect(count(all, FireKind.window), 20);
     expect(count(all, FireKind.campfire), 6);
     // One camp in the north district, one in the dead end the wrecks
     // leave at the west end of the shopping street behind the mall, two

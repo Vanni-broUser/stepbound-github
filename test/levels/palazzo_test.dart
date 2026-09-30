@@ -170,9 +170,10 @@ void main() {
     final ends = workInProgressEnds.keys.where(
       (tile) => placeAt(tile) == street,
     );
-    // The street going on east, and the road going down south.
+    // The street going on east; the road going down south leads on to the
+    // monument's square (monument_square_test.dart).
     expect(ends.where((tile) => tile.x == street.bounds.right), isNotEmpty);
-    expect(ends.where((tile) => tile.y == street.bounds.bottom), isNotEmpty);
+    expect(ends.where((tile) => tile.y == street.bounds.bottom), isEmpty);
     expect(ends.where((tile) => tile.x == street.bounds.left), isEmpty);
   });
 }

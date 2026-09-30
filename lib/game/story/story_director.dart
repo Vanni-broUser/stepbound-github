@@ -7,6 +7,7 @@ import 'package:stepbound/game/story/scripts/bar_script.dart';
 import 'package:stepbound/game/story/scripts/barracks_script.dart';
 import 'package:stepbound/game/story/scripts/company_script.dart';
 import 'package:stepbound/game/story/scripts/duomo_script.dart';
+import 'package:stepbound/game/story/scripts/electronics_shop_script.dart';
 import 'package:stepbound/game/story/scripts/journey_script.dart';
 import 'package:stepbound/game/story/scripts/mall_script.dart';
 import 'package:stepbound/game/story/scripts/maranza_script.dart';
@@ -28,6 +29,7 @@ export 'package:stepbound/game/story/scripts/bar_script.dart';
 export 'package:stepbound/game/story/scripts/barracks_script.dart';
 export 'package:stepbound/game/story/scripts/company_script.dart';
 export 'package:stepbound/game/story/scripts/duomo_script.dart';
+export 'package:stepbound/game/story/scripts/electronics_shop_script.dart';
 export 'package:stepbound/game/story/scripts/journey_script.dart';
 export 'package:stepbound/game/story/scripts/mall_script.dart';
 export 'package:stepbound/game/story/scripts/maranza_script.dart';
@@ -311,6 +313,7 @@ final class StoryDirector {
       BarScript(this),
       PalazzoScript(this),
       CompanyScript(this),
+      ElectronicsShopScript(this),
       StreetScript(this),
       BarracksScript(this),
       DuomoScript(this),

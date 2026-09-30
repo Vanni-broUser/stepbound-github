@@ -18,7 +18,7 @@ from PIL import ImageDraw
 TILE = 16
 LEVELS_DIR = os.path.join("lib", "core", "levels")
 
-ROAD_GLYPHS = set(".-|ZVc")
+ROAD_GLYPHS = set(".-|ZVcɔ▔▏")
 WALK_GLYPHS = set("=")
 BUILDING_GLYPHS = set("BHfKMGW#%0\u00a7\u00c6")
 FACADE_GLYPHS = set("Hf")
@@ -98,7 +98,7 @@ STREET_STOREFRONTS = {
     # The dead-end street off the road north: the burning window at column
     # 33 is left to the houses.
     14: [
-        (21, 5, "pizzeria"),
+        (20, 6, "pizzeria"),
         (28, 4, "bar"),
         (34, 6, "burger"),
     ],
@@ -111,18 +111,26 @@ STREET_STOREFRONTS = {
 NORTH_STOREFRONTS = {
     27: [(38, 7, "barsport")],
     30: [
-        (63, 6, "elettronica"),
         (70, 5, "kebab2"),
+        # By the camp: the same shop as the one on the monument's square,
+        # its door at column 82.
+        (79, 6, "elettronica_aperta"),
     ],
+}
+# On the road east of the monument's square, the Elettronica, its door
+# `h` at column 46: the one shop in town still open.
+# On the road west of it, the chemist's, shut like the rest.
+MONUMENT_SQUARE_STOREFRONTS = {
+    9: [(5, 6, "farmacia"), (44, 5, "elettronica_aperta")],
 }
 MALL_NORTH_STOREFRONTS = {
     3: [
         (4, 5, "pizzeria"),
-        (11, 4, "alimentari"),
+        (9, 6, "alimentari"),
         (17, 6, "barsport"),
-        (26, 6, "elettronica"),
+        (25, 7, "elettronica"),
         (34, 5, "abbigliamento"),
-        (41, 5, "gelateria"),
+        (39, 7, "gelateria"),
     ],
 }
 # On Piazza dei Cinquecento, in the palazzi west of Termini.

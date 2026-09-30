@@ -19,11 +19,13 @@ export 'package:stepbound/core/levels/hometown/duomo_second_floor.dart';
 export 'package:stepbound/core/levels/hometown/duomo_tower.dart';
 export 'package:stepbound/core/levels/hometown/duomo_tower_roof.dart';
 export 'package:stepbound/core/levels/hometown/duomo_upper.dart';
+export 'package:stepbound/core/levels/hometown/electronics_shop.dart';
 export 'package:stepbound/core/levels/hometown/harbour.dart';
 export 'package:stepbound/core/levels/hometown/hospital.dart';
 export 'package:stepbound/core/levels/hometown/industry_street.dart';
 export 'package:stepbound/core/levels/hometown/mall.dart';
 export 'package:stepbound/core/levels/hometown/mall_north_street.dart';
+export 'package:stepbound/core/levels/hometown/monument_square.dart';
 export 'package:stepbound/core/levels/hometown/north_district.dart';
 export 'package:stepbound/core/levels/hometown/palazzo.dart';
 export 'package:stepbound/core/levels/hometown/station.dart';
@@ -31,10 +33,13 @@ export 'package:stepbound/core/levels/hometown/street.dart';
 
 /// The glyphs of the street, the north district and the harbour (see
 /// street.dart), of the barracks (barracks.dart), of the hypermarket
-/// (mall.dart) and of the street out of the palazzo (industry_street.dart).
+/// (mall.dart), of the street out of the palazzo (industry_street.dart)
+/// and of the monument's square past it (monument_square.dart): `Ω` the
+/// monument and `¦` the Elettronica's door behind the barracks while its
+/// shutter is down are obstacles.
 const Legend outdoorLegend = Legend(
   walls: 'BHfKMGW#%0_Æ',
-  obstacles: 'CXUvkDFTSOyJQaAnI~RNbpx*i&!^;/+',
+  obstacles: 'CXUvkDFTSOyJQaAnI~RNbpx*i&!^;/+Ω¦',
   debris: ':q',
   fire: '?',
 );
@@ -147,6 +152,19 @@ const Legend companyLegend = Legend(
   walls: 'xWwIG',
   obstacles: 'DBh|-RTAKVFprY',
 );
+
+/// The Elettronica (electronics_shop.dart): its walls, and the back door
+/// while it is still bolted, are solid; the televisions, the white goods,
+/// the displays, the till, the shelving and the boxes stop a step but not
+/// a shot.
+const Legend electronicsShopLegend = Legend(
+  walls: 'xWwID',
+  obstacles: 'VFTRSk',
+);
+
+/// How dark the Elettronica is between its lamps: its lights still on over
+/// the shop floor, one flickering in the storeroom.
+const double electronicsShopDarkness = 0.6;
 
 /// How dark the company is between its lamps: the lights left on here and
 /// there over the open plan, enough to see across to the other wing.
@@ -471,6 +489,23 @@ const List<PlaceSpec> hometownPlaces = <PlaceSpec>[
     lamps: <GridPoint>[GridPoint(29, 8)],
     name: 'Azienda',
   ),
+  PlaceSpec(
+    id: PlaceId.monumentSquare,
+    area: AreaId.hometownTown,
+    rows: monumentSquareRows,
+    legend: outdoorLegend,
+  ),
+  // Its lamps `*` still on, daylight in through the door from the square.
+  PlaceSpec(
+    id: PlaceId.electronicsShop,
+    area: AreaId.hometownTown,
+    rows: electronicsShopRows,
+    legend: electronicsShopLegend,
+    indoor: true,
+    darkness: electronicsShopDarkness,
+    daylight: 'E',
+    name: 'Elettronica',
+  ),
 ];
 
 final Place _street = place(PlaceId.street);
@@ -504,6 +539,8 @@ final Place _palazzoSecond = place(PlaceId.palazzoSecondFloor);
 final Place _palazzoThird = place(PlaceId.palazzoThirdFloor);
 final Place _industryStreet = place(PlaceId.industryStreet);
 final Place _company = place(PlaceId.companyGround);
+final Place _monumentSquare = place(PlaceId.monumentSquare);
+final Place _electronicsShop = place(PlaceId.electronicsShop);
 
 /// The places [outdoorLegend] describes, the ones tools/
 /// build_street_level.py bakes: what walks the streets, what burns in them
@@ -516,6 +553,7 @@ Iterable<Place> get _streets => <Place>[
   _harbour,
   _mallNorthStreet,
   _industryStreet,
+  _monumentSquare,
 ];
 
 /// The zombie waiting on the east arm of the crossroads.
@@ -542,6 +580,7 @@ const String boatBackpackId = 'backpack-boat';
 const String shipyardBackpackId = 'backpack-shipyard';
 const String oldTownBackpackId = 'backpack-old-town';
 const String mallNorthBackpackId = 'backpack-mall-north';
+const String pharmacyBackpackId = 'backpack-pharmacy';
 
 /// The two new harbour backpacks, named separately so saves keep tracking
 /// each one even though both hold the same two rounds.
@@ -552,6 +591,11 @@ final GridPoint oldTownBackpackTile = _harbour.tileOf('7');
 /// the mall, and the two rounds inside it.
 const int mallNorthBackpackAmmo = 2;
 final GridPoint mallNorthBackpackTile = _mallNorthStreet.tileOf('8');
+
+/// The backpack on the pavement in front of the Farmacia, on the road west
+/// of the monument's square, and the two rounds inside it.
+const int pharmacyBackpackAmmo = 2;
+final GridPoint pharmacyBackpackTile = _monumentSquare.tileOf('µ');
 
 /// The backpack `9` against the east wall of San Nicola: the incense Don
 /// Angelo asked for.
@@ -1142,6 +1186,32 @@ final GridPoint chiaraTile = _company.tileOf('Y');
 /// The wanderers in the company's west wing, `company-wanderer-<n>`.
 const String companyZombiePrefix = 'company-wanderer-';
 
+/// The road south off the street of the company, where it runs off the
+/// bottom of that map, and where it comes into the top of the monument's
+/// square, west to east.
+final List<GridPoint> industryStreetSouthEdge = _industryStreet.walkableRow(
+  _industryStreet.height - 1,
+);
+final List<GridPoint> monumentSquareNorthEdge = _monumentSquare.walkableRow(0);
+
+/// The monument on its island in the middle of the square.
+final List<GridPoint> monumentTiles = _monumentSquare.tilesOf('Ω');
+
+/// The Elettronica's open door on the road east of the square, and the way
+/// in from it inside the shop.
+final GridPoint monumentSquareShopDoor = _monumentSquare.tileOf('h');
+final GridPoint electronicsShopEntrance = _electronicsShop.tileOf('E');
+
+/// The shop's back door, bolted on the inside, and the door of the same
+/// shop by the camp behind the barracks, its shutter down: Mario opens
+/// both from inside, and then they are the way through from one to the
+/// other.
+final GridPoint electronicsShopBackDoor = _electronicsShop.tileOf('D');
+final GridPoint northDistrictShopDoor = _north.tileOf('¦');
+
+/// The wanderers in the Elettronica, `electronics-wanderer-<n>`.
+const String electronicsShopZombiePrefix = 'electronics-wanderer-';
+
 /// Molfetta's flights of stairs out in the open, each step with the way
 /// up it (see `WorldState.stairs`): the hypermarket's, up from the ground
 /// floor and down from the first, climbed into the back wall, and the two
@@ -1397,6 +1467,36 @@ Map<GridPoint, Portal> _portals() {
     ),
     ...pairedDoors(industryStreetGate, companyGate, Direction.north),
     ...pairedDoors(companyGate, industryStreetGate, Direction.south),
+    ...pairedDoors(
+      industryStreetSouthEdge,
+      monumentSquareNorthEdge,
+      Direction.south,
+    ),
+    ...pairedDoors(
+      monumentSquareNorthEdge,
+      industryStreetSouthEdge,
+      Direction.north,
+    ),
+    ...pairedDoors(
+      <GridPoint>[monumentSquareShopDoor],
+      <GridPoint>[electronicsShopEntrance],
+      Direction.north,
+    ),
+    ...pairedDoors(
+      <GridPoint>[electronicsShopEntrance],
+      <GridPoint>[monumentSquareShopDoor],
+      Direction.south,
+    ),
+    ...pairedDoors(
+      <GridPoint>[electronicsShopBackDoor],
+      <GridPoint>[northDistrictShopDoor],
+      Direction.south,
+    ),
+    ...pairedDoors(
+      <GridPoint>[northDistrictShopDoor],
+      <GridPoint>[electronicsShopBackDoor],
+      Direction.north,
+    ),
   };
 }
 
@@ -1483,6 +1583,14 @@ LevelContents hometownContents(EntityFactory factory) {
               id: mallNorthBackpackId,
               position: point,
               ammo: mallNorthBackpackAmmo,
+            ),
+          );
+        case 'µ':
+          pickups.add(
+            Pickup(
+              id: pharmacyBackpackId,
+              position: point,
+              ammo: pharmacyBackpackAmmo,
             ),
           );
       }
@@ -1598,6 +1706,15 @@ LevelContents hometownContents(EntityFactory factory) {
     entities.add(
       factory.zombie(
         id: '$companyZombiePrefix${companyZombies++}',
+        kind: EntityKind.wanderer,
+        position: tile,
+      ),
+    );
+  }
+  for (final (index, tile) in _electronicsShop.tilesOf('Z').indexed) {
+    entities.add(
+      factory.zombie(
+        id: '$electronicsShopZombiePrefix$index',
         kind: EntityKind.wanderer,
         position: tile,
       ),

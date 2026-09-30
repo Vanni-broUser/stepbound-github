@@ -108,6 +108,13 @@ SHOPS = {
     "abbigliamento": ((120, 104, 120), (84, 70, 86), (60, 40, 90), (236, 226, 240), "ABBIGLIAMENTO", (3, 9)),
     "burger": ((140, 126, 96), (100, 88, 64), (170, 30, 28), (250, 200, 50), "BURGER", ()),
     "elettronica": ((84, 90, 104), (58, 62, 74), (26, 46, 96), (120, 220, 240), "ELETTRONICA", (4,)),
+    # The one shop in town still open, on the road east of the monument's
+    # square and by the camp behind the barracks: its sign whole, its
+    # shutter up, its windows lit (see paint_storefront).
+    # On the road west of the monument's square: the chemist's, looted
+    # first, its green cross dead.
+    "farmacia": ((200, 196, 184), (156, 152, 140), (30, 110, 60), (236, 240, 230), "FARMACIA", (5,)),
+    "elettronica_aperta": ((84, 90, 104), (58, 62, 74), (26, 46, 96), (120, 220, 240), "ELETTRONICA", ()),
     "kebab2": ((122, 112, 92), (88, 78, 62), (36, 92, 58), (250, 226, 120), "KEBAB", (2,)),
     "barsport": ((104, 86, 70), (70, 56, 46), (30, 60, 110), (240, 210, 90), "BAR SPORT", (5,)),
     "pescheria": ((214, 208, 192), (170, 164, 148), (34, 70, 118), (236, 236, 226), "PESCHERIA", (7,)),
@@ -225,7 +232,10 @@ def paint_icon(d, kind, x, y):
         rect(d, x + 1, y + 3, 6, 4, (150, 110, 60))
         rect(d, x + 2, y + 1, 2, 2, (200, 50, 40))
         rect(d, x + 4, y + 2, 2, 2, (240, 200, 60))
-    elif kind == "elettronica":  # an old television set
+    elif kind == "farmacia":  # the green cross
+        rect(d, x + 3, y, 2, 8, (60, 200, 90))
+        rect(d, x, y + 3, 8, 2, (60, 200, 90))
+    elif kind.startswith("elettronica"):  # an old television set
         rect(d, x, y + 1, 8, 6, (60, 64, 70))
         rect(d, x + 1, y + 2, 5, 4, (120, 220, 240))
         rect(d, x + 2, y + 3, 2, 1, (230, 250, 255))
@@ -256,6 +266,50 @@ def paint_icon(d, kind, x, y):
         rect(d, x + 1, y + 2, 1, 3, (200, 200, 200))
         rect(d, x + 6, y + 2, 1, 3, (200, 200, 200))
         rect(d, x + 2, y + 3, 4, 5, (170, 120, 190))
+
+
+OPEN_SHOP = "elettronica_aperta"
+SHOP_LIGHT = (214, 206, 168)
+SHOP_LIGHT_DIM = (170, 162, 128)
+
+
+def paint_open_shop(d, px, shop_top, w, trim):
+    """The ground floor of the one shop still open: the shutters rolled up
+    into their boxes over the windows and the door, the door standing open
+    on the lit shop floor, and in the windows the televisions still on,
+    their screens blue in the dark street. Nobody has boarded it up or
+    smashed it."""
+    rect(d, px + 2, shop_top, w - 4, 17, trim)
+    # The door on the middle column, whole, so that the cell it is over is
+    # the one Mario walks through.
+    door_w = 12
+    door_x = px + (w // TILE) // 2 * TILE + 2
+    windows = ((px + 3, door_x - px - 4),
+               (door_x + door_w + 1, px + w - 3 - (door_x + door_w + 1)))
+    # The door: the lit floor inside, the leaf swung back against the jamb.
+    rect(d, door_x, shop_top + 2, door_w, 15, SHOP_LIGHT)
+    rect(d, door_x, shop_top + 2, door_w, 3, SHOP_LIGHT_DIM)
+    rect(d, door_x + 2, shop_top + 7, 3, 3, (120, 126, 140))  # a shelf inside
+    rect(d, door_x + 8, shop_top + 6, 3, 5, (60, 64, 76))
+    rect(d, door_x + 9, shop_top + 7, 1, 2, (120, 220, 240))
+    rect(d, door_x + door_w - 2, shop_top + 2, 2, 15, (150, 156, 164))
+    rect(d, door_x + door_w - 1, shop_top + 2, 1, 15, (190, 196, 204))
+    for wx, window_w in windows:
+        rect(d, wx, shop_top + 2, window_w, 12, (24, 28, 40))  # the glass
+        rect(d, wx, shop_top + 12, window_w, 2, (60, 62, 70))  # the sill
+        sets = max(2, window_w // 15)
+        for i in range(sets):  # televisions in each window, still on
+            tx = wx + 1 + i * (window_w // sets)
+            tw = window_w // sets - 2
+            rect(d, tx, shop_top + 5, tw, 6, (40, 42, 48))
+            rect(d, tx + 1, shop_top + 6, tw - 2, 4, (70, 170, 210))
+            rect(d, tx + 1, shop_top + 6, max(1, tw // 3), 1, (200, 240, 250))
+        rect(d, wx + 1, shop_top + 3, 2, 1, (170, 190, 210))  # a shine
+        rect(d, wx + window_w - 3, shop_top + 9, 1, 2, (170, 190, 210))
+    # The shutters, rolled up into their boxes over the openings.
+    for sx, sw in (windows[0], (door_x, door_w), windows[1]):
+        rect(d, sx, shop_top, sw, 2, (120, 124, 130))
+        rect(d, sx, shop_top + 1, sw, 1, (90, 94, 100))
 
 
 def paint_storefront(d, rng, px, py0, w, h, kind):
@@ -294,6 +348,9 @@ def paint_storefront(d, rng, px, py0, w, h, kind):
             paint_text(d, lx + i * 4, sign_top + 3, letter, RAINBOW[i % len(RAINBOW)])
     else:
         paint_text(d, lx, sign_top + 3, text, letters, missing)
+    if kind == OPEN_SHOP:
+        paint_open_shop(d, px, shop_top, w, trim)
+        return
     rect(d, px + w - 6, sign_top + 1, 1, 9, OUTLINE)  # crack at the edge
     rect(d, px + w - 5, sign_top + 5, 1, 5, OUTLINE)
     rect(d, px + 3, sign_top + 7, 6, 3, (40, 30, 30))  # soot
@@ -315,7 +372,7 @@ def paint_storefront(d, rng, px, py0, w, h, kind):
         if kind in ("kebab", "kebab2", "bar", "burger", "trattoria",
                     "studio"):
             paint_boards(d, wx, shop_top + 2, window_w, 12)
-        elif kind in ("elettronica", "barsport"):
+        elif kind in ("elettronica", "barsport", "farmacia"):
             paint_smashed_display(d, wx, shop_top + 2, window_w, 12)
         elif kind == "souvenir":
             # The window smashed, what was in it still on its shelves:

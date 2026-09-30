@@ -9,6 +9,9 @@
 /// whose road, forecourt and stairs are packed with hordes of wanderers,
 /// carabinieri among them, far too many to fight through. At the top of
 /// the stairs `$` are the hospital's PRONTO SOCCORSO doors (hospital.dart).
+/// By the camp, the Elettronica: the same shop as the one on the road east
+/// of the monument's square, its shutter down over the door `¦` (an
+/// obstacle) until Mario opens it from inside (electronics_shop.dart).
 // north-rows-start
 const List<String> northDistrictRows = <String>[
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
@@ -43,8 +46,8 @@ const List<String> northDistrictRows = <String>[
   'BBPPPPPPJJJJPPP:PPBBBBBBBBBBBBBBBBBBBBHHHHHHH=..|..=HHHHHHHBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBPaaPPPPPrPPPPPwPHHHHHHHHHHHHHHHHHHHH========PPPPP========HHHHHHHHHHHHHHHHHHHHHHHHHHHHBBB',
   'BBPPPPwPwPPPPaaPPPHHHHHHHHHHfHHHHHHHHH=Qq:PqPPPPPPPPPPPPPF=HHfHHHHHHHHHHHHHHHHHHHHHHHHHBBB',
-  'BBPPwDPPPwPPrPPwPPHHfHHHHHHHHHHHHHHHHH=qPPQP:PPPPPPPnnPPAP=HHHHHHHHHHHHHHHHHHHHHHHfHHHHBBB',
-  'BBPPPPPwPPPwPwPPPP===w=r==w============PPq:qPPPPPPPPPPPPPP===F=========================BBB',
+  'BBPPwDPPPwPPrPPwPPHHfHHHHHHHHHHHHHHHHH=qPPQP:PPPPPPPnnPPAP=HHHHHHHfHHHHHHHHHHHHHHHHHHHHBBB',
+  'BBPPPPPwPPPwPwPPPP===w=r==w============PPq:qPPPPPPPPPPPPPP===F====================¦====BBB',
   'BB...................w.w..d............PQqPPPPOOOOOPPP:PPPP.....CC...............:...UUBBB',
   'BB-.-.-.-.-.-.-.-.-.w.:.w.-r-.-.-.-.-.-qPPdPPwOOOOOPPPPPPPP.-.-.-.-:-.-.-.-.-.-.-.-.S.-BBB',
   'BB....................w..w....XX.......PPdPPPPOOOOOPPPPPPPP..........CC.d..............BBB',

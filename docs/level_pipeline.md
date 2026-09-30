@@ -6,9 +6,22 @@ i posti, impacchetta i tile e scrive il manifest. L'arte di ogni posto sta in
 un modulo suo, `tools/tile_atlas_<posto>.py` (citta, Duomo, bar, stazione,
 aereo, caserma, treno, ipermercato, San Nicola, Termini, ospedale, Terme,
 palazzo dopo l'aereo,
-azienda sulla strada del palazzo),
+azienda sulla strada del palazzo, Elettronica sulla strada a est della
+piazza del monumento),
 sulla macchina comune di `tools/tile_atlas_core.py`. I painter della citta
 stanno in `tools/street_*.py` (vedi "Dividere i file troppo grandi").
+
+## Niente palazzi larghi una colonna
+
+Le facciate `H` si dividono in palazzi sullo schema dei tetti, a blocchi di
+4, 6 e 5 colonne ogni 15. Dove una fila di facciate comincia sull'ultima
+colonna di un blocco, o finisce sulla prima, quella colonna resterebbe un
+palazzo a sé: la regola `sliver_rule` (`tools/tile_atlas_city.py`) la
+ridipinge del colore del palazzo accanto, senza la riga di separazione.
+Accanto a un negozio non c'è niente a cui unirla: le tabelle dei negozi
+(`tools/street_paint.py`) non devono lasciare colonne sole tra un negozio e
+il palazzo dopo, e `lone_columns` ferma la generazione dell'atlas se
+succede, dicendo in quale posto e su quale colonna.
 
 ## Strade incomplete: la schermata work in progress
 

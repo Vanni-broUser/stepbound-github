@@ -141,7 +141,7 @@ void main() {
           .data!;
       final zombies = levelZombieKinds(LevelId.hometown);
       // Among them the two rounds at the end of the dead-end street.
-      expect(stat('backpack-stat'), '0 / 20');
+      expect(stat('backpack-stat'), '0 / 21');
       expect(stat('kill-stat'), '1 / ${zombies.length}');
       expect(stat('zombie-kind-stat'), '1 / ${zombies.toSet().length}');
       expect(stat('campfire-stat'), '1 / 6');
