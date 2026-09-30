@@ -112,15 +112,14 @@ final class PlayerAudio implements GameAudio {
       return;
     }
     _music = music;
-    final outgoing = _decks[_activeDeck]..fadeTo(0, _crossfadeSeconds);
+    _decks[_activeDeck].fadeTo(0, _crossfadeSeconds);
     if (music == null) {
       _startFader();
       return;
     }
+    // The decks alternate: the other one takes the new music.
     _activeDeck = 1 - _activeDeck;
-    final incoming = _decks[_activeDeck];
-    assert(incoming != outgoing, 'the decks alternate');
-    incoming
+    _decks[_activeDeck]
       ..load(music.file, master: _master, paused: _paused)
       ..fadeTo(musicVolume * _musicLevel, _crossfadeSeconds);
     _startFader();

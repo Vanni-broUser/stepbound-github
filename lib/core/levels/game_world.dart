@@ -117,7 +117,6 @@ Map<GridPoint, Portal> pairedDoors(
   List<GridPoint> to,
   Direction facing,
 ) {
-  assert(from.length == to.length, 'doors of different widths');
   return <GridPoint, Portal>{
     for (var i = 0; i < from.length; i++)
       from[i]: Portal(to: to[i].step(facing), facing: facing),

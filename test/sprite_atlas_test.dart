@@ -106,8 +106,8 @@ void main() {
       'assets/characters/zombies/portraits/cultist.png',
     ]) {
       final image = await loadAsset(name);
-      expect(image.width, 1048, reason: name);
-      expect(image.height, 1501, reason: name);
+      expect(image.width, 698, reason: name);
+      expect(image.height, 1000, reason: name);
       final rgba = await pixelsOf(image);
       var hasTransparentPixel = false;
       var hasOpaquePixel = false;
@@ -137,8 +137,8 @@ void main() {
       'assets/characters/mario/portraits/zombie.png',
     ]) {
       final image = await loadAsset(name);
-      expect(image.width, 1048, reason: name);
-      expect(image.height, 1501, reason: name);
+      expect(image.width, 698, reason: name);
+      expect(image.height, 1000, reason: name);
       final rgba = await pixelsOf(image);
       var hasTransparentPixel = false;
       var hasOpaquePixel = false;
