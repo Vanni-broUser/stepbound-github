@@ -32,11 +32,55 @@ void main() {
 
   test('the stairs up from the train go to the overpass, and back', () {
     final world = createGameWorld();
-    final up = travel(world, terminiStairsTiles.first, Direction.south);
+    final up = travel(world, terminiStairsFoot.first, Direction.south);
     expect(overpass.bounds.contains(up), isTrue);
     final down = travel(world, overpass.tilesOf('D').first, Direction.north);
-    expect(termini.bounds.contains(down), isTrue);
-    expect(world.map.tileAt(down).isWalkable, isTrue);
+    expect(down, terminiStairsFoot.first.step(Direction.north));
+    expect(
+      world.player.component<PositionComponent>().facing,
+      Direction.north,
+      reason: 'back onto the step above the last, facing down the flight',
+    );
+  });
+
+  test('both flights up climb through the front wall of the platform and '
+      'one cell past it, two cells by two, got onto only from the north', () {
+    final world = createGameWorld();
+    for (final (flight, foot, platform)
+        in <(List<GridPoint>, List<GridPoint>, Place)>[
+          (terminiStairsTiles, terminiStairsFoot, termini),
+          (terminiFarStairs, terminiFarStairsFoot, farPlatform),
+        ]) {
+      expect(flight, hasLength(4));
+      expect(foot, <GridPoint>[
+        flight.first.step(Direction.south),
+        flight[1].step(Direction.south),
+      ]);
+      for (final step in foot) {
+        expect(platform.bounds.contains(step), isTrue);
+        final wall = platform.rows[step.y - 1 - platform.origin.y];
+        expect(
+          wall.contains('WWW') || wall.contains('www'),
+          isTrue,
+          reason: 'the first step is in the front wall, where it always was',
+        );
+        expect(
+          platform.rows[step.y - platform.origin.y].replaceAll('D', ''),
+          matches(RegExp(r'^x+$')),
+          reason: 'and the last one past it, in the dark',
+        );
+      }
+      for (final step in flight) {
+        for (final side in <Direction>[Direction.west, Direction.east]) {
+          final beside = step.step(side);
+          if (!flight.contains(beside)) {
+            expect(world.canStep(beside, step), isFalse, reason: '$step');
+          }
+        }
+      }
+      final head = flight.first;
+      expect(world.canStep(head.step(Direction.north), head), isTrue);
+    }
   });
 
   test('of the eight flights down from the overpass, only two go anywhere', () {

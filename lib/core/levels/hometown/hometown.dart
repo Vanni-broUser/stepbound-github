@@ -967,6 +967,29 @@ final GridRect stationPlatform = () {
 /// a wall and is made walkable by the game as soon as Luigi is rescued.
 final GridPoint stationTrainDoorTile = _farSide.tileOf('P');
 
+/// The flight `U` down to the underpass, sunk in the booking hall's floor a
+/// few cells in from its front wall so that it shows: got onto from the
+/// north, its head under the green sign, and two steps deep.
+final List<GridPoint> stationHallStairs = _station.tilesOf('U');
+
+/// The last steps of [stationHallStairs]: the door down into the
+/// underpass. The floor below them is shut off from them, as the sides are
+/// (see `WorldState.canStep`): the flight is got onto only from its head.
+final List<GridPoint> stationHallStairsFoot = lastSteps(
+  stationHallStairs,
+  Direction.south,
+);
+
+/// The flight `D` down from the far platform, through its wall and one
+/// step further.
+final List<GridPoint> stationFarStairs = _farSide.tilesOf('D');
+
+/// The last steps of [stationFarStairs]: the door down into the underpass.
+final List<GridPoint> stationFarStairsFoot = lastSteps(
+  stationFarStairs,
+  Direction.south,
+);
+
 /// The tear in the belly of the airliner, in the lane the wreck left open
 /// at the crossroads behind the hypermarket: two tiles wide, like the
 /// aisle it opens on.
@@ -996,7 +1019,7 @@ final GridPoint rooftopFarEdgeTile = _airlinerRoofs.tileOf('<');
 final List<GridPoint> rooftopFarStairs = _airlinerRoofs.tilesOf('S');
 
 /// The last steps of [rooftopFarStairs], at its east end.
-final List<GridPoint> rooftopFarStairsFoot = _lastSteps(
+final List<GridPoint> rooftopFarStairsFoot = lastSteps(
   rooftopFarStairs,
   Direction.east,
 );
@@ -1007,20 +1030,10 @@ final List<GridPoint> rooftopFarStairsFoot = _lastSteps(
 final List<GridPoint> hospitalNextRoofStairs = _hospitalRoof.tilesOf('v');
 
 /// The last steps of [hospitalNextRoofStairs], at its south end.
-final List<GridPoint> hospitalNextRoofStairsFoot = _lastSteps(
+final List<GridPoint> hospitalNextRoofStairsFoot = lastSteps(
   hospitalNextRoofStairs,
   Direction.south,
 );
-
-/// The steps of [flight] furthest along [down].
-List<GridPoint> _lastSteps(List<GridPoint> flight, Direction down) {
-  int depth(GridPoint step) => step.x * down.dx + step.y * down.dy;
-  final last = flight.map(depth).reduce((a, b) => a > b ? a : b);
-  return <GridPoint>[
-    for (final step in flight)
-      if (depth(step) == last) step,
-  ];
-}
 
 /// Molfetta's doors to places not drawn yet (see `workInProgressDoors`).
 final Set<GridPoint> hometownWorkInProgressDoors = <GridPoint>{
@@ -1071,6 +1084,8 @@ final Map<GridPoint, Direction> hometownStairs = <GridPoint, Direction>{
   for (final step in _mallFirst.tilesOf('D')) step: Direction.north,
   for (final step in rooftopFarStairs) step: Direction.east,
   for (final step in hospitalNextRoofStairs) step: Direction.south,
+  for (final step in stationHallStairs) step: Direction.south,
+  for (final step in stationFarStairs) step: Direction.south,
 };
 
 /// Where the grappling hook crosses in Molfetta: the three gaps between
@@ -1262,23 +1277,17 @@ Map<GridPoint, Portal> _portals() {
     ...pairedDoors(_station.doorRow('E'), stationWestDoor, Direction.south),
     ...pairedDoors(stationEastDoor, _station.doorRow('O'), Direction.north),
     ...pairedDoors(_station.doorRow('O'), stationEastDoor, Direction.south),
+    // Down the last step of each flight into the underpass, and back up
+    // onto the step above it, facing up the flight.
     ...pairedDoors(
-      _station.doorRow('U'),
+      stationHallStairsFoot,
       _underpass.doorRow('D'),
       Direction.south,
     ),
+    ...backOntoFlight(_underpass.doorRow('D'), stationHallStairsFoot),
+    ...backOntoFlight(_underpass.doorRow('U'), stationFarStairsFoot),
     ...pairedDoors(
-      _underpass.doorRow('D'),
-      _station.doorRow('U'),
-      Direction.north,
-    ),
-    ...pairedDoors(
-      _underpass.doorRow('U'),
-      _farSide.doorRow('D'),
-      Direction.north,
-    ),
-    ...pairedDoors(
-      _farSide.doorRow('D'),
+      stationFarStairsFoot,
       _underpass.doorRow('U'),
       Direction.south,
     ),

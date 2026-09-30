@@ -143,8 +143,31 @@ final GridPoint termePortalTile = _piazza.tileOf('¶');
 /// the platform.
 final GridPoint terminiTrainDoorTile = _termini.tileOf('P');
 
-/// The stairs up from the platform the train stands at, to the overpass.
+/// The flight up from the platform the train stands at, to the overpass:
+/// got onto from the north, two steps deep.
 final List<GridPoint> terminiStairsTiles = _termini.tilesOf('D');
+
+/// The last steps of [terminiStairsTiles]: the door up to the overpass.
+final List<GridPoint> terminiStairsFoot = lastSteps(
+  terminiStairsTiles,
+  Direction.south,
+);
+
+/// The flight up from the far platform to the overpass, like the other.
+final List<GridPoint> terminiFarStairs = _farPlatform.tilesOf('D');
+
+/// The last steps of [terminiFarStairs]: the door up to the overpass.
+final List<GridPoint> terminiFarStairsFoot = lastSteps(
+  terminiFarStairs,
+  Direction.south,
+);
+
+/// Rome's flights of stairs, each with the way onto it: only from its
+/// head, as in Molfetta (see `WorldState.canStep`).
+final Map<GridPoint, Direction> romeStairs = <GridPoint, Direction>{
+  for (final step in terminiStairsTiles) step: Direction.south,
+  for (final step in terminiFarStairs) step: Direction.south,
+};
 
 /// The one flight down from the overpass to the far platform.
 final List<GridPoint> terminiFarFlightTiles = _overpass.tilesOf('U');
@@ -268,24 +291,19 @@ final List<FireSpot> romeFireSpots = <FireSpot>[
 
 /// The doors of Rome's station, both ways: the stairs up from the
 /// platform to the overpass and the one flight on down to the far
-/// platform (every flight is in the back wall of the overpass and the
-/// front wall of a platform), the overpass's opening onto the concourse
+/// platform (every flight is in the back wall of the overpass, and climbs
+/// through the front wall of a platform and one cell past it), the
+/// overpass's opening onto the concourse
 /// and the concourse's three doorways onto the piazza (each lands Mario a
 /// step past the door, facing on), and the breach out of the far platform
 /// onto Via Marsala, and the portal of the Baths of Diocletian.
 Map<GridPoint, Portal> _portals() => <GridPoint, Portal>{
-  ...pairedDoors(terminiStairsTiles, _overpass.tilesOf('D'), Direction.south),
-  ...pairedDoors(_overpass.tilesOf('D'), terminiStairsTiles, Direction.north),
-  ...pairedDoors(
-    terminiFarFlightTiles,
-    _farPlatform.tilesOf('D'),
-    Direction.north,
-  ),
-  ...pairedDoors(
-    _farPlatform.tilesOf('D'),
-    terminiFarFlightTiles,
-    Direction.south,
-  ),
+  // Up the last step of each flight onto the overpass, and back down onto
+  // the step above it, facing down the flight.
+  ...pairedDoors(terminiStairsFoot, _overpass.tilesOf('D'), Direction.south),
+  ...backOntoFlight(_overpass.tilesOf('D'), terminiStairsFoot),
+  ...backOntoFlight(terminiFarFlightTiles, terminiFarStairsFoot),
+  ...pairedDoors(terminiFarStairsFoot, terminiFarFlightTiles, Direction.south),
   ...pairedDoors(
     _overpass.tilesOf('E'),
     _concourse.tilesOf('E'),
@@ -365,6 +383,7 @@ LevelContents romeContents(EntityFactory factory) => LevelContents(
     ),
   ],
   portals: _portals(),
+  stairs: romeStairs,
   lookouts: <GridPoint>[roadblockFireTile],
 );
 

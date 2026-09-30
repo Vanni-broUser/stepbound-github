@@ -31,8 +31,12 @@
 /// East doorway `O`: the other end of the hall, cut off from the rest by
 /// the overturned car. A gap in the back wall reaches the platform, where
 /// only a little rubble remains and a railcar `M` stands derailed across
-/// the near track beyond it. The stairs `U` down to the underpass are in
-/// the front wall, reached from the doorway by the tactile path `p`.
+/// the near track beyond it. The stairs `U` down to the underpass are sunk
+/// in the floor a few cells in from the front wall, where they show: a
+/// flight two cells wide and two deep, got onto only from the north, its
+/// last step the way down; the floor goes on below it, shut off from it by
+/// the end of the well. The tactile path `p` runs up from the doorway and
+/// along to the head of the flight.
 ///
 /// Common glyphs: `x` darkness, `W` back wall, `w` front wall, `|` the side
 /// walls, `m` the coach and `C` the car still upright, `V` and `H` the
@@ -58,11 +62,11 @@ const List<String> stationRows = <String>[
   'xxx|=================:=#VVV============|xxx',
   'xxx|WWWWWWWW....WWWWWWWWVVVWWWW....WWWW|xxx',
   'xxx|.Z.:......Z......:..VVV............|xxx',
-  'xxx|..T....K.........:..VVV..:...T.....|xxx',
-  'xxx|.....b......:......#VVV#b..........|xxx',
-  'xxx|..:.............:.##VVV##..:pppp...|xxx',
-  'xxx|........:.........##VVV##...p..p.:.|xxx',
-  'xxx|wwwwwwwwEEwwwwwwwwwwwwwwwwwOOwwUUww|xxx',
+  'xxx|..T....K.........:..VVV..:.ppppp...|xxx',
+  'xxx|.....b......:......#VVV#b..p...UU..|xxx',
+  'xxx|..:.............:.##VVV##..p...UU..|xxx',
+  'xxx|........:.........##VVV##T.p.....:.|xxx',
+  'xxx|wwwwwwwwEEwwwwwwwwwwwwwwwwwOOwwwwww|xxx',
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
 ];
 // station-rows-end
@@ -84,7 +88,8 @@ const List<String> stationUnderpassRows = <String>[
 ];
 // underpass-rows-end
 
-/// The far side of the station, up the second flight `D`: one long
+/// The far side of the station, up the second flight `D`, two steps deep
+/// through the wall south of the platform: one long
 /// platform under what is left of its canopy and a railcar `M` that is
 /// filthy but whole, filling the strip between the wall and the platform.
 /// `P` is its passenger door: still part of the wall until Luigi has
@@ -104,6 +109,7 @@ const List<String> stationFarSideRows = <String>[
   '|=:=========================:======|',
   '|==================================|',
   '|WWWWWWWWWWWWWWWWDDWWWWWWWWWWWWWWWW|',
+  'xxxxxxxxxxxxxxxxxDDxxxxxxxxxxxxxxxxx',
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
 ];
 // far-platform-rows-end

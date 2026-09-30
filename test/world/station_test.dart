@@ -245,49 +245,63 @@ void main() {
         world.portals[stationEastDoor.first]!.to,
         station,
       );
-      final down = station.doorRow('U');
-      expect(down, hasLength(2));
+      final down = stationHallStairs;
+      expect(down, hasLength(4), reason: 'two cells wide, two deep');
       expect(
         down.every(reached.containsKey),
         isTrue,
         reason: "the flight down is on the far doorway's side of the fall",
       );
-
-      final door = station.doorRow('O').last;
-      expect(
-        down.first,
-        door.step(Direction.east).step(Direction.east).step(Direction.east),
-        reason: 'two wall cells separate the doorway from the stairs',
-      );
-      final tactilePath = <GridPoint>{
-        door.step(Direction.north),
-        door.step(Direction.north).step(Direction.north),
-        door.step(Direction.north).step(Direction.north).step(Direction.east),
-        door
-            .step(Direction.north)
-            .step(Direction.north)
-            .step(Direction.east)
-            .step(Direction.east),
-        door
-            .step(Direction.north)
-            .step(Direction.north)
-            .step(Direction.east)
-            .step(Direction.east)
-            .step(Direction.east),
-        down.first.step(Direction.north),
-      };
-      expect(station.tilesOf('p').toSet(), tactilePath);
-
-      GridPoint through(GridPoint step, Direction facing) {
-        world.player.component<PositionComponent>().position = step.step(
-          facing.opposite,
+      final head = down.first;
+      final foot = stationHallStairsFoot;
+      expect(foot, <GridPoint>[
+        head.step(Direction.south),
+        head.step(Direction.east).step(Direction.south),
+      ]);
+      for (final step in foot) {
+        final below = step.step(Direction.south);
+        expect(reached.containsKey(below), isTrue, reason: 'floor below it');
+        expect(
+          world.canStep(below, step),
+          isFalse,
+          reason: 'the flight is not got onto from below, as on the roofs',
         );
-        final events = const TurnScheduler().advance(world, MoveAction(facing));
-        expect(events.whereType<TeleportedEvent>(), hasLength(1));
-        return world.player.component<PositionComponent>().position;
       }
 
-      final corridor = through(down.first, Direction.south);
+      final door = station.doorRow('O').first;
+      final corner = door
+          .step(Direction.north)
+          .step(Direction.north)
+          .step(Direction.north)
+          .step(Direction.north);
+      expect(
+        station.tilesOf('p').toSet(),
+        <GridPoint>{
+          for (var y = corner.y; y < door.y; y++) GridPoint(door.x, y),
+          for (var x = corner.x; x <= head.x; x++) GridPoint(x, corner.y),
+        },
+        reason: 'the yellow line runs from the doorway to the head',
+      );
+
+      // Got onto only from the head, down it, and nowhere from the sides.
+      for (final step in down) {
+        for (final side in <Direction>[Direction.west, Direction.east]) {
+          final beside = step.step(side);
+          if (!down.contains(beside)) {
+            expect(world.canStep(beside, step), isFalse, reason: '$step');
+          }
+        }
+      }
+      world.player.component<PositionComponent>().position = head.step(
+        Direction.north,
+      );
+      const TurnScheduler().advance(world, const MoveAction(Direction.south));
+      expect(
+        world.player.component<PositionComponent>().position,
+        head,
+        reason: 'onto the head first, then down',
+      );
+      final corridor = travel(world, foot.first, Direction.south);
       expect(underpass.bounds.contains(corridor), isTrue);
       expect(
         underpass.height,
@@ -303,16 +317,25 @@ void main() {
         reason: 'the corridor runs from one flight straight to the other',
       );
 
-      final platform = through(up.first, Direction.north);
-      expect(farSide.bounds.contains(platform), isTrue);
+      final landing = travel(world, up.first, Direction.north);
+      expect(landing, stationFarStairsFoot.first.step(Direction.north));
+      expect(stationFarStairs, hasLength(4), reason: 'two cells, two deep');
+      const TurnScheduler().advance(world, const MoveAction(Direction.north));
       expect(
-        stationPlatform.contains(platform),
+        stationPlatform.contains(
+          world.player.component<PositionComponent>().position,
+        ),
         isTrue,
         reason: 'you come up onto the platform Luigi is waiting on',
       );
 
-      final hall = through(underpass.doorRow('D').first, Direction.north);
-      expect(hall, down.first.step(Direction.north));
+      final hall = travel(world, underpass.doorRow('D').first, Direction.north);
+      expect(hall, foot.first.step(Direction.north));
+      expect(
+        world.player.component<PositionComponent>().facing,
+        Direction.north,
+        reason: 'back up onto the step above the last, facing up the flight',
+      );
     });
 
     test('the east hall opens onto its platform through a four-cell gap, '

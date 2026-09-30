@@ -33,7 +33,7 @@ from tile_atlas_core import (  # noqa: E402
     tile_of,
 )
 from tile_atlas_station import (  # noqa: E402
-    paint_stairs_up,
+    flight,
     side_walls,
 )
 
@@ -242,15 +242,7 @@ def termini_far_platform(atlas: Atlas, rng) -> dict:
             for first in (False, True)], [neighbour_key(-1, 0, "W")]),
         rule("structures", ":", [atlas.bucket(lambda: tile_of(
             lambda d: station.paint_litter(d, rng, 0, 0)))]),
-        rule("structures", "D", [
-            atlas.bucket(lambda l=left, r=right: tile_of(
-                lambda d: paint_stairs_up(d, Neighbourhood(
-                    "D", lambda x, y, l=l, r=r: "D"
-                    if (x == -1 and l) or (x == 1 and r) else "."),
-                    0, 0)), 1)
-            for right in (False, True) for left in (False, True)],
-            [neighbour_key(-1, 0, "D"), neighbour_key(1, 0, "D")]),
-    ]
+    ] + flight(atlas, "D", up=True)
     # The rubbish tumbles off the heap wherever it is open.
     for side, (dx, dy) in (("e", (1, 0)), ("s", (0, 1)), ("n", (0, -1))):
         rules.append(rule("structures", ",-:", [[], atlas.bucket(
