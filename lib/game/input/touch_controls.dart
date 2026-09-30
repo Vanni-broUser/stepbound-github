@@ -7,6 +7,7 @@ import 'package:stepbound/game/input/move_zone.dart';
 import 'package:stepbound/game/input/pinch_zone.dart';
 import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/game/story/story_director.dart';
+import 'package:stepbound/l10n/language.dart';
 import 'package:stepbound/ui/audio_scope.dart';
 import 'package:stepbound/ui/blood_decor.dart';
 
@@ -159,7 +160,7 @@ final class _PauseButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return _ActionButton(
       key: const ValueKey<String>('touch-menu'),
-      semanticLabel: 'Menù',
+      semanticLabel: strings.menuButton,
       size: TouchControls.menuButtonSize,
       drips: const <BloodDrip>[BloodDrip(0.35, 9, 3)],
       icon: const Icon(Icons.menu, color: Color(0xffd8cfbf), size: 20),

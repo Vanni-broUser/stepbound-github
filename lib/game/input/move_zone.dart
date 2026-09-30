@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/input/stick_painter.dart';
 import 'package:stepbound/game/stepbound_game.dart';
+import 'package:stepbound/l10n/language.dart';
 
 /// The direction a drag of [delta] points to: the axis it leans on most.
 /// [current] is kept until the other axis clearly wins, so a thumb
@@ -145,7 +146,7 @@ final class _MoveZoneState extends State<MoveZone> {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: 'Trascina per muoverti',
+      label: strings.moveZoneHint,
       child: Listener(
         key: const ValueKey<String>('touch-move'),
         behavior: HitTestBehavior.opaque,

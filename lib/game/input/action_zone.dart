@@ -7,6 +7,7 @@ import 'package:stepbound/game/input/move_zone.dart';
 import 'package:stepbound/game/input/stick_painter.dart';
 import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/game/story/story_director.dart';
+import 'package:stepbound/l10n/language.dart';
 import 'package:stepbound/ui/blood_splat.dart';
 
 /// The right half of the screen. A tap interacts. Holding raises the
@@ -245,9 +246,7 @@ final class _ActionZoneState extends State<ActionZone> {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label:
-          'Tocca per interagire, tieni premuto e trascina per mirare, '
-          'lascia per sparare o lanciare',
+      label: strings.actionZoneHint,
       child: Listener(
         key: const ValueKey<String>('touch-act'),
         behavior: HitTestBehavior.opaque,

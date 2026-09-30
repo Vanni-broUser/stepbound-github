@@ -1,5 +1,6 @@
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/story/story_director.dart';
+import 'package:stepbound/l10n/language.dart';
 
 /// The Elettronica's back door, bolted on the inside. Used from inside the
 /// shop it says so and opens, and with it the shutter over the door of the
@@ -9,9 +10,8 @@ import 'package:stepbound/game/story/story_director.dart';
 final class ElectronicsShopScript extends StoryScript {
   ElectronicsShopScript(super.director);
 
-  static const String openFromInsideLine = 'Apri la porta dall’interno';
-  static const String shutterDownLine =
-      'La saracinesca è abbassata. Da fuori non si apre';
+  static String get openFromInsideLine => strings.electronicsOpenFromInsideLine;
+  static String get shutterDownLine => strings.electronicsShutterDownLine;
 
   bool _opening = false;
 
@@ -29,7 +29,7 @@ final class ElectronicsShopScript extends StoryScript {
         _opening = true;
         say(
           StoryPrompt(
-            const <StoryLine>[StoryLine(openFromInsideLine)],
+            <StoryLine>[StoryLine(openFromInsideLine)],
             onDismissed: () {
               _opening = false;
               world.map
@@ -40,7 +40,7 @@ final class ElectronicsShopScript extends StoryScript {
         );
       } else if (at == northDistrictShopDoor &&
           !world.map.tileAt(at).isWalkable) {
-        say(StoryPrompt(const <StoryLine>[StoryLine(shutterDownLine)]));
+        say(StoryPrompt(<StoryLine>[StoryLine(shutterDownLine)]));
       }
     }
   }
