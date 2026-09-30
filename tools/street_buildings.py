@@ -1368,18 +1368,20 @@ def paint_portone(d, px, py):
     rect(d, px + 9, py + TILE + 11, 1, 1, BLOOD_DARK)
 
 
-FACTORY_NAME = "INDUSTRIE MOLFETTESI"
+FACTORY_NAME = "CALL CENTER"
 
 
 def paint_factory(d, rng, level):
-    """The big company east of the palazzo: a long, low shed, not a block
-    of flats. Its roof seen from above, corrugated sheet in saw-tooth bays
-    with a strip of skylight along each, over a front of ribbed metal
-    cladding on a concrete plinth; its name on a board over the gate, the
-    gate `Ø` rolled up into its drum with the dark of the offices inside
-    and a screen or two still lit, the loading bays either side shut behind
-    their shutters. Tagged, burnt at one end, blood thrown up against the
-    cladding by whoever got in first."""
+    """The call centre east of the palazzo: an office block of the kind
+    put up on the edge of town, not a block of flats. Its flat roof seen
+    from above, tarred, a parapet round it and the air-conditioning units
+    and a dish on it; a front of blue-tinted glass in ribbons, a floor to
+    each, between white spandrels, the blinds down in some and a screen
+    still lit behind others. The way in `Ø` stands out from the rest: a
+    red canopy on two steel posts over it, its name along the canopy,
+    and under it the glass doors in their
+    steel frame, one leaf thrown open and the other smashed, the
+    reception lit inside. Burnt at one end, blood on the glass, tagged."""
     cells = [(x, y) for y in range(level.height) for x in range(level.width)
              if level.at(x, y) in "ÆØ"]
     if not cells:
@@ -1391,94 +1393,119 @@ def paint_factory(d, rng, level):
     h = (max(ys) - min(ys) + 1) * TILE
     ground = py + h
     eaves = py + 2 * TILE  # the roof over the first two rows, then the front
-    # The roof: saw-tooth bays of grey-green sheet, ribs across them, and
-    # the skylight strip under each ridge.
-    sheet, sheet_dark, sheet_light = (120, 132, 124), (92, 102, 96),         (150, 162, 152)
-    rect(d, px, py, w, eaves - py, sheet)
-    for by in range(py, eaves, 8):
-        rect(d, px, by, w, 1, sheet_light)
-        rect(d, px, by + 5, w, 2, (150, 190, 200))  # the skylight
-        rect(d, px, by + 7, w, 1, sheet_dark)
-        for rx in range(px + 2, px + w, 4):
-            rect(d, rx, by + 1, 1, 4, sheet_dark)
-    for _ in range(max(1, w // 60)):  # a sheet blown off, the dark below
-        hx = px + rng.randrange(8, max(9, w - 16))
-        rect(d, hx, py + 2, 10, 5, (26, 28, 30))
-    rect(d, px, py, 1, eaves - py, sheet_dark)
-    rect(d, px + w - 1, py, 1, eaves - py, sheet_dark)
-    # the gutter along the eaves, and its shadow on the front
-    rect(d, px, eaves - 2, w, 2, (70, 76, 80))
-    rect(d, px, eaves, w, 2, (104, 112, 116))
-    # The front: ribbed cladding, pale blue-grey, on a concrete plinth.
-    clad, clad_dark = (176, 190, 196), (148, 162, 170)
-    rect(d, px, eaves + 2, w, ground - eaves - 2, clad)
-    for rx in range(px + 1, px + w, 3):
-        rect(d, rx, eaves + 2, 1, ground - eaves - 2, clad_dark)
-    rect(d, px, ground - 6, w, 6, (150, 146, 136))
-    rect(d, px, ground - 6, w, 1, (120, 116, 108))
-    # The two floors of offices over the ground floor: a ribbon of windows
-    # each, the blinds down in some, a screen still lit behind others.
-    for wy in (eaves + 6, eaves + 22):
-        rect(d, px + 30, wy - 1, w - 34, 1, clad_dark)
-        for wx in range(px + 30, px + w - 10, 12):
-            rect(d, wx, wy, 10, 9, (96, 104, 110))
+    # The roof: tar, a concrete parapet round it, the AC units and a dish.
+    tar, tar_dark = (74, 76, 78), (60, 62, 64)
+    parapet, parapet_dark = (176, 172, 162), (140, 136, 128)
+    rect(d, px, py, w, eaves - py, tar)
+    for _ in range(w // 6):
+        rect(d, px + rng.randrange(3, w - 3), py + rng.randrange(3, 28),
+             2, 1, tar_dark)
+    rect(d, px, py, w, 3, parapet)
+    rect(d, px, py, 3, eaves - py, parapet)
+    rect(d, px + w - 3, py, 3, eaves - py, parapet)
+    rect(d, px, py + 3, w, 1, parapet_dark)
+    for ux in range(px + 40, px + w - 40, 56):
+        rect(d, ux, py + 9, 18, 12, (150, 154, 156))
+        rect(d, ux, py + 20, 18, 2, (90, 94, 96))
+        d.ellipse([ux + 3, py + 11, ux + 11, py + 19], fill=(96, 100, 104))
+        d.ellipse([ux + 5, py + 13, ux + 9, py + 17], fill=(60, 64, 66))
+        rect(d, ux + 13, py + 11, 3, 8, (120, 124, 126))
+    dish = px + w - 30
+    d.ellipse([dish, py + 8, dish + 14, py + 20], fill=(210, 212, 210))
+    d.ellipse([dish + 3, py + 11, dish + 11, py + 17], fill=(180, 182, 180))
+    rect(d, dish + 6, py + 20, 2, 5, (100, 100, 100))
+    # the edge of the roof over the front, and its shadow
+    rect(d, px, eaves - 3, w, 3, parapet)
+    rect(d, px, eaves, w, 2, parapet_dark)
+    # The front: white spandrels, a ribbon of tinted glass for each floor.
+    spandrel, spandrel_dark = (214, 216, 212), (180, 182, 178)
+    rect(d, px, eaves + 2, w, ground - eaves - 2, spandrel)
+    glass, glass_light = (58, 92, 122), (96, 136, 166)
+    mullion = (40, 46, 54)
+    for wy in (eaves + 5, eaves + 19, eaves + 33):
+        rect(d, px + 2, wy - 1, w - 4, 1, spandrel_dark)
+        rect(d, px + 2, wy, w - 4, 10, glass)
+        rect(d, px + 2, wy, w - 4, 1, glass_light)
+        for wx in range(px + 2, px + w - 2, 12):
+            rect(d, wx, wy, 1, 10, mullion)
             roll = rng.random()
-            pane = ((30, 36, 46) if roll < 0.55 else
-                    (170, 176, 170) if roll < 0.8 else (54, 90, 96))
-            rect(d, wx + 1, wy + 1, 8, 7, pane)
-            if pane == (170, 176, 170):  # the blinds
-                for by in range(wy + 2, wy + 8, 2):
-                    rect(d, wx + 1, by, 8, 1, (140, 146, 140))
-            elif pane == (54, 90, 96):
-                rect(d, wx + 3, wy + 4, 3, 2, (110, 200, 170))
-            elif rng.random() < 0.2:  # smashed
-                rect(d, wx + 2, wy + 2, 2, 1, (200, 220, 230))
-                rect(d, wx + 5, wy + 5, 1, 2, (200, 220, 230))
-        rect(d, px + 30, wy + 9, w - 34, 1, clad_dark)
-    # The gate: rolled up into its drum, the offices dark inside.
+            if roll < 0.25:  # the blinds down
+                for by in range(wy + 1, wy + 10, 2):
+                    rect(d, wx + 1, by, 11, 1, (170, 176, 172))
+            elif roll < 0.45:  # a screen still lit
+                rect(d, wx + 4, wy + 5, 4, 3, (110, 200, 170))
+            elif roll < 0.55:  # smashed
+                rect(d, wx + 2, wy + 2, 3, 1, (220, 234, 240))
+                rect(d, wx + 7, wy + 4, 1, 2, (220, 234, 240))
+            else:  # the sky in the glass
+                rect(d, wx + 2, wy + 2, 5, 1, glass_light)
+        rect(d, px + 2, wy + 10, w - 4, 1, mullion)
+    # The ground floor: glass all along, the cubicles behind it.
+    shop = ground - 22
+    rect(d, px + 2, shop, w - 4, 16, (34, 42, 54))
+    rect(d, px + 2, shop, w - 4, 1, glass_light)
+    for wx in range(px + 2, px + w - 2, 16):
+        rect(d, wx, shop, 1, 16, mullion)
+        rect(d, wx + 3, shop + 9, 10, 3, (46, 54, 70))  # the partitions
+        if rng.random() < 0.5:
+            rect(d, wx + 6, shop + 5, 4, 3, (60, 150, 130))
+    rect(d, px, ground - 6, w, 6, (150, 146, 136))  # the plinth
+    rect(d, px, ground - 6, w, 1, (120, 116, 108))
+    # The entrance: a frame of brushed steel round the glass doors, the
+    # reception lit behind them, its counter and a screen on it.
     gate = [x for x, y in cells if level.at(x, y) == "Ø"]
     gx0, gx1 = min(gate) * TILE, (max(gate) + 1) * TILE
-    opening = ground - 26
-    rect(d, gx0 - 3, opening - 6, gx1 - gx0 + 6, 6, (70, 76, 84))  # drum
-    rect(d, gx0 - 3, opening - 6, gx1 - gx0 + 6, 1, (120, 126, 132))
-    rect(d, gx0 - 3, opening, 3, 26, (70, 76, 84))  # its guides
-    rect(d, gx1, opening, 3, 26, (70, 76, 84))
-    rect(d, gx0, opening, gx1 - gx0, 26, (14, 16, 20))
-    rect(d, gx0, opening, gx1 - gx0, 2, (100, 106, 112))  # the slat bottom
-    # inside: the partitions of the cubicles, a screen or two still lit
-    for cx in range(gx0 + 3, gx1 - 6, 10):
-        rect(d, cx, opening + 10, 8, 3, (46, 54, 70))
-        if rng.random() < 0.6:
-            rect(d, cx + 2, opening + 6, 4, 3, (60, 150, 130))
-    rect(d, gx0, ground - 8, gx1 - gx0, 8, (40, 42, 46))  # the vinyl
-    # its name on a board over the gate
+    ex0, ex1 = gx0 - 6, gx1 + 6
+    top = ground - 30
+    steel, steel_dark = (150, 156, 160), (110, 116, 120)
+    rect(d, ex0, top, ex1 - ex0, ground - top, steel)
+    lit = (230, 214, 160)
+    rect(d, gx0, top + 3, gx1 - gx0, ground - top - 3, lit)
+    rect(d, gx0, ground - 12, gx1 - gx0, 12, (190, 170, 120))  # the floor
+    mid = (gx0 + gx1) // 2
+    rect(d, gx0 + 10, ground - 18, gx1 - gx0 - 20, 6, (120, 84, 52))
+    rect(d, gx0 + 10, ground - 18, gx1 - gx0 - 20, 1, (160, 120, 80))
+    rect(d, mid - 2, ground - 22, 4, 3, (60, 150, 130))
+    for fx in (gx0, gx1 - 3):
+        rect(d, fx, top + 3, 3, ground - top - 3, steel_dark)
+    rect(d, mid - 1, top + 3, 2, ground - top - 3, steel_dark)
+    # the west leaf thrown open against the frame, seen edge on; the east
+    # one still shut, smashed through
+    rect(d, gx0 + 3, top + 4, 4, ground - top - 6, (140, 180, 196))
+    rect(d, mid + 1, top + 3, gx1 - mid - 4, ground - top - 3,
+         (120, 164, 184))
+    rect(d, mid + 6, top + 8, 10, 8, lit)
+    rect(d, mid + 12, top + 16, 8, 6, lit)
+    rect(d, mid + 4, top + 7, 1, 12, (220, 234, 240))
+    rect(d, mid + 17, top + 12, 6, 1, (220, 234, 240))
+    # the light from the doors spilling out on the pavement
+    for step, alpha in enumerate((120, 80, 50, 28)):
+        d.rectangle([gx0 - step * 2, ground + step * 2,
+                     gx1 - 1 + step * 2, ground + 1 + step * 2],
+                    fill=(255, 226, 150, alpha))
+    # The canopy: red, over the doors and wider than them, on two steel
+    # posts, the name along its front.
+    cx0, cx1 = ex0 - 14, ex1 + 14
+    canopy = top - 14
+    rect(d, cx0, canopy, cx1 - cx0, 12, (176, 30, 34))
+    rect(d, cx0, canopy, cx1 - cx0, 1, (220, 70, 70))
+    rect(d, cx0, canopy + 11, cx1 - cx0, 2, (110, 16, 20))
+    rect(d, cx0, canopy + 13, cx1 - cx0, 2, (60, 60, 64))  # its shadow
+    for post in (cx0 + 2, cx1 - 5):
+        rect(d, post, canopy + 12, 3, ground - canopy - 12, steel)
+        rect(d, post + 2, canopy + 12, 1, ground - canopy - 12, steel_dark)
     tw = text_width(FACTORY_NAME) * 2
-    tx = (gx0 + gx1) // 2 - tw // 2
-    tx = max(px + 6, min(tx, px + w - tw - 6))
-    sign = ground - 45
-    rect(d, tx - 4, sign, tw + 8, 12, (40, 70, 120))
-    rect(d, tx - 4, sign + 11, tw + 8, 1, (24, 40, 70))
-    paint_text(d, tx, sign + 1, FACTORY_NAME, (240, 236, 220),
-               missing=(3,), scale=2)
-    # loading bays either side of the gate, their shutters down, the dock
-    # bumpers and the yellow and black edge
-    for bay in (gx0 - 64, gx1 + 24):
-        if bay < px or bay + 40 > px + w:
-            continue
-        rect(d, bay - 2, ground - 26, 44, 26, (62, 66, 70))
-        for sy in range(ground - 24, ground - 4, 3):
-            rect(d, bay, sy, 40, 2, (132, 136, 138))
-        for i, sx in enumerate(range(bay - 2, bay + 42, 4)):
-            rect(d, sx, ground - 28, 4, 2,
-                 (230, 190, 40) if i % 2 == 0 else (30, 30, 30))
-        for sx in (bay + 2, bay + 34):
-            rect(d, sx, ground - 8, 4, 6, (30, 30, 32))
+    tx = (cx0 + cx1) // 2 - tw // 2
+    paint_text(d, tx + 1, canopy + 3, FACTORY_NAME, (110, 16, 20),
+               scale=2)
+    paint_text(d, tx, canopy + 2, FACTORY_NAME, (255, 240, 200),
+               scale=2)
     # burnt at the west end, where a car went up against it
     rect(d, px, eaves + 2, 26, ground - eaves - 2, (58, 54, 52))
     rect(d, px + 3, eaves - 4, 18, 6, (80, 76, 72))
     for rx in range(px + 1, px + 26, 3):
         rect(d, rx, eaves + 2, 1, ground - eaves - 8, (44, 40, 38))
-    rect(d, gx1 + 6, ground - 22, 8, 10, BLOOD)
-    rect(d, gx1 + 9, ground - 12, 2, 6, BLOOD_DARK)
+    rect(d, ex1 + 22, ground - 20, 8, 10, BLOOD)
+    rect(d, ex1 + 25, ground - 10, 2, 6, BLOOD_DARK)
     # tags
     paint_text(d, px + w - 60, ground - 14, "VIA", (200, 40, 40))

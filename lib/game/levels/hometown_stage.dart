@@ -178,6 +178,10 @@ final class HometownStage extends LevelStage implements HometownActions {
     PlaceId.duomoTower ||
     PlaceId.duomoBells ||
     PlaceId.duomoTowerRoof => Music.sacred,
+    PlaceId.industryStreet ||
+    PlaceId.companyGround ||
+    PlaceId.companyFirst ||
+    PlaceId.companySecond => Music.weasel,
     _ => null,
   };
 

@@ -165,15 +165,22 @@ void main() {
   });
 
   test('out on the street: the camp by the company is a fire to rest at, '
-      'and the ways off it end at the work-in-progress screen', () {
+      'and no way off it goes nowhere: east, past the company, it ends '
+      'against a pile-up at the edge of the map', () {
     expect(campfireNames[industryStreetCampfireTile], 'Davanti all’azienda');
-    final ends = workInProgressEnds.keys.where(
-      (tile) => placeAt(tile) == street,
+    // The road going down south leads on to the monument's square
+    // (monument_square_test.dart); past the pile-up the street runs on to
+    // the edge, but nobody gets there.
+    final world = createGameWorld();
+    final reachable = world.map.floodFillDistances(
+      industryStreetCampfireTile.step(Direction.south),
+      maxDistance: street.width * street.height,
     );
-    // The street going on east; the road going down south leads on to the
-    // monument's square (monument_square_test.dart).
-    expect(ends.where((tile) => tile.x == street.bounds.right), isNotEmpty);
-    expect(ends.where((tile) => tile.y == street.bounds.bottom), isEmpty);
-    expect(ends.where((tile) => tile.x == street.bounds.left), isEmpty);
+    final ends = workInProgressEnds.keys.where(street.bounds.contains);
+    expect(ends, isNotEmpty);
+    for (final end in ends) {
+      expect(end.x, street.bounds.right, reason: '$end');
+      expect(reachable.containsKey(end), isFalse, reason: '$end');
+    }
   });
 }

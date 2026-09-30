@@ -58,6 +58,23 @@ void main() {
     }
   });
 
+  test('the industries and the company play the hold music gone wrong', () {
+    final stage = StepboundGame(
+      world: createGameWorld(),
+      progress: Progress(),
+    ).hometown;
+    const industries = <PlaceId>{
+      PlaceId.industryStreet,
+      PlaceId.companyGround,
+      PlaceId.companyFirst,
+      PlaceId.companySecond,
+    };
+    for (final id in industries) {
+      expect(stage.musicOf(id), Music.weasel, reason: '$id');
+    }
+    expect(stage.musicOf(PlaceId.monumentSquare), isNull);
+  });
+
   test('once met, Tonino and Marcello bring their music into view', () {
     final progress = Progress();
     final game = StepboundGame(world: createGameWorld(), progress: progress)

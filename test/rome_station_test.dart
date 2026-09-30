@@ -229,6 +229,18 @@ void main() {
       workInProgressEnds[GridPoint(piazza.bounds.right, piazza.origin.y + 12)],
       Direction.west,
     );
+    // Off Piazza di Santa Maria Maggiore the road runs off the map west,
+    // where the map turns the corner of its L, as far as it does east.
+    final lines = piazza
+        .tilesOf('-')
+        .where((tile) => tile.y > piazza.origin.y + 40)
+        .toList();
+    final square = piazza.tilesOf('°').map((tile) => tile.x);
+    final west = lines.where((tile) => tile.x < square.reduce(math.min));
+    final east = lines.where((tile) => tile.x > square.reduce(math.max));
+    expect(west.length, east.length);
+    expect(workInProgressEnds[west.first], Direction.east);
+    expect(workInProgressEnds[east.last], Direction.west);
     // West, the road ends against the Baths of Diocletian.
     for (var y = piazza.origin.y; y <= piazza.bounds.bottom; y++) {
       expect(
