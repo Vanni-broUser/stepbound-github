@@ -54,6 +54,15 @@ from tile_atlas_core import (  # noqa: E402
 )
 
 ROAD = "".join(sorted(brushes.ROAD_GLYPHS))
+# The stop line across a lane before a crossing: along the north edge of
+# the cell, for traffic coming up from the south, or along its west edge,
+# for traffic coming from the east.
+STOP_NORTH, STOP_WEST = "▔", "▏"
+# Where a centre line from the east bends round into the one going south:
+# `c` the other way round.
+BEND_EAST = "ɔ"
+# The monument on the square south of the street of the company.
+MONUMENT = "Ω"
 BUILDINGS = "BHfKMGW#%0]\"\u00a7\u00c6"
 FACADE = "Hf"
 # A front and the doors set in it at street level: the floor over a door
@@ -62,8 +71,8 @@ FRONT = FACADE + "\u00ab"
 
 GROUND = ground_config(
     buildings=BUILDINGS,
-    roads=".-|ZVc",
-    walks="={}",
+    roads=ROAD,
+    walks="={}¦",
     floors="PLY,",
     footway="T/F¤",
     keep="~bRlo5g",
@@ -164,6 +173,10 @@ def paint_marking(d, glyph):
     elif glyph == "V":
         for i in range(0, 16, 4):
             rect(d, i + 1, 2, 2, 12, brushes.ZEBRA)
+    elif glyph == STOP_NORTH:
+        rect(d, 1, 0, 14, 3, brushes.ZEBRA)
+    elif glyph == STOP_WEST:
+        rect(d, 0, 1, 3, 14, brushes.ZEBRA)
 
 
 def paint_curb(d, side):
@@ -211,7 +224,7 @@ def ground_rules(atlas: Atlas, rng) -> list[dict]:
     # a car in the road stands on bare asphalt.
     rules.append(rule("ground", ".", randomly(
         atlas, rng, lambda d, r, x, y: floors.paint_road(d, r, Around(), x, y))))
-    for glyph in "-|ZV":
+    for glyph in "-|ZV" + STOP_NORTH + STOP_WEST:
         rules.append(rule("ground", glyph, [atlas.bucket(lambda g=glyph:
                           tile_of(lambda d: paint_marking(d, g)), 1)],
                           on="glyph"))
@@ -699,7 +712,81 @@ def facade_rules(atlas: Atlas, rng, old_town: bool,
             for extra in pieces:
                 extra["buckets"][index] = []
     rules.append(rule("structures", FACADE, buckets, keys, pieces))
+    rules.append(sliver_rule(atlas, rng, colours, old_town, rome,
+                             paint_wall, paint_window))
     return rules
+
+
+def sliver_rule(atlas: Atlas, rng, colours, old_town: bool, rome: bool,
+                paint_wall, paint_window) -> dict:
+    """No palazzo one column wide. The fronts are split into buildings on
+    the pattern of the roofs, fifteen columns at a time, so where a band of
+    fronts starts on the last column of one of them, or ends on the first,
+    that column would stand alone. Painted over the rules above, it joins
+    the building beside it instead: its colour, and no seam between them.
+    A band of two columns, each the edge of its own building, becomes one
+    building in the colour of the first."""
+    keys = segment_keys() + [
+        neighbour_key(-1, 0, FACADE),
+        neighbour_key(1, 0, FACADE),
+        neighbour_key(2, 0, FACADE),
+        pattern_key(1, 0, SPAN, values=ENDS),
+        pattern_key(1, 0, SPAN, values=STARTS),
+        neighbour_key(0, -1, FACADE),
+        neighbour_key(0, 1, FRONT),
+    ]
+    if old_town:
+        keys.append(neighbour_key(0, 2, FRONT))
+
+    def colour(segment, odd):
+        return colours[(segment + 3 * odd) % len(colours)]
+
+    made = {}
+
+    def bucket(c, top, east, window, street):
+        # The same tile for every index that asks for it.
+        key = (c, top, east, window, street)
+        if key not in made:
+            def paint(d):
+                paint_wall(d, c, top, east, rng)
+                if window:
+                    paint_window(d, c, rng)
+                elif street and old_town:
+                    paint_old_town_street(d, 0, 0, c, False, rng)
+                elif street and rome:
+                    paint_rome_street(d, 0, 0, c, False, False, rng)
+                elif street:
+                    paint_street_door(d, 0, 0, c, False, rng)
+            made[key] = atlas.bucket(lambda: tile_of(paint),
+                                     4 if window or street else 1)
+        return made[key]
+
+    buckets = []
+    for index in range(2 ** len(keys)):
+        (first, second, odd, left, right, far, end, start, above,
+         front_below) = bits(index, 10)
+        front_two_below = bits(index, 11)[10] if old_town else front_below
+        if first and second:
+            buckets.append([])
+            continue
+        s = segment_of(first, second)
+        if end and right and not far:
+            # The first of the last two: the next column joins it.
+            c, east = colour(s, odd), False
+        elif end and not left and right:
+            # The first of a band, the last of its building: it joins the
+            # next one.
+            c, east = colour((s + 1) % 3, odd ^ (s == 2)), False
+        elif start and left and not right:
+            # The last of a band, the first of its building: it joins the
+            # one before.
+            c, east = colour((s - 1) % 3, odd ^ (s == 0)), True
+        else:
+            buckets.append([])
+            continue
+        buckets.append(bucket(c, not above, east, front_two_below,
+                              not front_below))
+    return rule("structures", FACADE, buckets, keys)
 
 
 def paint_street_door(d, px, py, c, door, rng):
@@ -1035,6 +1122,17 @@ def paint_lane_bend(d, px, py):
              round(cy - radius * math.cos(a)) - 1, 2, 2, brushes.LANE)
 
 
+def paint_lane_bend_east(d, px, py):
+    """`c` mirrored: the line from the east curving round into the one
+    going south, over the tile after it and the two below."""
+    radius = TILE + TILE // 2
+    cx, cy = px + 8 + radius, py + 8 + radius
+    for step in range(0, 91, 3):
+        a = math.radians(step)
+        rect(d, round(cx - radius * math.sin(a)) - 1,
+             round(cy - radius * math.cos(a)) - 1, 2, 2, brushes.LANE)
+
+
 def overhead_rules(atlas: Atlas, rng) -> list[dict]:
     """What stands into the tile above over everything else: the traffic
     lights, the road signs, the trees and the palms; and last, the grit the
@@ -1096,6 +1194,45 @@ def picture(rows: list[str], level, name: str, paint, glyphs: str) -> dict:
         "underAt": [gx0, gy0],
         "under": [rows[y][gx0:gx1 + 1] for y in range(gy0, gy1 + 1)],
     }
+
+
+def lone_columns(level) -> list[int]:
+    """The columns a shop leaves standing alone: between a shop and the
+    next building, or two shops, one column of a building of its own.
+    The sliver rule joins a lone column at the edge of a band of fronts to
+    its neighbour; next to a shop there is nothing to join it to, so the
+    tables must not leave one."""
+    lone = []
+    for x0, width, top, _ in brushes.column_runs(level,
+                                                 brushes.FACADE_GLYPHS):
+        x1 = x0 + width - 1
+        shops = [(sx, sx + sw - 1) for sx, sw, _ in
+                 level.storefronts.get(top, []) if x0 <= sx <= x1]
+        pieces, x = [], x0
+        while x <= x1:
+            shop = next((s for s in shops if s[0] == x), None)
+            if shop:
+                pieces.append(("shop", shop[0], shop[1]))
+                x = shop[1] + 1
+                continue
+            end = min([building_end(x), x1]
+                      + [s[0] - 1 for s in shops if x < s[0]])
+            pieces.append(("house", x, end))
+            x = end + 1
+        for i, (kind, a, b) in enumerate(pieces):
+            if kind != "house" or a != b or width < 2:
+                continue
+            before = pieces[i - 1] if i else None
+            after = pieces[i + 1] if i + 1 < len(pieces) else None
+            joined = (a == x0 and after and after[0] == "house"
+                      or a == x1 and before and before[0] == "house"
+                      or before and before[0] == "house"
+                      and before[1] == before[2] == x0
+                      or after and after[0] == "house"
+                      and after[1] == after[2] == x1)
+            if not joined:
+                lone.append(a)
+    return lone
 
 
 def storefronts(rows, level, name, rng) -> list[dict]:
@@ -1314,6 +1451,10 @@ def city_place(atlas: Atlas, rng, name: str, marker, storefront_table,
         buckets, pieces = spread(atlas, lambda i: paint_lane_bend, None,
                                  (2, 0, 0, 2), 1)
         rules.append(rule("structures", "c", buckets, None, pieces))
+    if BEND_EAST in glyphs:
+        buckets, pieces = spread(atlas, lambda i: paint_lane_bend_east, None,
+                                 (0, 0, 2, 2), 1)
+        rules.append(rule("structures", BEND_EAST, buckets, None, pieces))
     if ">" in glyphs and '"' not in glyphs:
         rules.append(rule("structures", ">",
                           randomly(atlas, rng, paint_road_blood)))
@@ -1342,6 +1483,8 @@ def city_place(atlas: Atlas, rng, name: str, marker, storefront_table,
                 (1, 0, 2, 0), count=4, across=True))
     rules += shared(atlas, "overhead", lambda r: overhead_rules(atlas, r))
 
+    lone = lone_columns(level)
+    assert not lone, f"{name}: palazzi one column wide at {lone}"
     objects = storefronts(rows, level, name, rng)
     if "K" in glyphs:
         objects.insert(0, barracks_block(rows, name))
@@ -1386,6 +1529,13 @@ def city_place(atlas: Atlas, rng, name: str, marker, storefront_table,
             rows, level, f"{name}_gantry",
             lambda d, lv: buildings.paint_gantry(d, *(v * TILE for v in gantry)),
             "i"))
+    monument = run_of(rows, MONUMENT)
+    if monument:
+        x, y, _, _ = monument
+        objects.append(picture(
+            rows, level, f"{name}_monument",
+            lambda d, lv: props.paint_monument(image_of(d), rng, x * TILE,
+                                               y * TILE), MONUMENT))
     fountain = run_of(rows, "O")
     if fountain:
         x, y, w, _ = fountain
@@ -1582,6 +1732,11 @@ def industry_street(atlas: Atlas, rng) -> dict:
                       {})
 
 
+def monument_square(atlas: Atlas, rng) -> dict:
+    return city_place(atlas, rng, "monumentSquare", "monument-square-rows",
+                      brushes.MONUMENT_SQUARE_STOREFRONTS)
+
+
 def via_marsala(atlas: Atlas, rng) -> dict:
     return city_place(atlas, rng, "viaMarsala", "via-marsala-rows", {},
                       rome=True)
@@ -1591,6 +1746,7 @@ PLACES = {
     "harbour": harbour,
     "industryStreet": industry_street,
     "mallNorthStreet": mall_north_street,
+    "monumentSquare": monument_square,
     "northDistrict": north_district,
     "piazzaCinquecento": piazza_cinquecento,
     "street": street,
@@ -1601,6 +1757,7 @@ PREVIEW_ROWS = {
     "harbour": "harbour-rows",
     "industryStreet": "industry-street-rows",
     "mallNorthStreet": "mall-north-rows",
+    "monumentSquare": "monument-square-rows",
     "northDistrict": "north-rows",
     "piazzaCinquecento": "piazza-cinquecento-rows",
     "street": "level-rows",

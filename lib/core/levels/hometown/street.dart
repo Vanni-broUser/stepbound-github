@@ -13,8 +13,9 @@
 /// - `E` barracks front door, `e` passage through its back, `m` the
 ///   hypermarket's open entrance: doors.
 /// - `=` sidewalk; `.` road; `-` and `|` road with a horizontal or vertical
-///   centre line; `c` where a centre line bends from west to south; `Z`
-///   and `V` zebra crossings: floor.
+///   centre line; `c` where a centre line bends from west to south, `ɔ`
+///   from east to south; `Z` and `V` zebra crossings; `▔` and `▏` a stop
+///   line along the north or west edge of the lane: floor.
 /// - `CC` car, `XX` burning car, `UU` overturned car (horizontal pairs),
 ///   `v`/`k` car / burning car parked north-south (vertical pairs), `D` pile
 ///   of corpses, `F` burning bin, `T` traffic light: obstacles you can see

@@ -106,6 +106,108 @@ def paint_fountain(image, rng, px, py, size):
              2, 1, rng.choice(DEBRIS))
 
 
+STONE = (208, 200, 180)
+STONE_LIGHT = (232, 226, 210)
+STONE_DARK = (160, 150, 130)
+STONE_CRACK = (120, 112, 98)
+STONE_EDGE = (92, 86, 76)
+PLINTH = (176, 172, 162)
+PLINTH_DARK = (132, 128, 120)
+
+
+def _rough_block(d, rng, left, top, right, bottom):
+    """A block of limestone roughly squared: its lit top, its face and
+    the shade down its east side, the corners knocked off unevenly."""
+    def chip():
+        return rng.randint(2, 5)
+    face = [(left + chip(), top), (right - chip(), top), (right, top + chip()),
+            (right, bottom - chip()), (right - chip(), bottom),
+            (left + chip(), bottom), (left, bottom - chip()),
+            (left, top + chip())]
+    d.polygon(face, fill=STONE, outline=STONE_EDGE)
+    middle = (left + right) // 2 + 6
+    d.polygon([(middle, top + 1), (right - 3, top + 1), (right - 1, top + 4),
+               (right - 1, bottom - 4), (right - 3, bottom - 1),
+               (middle, bottom - 1)], fill=STONE_DARK)
+    rect(d, left + 3, top + 1, right - left - 8, 3, STONE_LIGHT)
+    for _ in range(4):  # the pitting and the cracks of the stone
+        cx = rng.randrange(left + 3, right - 3)
+        cy = rng.randrange(top + 4, bottom - 2)
+        rect(d, cx, cy, 1, rng.randint(2, 4), STONE_CRACK)
+        rect(d, cx + 1, cy + 1, rng.randint(1, 3), 1, STONE_CRACK)
+
+
+def paint_monument(image, rng, px, py):
+    """Molfetta's monument on its island, three cells by three: on a low
+    concrete plinth a squared block of stone tagged with graffiti, on it a
+    second, rougher block, then a car crushed flat, and a great boulder
+    on top of it pressing it down. The car sticks out well beyond the
+    stones either side, its red-rimmed wheels and its bonnet at one end,
+    the rusted boot at the other, so that from anywhere on the square it
+    reads as a car between two stones. It stands two cells taller than
+    its footprint."""
+    d = ImageDraw.Draw(image)
+    w = 3 * TILE
+    bottom = py + 3 * TILE
+    d.ellipse([px - 4, bottom - 10, px + w + 6, bottom + 2], fill=(40, 38, 40))
+    # The plinth: a low slab, its top lit.
+    rect(d, px - 1, bottom - 10, w + 2, 8, PLINTH)
+    rect(d, px - 1, bottom - 10, w + 2, 2, (200, 196, 186))
+    rect(d, px - 1, bottom - 3, w + 2, 2, PLINTH_DARK)
+    # The lower block, squared, sprayed all over.
+    lx0, lx1, ly0, ly1 = px + 8, px + w - 7, bottom - 34, bottom - 10
+    rect(d, lx0, ly0, lx1 - lx0, ly1 - ly0, STONE)
+    rect(d, lx0, ly0, lx1 - lx0, 2, STONE_LIGHT)
+    rect(d, lx1 - 7, ly0, 7, ly1 - ly0, STONE_DARK)
+    rect(d, lx0, ly0, 1, ly1 - ly0, STONE_EDGE)
+    rect(d, lx1 - 1, ly0, 1, ly1 - ly0, STONE_EDGE)
+    for colour, gx, gy in (((30, 30, 34), 2, 8), ((30, 30, 34), 12, 13),
+                           ((60, 90, 170), 5, 16), ((200, 60, 50), 18, 6),
+                           ((30, 30, 34), 21, 17)):
+        x0 = lx0 + gx
+        for i in range(6):  # a tag, its letters run together
+            rect(d, x0 + i * 2, ly0 + gy + (i % 3) - 1, 1, 3, colour)
+        rect(d, x0, ly0 + gy + 2, 11, 1, colour)
+    # The upper block, bigger and rougher.
+    _rough_block(d, rng, px + 3, bottom - 54, px + w - 3, bottom - 33)
+    # The upper block overhangs the lower one: its shadow across the top.
+    rect(d, lx0 + 1, ly0, lx1 - lx0 - 2, 3, STONE_EDGE)
+    # The car, crushed flat between the stones, sticking out either side:
+    # the bonnet and a front wheel west, the boot and a rear wheel east.
+    top = bottom - 64
+    body, body_dark, rust = (96, 28, 30), (58, 18, 22), (150, 82, 44)
+    d.polygon([(px - 11, top + 6), (px - 6, top + 1), (px + w + 8, top),
+               (px + w + 12, top + 5), (px + w + 11, top + 11),
+               (px - 10, top + 12)], fill=body)
+    rect(d, px - 10, top + 9, w + 20, 3, body_dark)  # the sill, buckled
+    rect(d, px + 6, top + 2, w - 12, 3, (40, 46, 56))  # the flattened cabin
+    for gx in (px + 10, px + 21, px + 31):  # the glass gone to crumbs
+        rect(d, gx, top + 3, 2, 1, (170, 200, 214))
+    rect(d, px - 11, top + 5, 3, 3, (226, 226, 214))  # a headlight
+    rect(d, px - 11, top + 9, 4, 2, (170, 170, 176))  # the bumper
+    rect(d, px + w + 7, top + 3, 5, 5, rust)  # the rusted boot
+    rect(d, px + w + 9, top + 8, 3, 2, (200, 60, 40))  # a tail light
+    rect(d, px + w - 2, top + 1, 6, 2, rust)
+    for cx in (px - 3, px + w + 3):  # the wheels, their red rims
+        d.ellipse([cx - 6, top + 6, cx + 6, top + 18], fill=(22, 22, 24))
+        d.ellipse([cx - 3, top + 9, cx + 3, top + 15], fill=(186, 40, 36))
+        rect(d, cx - 1, top + 11, 2, 2, (230, 220, 210))
+    rect(d, px + 4, top + 12, w - 8, 3, STONE_EDGE)  # its shadow below
+    # The boulder on top, pressing it down.
+    d.ellipse([px + 1, top - 22, px + w - 1, top + 6], fill=STONE,
+              outline=STONE_EDGE)
+    d.ellipse([px + w // 2, top - 18, px + w - 1, top + 6], fill=STONE_DARK)
+    d.ellipse([px + 4, top - 21, px + w - 12, top - 6], fill=STONE_LIGHT)
+    d.polygon([(px + 1, top - 4), (px + 6, top - 16), (px + 10, top - 2)],
+              fill=STONE)
+    for _ in range(6):
+        cx = rng.randrange(px + 6, px + w - 6)
+        cy = rng.randrange(top - 16, top + 2)
+        rect(d, cx, cy, 1, rng.randint(2, 4), STONE_CRACK)
+    rect(d, px + 30, top - 21, 3, 2, (40, 40, 44))  # a pigeon on top
+    rect(d, px + 29, top - 22, 2, 1, (70, 70, 76))
+
+
 def paint_tree(d, rng, px, py):
     """Dead tree in a square stone planter, bare branches over the tile."""
     rect(d, px + 1, py + 13, 15, 2, (30, 30, 34))

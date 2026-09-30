@@ -406,6 +406,13 @@ final List<TestScenario> testScenarios = <TestScenario>[
     _hookBroughtHome(story);
     story.restAt(industryStreetCampfireTile);
   }),
+  // At the camp behind the barracks, by the Elettronica's shutter: the
+  // way through the shop, once it is opened from inside on the monument's
+  // square.
+  TestScenario('Elettronica dietro la caserma', (story) {
+    _hookBroughtHome(story);
+    story.restNearest(northDistrictShopDoor);
+  }),
   vanniDeployScenario,
 ];
 

@@ -130,6 +130,8 @@ final class HometownStage extends LevelStage implements HometownActions {
       ShutterComponent(bars: luigiBars, map: simulation.map),
       ChurchyardGateComponent(gate: priestGate, map: simulation.map),
       BarServiceDoorComponent(door: barLockedDoorTile, map: simulation.map),
+      ShopBackDoorComponent(door: electronicsShopBackDoor, map: simulation.map),
+      ShopShutterComponent(door: northDistrictShopDoor, map: simulation.map),
       ..._interactGlints(),
     ];
   }
@@ -205,6 +207,13 @@ final class HometownStage extends LevelStage implements HometownActions {
         tile: barLockedDoorTile,
         spot: const Offset(8, 8),
         active: () => !simulation.map.tileAt(barLockedDoorTile).isWalkable,
+      ),
+      // The shop's back door, bolted on this side, until it is drawn.
+      InteractGlintComponent(
+        tile: electronicsShopBackDoor,
+        active: () =>
+            canInteract() &&
+            !simulation.map.tileAt(electronicsShopBackDoor).isWalkable,
       ),
       // Like the bar's own door: nothing left to use once it is open.
       InteractGlintComponent(

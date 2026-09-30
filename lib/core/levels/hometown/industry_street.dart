@@ -12,7 +12,11 @@
 /// shed of a big company `Æ`, its gate `Ø` rolled up on the way in
 /// (company.dart) and its loading bays shut; between the two, a camp
 /// on the pavement with its fire `S`. West, a few palazzi on, the street
-/// ends against the corner palazzo and a road goes off it south.
+/// ends against the corner palazzo and a road goes off it south: a
+/// crossroads with its traffic lights `T` at three corners, a zebra
+/// crossing over each road, the stop lines before them, the centre line
+/// bending round the corner, a give-way sign `/` at the mouth of the road
+/// south and the blue plate pointing the way east.
 ///
 /// Glyphs, on top of the outdoor legend in street.dart: `Æ` the
 /// company's shed, a wall; `Ø` its gate, rolled up, a door; `«` the
@@ -25,14 +29,14 @@ const List<String> industryStreetRows = <String>[
   'BBBBHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHfHHHHHHHÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆHHH',
   'BBBBHHHHHHHHHHHfHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆHHH',
   'BBBBHHHHHHHHHHHHHHHHHHHHHHHHHHH«HHHHHHHHHHHHHHHHHHHHÆÆÆÆÆÆÆÆÆÆØØØØÆÆÆÆÆÆÆÆÆÆÆHHH',
-  'BBBB========F==========================/====S======================/============',
-  'BBBB..............:........>.......UU...............r..d..............CC........',
-  'BBBB......----------w-----d-----------w-------:--->----------:------------------',
-  'BBBB..........CC.............:...........d..............w.XX....>....w....:.....',
-  'BBBB=...==============nn========d=====:=========T=======================D=======',
-  'BBBB=.|.=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBBBT=/===T=F==========================/====S======================/============',
+  'BBBB=....Z▏.......:........>.......UU...............r..d..............CC........',
+  'BBBB=.ɔ.-Z----------w-----d-----------w-------:--->----------:------------------',
+  'BBBB=....Z....CC.............:...........d..............w.XX....>....w....:.....',
+  'BBBB=VVVT=============nn========d=====:=========T=======================D=======',
+  'BBBB=.|▔=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBB=.|:=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  'BBBB=.|.=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBBB=.|./BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBB=.v.=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBB=.v.=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBB=>|.=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',

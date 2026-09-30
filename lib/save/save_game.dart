@@ -114,7 +114,7 @@ final class SaveGame {
   /// Bump it whenever what a save holds changes. Saves of the formats in
   /// between public builds are dropped, never migrated; those of the last
   /// public build are, see `docs/save_policy.md`.
-  static const int format = 43;
+  static const int format = 44;
 
   /// 1 to [SaveRepository.slotCount].
   final int slot;
