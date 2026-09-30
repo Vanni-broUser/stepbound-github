@@ -5,6 +5,7 @@ import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/story/scripts/backpacks_script.dart';
 import 'package:stepbound/game/story/scripts/bar_script.dart';
 import 'package:stepbound/game/story/scripts/barracks_script.dart';
+import 'package:stepbound/game/story/scripts/company_script.dart';
 import 'package:stepbound/game/story/scripts/duomo_script.dart';
 import 'package:stepbound/game/story/scripts/journey_script.dart';
 import 'package:stepbound/game/story/scripts/mall_script.dart';
@@ -25,6 +26,7 @@ import 'package:stepbound/game/zombie_lore.dart';
 export 'package:stepbound/game/story/scripts/backpacks_script.dart';
 export 'package:stepbound/game/story/scripts/bar_script.dart';
 export 'package:stepbound/game/story/scripts/barracks_script.dart';
+export 'package:stepbound/game/story/scripts/company_script.dart';
 export 'package:stepbound/game/story/scripts/duomo_script.dart';
 export 'package:stepbound/game/story/scripts/journey_script.dart';
 export 'package:stepbound/game/story/scripts/mall_script.dart';
@@ -308,6 +310,7 @@ final class StoryDirector {
       BackpacksScript(this),
       BarScript(this),
       PalazzoScript(this),
+      CompanyScript(this),
       StreetScript(this),
       BarracksScript(this),
       DuomoScript(this),

@@ -1306,11 +1306,14 @@ FACTORY_NAME = "INDUSTRIE MOLFETTESI"
 
 
 def paint_factory(d, rng, level):
-    """The big company east of the palazzo: a long front of concrete panels
-    under a steel parapet, a ribbon of high windows, its name across the
-    top, loading bays shuttered either side, and in the middle the gate
-    `Ø`, rolled shut and chained. Tagged, burnt at one end, blood thrown up
-    against the gate by whoever tried to get in."""
+    """The big company east of the palazzo: a long, low shed, not a block
+    of flats. Its roof seen from above, corrugated sheet in saw-tooth bays
+    with a strip of skylight along each, over a front of ribbed metal
+    cladding on a concrete plinth; its name on a board over the gate, the
+    gate `Ø` rolled up into its drum with the dark of the offices inside
+    and a screen or two still lit, the loading bays either side shut behind
+    their shutters. Tagged, burnt at one end, blood thrown up against the
+    cladding by whoever got in first."""
     cells = [(x, y) for y in range(level.height) for x in range(level.width)
              if level.at(x, y) in "ÆØ"]
     if not cells:
@@ -1320,46 +1323,76 @@ def paint_factory(d, rng, level):
     px, py = min(xs) * TILE, min(ys) * TILE
     w = (max(xs) - min(xs) + 1) * TILE
     h = (max(ys) - min(ys) + 1) * TILE
-    panel, panel_dark = (168, 170, 166), (138, 140, 138)
-    rect(d, px, py, w, h, panel)
-    for bx in range(px, px + w, 24):  # the joints between the panels
-        rect(d, bx, py, 1, h, panel_dark)
-    rect(d, px, py, w, 4, (70, 76, 84))  # the parapet
-    rect(d, px, py + 4, w, 1, (40, 44, 50))
-    # its name, big, along the top
-    tw = text_width(FACTORY_NAME) * 2
-    tx = px + (w - tw) // 2
-    rect(d, tx - 4, py + 7, tw + 8, 14, (40, 70, 120))
-    paint_text(d, tx, py + 9, FACTORY_NAME, (240, 236, 220), missing=(3,),
-               scale=2)
-    # the ribbon of windows, some broken
-    for wx in range(px + 4, px + w - 8, 10):
-        pane = (70, 92, 108) if rng.random() > 0.3 else (20, 22, 26)
-        rect(d, wx, py + 26, 8, 8, (96, 100, 104))
-        rect(d, wx + 1, py + 27, 6, 6, pane)
-    # the gate, rolled shut: steel slats, a chain and a padlock
+    ground = py + h
+    eaves = py + 2 * TILE  # the roof over the first two rows, then the front
+    # The roof: saw-tooth bays of grey-green sheet, ribs across them, and
+    # the skylight strip under each ridge.
+    sheet, sheet_dark, sheet_light = (120, 132, 124), (92, 102, 96),         (150, 162, 152)
+    rect(d, px, py, w, eaves - py, sheet)
+    for by in range(py, eaves, 8):
+        rect(d, px, by, w, 1, sheet_light)
+        rect(d, px, by + 5, w, 2, (150, 190, 200))  # the skylight
+        rect(d, px, by + 7, w, 1, sheet_dark)
+        for rx in range(px + 2, px + w, 4):
+            rect(d, rx, by + 1, 1, 4, sheet_dark)
+    for _ in range(max(1, w // 60)):  # a sheet blown off, the dark below
+        hx = px + rng.randrange(8, max(9, w - 16))
+        rect(d, hx, py + 2, 10, 5, (26, 28, 30))
+    rect(d, px, py, 1, eaves - py, sheet_dark)
+    rect(d, px + w - 1, py, 1, eaves - py, sheet_dark)
+    # the gutter along the eaves, and its shadow on the front
+    rect(d, px, eaves - 2, w, 2, (70, 76, 80))
+    rect(d, px, eaves, w, 2, (104, 112, 116))
+    # The front: ribbed cladding, pale blue-grey, on a concrete plinth.
+    clad, clad_dark = (176, 190, 196), (148, 162, 170)
+    rect(d, px, eaves + 2, w, ground - eaves - 2, clad)
+    for rx in range(px + 1, px + w, 3):
+        rect(d, rx, eaves + 2, 1, ground - eaves - 2, clad_dark)
+    rect(d, px, ground - 6, w, 6, (150, 146, 136))
+    rect(d, px, ground - 6, w, 1, (120, 116, 108))
+    # The gate: rolled up into its drum, the offices dark inside.
     gate = [x for x, y in cells if level.at(x, y) == "Ø"]
     gx0, gx1 = min(gate) * TILE, (max(gate) + 1) * TILE
-    ground = py + h
-    rect(d, gx0 - 3, ground - 30, gx1 - gx0 + 6, 30, (70, 76, 84))
-    for sy in range(ground - 28, ground, 3):
-        rect(d, gx0, sy, gx1 - gx0, 2, (120, 126, 132))
-    mid = (gx0 + gx1) // 2
-    for i in range(6):
-        rect(d, mid - 6 + i * 2, ground - 16 + (i % 2), 2, 2, (180, 180, 170))
-    rect(d, mid - 2, ground - 13, 4, 5, (200, 170, 80))
-    rect(d, gx0 + 4, ground - 20, 10, 12, BLOOD)
-    rect(d, gx0 + 8, ground - 8, 2, 8, BLOOD_DARK)
-    # loading bays either side of the gate, their shutters down
+    opening = ground - 26
+    rect(d, gx0 - 3, opening - 6, gx1 - gx0 + 6, 6, (70, 76, 84))  # drum
+    rect(d, gx0 - 3, opening - 6, gx1 - gx0 + 6, 1, (120, 126, 132))
+    rect(d, gx0 - 3, opening, 3, 26, (70, 76, 84))  # its guides
+    rect(d, gx1, opening, 3, 26, (70, 76, 84))
+    rect(d, gx0, opening, gx1 - gx0, 26, (14, 16, 20))
+    rect(d, gx0, opening, gx1 - gx0, 2, (100, 106, 112))  # the slat bottom
+    # inside: the partitions of the cubicles, a screen or two still lit
+    for cx in range(gx0 + 3, gx1 - 6, 10):
+        rect(d, cx, opening + 10, 8, 3, (46, 54, 70))
+        if rng.random() < 0.6:
+            rect(d, cx + 2, opening + 6, 4, 3, (60, 150, 130))
+    rect(d, gx0, ground - 8, gx1 - gx0, 8, (40, 42, 46))  # the vinyl
+    # its name on a board over the gate
+    tw = text_width(FACTORY_NAME) * 2
+    tx = (gx0 + gx1) // 2 - tw // 2
+    tx = max(px + 6, min(tx, px + w - tw - 6))
+    rect(d, tx - 4, eaves + 1, tw + 8, 12, (40, 70, 120))
+    rect(d, tx - 4, eaves + 12, tw + 8, 1, (24, 40, 70))
+    paint_text(d, tx, eaves + 2, FACTORY_NAME, (240, 236, 220),
+               missing=(3,), scale=2)
+    # loading bays either side of the gate, their shutters down, the dock
+    # bumpers and the yellow and black edge
     for bay in (gx0 - 64, gx1 + 24):
         if bay < px or bay + 40 > px + w:
             continue
-        rect(d, bay, ground - 26, 40, 26, (90, 94, 98))
-        for sy in range(ground - 24, ground, 3):
-            rect(d, bay + 2, sy, 36, 2, (132, 136, 138))
-        rect(d, bay, ground - 28, 40, 2, (230, 190, 40))  # the yellow edge
+        rect(d, bay - 2, ground - 26, 44, 26, (62, 66, 70))
+        for sy in range(ground - 24, ground - 4, 3):
+            rect(d, bay, sy, 40, 2, (132, 136, 138))
+        for i, sx in enumerate(range(bay - 2, bay + 42, 4)):
+            rect(d, sx, ground - 28, 4, 2,
+                 (230, 190, 40) if i % 2 == 0 else (30, 30, 30))
+        for sx in (bay + 2, bay + 34):
+            rect(d, sx, ground - 8, 4, 6, (30, 30, 32))
     # burnt at the west end, where a car went up against it
-    rect(d, px, ground - 40, 30, 40, (58, 54, 52))
-    rect(d, px + 4, ground - 46, 20, 6, (80, 76, 72))
+    rect(d, px, eaves + 2, 26, ground - eaves - 2, (58, 54, 52))
+    rect(d, px + 3, eaves - 4, 18, 6, (80, 76, 72))
+    for rx in range(px + 1, px + 26, 3):
+        rect(d, rx, eaves + 2, 1, ground - eaves - 8, (44, 40, 38))
+    rect(d, gx1 + 6, ground - 22, 8, 10, BLOOD)
+    rect(d, gx1 + 9, ground - 12, 2, 6, BLOOD_DARK)
     # tags
-    paint_text(d, px + w - 60, ground - 12, "VIA", (200, 40, 40))
+    paint_text(d, px + w - 60, ground - 14, "VIA", (200, 40, 40))

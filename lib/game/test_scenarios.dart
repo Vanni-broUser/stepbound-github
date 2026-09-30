@@ -400,6 +400,12 @@ final List<TestScenario> testScenarios = <TestScenario>[
     _hookBroughtHome(story);
     story.restNearest(palazzoRoofStairs);
   }),
+  // At the camp on the street out of the palazzo, a few steps from the
+  // company's gate: in through it, Chiara behind the glass.
+  TestScenario('Azienda, Chiara al telefono', (story) {
+    _hookBroughtHome(story);
+    story.restAt(industryStreetCampfireTile);
+  }),
   vanniDeployScenario,
 ];
 

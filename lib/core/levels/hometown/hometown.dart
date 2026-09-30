@@ -13,6 +13,7 @@ export 'package:stepbound/core/levels/hometown/bar_arcobaleno.dart';
 export 'package:stepbound/core/levels/hometown/bar_backroom.dart';
 export 'package:stepbound/core/levels/hometown/barracks.dart';
 export 'package:stepbound/core/levels/hometown/church.dart';
+export 'package:stepbound/core/levels/hometown/company.dart';
 export 'package:stepbound/core/levels/hometown/duomo.dart';
 export 'package:stepbound/core/levels/hometown/duomo_second_floor.dart';
 export 'package:stepbound/core/levels/hometown/duomo_tower.dart';
@@ -33,7 +34,7 @@ export 'package:stepbound/core/levels/hometown/street.dart';
 /// (mall.dart) and of the street out of the palazzo (industry_street.dart).
 const Legend outdoorLegend = Legend(
   walls: 'BHfKMGW#%0_Æ',
-  obstacles: 'CXUvkDFTSOyJQaAnI~RNbpx*i&!^;/+Ø',
+  obstacles: 'CXUvkDFTSOyJQaAnI~RNbpx*i&!^;/+',
   debris: ':q',
   fire: '?',
 );
@@ -136,6 +137,20 @@ const Legend palazzoLegend = Legend(
   walls: 'xWwILM',
   obstacles: 'SaVThBnAlKOFHQRpr',
 );
+
+/// The company past the palazzo (company.dart): the walls, the partitions
+/// and the glass between the wings are solid; the workstations, their
+/// panels and chairs, what else furnishes an office, the heap across the
+/// corridor and Chiara stop a step but not a shot. What is strewn over
+/// the floor crunches underfoot.
+const Legend companyLegend = Legend(
+  walls: 'xWwIG',
+  obstacles: 'DBh|-RTAKVFprY',
+);
+
+/// How dark the company is between its lamps: the lights left on here and
+/// there over the open plan, enough to see across to the other wing.
+const double companyDarkness = 0.55;
 
 /// The name on the card shown on the way into the harbour.
 const String harbourName = 'Porto e centro storico';
@@ -441,6 +456,21 @@ const List<PlaceSpec> hometownPlaces = <PlaceSpec>[
     rows: industryStreetRows,
     legend: outdoorLegend,
   ),
+  // A lamp still on here and there over the open plan, and daylight in
+  // through the gate. Painted from its rows out of the tile atlas.
+  PlaceSpec(
+    id: PlaceId.companyGround,
+    area: AreaId.hometownTown,
+    rows: companyRows,
+    legend: companyLegend,
+    indoor: true,
+    darkness: companyDarkness,
+    daylight: 'E',
+    // The desk lamp still on at Chiara's workstation: she is the first
+    // thing seen across the glass.
+    lamps: <GridPoint>[GridPoint(29, 8)],
+    name: 'Azienda',
+  ),
 ];
 
 final Place _street = place(PlaceId.street);
@@ -473,6 +503,7 @@ final Place _palazzoFirst = place(PlaceId.palazzoFirstFloor);
 final Place _palazzoSecond = place(PlaceId.palazzoSecondFloor);
 final Place _palazzoThird = place(PlaceId.palazzoThirdFloor);
 final Place _industryStreet = place(PlaceId.industryStreet);
+final Place _company = place(PlaceId.companyGround);
 
 /// The places [outdoorLegend] describes, the ones tools/
 /// build_street_level.py bakes: what walks the streets, what burns in them
@@ -1038,6 +1069,7 @@ final List<GridPoint> hospitalNextRoofStairsFoot = lastSteps(
 /// Molfetta's doors to places not drawn yet (see `workInProgressDoors`).
 final Set<GridPoint> hometownWorkInProgressDoors = <GridPoint>{
   ...hospitalNextRoofStairsFoot,
+  ...companyStairs,
 };
 
 /// The palazzo's stairs, bottom to top: on each floor the flight `U` up
@@ -1074,6 +1106,41 @@ const String palazzoZombiePrefix = 'palazzo-wanderer-';
 
 /// The camp on the pavement between the palazzo and the company.
 final GridPoint industryStreetCampfireTile = _industryStreet.tileOf('S');
+
+/// The company's gate, rolled up: from the street, and inside it, west to
+/// east.
+final List<GridPoint> industryStreetGate = _industryStreet.tilesOf('Ø');
+final List<GridPoint> companyGate = _company.tilesOf('E');
+
+/// The company's two flights up, one in each wing, west first: both go up
+/// to the floor that is not drawn yet, the way round from one wing to the
+/// other.
+final List<GridPoint> companyStairs = _company.tilesOf('U');
+
+/// The company's two wings, either side of the glass wall, from the back
+/// wall to the front one: the west one Mario walks into, the east one
+/// behind the glass.
+final GridRect companyWestWing = GridRect(
+  _company.origin.x + 1,
+  _company.origin.y + 1,
+  _glassColumn - 1,
+  _company.origin.y + companyRows.length - 2,
+);
+final GridRect companyEastWing = GridRect(
+  _glassColumn + 1,
+  _company.origin.y + 1,
+  _company.origin.x + _company.width - 2,
+  _company.origin.y + companyRows.length - 2,
+);
+
+/// The column of the glass wall between the wings, on the shared grid.
+final int _glassColumn = _company.tilesOf('G').first.x;
+
+/// Chiara, at her workstation in the east wing, her back to the room.
+final GridPoint chiaraTile = _company.tileOf('Y');
+
+/// The wanderers in the company's west wing, `company-wanderer-<n>`.
+const String companyZombiePrefix = 'company-wanderer-';
 
 /// Molfetta's flights of stairs out in the open, each step with the way
 /// up it (see `WorldState.stairs`): the hypermarket's, up from the ground
@@ -1328,6 +1395,8 @@ Map<GridPoint, Portal> _portals() {
       <GridPoint>[palazzoPortone],
       Direction.north,
     ),
+    ...pairedDoors(industryStreetGate, companyGate, Direction.north),
+    ...pairedDoors(companyGate, industryStreetGate, Direction.south),
   };
 }
 
@@ -1523,6 +1592,16 @@ LevelContents hometownContents(EntityFactory factory) {
         ),
       );
     }
+  }
+  var companyZombies = 0;
+  for (final tile in _company.tilesOf('Z')) {
+    entities.add(
+      factory.zombie(
+        id: '$companyZombiePrefix${companyZombies++}',
+        kind: EntityKind.wanderer,
+        position: tile,
+      ),
+    );
   }
   var palazzoZombies = 0;
   for (final floor in <Place>[

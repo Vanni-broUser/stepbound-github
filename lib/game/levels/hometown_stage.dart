@@ -121,6 +121,12 @@ final class HometownStage extends LevelStage implements HometownActions {
           asset: NpcComponent.cultistAsset,
           tile: duomoWelcomingCultistTile,
         ),
+      // At her workstation in the company, behind the glass, on the phone.
+      NpcComponent(
+        asset: NpcComponent.chiaraAsset,
+        tile: chiaraTile,
+        facing: Direction.north,
+      ),
       ShutterComponent(bars: luigiBars, map: simulation.map),
       ChurchyardGateComponent(gate: priestGate, map: simulation.map),
       BarServiceDoorComponent(door: barLockedDoorTile, map: simulation.map),

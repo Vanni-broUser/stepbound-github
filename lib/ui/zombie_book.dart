@@ -56,110 +56,110 @@ final List<ZombieCard> zombieCards = <ZombieCard>[
 ];
 
 /// The pictures and lines of each memory, lived again on Mario's cot.
-final Map<StoryMemory, List<StoryScene>> memoryScenes =
-    <StoryMemory, List<StoryScene>>{
-      StoryMemory.newsBroadcast: introScenes,
-      StoryMemory.presidentFled: romeScenes,
-      StoryMemory.outbreakNight: outbreakScenes,
-      StoryMemory.luigiTrapped: <StoryScene>[
-        for (final frame in MallScript.luigiScene)
-          StoryScene(
-            image: frame.image,
-            speaker: frame.speaker,
-            text: frame.text,
-          ),
-      ],
-      StoryMemory.luigiRescued: <StoryScene>[
-        for (final frame in MallScript.reunionScene)
-          StoryScene(
-            image: frame.image,
-            speaker: frame.speaker,
-            text: frame.text,
-            music: Music.luigi,
-          ),
-      ],
-      StoryMemory.priestMet: <StoryScene>[
-        for (final frame in PriestScript.meetingScene)
-          StoryScene(
-            image: frame.image,
-            speaker: frame.speaker,
-            text: frame.text,
-            music: Music.sacred,
-          ),
-      ],
-      StoryMemory.priestErrand: <StoryScene>[
-        for (final frame in PriestScript.dealScene)
-          StoryScene(
-            image: frame.image,
-            speaker: frame.speaker,
-            text: frame.text,
-            music: Music.sacred,
-          ),
-      ],
-      StoryMemory.priestWelcomed: <StoryScene>[
-        for (final frame in PriestScript.welcomeScene)
-          StoryScene(
-            image: frame.image,
-            speaker: frame.speaker,
-            text: frame.text,
-            music: Music.sacred,
-          ),
-      ],
-      StoryMemory.priestFamily: <StoryScene>[
-        for (final frame in DuomoScript.initiationScene)
-          StoryScene(
-            image: frame.image,
-            speaker: frame.speaker,
-            text: frame.text,
-            music: Music.sacred,
-          ),
-      ],
-      StoryMemory.priestMass: <StoryScene>[
-        for (final frame in DuomoScript.massScene)
-          StoryScene(
-            image: frame.image,
-            speaker: frame.speaker,
-            text: frame.text,
-            music: Music.sacred,
-          ),
-      ],
-      StoryMemory.priestMassacre: <StoryScene>[
-        for (final frame in DuomoScript.massacreScene)
-          StoryScene(
-            image: frame.image,
-            speaker: frame.speaker,
-            text: frame.text,
-            music: Music.sacred,
-          ),
-      ],
-      StoryMemory.luigiAtStation: <StoryScene>[
-        for (final frame in StationScript.reunionScene)
-          StoryScene(
-            image: frame.image,
-            speaker: frame.speaker,
-            text: frame.text,
-            music: Music.luigi,
-          ),
-      ],
-      // Luigi's words only: what the pistol does was said once, there.
-      StoryMemory.goldenPistol: <StoryScene>[
-        StoryScene(
-          image: StationScript.goldenPistolGift.image,
-          speaker: StationScript.goldenPistolGift.speaker,
-          text: StationScript.goldenPistolGift.text,
-          music: Music.luigi,
-        ),
-      ],
-      StoryMemory.maranzaMet: <StoryScene>[
-        for (final frame in MaranzaScript.meetingScene)
-          StoryScene(
-            image: frame.image,
-            speaker: frame.speaker,
-            text: frame.text,
-            music: Music.maranza,
-          ),
-      ],
-    };
+final Map<StoryMemory, List<StoryScene>>
+memoryScenes = <StoryMemory, List<StoryScene>>{
+  StoryMemory.newsBroadcast: introScenes,
+  StoryMemory.presidentFled: romeScenes,
+  StoryMemory.outbreakNight: outbreakScenes,
+  StoryMemory.luigiTrapped: <StoryScene>[
+    for (final frame in MallScript.luigiScene)
+      StoryScene(image: frame.image, speaker: frame.speaker, text: frame.text),
+  ],
+  StoryMemory.luigiRescued: <StoryScene>[
+    for (final frame in MallScript.reunionScene)
+      StoryScene(
+        image: frame.image,
+        speaker: frame.speaker,
+        text: frame.text,
+        music: Music.luigi,
+      ),
+  ],
+  StoryMemory.priestMet: <StoryScene>[
+    for (final frame in PriestScript.meetingScene)
+      StoryScene(
+        image: frame.image,
+        speaker: frame.speaker,
+        text: frame.text,
+        music: Music.sacred,
+      ),
+  ],
+  StoryMemory.priestErrand: <StoryScene>[
+    for (final frame in PriestScript.dealScene)
+      StoryScene(
+        image: frame.image,
+        speaker: frame.speaker,
+        text: frame.text,
+        music: Music.sacred,
+      ),
+  ],
+  StoryMemory.priestWelcomed: <StoryScene>[
+    for (final frame in PriestScript.welcomeScene)
+      StoryScene(
+        image: frame.image,
+        speaker: frame.speaker,
+        text: frame.text,
+        music: Music.sacred,
+      ),
+  ],
+  StoryMemory.priestFamily: <StoryScene>[
+    for (final frame in DuomoScript.initiationScene)
+      StoryScene(
+        image: frame.image,
+        speaker: frame.speaker,
+        text: frame.text,
+        music: Music.sacred,
+      ),
+  ],
+  StoryMemory.priestMass: <StoryScene>[
+    for (final frame in DuomoScript.massScene)
+      StoryScene(
+        image: frame.image,
+        speaker: frame.speaker,
+        text: frame.text,
+        music: Music.sacred,
+      ),
+  ],
+  StoryMemory.priestMassacre: <StoryScene>[
+    for (final frame in DuomoScript.massacreScene)
+      StoryScene(
+        image: frame.image,
+        speaker: frame.speaker,
+        text: frame.text,
+        music: Music.sacred,
+      ),
+  ],
+  StoryMemory.luigiAtStation: <StoryScene>[
+    for (final frame in StationScript.reunionScene)
+      StoryScene(
+        image: frame.image,
+        speaker: frame.speaker,
+        text: frame.text,
+        music: Music.luigi,
+      ),
+  ],
+  // Luigi's words only: what the pistol does was said once, there.
+  StoryMemory.goldenPistol: <StoryScene>[
+    StoryScene(
+      image: StationScript.goldenPistolGift.image,
+      speaker: StationScript.goldenPistolGift.speaker,
+      text: StationScript.goldenPistolGift.text,
+      music: Music.luigi,
+    ),
+  ],
+  StoryMemory.chiaraCall: <StoryScene>[
+    for (final frame in CompanyScript.callFrames)
+      StoryScene(image: frame.image, speaker: frame.speaker, text: frame.text),
+  ],
+  StoryMemory.maranzaMet: <StoryScene>[
+    for (final frame in MaranzaScript.meetingScene)
+      StoryScene(
+        image: frame.image,
+        speaker: frame.speaker,
+        text: frame.text,
+        music: Music.maranza,
+      ),
+  ],
+};
 
 /// Every story scene seen so far, one after the other, in the order they
 /// were lived: the harbour and the hypermarket can be played in either

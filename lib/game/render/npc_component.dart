@@ -32,6 +32,7 @@ final class NpcComponent extends PositionComponent with StandsOnFloor {
       'assets/characters/npcs/sprites/maranza_roma.png';
   static const String maranzaLazioAsset =
       'assets/characters/npcs/sprites/maranza_lazio.png';
+  static const String chiaraAsset = 'assets/characters/npcs/sprites/chiara.png';
   static const double frameSeconds = 0.55;
 
   /// Tiles per second while walking away: about the player's own pace.
