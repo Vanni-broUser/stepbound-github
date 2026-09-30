@@ -635,7 +635,7 @@ def paint_termini_front(d, rng, level):
     running the whole length. In front of it, what everyone knows: the
     great cantilevered roof over the glass hall, ribbed like the back of an
     animal, its edge rising and falling in waves -- the "dinosaur" -- and
-    under it the glass front in its shadow, the name over the middle
+    under it the glass front in its shadow, the name over every
     doorway. The doorways stand open onto the dark of the concourse; half
     the glass between them is gone."""
     cells = [(x, y) for y in range(level.height) for x in range(level.width)
@@ -697,13 +697,24 @@ def paint_termini_front(d, rng, level):
         rect(d, px + rng.randrange(w - 4), py + 18 + rng.randrange(12),
              rng.randint(2, 5), 1, shade(TERMINI_CANOPY, -24))
 
-    # The name, on its plate hung under the roof over the middle doorway.
+    # The doorways, each a run of `{` along one row, left to right.
+    doors = []
+    for x, y in sorted(cells, key=lambda c: (c[1], c[0])):
+        if level.at(x, y) != "{":
+            continue
+        if doors and doors[-1][1] == y and doors[-1][0] + doors[-1][2] == x:
+            doors[-1] = (doors[-1][0], y, doors[-1][2] + 1)
+        else:
+            doors.append((x, y, 1))
+
+    # The name, on a plate hung under the roof over every doorway.
     name = "STAZIONE TERMINI"
     plate_w = text_width(name) * 2 + 12
-    tx = px + (w - plate_w) // 2
-    rect(d, tx, glass_top + 1, plate_w, 13, (26, 30, 36))
-    rect(d, tx, glass_top + 1, plate_w, 1, (90, 96, 104))
-    paint_text(d, tx + 6, glass_top + 3, name, (238, 238, 232), scale=2)
+    for dx, _, dw in doors:
+        tx = dx * TILE + (dw * TILE - plate_w) // 2
+        rect(d, tx, glass_top + 1, plate_w, 13, (26, 30, 36))
+        rect(d, tx, glass_top + 1, plate_w, 1, (90, 96, 104))
+        paint_text(d, tx + 6, glass_top + 3, name, (238, 238, 232), scale=2)
 
     # The doorways, open on the dark inside.
     for x, y in cells:
@@ -714,11 +725,15 @@ def paint_termini_front(d, rng, level):
         rect(d, dx, dy, TILE, 2, (60, 66, 74))
         first = level.at(x - 1, y) != "{"
         rect(d, dx + (0 if first else TILE - 2), dy, 2, TILE, (90, 96, 104))
-    # Tags along the foot of the glass.
+    # Tags along the foot of the glass, never across a doorway: one that
+    # would reach into it is sprayed on the glass just west of it instead.
     for _ in range(w // 30):
         gx = px + rng.randrange(w - 14)
         colour = rng.choice(((200, 60, 150), (60, 170, 190), (230, 200, 60),
                              (240, 240, 240)))
+        for dx, _, dw in doors:
+            if gx + 12 > dx * TILE and gx < (dx + dw) * TILE:
+                gx = dx * TILE - 14
         for i in range(0, 12, 2):
             rect(d, gx + i, bottom - 9 + (i % 4) // 2, 2, 1, colour)
 

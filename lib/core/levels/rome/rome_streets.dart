@@ -16,7 +16,8 @@ library;
 /// Termini `]` across the top, its three doorways `{` open, palazzi either
 /// side of it, a souvenir shop in the western ones; the paving `P` in
 /// front of it with its bus shelters `n` and its trees `A`, and a
-/// campfire `S` right in front of the middle doorway, then the four lanes
+/// campfire `S` in line with the trees, two cells west of the one before
+/// the east doorway, then the four lanes
 /// of the road, which runs off the map east. West it runs on past more
 /// palazzi, their little shops shut, up to the Baths of Diocletian `§`:
 /// their brick front along the north side, a wing of them across the end
@@ -52,9 +53,9 @@ const List<String> piazzaCinquecentoRows = <String>[
   '§§§§§§§§§¶§§§§§§§§§HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH]]]]{{]]]]]]]]]]]]]{{]]]]]]]]]]]]]{{]]]]HHHHHHHHHHHHHHHHHHHHHHHHBBBBBBBBBBBBBBBB',
   '§§§§============¤============================================================================================================BBBBBBBBBBBBBBBB',
   '§§§§PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPHHHHHHHHHHHHHHHH',
-  '§§§§PPPPPPPPPPPPPPPPPPPPPPPPPPnnPPPPPPPPPPPPPPPPPPPnnPPPPPPPPPPPPPPnnPPPPPPPPPPPSPPPP:PPPnnPPPPPPPPPPPPPPPPnnPPPPPPPPPPPPPPPPHHHHHHHHHHHHHHHH',
+  '§§§§PPPPPPPPPPPPPPPPPPPPPPPPPPnnPPPPPPPPPPPPPPPPPPPnnPPPPPPPPPPPPPPnnPPPPPPPPPPPPPPPP:PPPnnPPPPPPPPPPPPPPPPnnPPPPPPPPPPPPPPPPHHHHHHHHHHHHHHHH',
   '§§§§PPPPPPPPPPPPPP:PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP:PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPHHHHHHHHHHHHHHHH',
-  '§§§§PPPPAPPPPPPPAPPPPPPPAPPPPPPPAPPPPPPPAPPPPPPAPPPPPPPPPPPAPPPPPPPPPPPPPPPAPPPPPPPPPAPPPPPPPPPPPPPAPPPPPPPPPPPPPAPPPPPPAPPPPHHHHHHHHHHHHHHHH',
+  '§§§§PPPPAPPPPPPPAPPPPPPPAPPPPPPPAPPPPPPPAPPPPPPAPPPPPPPPPPPAPPPPPPPPPPPPPPPAPPPPPPPSPAPPPPPPPPPPPPPAPPPPPPPPPPPPPAPPPPPPAPPPPHHHHHHHHHHHHHHHH',
   '§§§§===============================================================================================================================mm========',
   '§§§§..............................CC........................................................UU.........................UU...:..r..ww.........',
   '§§§§.....d............XX.............................CC.................:....................................d............9..r..rmm....:.....',
