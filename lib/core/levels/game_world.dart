@@ -189,6 +189,7 @@ final Map<GridPoint, Direction> workInProgressEnds = <GridPoint, Direction>{
 /// does (docs/level_pipeline.md).
 final Set<GridPoint> workInProgressDoors = <GridPoint>{
   ...hometownWorkInProgressDoors,
+  ...romeWorkInProgressDoors,
 };
 
 /// Its entities, backpacks, doors and travel maps as a save holds them,

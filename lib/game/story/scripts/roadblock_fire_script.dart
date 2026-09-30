@@ -7,7 +7,8 @@ import 'package:stepbound/game/story/story_director.dart';
 /// it says what it would take; Mario can come back and look again. The gap
 /// between the station's burning car and the rubble, the one way from the
 /// platform onto the tracks, says the same, and so does the gap in the
-/// roadblock of burning police cars east of Termini, in Rome.
+/// roadblock of burning police cars east of Termini and the pile-up west on
+/// Via Marsala, in Rome.
 final class RoadblockFireScript extends StoryScript {
   RoadblockFireScript(super.director);
 
@@ -23,7 +24,8 @@ final class RoadblockFireScript extends StoryScript {
     if (event is! LookedOutEvent ||
         (event.at != shoppingStreetFireTile &&
             event.at != stationTrackFireTile &&
-            event.at != roadblockFireTile)) {
+            event.at != roadblockFireTile &&
+            event.at != marsalaFireTile)) {
       return;
     }
     say(StoryPrompt(const <StoryLine>[StoryLine(fireLine)]));

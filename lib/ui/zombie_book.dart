@@ -163,6 +163,15 @@ memoryScenes = <StoryMemory, List<StoryScene>>{
         music: Music.maranza,
       ),
   ],
+  StoryMemory.maranzaPaid: <StoryScene>[
+    for (final frame in MaranzaScript.paidScene)
+      StoryScene(
+        image: frame.image,
+        speaker: frame.speaker,
+        text: frame.text,
+        music: Music.maranza,
+      ),
+  ],
 };
 
 /// Every story scene seen so far, one after the other, in the order they

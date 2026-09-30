@@ -1473,3 +1473,120 @@ def _brown_sign(d, px, py, lines):
     for i, line in enumerate(lines):
         lx = x + (w - len(line) * 4 + 1) // 2
         paint_text(d, lx, top + 3 + i * 7, line, (238, 236, 228))
+
+
+# ------------------------------------------------------------ Via Marsala
+
+BANK_STONE = (222, 212, 188)
+BANK_STONE_DARK = (186, 174, 148)
+BANK_JOINT = (160, 148, 124)
+BANK_BRONZE = (150, 112, 58)
+
+
+def paint_spray(d, rng, x, y, text, colour, scale=2, outline=(24, 22, 24),
+                drips=True):
+    """Spray-painted letters: the 3x5 font, each letter a pixel up or down
+    of the last, a dark outline round them, paint run down from a few.
+    `È` is an E with its accent, `'` a stroke."""
+    for i, letter in enumerate(text):
+        lx = x + i * 4 * scale
+        ly = y + rng.choice((-1, 0, 0, 1))
+        if letter == " ":
+            continue
+        if letter == "'":
+            for dx, dy in ((-1, -1), (1, 1), (0, 0)):
+                rect(d, lx + scale + dx, ly + dy, scale, 2 * scale,
+                     outline if (dx, dy) != (0, 0) else colour)
+            continue
+        base = "E" if letter == "È" else letter
+        for dx, dy in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+            paint_text(d, lx + dx, ly + dy, base, outline, scale=scale)
+        paint_text(d, lx, ly, base, colour, scale=scale)
+        if letter == "È":  # the grave accent over it
+            rect(d, lx, ly - 3 * scale // 2 - 1, scale, scale, colour)
+            rect(d, lx + scale, ly - scale // 2 - 1, scale, scale, colour)
+        if drips and rng.random() < 0.3:
+            rect(d, lx + rng.randrange(3) * scale, ly + 5 * scale, 1,
+                 rng.randint(2, 6), colour)
+
+
+def paint_bank(d, rng, level):
+    """The bank on Via Marsala, `£`: a travertine front, rusticated at
+    street level, its name in bronze along a band under the cornice, three
+    tall windows barred on the floor above; at street level its door behind
+    a shutter rolled down and chained, the cash machine beside it smashed
+    in. Nobody got in, so they wrote on it: LA BANCA È L'EMBLEMA across the
+    front in red, over the shutter and all, and the rest of the street's
+    tags round it."""
+    cells = [(x, y) for y in range(level.height) for x in range(level.width)
+             if level.at(x, y) == "£"]
+    if not cells:
+        return
+    xs = [x for x, _ in cells]
+    ys = [y for _, y in cells]
+    px, py = min(xs) * TILE, min(ys) * TILE
+    w = (max(xs) - min(xs) + 1) * TILE
+    h = (max(ys) - min(ys) + 1) * TILE
+    ground = py + h
+    rect(d, px, py, w, h, BANK_STONE)
+    rect(d, px, py, w, 3, (120, 112, 96))  # the cornice, seen from under
+    rect(d, px, py + 3, w, 2, BANK_STONE_DARK)
+    # its name, bronze letters on a darker band
+    name = "BANCA"
+    tw = text_width(name) * 2
+    tx = px + (w - tw) // 2
+    rect(d, px + 4, py + 7, w - 8, 12, BANK_STONE_DARK)
+    rect(d, px + 4, py + 18, w - 8, 1, BANK_JOINT)
+    paint_text(d, tx, py + 8, name, BANK_BRONZE, scale=2)
+    # three tall windows barred, on the floor over the street
+    for i in range(3):
+        wx = px + (w * (2 * i + 1)) // 6 - 7
+        rect(d, wx - 1, py + 21, 16, 15, BANK_JOINT)
+        pane = (40, 52, 64) if rng.random() > 0.3 else (18, 20, 24)
+        rect(d, wx, py + 22, 14, 13, pane)
+        for bar in range(wx + 1, wx + 14, 3):
+            rect(d, bar, py + 22, 1, 13, (70, 70, 74))
+        rect(d, wx, py + 28, 14, 1, (70, 70, 74))
+    rect(d, px, py + 37, w, 2, BANK_STONE_DARK)  # the string course
+    # rusticated ground floor: deep joints every few pixels
+    for jy in range(py + 42, ground, 5):
+        rect(d, px, jy, w, 1, BANK_JOINT)
+        offset = 0 if (jy - py) // 5 % 2 else 12
+        for jx in range(px + offset, px + w, 24):
+            rect(d, jx, jy - 4, 1, 4, BANK_JOINT)
+    # the door, behind its shutter, chained and padlocked
+    dw = 30
+    dx = px + (w - dw) // 2
+    rect(d, dx - 3, ground - 26, dw + 6, 26, (96, 90, 80))
+    rect(d, dx, ground - 24, dw, 24, (104, 108, 112))
+    for sy in range(ground - 23, ground, 3):
+        rect(d, dx, sy, dw, 1, (82, 86, 90))
+    mid = dx + dw // 2
+    for i in range(8):
+        rect(d, dx + 3 + i * 3, ground - 12 + (i % 2), 2, 2, (176, 176, 168))
+    rect(d, mid - 2, ground - 10, 4, 5, (196, 166, 70))
+    # the cash machine, smashed in
+    ax = dx + dw + 10
+    rect(d, ax, ground - 22, 14, 16, (60, 64, 70))
+    rect(d, ax + 2, ground - 20, 10, 6, (14, 16, 20))
+    rect(d, ax + 4, ground - 19, 1, 4, (150, 190, 210))
+    rect(d, ax + 7, ground - 18, 3, 1, (150, 190, 210))
+    rect(d, ax + 3, ground - 12, 8, 3, (30, 30, 34))
+    # soot where they tried to burn their way in
+    rect(d, dx - 6, ground - 30, 10, 6, (60, 54, 50))
+    rect(d, dx - 2, ground - 34, 6, 4, (60, 54, 50))
+    # the street's tags round it, and over the shutter
+    paint_spray(d, rng, px + 4, ground - 14, "SPQR", (70, 170, 90), scale=1)
+    rect(d, px + 3, ground - 11, 18, 1, (70, 170, 90))  # struck through
+    ax2 = px + w - 16
+    d.ellipse([ax2, ground - 16, ax2 + 11, ground - 5], outline=(30, 30, 30))
+    paint_text(d, ax2 + 3, ground - 13, "A", (30, 30, 30), scale=1)
+    for i, colour in enumerate(((230, 120, 190), (90, 160, 230))):
+        bx = px + 26 + i * (w - 70)
+        for j in range(6):
+            rect(d, bx + j * 3, ground - 7 - (j * 5) % 3, 3, 3, colour)
+        rect(d, bx, ground - 4, 18, 1, (24, 22, 24))
+    # the slogan, big and red, right across the front
+    slogan = "LA BANCA È L'EMBLEMA"
+    sw = len(slogan) * 8
+    paint_spray(d, rng, px + (w - sw) // 2, py + 40, slogan, (206, 30, 36))

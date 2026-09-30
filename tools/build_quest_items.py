@@ -112,9 +112,69 @@ def build_grappling_hook_held(path: str) -> None:
     image.save(path, optimize=True)
 
 
+def build_gold_ingot(path: str) -> None:
+    image = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    d = ImageDraw.Draw(image)
+    dark = (138, 94, 20, 255)
+    gold = (214, 162, 44, 255)
+    light = (246, 208, 96, 255)
+    shine = (255, 244, 196, 255)
+    # A bar of gold seen from above and in front: its sloping top face,
+    # lighter, over its front, the stamp pressed into the top.
+    d.polygon([(1, 11), (3, 5), (13, 5), (15, 11)], fill=gold)
+    d.polygon([(3, 6), (4, 5), (12, 5), (13, 6), (12, 9), (4, 9)], fill=light)
+    d.rectangle([1, 11, 15, 13], fill=dark)
+    d.line([(1, 11), (15, 11)], fill=gold)
+    d.line([(4, 5), (12, 5)], fill=shine)
+    d.point((5, 6), fill=shine)
+    d.point((6, 6), fill=shine)
+    d.rectangle([7, 7, 9, 8], fill=gold)
+    d.point((8, 7), fill=dark)
+    d.line([(2, 14), (14, 14)], fill=(60, 40, 10, 160))
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    image.save(path, optimize=True)
+
+
+def build_colosseum_ticket(path: str) -> None:
+    image = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    d = ImageDraw.Draw(image)
+    edge = (110, 86, 50, 255)
+    paper = (240, 230, 198, 255)
+    paper_dark = (208, 192, 150, 255)
+    red = (176, 36, 40, 255)
+    stone = (214, 180, 120, 255)
+    stone_dark = (168, 132, 82, 255)
+    arch = (96, 64, 40, 255)
+    # A museum ticket: a cream card with the red band of the entrance
+    # along its top, the tear-off stub on the right behind its dotted line,
+    # and the Colosseum printed on it, two tiers of arches, the one end
+    # broken down.
+    d.rectangle([0, 3, 15, 12], fill=paper, outline=edge)
+    d.rectangle([1, 4, 10, 5], fill=red)
+    for y in range(4, 12, 2):
+        d.point((11, y), fill=edge)
+    d.rectangle([12, 4, 14, 11], fill=paper_dark)
+    d.line([(13, 5), (13, 7)], fill=red)
+    d.line([(13, 9), (13, 10)], fill=red)
+    d.rectangle([2, 7, 9, 11], fill=stone)
+    d.line([(2, 7), (7, 7)], fill=stone_dark)
+    d.point((8, 7), fill=paper)
+    d.point((9, 7), fill=paper)
+    d.point((9, 8), fill=paper)
+    for x in (3, 5, 7):
+        d.point((x, 8), fill=arch)
+    for x in (3, 5, 7, 9):
+        d.line([(x, 10), (x, 11)], fill=arch)
+    d.line([(1, 13), (15, 13)], fill=(60, 44, 24, 140))
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    image.save(path, optimize=True)
+
 if __name__ == "__main__":
     build_episcopal_ring(os.path.join("assets", "objects", "episcopal_ring.png"))
     build_grappling_hook(os.path.join("assets", "objects", "grappling_hook.png"))
     build_grappling_hook_held(
         os.path.join("assets", "objects", "grappling_hook_held.png"))
     build_rocket_launcher(os.path.join("assets", "objects", "rocket_launcher.png"))
+    build_gold_ingot(os.path.join("assets", "objects", "gold_ingot.png"))
+    build_colosseum_ticket(
+        os.path.join("assets", "objects", "colosseum_ticket.png"))

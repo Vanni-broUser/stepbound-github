@@ -17,6 +17,7 @@ final class Pickup {
     this.duomoKey = false,
     this.grapplingHook = false,
     this.palazzoKey = false,
+    this.goldIngot = false,
     this.rockets = 0,
     this.active = true,
     this.collected = false,
@@ -35,6 +36,7 @@ final class Pickup {
       duomoKey: json['duomoKey'] as bool? ?? false,
       grapplingHook: json['grapplingHook'] as bool? ?? false,
       palazzoKey: json['palazzoKey'] as bool? ?? false,
+      goldIngot: json['goldIngot'] as bool? ?? false,
       rockets: json['rockets'] as int? ?? 0,
       active: json['active']! as bool,
       collected: json['collected'] as bool? ?? false,
@@ -70,6 +72,10 @@ final class Pickup {
   /// bedroom on its first.
   final bool palazzoKey;
 
+  /// The gold ingot, in the open vault under the bank on Via Marsala: the
+  /// thing of value Tonino and Marcello want.
+  final bool goldIngot;
+
   /// Rounds for the rocket launcher.
   final int rockets;
 
@@ -91,6 +97,7 @@ final class Pickup {
     'duomoKey': duomoKey,
     if (grapplingHook) 'grapplingHook': true,
     if (palazzoKey) 'palazzoKey': true,
+    if (goldIngot) 'goldIngot': true,
     if (rockets > 0) 'rockets': rockets,
     'active': active,
     'collected': collected,

@@ -144,6 +144,12 @@ ROME_PIAZZA_STOREFRONTS = {
     # trattoria across the ground floor of two, the accountants in one.
     35: [(85, 5, "barroma"), (94, 11, "trattoria"), (109, 6, "studio")],
 }
+# On Via Marsala, behind the station: west of the bank the pizza by the
+# slice, shuttered; past the palazzo with the open portone, a second
+# souvenir shop.
+VIA_MARSALA_STOREFRONTS = {
+    1: [(4, 6, "pizzataglio"), (40, 7, "souvenirroma")],
+}
 HARBOUR_STOREFRONTS = {
     7: [(123, 5, "arcobaleno")],  # up the alley, its door `h` at column 125
     15: [
@@ -171,6 +177,7 @@ FONT = {
     "N": ("110", "101", "101", "101", "101"),
     "O": ("010", "101", "101", "101", "010"),
     "P": ("110", "101", "110", "100", "100"),
+    "Q": ("010", "101", "101", "111", "011"),
     "R": ("110", "101", "110", "101", "101"),
     "S": ("011", "100", "010", "001", "110"),
     "T": ("111", "010", "010", "010", "010"),

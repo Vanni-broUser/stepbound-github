@@ -91,7 +91,7 @@ final class TouchControls extends StatelessWidget {
                             // Laid out from the right; each badge still
                             // reads left to right.
                             textDirection: TextDirection.rtl,
-                            spacing: 8,
+                            spacing: carriedBadgeGap,
                             runSpacing: 8,
                             children: <Widget>[
                               for (final element in unlocked)

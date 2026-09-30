@@ -133,10 +133,14 @@ SHOPS = {
     "tabacchi": ((200, 150, 90), (234, 222, 198), (30, 44, 92), (236, 232, 222), "TABACCHI", ()),
     "forno": ((184, 98, 66), (230, 216, 192), (96, 58, 34), (240, 214, 160), "FORNO", ()),
     "ferramenta": ((212, 186, 138), (238, 228, 208), (44, 52, 58), (226, 200, 120), "FERRAMENTA", (6,)),
+    # Rome, on Via Marsala behind the station: the pizza by the slice and
+    # a second souvenir shop, both shut.
+    "pizzataglio": ((196, 120, 70), (232, 218, 194), (150, 34, 26), (246, 222, 150), "PIZZA AL TAGLIO", ()),
+    "souvenirroma": ((214, 150, 84), (236, 224, 200), (30, 60, 110), (240, 200, 90), "SOUVENIR ROMA", ()),
 }
 # The shops whose palazzo keeps its own Roman floors above the shop front.
 ROMAN_SHOPS = ("souvenir", "barroma", "trattoria", "studio", "tabacchi",
-               "forno", "ferramenta")
+               "forno", "ferramenta", "pizzataglio", "souvenirroma")
 
 
 def paint_shutter(d, x, y, w, h, drop):
@@ -196,7 +200,7 @@ def paint_icon(d, kind, x, y):
         rect(d, x + 3, y, 1, 8, (170, 170, 170))
         for i, wdt in enumerate((2, 4, 5, 5, 4, 3)):
             rect(d, x + 4 - wdt // 2, y + 1 + i, wdt, 1, (150, 90, 40) if i % 2 else (190, 120, 60))
-    elif kind == "souvenir":  # the Colosseum: two tiers of arches
+    elif kind.startswith("souvenir"):  # the Colosseum: two tiers of arches
         rect(d, x, y + 1, 8, 7, (226, 204, 160))
         rect(d, x, y + 1, 8, 1, (246, 232, 200))
         for ax in range(x + 1, x + 8, 2):
@@ -212,6 +216,11 @@ def paint_icon(d, kind, x, y):
         rect(d, x + 1, y + 1, 6, 7, (150, 40, 40))
         rect(d, x + 2, y + 2, 4, 1, (236, 226, 200))
         rect(d, x + 2, y + 4, 4, 1, (236, 226, 200))
+    elif kind == "pizzataglio":  # a slice, its point down
+        for i in range(6):
+            rect(d, x + 1 + i // 2, y + 1 + i, 6 - i, 1, (230, 190, 90))
+        rect(d, x + 1, y + 1, 6, 1, (170, 110, 50))
+        rect(d, x + 3, y + 3, 1, 1, (200, 60, 40))
     elif kind == "pizzeria":
         rect(d, x + 1, y + 1, 6, 6, (230, 190, 90))
         rect(d, x + 2, y + 2, 4, 4, (200, 60, 40))
@@ -374,7 +383,7 @@ def paint_storefront(d, rng, px, py0, w, h, kind):
             paint_boards(d, wx, shop_top + 2, window_w, 12)
         elif kind in ("elettronica", "barsport", "farmacia"):
             paint_smashed_display(d, wx, shop_top + 2, window_w, 12)
-        elif kind == "souvenir":
+        elif kind.startswith("souvenir"):
             # The window smashed, what was in it still on its shelves:
             # little Colosseums, snow globes, the giallorossi scarves.
             paint_smashed_display(d, wx, shop_top + 2, window_w, 12)

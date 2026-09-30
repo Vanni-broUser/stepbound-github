@@ -23,7 +23,14 @@ enum Mission {
     "Raggiungi Chiara dall'altra parte degli uffici",
   ),
   findSupplies(LevelId.rome, 'Trova delle provviste in città'),
-  findValuable(LevelId.rome, 'Cerca qualcosa di prezioso per avanzare');
+  findValuable(
+    LevelId.rome,
+    'Cerca qualcosa di prezioso per Tonino e Marcello',
+  ),
+
+  /// Handed out with the ticket Tonino and Marcello give Mario for the
+  /// ingot.
+  discoverColosseum(LevelId.rome, 'Scopri cosa succede al Colosseo');
 
   const Mission(this.level, this.text, {this.fromStart = false});
 

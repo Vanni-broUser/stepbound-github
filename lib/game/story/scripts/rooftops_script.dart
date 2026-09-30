@@ -3,9 +3,11 @@ import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/story/story_director.dart';
 
 /// The roofs the airliner's tail came down in, the top of the Duomo's bell
-/// tower and the hospital's roof. The lower terrace ends at a parapet with
-/// the next block just across the gap, the tower faces its twin across the
-/// nave, the hospital's roof the block east of it. Without the grappling
+/// tower and the hospital's roof, and in Rome the terrace of the palazzo on
+/// Via Marsala, the bank's roof across from it. The lower terrace ends at a
+/// parapet with the next block just across the gap, the tower faces its
+/// twin across the nave, the hospital's roof the block east of it, the
+/// terrace the bank's roof west of it. Without the grappling
 /// hook, looking over is all Mario can do: the gap is measured for him,
 /// and he can come back and look again. With it, he swings across, and
 /// the game says so. The first time he lands on the Duomo's other tower,
@@ -52,7 +54,8 @@ final class RooftopsScript extends StoryScript {
     if (event is! LookedOutEvent ||
         (event.at != rooftopGapTile &&
             event.at != duomoTowerLookoutTile &&
-            event.at != hospitalRoofLookoutTile)) {
+            event.at != hospitalRoofLookoutTile &&
+            event.at != romeTerraceLookoutTile)) {
       return;
     }
     say(StoryPrompt(const <StoryLine>[StoryLine(gapLesson)]));

@@ -12,9 +12,10 @@ void main() {
       final world = createGameWorld();
       final save = jsonEncode(saveGameWorld(world));
       // Every zombie of every level is in it, Rome's streets' and the
-      // palazzo's past the airliner too: some 450 bytes each, so the
-      // budget grows with the cast.
-      expect(save.length, lessThan(88 * 1024));
+      // palazzo's past the airliner too, the call center's, and those in
+      // the palazzo and the bank on Via Marsala: some 450 bytes each, so
+      // the budget grows with the cast.
+      expect(save.length, lessThan(100 * 1024));
       expect(saveGameWorld(world).containsKey('map'), isFalse);
       expect(saveGameWorld(world)['mapChanges'], isEmpty);
     });

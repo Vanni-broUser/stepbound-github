@@ -5,6 +5,8 @@ import 'package:stepbound/core/items/pickup.dart';
 import 'package:stepbound/core/levels/game_world.dart';
 import 'package:stepbound/core/levels/place.dart';
 
+export 'package:stepbound/core/levels/rome/bank.dart';
+export 'package:stepbound/core/levels/rome/rome_palazzo.dart';
 export 'package:stepbound/core/levels/rome/rome_streets.dart';
 export 'package:stepbound/core/levels/rome/terme.dart';
 export 'package:stepbound/core/levels/rome/termini.dart';
@@ -42,11 +44,39 @@ const Legend terminiConcourseLegend = Legend(
 /// sign `¤`, the carabinieri and police cars (`m` and `s` on their roofs,
 /// `u` and `w` on their wheels) and the tank `t` obstacles.
 const Legend romeStreetLegend = Legend(
-  walls: 'BHfKMGW#%0_]"§',
+  walls: 'BHfKMGW#%0_]"§£',
   obstacles: 'CXUvkDFTSOyJQaAnI~RNbpx*i&!^;/+>`¤mstuw',
   debris: ':q',
   fire: '?',
 );
+
+/// The palazzo beside the bank on Via Marsala (rome_palazzo.dart): its
+/// walls, partitions and letterboxes are solid, what furnishes a flat stops
+/// a step but not a shot, as in Molfetta's palazzo.
+const Legend romePalazzoLegend = Legend(
+  walls: 'xWwILM',
+  obstacles: 'SaVThBnAlKOFHQRpr',
+);
+
+/// Inside the bank on Via Marsala (bank.dart): its walls, the vault's and
+/// the safe-deposit boxes are solid; the glass walls, the furniture, the
+/// shelves and the vault's door stop a step but not a shot; the papers and
+/// the ceiling tiles on the floor crunch.
+const Legend bankLegend = Legend(walls: 'xWwIQB', obstacles: 'GTKhlSCPpLor');
+
+/// Its roof and the bank's: the drop and the tiled roofs all round are
+/// walls, and so is the stairwell's little house; the parapets, the broken
+/// stretches of them and what stands on the roofs can be seen over; the
+/// gravel and the rubble crunch.
+const Legend romeRoofLegend = Legend(
+  walls: 'xRH',
+  obstacles: '^<>Tnlapsko',
+  debris: ':,',
+);
+
+/// The palazzo's stairwell on every floor, from its back wall to its front
+/// wall, lit throughout (see `PlaceSpec.litAreas`).
+const GridRect romePalazzoStairwell = GridRect(12, 1, 17, 13);
 
 /// Inside the Baths of Diocletian (terme.dart): the walls, the columns `O`
 /// and the high altar `A` shut the way and the sight; the pews `T` and the
@@ -102,6 +132,67 @@ const List<PlaceSpec> romePlaces = <PlaceSpec>[
     rows: viaMarsalaRows,
     legend: romeStreetLegend,
   ),
+  // The palazzo on Via Marsala: its hall lit, with daylight through the
+  // portone; its landings lit, its flats dim. Painted from their rows out
+  // of the tile atlas, and so is its roof, open to the sky.
+  PlaceSpec(
+    id: PlaceId.romePalazzoGround,
+    area: AreaId.romeStreets,
+    rows: romePalazzoGroundFloorRows,
+    legend: romePalazzoLegend,
+    indoor: true,
+    lit: true,
+    daylight: 'E',
+    name: 'Palazzo',
+  ),
+  PlaceSpec(
+    id: PlaceId.romePalazzoFirst,
+    area: AreaId.romeStreets,
+    rows: romePalazzoFirstFloorRows,
+    legend: romePalazzoLegend,
+    indoor: true,
+    darkness: palazzoFlatDarkness,
+    litAreas: <GridRect>[romePalazzoStairwell],
+    name: 'Palazzo',
+  ),
+  PlaceSpec(
+    id: PlaceId.romePalazzoSecond,
+    area: AreaId.romeStreets,
+    rows: romePalazzoSecondFloorRows,
+    legend: romePalazzoLegend,
+    indoor: true,
+    darkness: palazzoFlatDarkness,
+    litAreas: <GridRect>[romePalazzoStairwell],
+    name: 'Palazzo',
+  ),
+  PlaceSpec(
+    id: PlaceId.romePalazzoRoof,
+    area: AreaId.romeStreets,
+    rows: romePalazzoRoofRows,
+    legend: romeRoofLegend,
+    name: 'Tetti di via Marsala',
+  ),
+  // The bank: dark but for the lamps still on, and the daylight down the
+  // stairs from its roof.
+  PlaceSpec(
+    id: PlaceId.bankOffices,
+    area: AreaId.romeStreets,
+    rows: bankOfficesRows,
+    legend: bankLegend,
+    indoor: true,
+    darkness: 0.78,
+    daylight: 'U',
+    name: 'Banca',
+  ),
+  PlaceSpec(
+    id: PlaceId.bankVault,
+    area: AreaId.romeStreets,
+    rows: bankVaultRows,
+    legend: bankLegend,
+    indoor: true,
+    darkness: 0.76,
+    name: 'Caveau della banca',
+  ),
   // Painted from its rows out of the tile atlas.
   PlaceSpec(
     id: PlaceId.termeDiocleziano,
@@ -121,6 +212,12 @@ final Place _concourse = place(PlaceId.terminiConcourse);
 final Place _piazza = place(PlaceId.piazzaCinquecento);
 final Place _marsala = place(PlaceId.viaMarsala);
 final Place _terme = place(PlaceId.termeDiocleziano);
+final Place _palazzoGround = place(PlaceId.romePalazzoGround);
+final Place _palazzoFirst = place(PlaceId.romePalazzoFirst);
+final Place _palazzoSecond = place(PlaceId.romePalazzoSecond);
+final Place _palazzoRoof = place(PlaceId.romePalazzoRoof);
+final Place _bankOffices = place(PlaceId.bankOffices);
+final Place _bankVault = place(PlaceId.bankVault);
 
 /// The backpack with the grappling hook, left before the high altar of
 /// Santa Maria degli Angeli, in the great hall of the Baths.
@@ -167,6 +264,7 @@ final List<GridPoint> terminiFarStairsFoot = lastSteps(
 final Map<GridPoint, Direction> romeStairs = <GridPoint, Direction>{
   for (final step in terminiStairsTiles) step: Direction.south,
   for (final step in terminiFarStairs) step: Direction.south,
+  for (final step in bankRoofStairs) step: Direction.south,
 };
 
 /// The one flight down from the overpass to the far platform.
@@ -216,6 +314,16 @@ const Map<PlaceId, List<GridPoint>> romeZombieSpots =
         GridPoint(33, 11),
         GridPoint(21, 16),
       ],
+      PlaceId.romePalazzoGround: <GridPoint>[GridPoint(4, 6)],
+      PlaceId.romePalazzoFirst: <GridPoint>[GridPoint(9, 4), GridPoint(20, 4)],
+      PlaceId.romePalazzoSecond: <GridPoint>[GridPoint(3, 4)],
+      PlaceId.romePalazzoRoof: <GridPoint>[GridPoint(32, 10), GridPoint(10, 7)],
+      PlaceId.bankOffices: <GridPoint>[
+        GridPoint(5, 6),
+        GridPoint(12, 10),
+        GridPoint(24, 5),
+      ],
+      PlaceId.bankVault: <GridPoint>[GridPoint(6, 8)],
       PlaceId.viaMarsala: <GridPoint>[
         GridPoint(15, 9),
         GridPoint(38, 7),
@@ -276,6 +384,86 @@ final GridPoint roadblockFireTile = _piazza
     .tilesOf('?')
     .reduce((a, b) => a.x < b.x ? a : b);
 
+/// The east end of the fuel burning across the middle lane of Via
+/// Marsala's pile-up, west: the gap that looks like a way through. Looking
+/// at it says what it would take.
+final GridPoint marsalaFireTile = _marsala
+    .tilesOf('?')
+    .reduce((a, b) => a.x > b.x || (a.x == b.x && a.y < b.y) ? a : b);
+
+/// The portone of the palazzo beside the bank on Via Marsala, open, and
+/// the same portone from inside its hall.
+final GridPoint marsalaPortoneTile = _marsala.tileOf('«');
+final GridPoint romePalazzoPortone = _palazzoGround.tileOf('E');
+
+/// The palazzo's stairs, bottom to top: on each floor the flight `U` up
+/// and the one `D` down on the floor above.
+final List<(GridPoint, GridPoint)> romePalazzoFlights =
+    <(GridPoint, GridPoint)>[
+      (_palazzoGround.tileOf('U'), _palazzoFirst.tileOf('D')),
+      (_palazzoFirst.tileOf('U'), _palazzoSecond.tileOf('D')),
+    ];
+
+/// The top of the stairwell, on the second floor, and the door of its
+/// little house on the terrace it comes out of.
+final GridPoint romePalazzoRoofStairs = _palazzoSecond.tileOf('U');
+final GridPoint romeTerraceDoor = _palazzoRoof.tileOf('D');
+
+/// The stretch of the terrace's parapet knocked down low, over the drop
+/// to the bank's roof: where Mario measures the gap, and swings across it
+/// with the grappling hook.
+final GridPoint romeTerraceLookoutTile = _palazzoRoof.tileOf('<');
+
+/// The bank's parapet, broken, straight across from
+/// [romeTerraceLookoutTile]: the way back with the hook.
+final GridPoint bankRoofEdgeTile = _palazzoRoof.tileOf('>');
+
+/// The stairs `v` going down into the bank from its roof, two steps deep:
+/// the last is the door down into its offices.
+final List<GridPoint> bankRoofStairs = _palazzoRoof.tilesOf('v');
+final List<GridPoint> bankRoofStairsFoot = lastSteps(
+  bankRoofStairs,
+  Direction.south,
+);
+
+/// Where the grappling hook crosses in Rome: from the terrace to the
+/// bank's roof and back, each landing Mario just inside the other edge.
+final Map<GridPoint, Portal> romeGrapples = <GridPoint, Portal>{
+  romeTerraceLookoutTile: Portal(
+    to: bankRoofEdgeTile.step(Direction.west),
+    facing: Direction.west,
+  ),
+  bankRoofEdgeTile: Portal(
+    to: romeTerraceLookoutTile.step(Direction.east),
+    facing: Direction.east,
+  ),
+};
+
+/// The bank's stairs: up from its offices to the roof, and down from them
+/// to the vault, and up from the vault again.
+final List<GridPoint> bankOfficesStairsUp = _bankOffices.doorRow('U');
+final List<GridPoint> bankOfficesStairsDown = _bankOffices.doorRow('D');
+final List<GridPoint> bankVaultStairsUp = _bankVault.doorRow('U');
+
+/// The backpack left in the middle of the open vault, and the gold ingot
+/// in it: what Tonino and Marcello will take to let Mario by.
+const String bankIngotBackpackId = 'bank-vault-ingot';
+final GridPoint bankIngotTile = _bankVault.tileOf('9');
+
+/// Rome's doors to places not drawn yet: none, for now.
+final Set<GridPoint> romeWorkInProgressDoors = <GridPoint>{};
+
+/// The big dead of the buildings on Via Marsala, in each place's own
+/// tiles: one to each of the palazzo's floors under the roof, two in the
+/// bank's offices and two in its vault, one of them by the ingot.
+const Map<PlaceId, List<GridPoint>> romeBrutes = <PlaceId, List<GridPoint>>{
+  PlaceId.romePalazzoGround: <GridPoint>[GridPoint(20, 6)],
+  PlaceId.romePalazzoFirst: <GridPoint>[GridPoint(23, 11)],
+  PlaceId.romePalazzoSecond: <GridPoint>[GridPoint(23, 9)],
+  PlaceId.bankOffices: <GridPoint>[GridPoint(6, 10), GridPoint(25, 4)],
+  PlaceId.bankVault: <GridPoint>[GridPoint(22, 5), GridPoint(8, 5)],
+};
+
 /// The carabinieri come back as the dead round the roadblock `r`, and the
 /// backpack `9` one of them dropped by the tank.
 final List<GridPoint> roadblockCarabiniereTiles = _piazza.tilesOf('r');
@@ -324,6 +512,37 @@ Map<GridPoint, Portal> _portals() => <GridPoint, Portal>{
     _concourse.tilesOf('O'),
     Direction.north,
   ),
+  // Through the portone of the palazzo on Via Marsala and back, up its
+  // stairs floor by floor, and from the top of them onto its terrace.
+  ...pairedDoors(
+    <GridPoint>[marsalaPortoneTile],
+    <GridPoint>[romePalazzoPortone],
+    Direction.north,
+  ),
+  ...pairedDoors(
+    <GridPoint>[romePalazzoPortone],
+    <GridPoint>[marsalaPortoneTile],
+    Direction.south,
+  ),
+  for (final (below, above) in romePalazzoFlights) ...<GridPoint, Portal>{
+    ...pairedDoors(<GridPoint>[below], <GridPoint>[above], Direction.north),
+    ...pairedDoors(<GridPoint>[above], <GridPoint>[below], Direction.south),
+  },
+  // Down from the bank's roof into its offices and back up onto the step
+  // above the last, and on down to the vault.
+  ...pairedDoors(bankRoofStairsFoot, bankOfficesStairsUp, Direction.south),
+  ...backOntoFlight(bankOfficesStairsUp, bankRoofStairsFoot),
+  ...pairedDoors(bankOfficesStairsDown, bankVaultStairsUp, Direction.south),
+  ...pairedDoors(bankVaultStairsUp, bankOfficesStairsDown, Direction.north),
+  romePalazzoRoofStairs: Portal(
+    to: romeTerraceDoor.step(Direction.south),
+    facing: Direction.south,
+  ),
+  ...pairedDoors(
+    <GridPoint>[romeTerraceDoor],
+    <GridPoint>[romePalazzoRoofStairs],
+    Direction.south,
+  ),
   ...pairedDoors(terminiBreachTiles, _marsala.tilesOf('}'), Direction.north),
   ...pairedDoors(_marsala.tilesOf('}'), terminiBreachTiles, Direction.south),
   ...pairedDoors(
@@ -362,6 +581,13 @@ LevelContents romeContents(EntityFactory factory) => LevelContents(
       kind: EntityKind.sprinter,
       position: _onGrid(PlaceId.piazzaCinquecento, piazzaSprinterSpot),
     ),
+    for (final MapEntry(key: id, value: spots) in romeBrutes.entries)
+      for (final (index, spot) in spots.indexed)
+        factory.zombie(
+          id: '${id.name}-brute-$index',
+          kind: EntityKind.brute,
+          position: _onGrid(id, spot),
+        ),
     for (final (index, tile) in roadblockCarabiniereTiles.indexed)
       factory.zombie(
         id: '$roadblockCarabinierePrefix$index',
@@ -376,6 +602,7 @@ LevelContents romeContents(EntityFactory factory) => LevelContents(
       ammo: 2,
     ),
     Pickup(id: roadblockBackpackId, position: roadblockBackpackTile, ammo: 2),
+    Pickup(id: bankIngotBackpackId, position: bankIngotTile, goldIngot: true),
     Pickup(
       id: grapplingHookPickupId,
       position: grapplingHookTile,
@@ -384,7 +611,15 @@ LevelContents romeContents(EntityFactory factory) => LevelContents(
   ],
   portals: _portals(),
   stairs: romeStairs,
-  lookouts: <GridPoint>[roadblockFireTile],
+  grapples: romeGrapples,
+  lookouts: <GridPoint>[
+    roadblockFireTile,
+    marsalaFireTile,
+    romeTerraceLookoutTile,
+    // Tonino and Marcello, to talk to once they have had the ingot.
+    toninoTile,
+    marcelloTile,
+  ],
 );
 
 GridPoint _onGrid(PlaceId id, GridPoint spot) {

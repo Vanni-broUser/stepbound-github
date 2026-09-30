@@ -21,6 +21,10 @@ final class BackpacksScript extends StoryScript {
       'Hai trovato la Chiave del Duomo vicino il cadavere di Don Angelo';
   static const String grapplingHookFound = 'Hai trovato un rampino';
   static const String palazzoKeyFound = 'Hai trovato la Chiave del terzo piano';
+  static const String goldIngotFound = "Hai trovato un lingotto d'oro";
+  static const String goldIngotThought =
+      'Questo andrà bene per quei due maranza. Non penso di poterne fare '
+      "qualcos'altro";
   static const String grapplingHookLesson =
       'Con il rampino puoi raggiungere i tetti vicini che non riuscivi a '
       'raggiungere';
@@ -88,6 +92,7 @@ final class BackpacksScript extends StoryScript {
       :final duomoKey,
       :final grapplingHook,
       :final palazzoKey,
+      :final goldIngot,
       :final rockets,
     )) {
       host.playPickupAnimation();
@@ -119,6 +124,21 @@ final class BackpacksScript extends StoryScript {
             ],
             delay: StoryDirector.pickupDelay,
             onShown: () => host.unlock(HudElement.grapplingHook),
+          ),
+        );
+        return;
+      }
+      if (goldIngot) {
+        // What Tonino and Marcello asked for: it is theirs once Mario has
+        // taken it to them (see MaranzaScript).
+        say(
+          StoryPrompt(
+            const <StoryLine>[
+              StoryLine(goldIngotFound),
+              StoryLine.mario(goldIngotThought),
+            ],
+            delay: StoryDirector.pickupDelay,
+            onShown: () => host.unlock(HudElement.goldIngot),
           ),
         );
         return;

@@ -102,9 +102,10 @@ void main() {
     expect(progress.memories, containsAll(StoryMemory.values));
     expect(progress.missions.open, <Mission>[
       Mission.findSupplies,
-      Mission.findValuable,
+      Mission.discoverColosseum,
     ]);
     expect(save.story['maranza'], containsPair('met', true));
+    expect(save.story['maranza'], containsPair('paid', true));
   });
 
   testWidgets('each scenario loads into a game that runs, with the story '

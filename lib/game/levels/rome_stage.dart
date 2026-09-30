@@ -17,16 +17,11 @@ import 'package:stepbound/game/story/story_director.dart';
 final class RomeStage extends LevelStage {
   RomeStage(super.game);
 
-  /// Nobody walks through a person: where each one stands is an obstacle.
-  @override
-  void restore() {
-    for (final tile in <GridPoint>[marcelloTile, toninoTile]) {
-      simulation.map.setTile(tile, const Tile(TileKind.obstacle));
-    }
-  }
+  MaranzaScript get _maranza =>
+      game.story.scripts.whereType<MaranzaScript>().first;
 
-  @override
-  List<Component> build() => <Component>[
+  /// Tonino and Marcello, while they are on the square.
+  late final List<NpcComponent> _maranzaNpcs = <NpcComponent>[
     NpcComponent(
       asset: NpcComponent.maranzaLazioAsset,
       tile: marcelloTile,
@@ -37,16 +32,52 @@ final class RomeStage extends LevelStage {
       tile: toninoTile,
       facing: Direction.north,
     ),
+  ];
+
+  /// Nobody walks through a person: where each one stands is an obstacle,
+  /// until the two of them have gone.
+  @override
+  void restore() {
+    if (_maranza.gone) {
+      return;
+    }
+    for (final tile in <GridPoint>[marcelloTile, toninoTile]) {
+      simulation.map.setTile(tile, const Tile(TileKind.obstacle));
+    }
+  }
+
+  /// Once they have gone, the square is clear of them for good.
+  @override
+  void update(double dt) {
+    if (!_maranza.gone || !_maranzaNpcs.first.isMounted) {
+      return;
+    }
+    for (final npc in _maranzaNpcs) {
+      npc.removeFromParent();
+    }
+    for (final tile in <GridPoint>[marcelloTile, toninoTile]) {
+      simulation.map.setTile(tile, const Tile(TileKind.floor));
+    }
+  }
+
+  @override
+  List<Component> build() => <Component>[
+    if (!_maranza.gone) ..._maranzaNpcs,
     for (final fire in romeCampfireNames.keys)
       InteractGlintComponent(
         tile: fire,
         spot: const Offset(11, 3),
         active: () => game.isUnlocked(HudElement.interact),
       ),
-    InteractGlintComponent(
-      tile: roadblockFireTile,
-      active: () => game.isUnlocked(HudElement.interact),
-    ),
+    for (final tile in <GridPoint>[
+      roadblockFireTile,
+      marsalaFireTile,
+      romeTerraceLookoutTile,
+    ])
+      InteractGlintComponent(
+        tile: tile,
+        active: () => game.isUnlocked(HudElement.interact),
+      ),
   ];
 
   static final Set<PlaceId> _rome = <PlaceId>{
@@ -65,9 +96,11 @@ final class RomeStage extends LevelStage {
 
   static const double _tileSize = 16;
 
-  /// Whether Tonino and Marcello are known and on screen right now.
+  /// Whether Tonino and Marcello are known, still on the square and on
+  /// screen right now.
   bool get _maranzaInView =>
       game.progress.hasExperienced(StoryMemory.maranzaMet) &&
+      !(game.isLoaded && _maranza.gone) &&
       game.camera.visibleWorldRect.overlaps(_maranzaArea);
 
   @override

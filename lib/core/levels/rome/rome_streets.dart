@@ -103,28 +103,31 @@ const List<String> piazzaCinquecentoRows = <String>[
 
 /// Via Marsala, the street behind the station, reached through the breach
 /// `}` in the wall `%` round the tracks: the fronts of its palazzi across
-/// the road, which runs off the map east and west.
+/// the road, their shops shut like everywhere else (the pizza by the
+/// slice, a second souvenir shop), and between them the
+/// bank `£`, a wall: shut, vandalised, LA BANCA È L'EMBLEMA sprayed across
+/// it. The palazzo just past it has its portone `«` open, a door. West the
+/// road is closed by a pile-up of burning cars from house front to house
+/// front, as behind the hypermarket in Molfetta: in the middle lane there
+/// is a gap with no car in it, only fuel burning `?`, and looking at it says
+/// what it would take; past it the road runs on off the map. East the
+/// street simply ends against the palazzi, past a strip of pavement down
+/// the end of it: their roofs come down the edge of the map from those
+/// over the street, as at the ends of Molfetta's streets. The wall along
+/// the bottom is the last of it: the station is past it, not more houses.
 // via-marsala-rows-start
 const List<String> viaMarsalaRows = <String>[
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  'HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH',
-  'HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH',
-  'HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH',
-  'HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH',
-  '=================================:==========================',
-  '....................:...................XX..................',
-  '------------------------------------------------------------',
-  '............CC..............................................',
-  '.............................................:....UU........',
-  '========:=================F=================================',
+  'HHHHHHHHHHHHHHHHHHHHHH££££££££££££HHHHHHHHHHHHHHHHHHHHHHBBBB',
+  'HHHHHHHHHHHHHHHHHHHHHH££££££££££££HHHHHHHHHHHHHHHHHHHHHHBBBB',
+  'HHHHHHHHHHHHHHHHHHHHHH££££££££££££HHHHHHHHHHHHHHHHHHHHHHBBBB',
+  'HHHHHHHHHHHHHHHHHHHHHH££££££££££££H«HHHHHHHHHHHHHHHHHHHHBBBB',
+  'CC===============================:======================BBBB',
+  '.XX.................:...................XX.............=BBBB',
+  '???----------------------------------------------------=BBBB',
+  '?XX.........CC.........................................=BBBB',
+  '.XX..........................................:....UU...=BBBB',
+  'CC======:=================F=============================BBBB',
   '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%}}%%%%%%%%%%%%%%%%%%%%%%%%%%%%',
-  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
 ];
 // via-marsala-rows-end

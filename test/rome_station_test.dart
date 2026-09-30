@@ -187,10 +187,43 @@ void main() {
     }
   });
 
+  test('Via Marsala is shut both ways: burning cars west, the palazzi '
+      'east; the bank is a wall and the palazzo beside it has its portone '
+      'open onto its hall', () {
+    final world = createGameWorld();
+    expect(workInProgressEnds.keys.where(marsala.bounds.contains), isEmpty);
+    final reached = from(
+      world,
+      world.portals[terminiBreachTiles.first]!.to,
+      marsala,
+    ).keys;
+    int column(GridPoint tile) => tile.x - marsala.origin.x;
+    expect(reached.map(column).reduce(math.min), greaterThan(1));
+    expect(reached.map(column).reduce(math.max), lessThan(marsala.width - 4));
+    // West, the fuel burning in the gap of the pile-up: looked at, it says
+    // what it would take.
+    expect(world.map.tileAt(marsalaFireTile).kind, TileKind.fire);
+    expect(reached, contains(marsalaFireTile.step(Direction.east)));
+    expect(world.lookouts, contains(marsalaFireTile));
+    // The bank, shut, and the portone just past it.
+    final bank = marsala.tilesOf('£');
+    expect(bank, isNotEmpty);
+    for (final tile in bank) {
+      expect(world.map.tileAt(tile).kind, TileKind.wall);
+    }
+    expect(
+      marsalaPortoneTile.x,
+      bank.map((tile) => tile.x).reduce(math.max) + 2,
+      reason: 'the palazzo right beside the bank',
+    );
+    expect(reached, contains(marsalaPortoneTile));
+    final hall = travel(world, marsalaPortoneTile, Direction.north);
+    expect(placeAt(hall)!.id, PlaceId.romePalazzoGround);
+  });
+
   test('Rome ends, for now, where its streets run off the map', () {
     final ends = workInProgressEnds.keys;
     expect(ends.where(piazza.bounds.contains), isNotEmpty);
-    expect(ends.where(marsala.bounds.contains), isNotEmpty);
     // East of Termini, past the roadblock, where the road runs off the map.
     expect(
       workInProgressEnds[GridPoint(piazza.bounds.right, piazza.origin.y + 12)],

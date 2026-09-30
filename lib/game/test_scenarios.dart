@@ -305,9 +305,18 @@ final TestScenario vanniDeployScenario = TestScenario(
     story
       ..script('rome', <String, Object?>{'welcomed': true})
       ..script('journey', <String, Object?>{'taught': true})
-      ..script('maranza', <String, Object?>{'met': true})
+      // Tonino and Marcello paid with the ingot from the bank's vault, the
+      // ticket for the Colosseum had for it, and gone from their square.
+      ..script('maranza', <String, Object?>{
+        'met': true,
+        'paid': true,
+        'gone': true,
+      })
+      ..collect(bankIngotBackpackId)
+      ..unlock(HudElement.colosseumTicket)
       ..missions(
-        given: const <Mission>[Mission.findSupplies, Mission.findValuable],
+        done: const <Mission>[Mission.findValuable],
+        given: const <Mission>[Mission.findSupplies, Mission.discoverColosseum],
       )
       ..aboardTrain();
     // Keep this scenario complete when another Rome memory is added.

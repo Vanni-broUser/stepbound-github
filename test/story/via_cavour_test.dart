@@ -122,5 +122,98 @@ void main() {
         MaranzaScript.meetingScene.map((frame) => frame.text),
       );
     });
+
+    /// Met, the mission handed out, and the prompts said.
+    void meet() {
+      standAt(upTheStreet(3));
+      settle();
+      host.onCutsceneFinished!();
+      settle();
+      host.cutscenes.clear();
+    }
+
+    test('with the gold ingot, coming at them plays its handing over and '
+        'the ticket for the Colosseum, and only then is the mission done', () {
+      meet();
+      host.unlocked.add(HudElement.goldIngot);
+      standAt(upTheStreet(2));
+      settle();
+      expect(host.shown, isEmpty, reason: 'no warning, with the ingot');
+      expect(host.cutscenes.single, MaranzaScript.paidScene);
+      expect(host.cutscenes.single.map((frame) => frame.speaker), <String?>[
+        MaranzaScript.tonino,
+        MaranzaScript.marcello,
+        'Mario Rossi',
+        MaranzaScript.marcello,
+      ]);
+      expect(progress.memories, contains(StoryMemory.maranzaPaid));
+      expect(progress.missions.isOpen(Mission.findValuable), isTrue);
+      host.onCutsceneFinished!();
+      expect(progress.missions.isDone(Mission.findValuable), isTrue);
+      expect(host.unlocked, isNot(contains(HudElement.goldIngot)));
+      expect(host.unlocked, contains(HudElement.colosseumTicket));
+      expect(progress.missions.isOpen(Mission.discoverColosseum), isTrue);
+      expect(Mission.discoverColosseum.text, 'Scopri cosa succede al Colosseo');
+      expect(HudElement.colosseumTicket.level, LevelId.rome);
+      expect(script().paid, isTrue);
+      expect(
+        Mission.findValuable.text,
+        'Cerca qualcosa di prezioso per Tonino e Marcello',
+      );
+      expect(memoryScenes[StoryMemory.maranzaPaid], hasLength(4));
+
+      // They let him by now: no more warnings, no walking back.
+      standAt(upTheStreet(1));
+      settle();
+      expect(host.shown, isEmpty);
+      expect(host.walked, isEmpty);
+    });
+
+    test('paid, each of them has a line for Mario talking to him, until he '
+        'leaves the square; back on it, they have gone', () {
+      meet();
+      host.unlocked.add(HudElement.goldIngot);
+      standAt(upTheStreet(2));
+      settle();
+      host.onCutsceneFinished!();
+
+      director.onEvents(<WorldEvent>[LookedOutEvent(at: toninoTile)]);
+      settle();
+      expect(host.shown.single.single.text, MaranzaScript.toninoAfter.text);
+      expect(host.shown.single.single.portrait, MaranzaScript.toninoPortrait);
+      host.dismiss();
+      director.onEvents(<WorldEvent>[LookedOutEvent(at: marcelloTile)]);
+      settle();
+      expect(host.shown.last.single.text, 'Ci vediamo al Colosseo frà');
+      expect(host.shown.last.single.speaker, MaranzaScript.marcello);
+      host.dismiss();
+      expect(script().gone, isFalse, reason: 'still on the square');
+
+      standAt(terminiTrainDoorTile.step(Direction.south));
+      settle();
+      expect(script().gone, isTrue);
+      standAt(upTheStreet(1));
+      settle();
+      host.shown.clear();
+      director.onEvents(<WorldEvent>[LookedOutEvent(at: toninoTile)]);
+      settle();
+      expect(host.shown, isEmpty, reason: 'nobody there any more');
+
+      final restored = StoryDirector(
+        world: world,
+        host: FakeStoryHost(),
+        progress: Progress(),
+      )..restore(director.toJson());
+      expect(restored.scripts.whereType<MaranzaScript>().first.gone, isTrue);
+    });
+
+    test('without the ingot they are not paid, whatever else Mario has', () {
+      meet();
+      standAt(upTheStreet(2));
+      settle();
+      expect(host.cutscenes, isEmpty);
+      expect(host.shown.single.single.text, MaranzaScript.warnings[0].text);
+      expect(script().paid, isFalse);
+    });
   });
 }
