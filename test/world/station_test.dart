@@ -502,6 +502,23 @@ void main() {
       }
     });
 
+    test("what can be looked at is the level's, not the save's: a game "
+        'saved when only the middle of the desk opened the book reaches it '
+        'from all of it', () {
+      final ends = <GridPoint>{trainBookTiles.first, trainBookTiles.last};
+      final saved = saveGameWorld(createGameWorld());
+      saved['lookouts'] = <Object?>[
+        for (final point
+            in (saved['lookouts']! as List<Object?>)
+                .cast<Map<String, Object?>>())
+          if (!ends.contains(GridPoint.fromJson(point))) point,
+      ];
+      final restored = restoreGameWorld(saved);
+      for (final desk in trainBookTiles) {
+        expect(restored.lookouts, contains(desk));
+      }
+    });
+
     test('two wanderers wait in the booking hall and one in the church', () {
       final world = createGameWorld();
       final indoors = world.entities.values

@@ -44,7 +44,7 @@ final class TrainStage extends LevelStage {
       ),
       // Over the abacus in the middle of the desk.
       InteractGlintComponent(
-        tile: trainBookTiles.first,
+        tile: trainBookTiles[trainBookTiles.length ~/ 2],
         spot: const Offset(8, 3),
         active: canInteract,
       ),

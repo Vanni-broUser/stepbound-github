@@ -267,11 +267,13 @@ WorldState restoreGameWorld(Map<String, Object?> json) {
       .cast<Map<String, Object?>>();
   final migrated = <String, Object?>{
     ...json,
-    // Doors between places and travel maps are level structure rather than
-    // player state. Taking the current definitions lets older saves enter
-    // the newly added train and use its locomotive map.
+    // Doors between places, travel maps and what can be looked at are
+    // level structure rather than player state. Taking the current
+    // definitions lets older saves enter the newly added train, use its
+    // locomotive map and reach Mario's desk from any of its cells.
     'portals': _levelJson['portals'],
     'travelMaps': _levelJson['travelMaps'],
+    'lookouts': _levelJson['lookouts'],
     'grapples': _levelJson['grapples'],
     'stairs': _levelJson['stairs'],
     'entities': <Object?>[
