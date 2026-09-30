@@ -66,12 +66,14 @@ void main() {
     final hometown = levelZombieKinds(LevelId.hometown);
     final rome = levelZombieKinds(LevelId.rome);
     // Rome's wanderers, the one sprinter on the piazza, the brute by the
-    // breach onto Via Marsala and the carabinieri at the roadblock.
+    // breach onto Via Marsala, those in the palazzo on it and the
+    // carabinieri at the roadblock.
     expect(
       rome,
       hasLength(
         romeZombieSpots.values.expand((spots) => spots).length +
             2 +
+            romeBrutes.values.expand((spots) => spots).length +
             roadblockCarabiniereTiles.length,
       ),
     );

@@ -74,6 +74,9 @@ PZ_RUBBLE = ((196, 184, 160), (160, 148, 128), (124, 112, 98), (210, 200,
 PZ_DAYLIGHT = (238, 214, 150)
 PZ_WALLS = "xWwIL"
 
+# The picture of the way up, one per palazzo.
+STAIRS_IMAGE = "palazzo_stairs_up.png"
+
 # What furnishes a flat, every piece of it an obstacle.
 FURNITURE = "SaVThBnAlKOFHQRMpr"
 
@@ -585,27 +588,30 @@ FLOORS = (
 )
 
 
-def floor_rules(atlas: Atlas, rng) -> list[dict]:
+def floor_rules(atlas: Atlas, rng, style=None) -> list[dict]:
     """Each room keeps its floor: what stands on it is painted over the
-    floor found under it (see `GROUND`)."""
+    floor found under it (see `GROUND`). The painters are `style`'s: this
+    module's, or another palazzo's with the same names."""
+    s = style or sys.modules[__name__]
     rules = []
-    for glyph, paint in FLOORS:
+    for glyph, paint in s.FLOORS:
         rules.append(rule("ground", glyph, [atlas.bucket(
             lambda p=paint: tile_of(lambda d: p(d, rng, 0, 0)))]))
-    everything = "".join(glyph for glyph, _ in FLOORS)
+    everything = "".join(glyph for glyph, _ in s.FLOORS)
     for right in (False, True):
         rules.append(rule(
             "ground", everything,
             [[], atlas.bucket(lambda r=right: tile_of(
-                lambda d: paint_edge(d, 0, 0, r)), 1)],
+                lambda d: s.paint_edge(d, 0, 0, r)), 1)],
             [neighbour_key(1 if right else -1, 0, "x")]))
     return rules
 
 
-def palazzo_floor(atlas: Atlas, rng, glyphs: str) -> dict:
+def palazzo_floor(atlas: Atlas, rng, glyphs: str, style=None) -> dict:
     """The rules of one of the palazzo's floors: the rooms, then only the
-    furniture `glyphs` it has."""
-    rules = floor_rules(atlas, rng)
+    furniture `glyphs` it has, painted by `style` (see `floor_rules`)."""
+    s = style or sys.modules[__name__]
+    rules = floor_rules(atlas, rng, s)
 
     def one(paint):
         return [atlas.bucket(lambda: tile_of(lambda d: paint(d, 0, 0)), 1)]
@@ -622,29 +628,29 @@ def palazzo_floor(atlas: Atlas, rng, glyphs: str) -> dict:
     rules.append(rule(
         "structures", "WM",
         [atlas.bucket(lambda u=upper: tile_of(
-            lambda d: paint_wall(d, rng, 0, 0, u)))
+            lambda d: s.paint_wall(d, rng, 0, 0, u)))
          for upper in (False, True)],
         [neighbour_key(0, 1, "xWMw")]))
     rules.append(rule(
         "structures", "I",
         [atlas.bucket(lambda b=below: tile_of(
-            lambda d: paint_partition(d, 0, 0, b)), 1)
+            lambda d: s.paint_partition(d, 0, 0, b)), 1)
          for below in (False, True)],
-        [neighbour_key(0, 1, PZ_WALLS)]))
-    rules.append(rule("structures", "w", one(paint_front_wall)))
-    rules.append(rule("structures", "d", one(paint_doorway)))
-    rules.append(rule("structures", "D", one(paint_stairs_down)))
-    rules.append(rule("structures", ":", randomly(paint_rubble)))
-    rules.append(rule("structures", "b", randomly(paint_blood)))
+        [neighbour_key(0, 1, s.PZ_WALLS)]))
+    rules.append(rule("structures", "w", one(s.paint_front_wall)))
+    rules.append(rule("structures", "d", one(s.paint_doorway)))
+    rules.append(rule("structures", "D", one(s.paint_stairs_down)))
+    rules.append(rule("structures", ":", randomly(s.paint_rubble)))
+    rules.append(rule("structures", "b", randomly(s.paint_blood)))
     if "P" in glyphs:
-        rules.append(rule("structures", "P", one(paint_flat_door)))
+        rules.append(rule("structures", "P", one(s.paint_flat_door)))
     if "L" in glyphs:
-        rules.append(rule("structures", "L", one(paint_locked_door)))
+        rules.append(rule("structures", "L", one(s.paint_locked_door)))
     if "E" in glyphs:
-        rules.append(rule("structures", "E", one(paint_portone)))
+        rules.append(rule("structures", "E", one(s.paint_portone)))
     if "M" in glyphs:
         buckets, up = lean(lambda i: lambda d, px, py:
-                           paint_mailboxes(d, rng, px, py))
+                           s.paint_mailboxes(d, rng, px, py))
         rules.append(rule("structures", "M", buckets, pieces=up))
     if "c" in glyphs:
         buckets, pieces = spread(atlas, lambda i: lambda d, px, py:
@@ -654,8 +660,8 @@ def palazzo_floor(atlas: Atlas, rng, glyphs: str) -> dict:
 
     # Runs of seats and units: the keys say whether the run goes on to
     # the left and to the right, which puts the arms and the ends on.
-    for glyph, paint, joins in (("S", paint_sofa, "S"),
-                                ("K", paint_counter, "KOF")):
+    for glyph, paint, joins in (("S", s.paint_sofa, "S"),
+                                ("K", s.paint_counter, "KOF")):
         if glyph in glyphs:
             keys = [neighbour_key(-1, 0, joins), neighbour_key(1, 0, joins)]
             buckets, up = lean(lambda i, p=paint: lambda d, px, py: p(
@@ -663,8 +669,8 @@ def palazzo_floor(atlas: Atlas, rng, glyphs: str) -> dict:
             rules.append(rule("structures", glyph, buckets, keys, up))
     # Two-cell pieces, painted whole and cut: the key says whether the
     # cell to the left is the same, which makes this its right half.
-    for glyph, paint in (("T", paint_table), ("V", paint_tv_stand),
-                         ("R", paint_bathtub)):
+    for glyph, paint in (("T", s.paint_table), ("V", s.paint_tv_stand),
+                         ("R", s.paint_bathtub)):
         if glyph in glyphs:
             pair = [neighbour_key(-1, 0, glyph)]
             buckets, up = lean(lambda i, p=paint: lambda d, px, py: p(
@@ -672,31 +678,31 @@ def palazzo_floor(atlas: Atlas, rng, glyphs: str) -> dict:
             rules.append(rule("structures", glyph, buckets, pair, up))
     if "h" in glyphs:
         rules.append(rule("structures", "h", [atlas.bucket(
-            lambda t=toppled: tile_of(lambda d: paint_chair(d, 0, 0, t)), 1)
+            lambda t=toppled: tile_of(lambda d: s.paint_chair(d, 0, 0, t)), 1)
             for toppled in (False, True)], [neighbour_key(0, -1, "IWx")]))
-    for glyph, paint in (("a", paint_armchair), ("O", paint_stove),
-                         ("H", paint_basin), ("Q", paint_toilet)):
+    for glyph, paint in (("a", s.paint_armchair), ("O", s.paint_stove),
+                         ("H", s.paint_basin), ("Q", s.paint_toilet)):
         if glyph in glyphs:
             buckets, up = lean(lambda i, p=paint: p, None, 1)
             rules.append(rule("structures", glyph, buckets, pieces=up))
-    for glyph, paint in (("A", paint_wardrobe), ("l", paint_bookcase),
-                         ("F", paint_fridge), ("p", paint_plant),
-                         ("n", paint_nightstand), ("r", paint_rubble_heap)):
+    for glyph, paint in (("A", s.paint_wardrobe), ("l", s.paint_bookcase),
+                         ("F", s.paint_fridge), ("p", s.paint_plant),
+                         ("n", s.paint_nightstand), ("r", s.paint_rubble_heap)):
         if glyph in glyphs:
             buckets, up = lean(lambda i, p=paint: lambda d, px, py: p(
                 d, rng, px, py))
             rules.append(rule("structures", glyph, buckets, pieces=up))
     if "B" in glyphs:
         rules.append(rule("structures", "B", [atlas.bucket(
-            lambda f=foot: tile_of(lambda d: paint_bed(d, rng, 0, 0, f)))
+            lambda f=foot: tile_of(lambda d: s.paint_bed(d, rng, 0, 0, f)))
             for foot in (False, True)], [neighbour_key(0, -1, "B")]))
 
     objects = []
     if "U" in glyphs:
-        objects.append({"glyph": "U", "image": "palazzo_stairs_up.png",
-                        "offsetY": -1, "sprite": stair_door()})
+        objects.append({"glyph": "U", "image": s.STAIRS_IMAGE,
+                        "offsetY": -1, "sprite": s.stair_door()})
     return {"void": "#000000", "voidGlyph": "x", "rules": rules,
-            "objects": objects, "ground": GROUND}
+            "objects": objects, "ground": s.GROUND}
 
 
 # The floor under the furniture, the dead and the doors: the nearest one

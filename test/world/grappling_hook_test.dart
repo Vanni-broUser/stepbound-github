@@ -42,10 +42,14 @@ void main() {
     expect(hook.collected, isTrue);
   });
 
-  test('every gap in Molfetta is crossed both ways', () {
+  test('every gap in Molfetta, and the one in Rome, is crossed both '
+      'ways', () {
     final world = createGameWorld();
-    expect(world.grapples, hometownGrapples);
-    expect(world.grapples, hasLength(6));
+    expect(world.grapples, <GridPoint, Portal>{
+      ...hometownGrapples,
+      ...romeGrapples,
+    });
+    expect(world.grapples, hasLength(8));
     for (final MapEntry(key: edge, value: grapple) in world.grapples.entries) {
       expect(world.map.tileAt(edge).isWalkable, isFalse, reason: '$edge');
       expect(world.map.tileAt(grapple.to).isWalkable, isTrue, reason: '$edge');
@@ -141,9 +145,9 @@ void main() {
     final saved = saveGameWorld(world);
     final restored = restoreGameWorld(saved);
     expect(restored.player.component<AmmoComponent>().grapplingHook, isTrue);
-    expect(restored.grapples.keys, unorderedEquals(hometownGrapples.keys));
-    for (final MapEntry(key: edge, value: grapple)
-        in hometownGrapples.entries) {
+    final all = <GridPoint, Portal>{...hometownGrapples, ...romeGrapples};
+    expect(restored.grapples.keys, unorderedEquals(all.keys));
+    for (final MapEntry(key: edge, value: grapple) in all.entries) {
       expect(restored.grapples[edge]!.to, grapple.to);
       expect(restored.grapples[edge]!.facing, grapple.facing);
     }

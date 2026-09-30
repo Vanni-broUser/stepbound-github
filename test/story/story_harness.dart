@@ -195,6 +195,7 @@ PickedUpEvent pickedUp(
   bool duomoKey = false,
   bool grapplingHook = false,
   bool palazzoKey = false,
+  bool goldIngot = false,
   int molotovs = 0,
   int rockets = 0,
 }) => PickedUpEvent(
@@ -208,6 +209,7 @@ PickedUpEvent pickedUp(
   duomoKey: duomoKey,
   grapplingHook: grapplingHook,
   palazzoKey: palazzoKey,
+  goldIngot: goldIngot,
   molotovs: molotovs,
   rockets: rockets,
 );

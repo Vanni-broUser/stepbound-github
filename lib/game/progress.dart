@@ -105,6 +105,10 @@ enum StoryMemory {
   /// Tonino and Marcello at the bottom of Via Cavour, who want something
   /// of value before they let Mario onto their square.
   maranzaMet,
+
+  /// The gold ingot handed over to them, and the ticket for the Colosseum
+  /// they give Mario for it.
+  maranzaPaid,
 }
 
 /// What Mario carries everywhere once found, and the city he finds it in:
@@ -176,7 +180,9 @@ extension StoryMemoryLevel on StoryMemory {
   /// The level the scene belongs to: Rome's story is not one of the
   /// memories left to find in Molfetta.
   LevelId get level => switch (this) {
-    StoryMemory.presidentFled || StoryMemory.maranzaMet => LevelId.rome,
+    StoryMemory.presidentFled ||
+    StoryMemory.maranzaMet ||
+    StoryMemory.maranzaPaid => LevelId.rome,
     _ => LevelId.hometown,
   };
 }

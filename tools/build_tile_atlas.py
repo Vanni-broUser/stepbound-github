@@ -43,11 +43,13 @@ from PIL import Image, ImageChops
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from street_paint import TILE  # noqa: E402
+import tile_atlas_bank as bank  # noqa: E402
 import tile_atlas_city as city  # noqa: E402
 import tile_atlas_company as company  # noqa: E402
 import tile_atlas_shop as shop  # noqa: E402
 import tile_atlas_hospital as hospital  # noqa: E402
 import tile_atlas_palazzo as palazzo  # noqa: E402
+import tile_atlas_rome_palazzo as rome_palazzo  # noqa: E402
 import tile_atlas_terme as terme  # noqa: E402
 from tile_atlas_core import (  # noqa: E402
     Atlas,
@@ -116,7 +118,8 @@ PLACES_DIR = os.path.join("assets", "levels", "places")
 def place_group(filename: str) -> str:
     """Return the level-area folder that owns a generated prop."""
     if filename.startswith(("duomo_", "termini_", "piazzaCinquecento_",
-                            "viaMarsala_", "termeDiocleziano_")):
+                            "viaMarsala_", "termeDiocleziano_",
+                            "romePalazzo_", "bank_")):
         return "rome"
     if filename.startswith("train_"):
         return "train"
@@ -159,6 +162,8 @@ PLACES = {
     **hospital.PLACES,
     **terme.PLACES,
     **palazzo.PLACES,
+    **rome_palazzo.PLACES,
+    **bank.PLACES,
     **company.PLACES,
     **shop.PLACES,
 }
@@ -315,6 +320,8 @@ PREVIEW_ROWS = {
     **hospital.PREVIEW_ROWS,
     **terme.PREVIEW_ROWS,
     **palazzo.PREVIEW_ROWS,
+    **rome_palazzo.PREVIEW_ROWS,
+    **bank.PREVIEW_ROWS,
     **company.PREVIEW_ROWS,
     **shop.PREVIEW_ROWS,
 }

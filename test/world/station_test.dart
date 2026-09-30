@@ -473,12 +473,13 @@ void main() {
           PlaceId.duomoUpper,
           PlaceId.terminiConcourse,
           PlaceId.palazzoGroundFloor,
+          PlaceId.romePalazzoGround,
         ]),
         reason:
             'every other room stays in the dark but the upper floor of '
             'the Duomo, where the community lives, the concourse of '
             'Termini, under its glass, and the entrance hall of the '
-            'palazzo past the airliner',
+            'palazzo past the airliner and of the one on Via Marsala',
       );
     });
 

@@ -54,6 +54,18 @@ void main() {
       saves.values,
       isNot(contains(StoredSaveRepository.backupKey(vanniDeploySlot))),
     );
+    // Tonino and Marcello already seen to: the ingot taken from the vault
+    // and handed over, the ticket for the Colosseum in its place, the two
+    // of them gone.
+    expect(save.hud, contains(HudElement.colosseumTicket.name));
+    expect(save.hud, isNot(contains(HudElement.goldIngot.name)));
+    expect(world.pickups[bankIngotBackpackId]!.collected, isTrue);
+    expect(progress.missions.isDone(Mission.findValuable), isTrue);
+    expect(progress.missions.isOpen(Mission.discoverColosseum), isTrue);
+    expect(progress.memories, contains(StoryMemory.maranzaPaid));
+    final maranza = save.story['maranza']! as Map<String, Object?>;
+    expect(maranza['paid'], isTrue);
+    expect(maranza['gone'], isTrue);
   });
 
   test('install gives every test skin to the VANNI_DEPLOY slot', () async {

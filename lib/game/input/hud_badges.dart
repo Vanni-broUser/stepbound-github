@@ -83,6 +83,36 @@ Widget? _badge(HudElement element, {required StepboundGame game}) =>
           filterQuality: FilterQuality.none,
         ),
       ),
+      HudElement.goldIngot => _QuestItemBadge(
+        key: const ValueKey<String>('hud-gold-ingot'),
+        game: game,
+        label: "Lingotto d'oro",
+        drips: const <BloodDrip>[BloodDrip(0.32, 9, 3), BloodDrip(0.74, 11, 4)],
+        icon: Image.asset(
+          'assets/objects/gold_ingot.png',
+          width: 28,
+          height: 28,
+          // Without a fit, a picture smaller than its box is drawn at its
+          // own size and not blown up to fill it.
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.none,
+        ),
+      ),
+      HudElement.colosseumTicket => _QuestItemBadge(
+        key: const ValueKey<String>('hud-colosseum-ticket'),
+        game: game,
+        label: 'Biglietto del Colosseo',
+        drips: const <BloodDrip>[BloodDrip(0.26, 10, 3), BloodDrip(0.7, 8, 4)],
+        icon: Image.asset(
+          'assets/objects/colosseum_ticket.png',
+          width: 28,
+          height: 28,
+          // Without a fit, a picture smaller than its box is drawn at its
+          // own size and not blown up to fill it.
+          fit: BoxFit.contain,
+          filterQuality: FilterQuality.none,
+        ),
+      ),
       HudElement.molotov => _MolotovBadge(game: game),
       HudElement.rockets => _RocketBadge(game: game),
       HudElement.interact || HudElement.shoot => null,
@@ -90,6 +120,12 @@ Widget? _badge(HudElement element, {required StepboundGame game}) =>
 
 /// The side of every badge in the corner.
 const double _badgeSize = 44;
+
+/// The gap between two badges in the row of what Mario carries, the same
+/// between any two of them: wide enough for a count written over the
+/// corner of the one after it to spill into without touching the one
+/// before.
+const double carriedBadgeGap = 11;
 
 /// The frame every badge sits in: a dark square with a bloody rim.
 BoxDecoration _frame({Color fill = const Color(0xcc241a1a), Color? rim}) =>
@@ -206,9 +242,11 @@ final class _AmmoBadge extends StatelessWidget {
                       }
                     : null,
                 child: Padding(
-                  // Room for the count spilling out, so the row does not lay
-                  // the next badge over it.
-                  padding: const EdgeInsets.only(left: spill, bottom: spill),
+                  // Room under it for the count spilling out; to the left it
+                  // spills into the gap before the next badge, which is as
+                  // wide as every other gap in the row (see
+                  // [carriedBadgeGap]).
+                  padding: const EdgeInsets.only(bottom: spill),
                   child: Stack(
                     clipBehavior: Clip.none,
                     children: <Widget>[
@@ -445,7 +483,7 @@ final class _MolotovBadge extends StatelessWidget {
                 game.tapWeapon(Weapon.molotov);
               },
               child: Padding(
-                padding: const EdgeInsets.only(left: spill, bottom: spill),
+                padding: const EdgeInsets.only(bottom: spill),
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: <Widget>[
@@ -523,7 +561,7 @@ final class _RocketBadge extends StatelessWidget {
                 ? 'Lanciarazzi, colpi: $count'
                 : 'Lanciarazzi da trovare, colpi: $count',
             child: Padding(
-              padding: const EdgeInsets.only(left: spill, bottom: spill),
+              padding: const EdgeInsets.only(bottom: spill),
               child: Stack(
                 clipBehavior: Clip.none,
                 children: <Widget>[

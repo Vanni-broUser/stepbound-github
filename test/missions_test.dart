@@ -77,7 +77,8 @@ void main() {
       );
       expect(Mission.of(LevelId.rome).map((mission) => mission.text), <String>[
         'Trova delle provviste in città',
-        'Cerca qualcosa di prezioso per avanzare',
+        'Cerca qualcosa di prezioso per Tonino e Marcello',
+        'Scopri cosa succede al Colosseo',
       ]);
       expect(Mission.finaleOf(LevelId.hometown), Mission.reachLuigi);
     });

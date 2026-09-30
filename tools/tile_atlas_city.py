@@ -63,7 +63,7 @@ STOP_NORTH, STOP_WEST = "▔", "▏"
 BEND_EAST = "ɔ"
 # The monument on the square south of the street of the company.
 MONUMENT = "Ω"
-BUILDINGS = "BHfKMGW#%0]\"\u00a7\u00c6"
+BUILDINGS = "BHfKMGW#%0]\"\u00a7\u00c6\u00a3"
 FACADE = "Hf"
 # A front and the doors set in it at street level: the floor over a door
 # is not the street level, it has its windows like the rest.
@@ -1500,6 +1500,7 @@ def city_place(atlas: Atlas, rng, name: str, marker, storefront_table,
         ("_+[", "airliner", lambda d, lv: plane.paint_airliner(d, rng, lv)),
         ("]{", "termini", lambda d, lv: termini.paint_termini_front(
             d, rng, lv)),
+        ("£", "bank", lambda d, lv: termini.paint_bank(d, rng, lv)),
         ('">`', "basilica", lambda d, lv: termini.paint_santa_maria_maggiore(
             d, rng, lv)),
         (termini.TERME + termini.TERME_DOOR + termini.TERME_SIGN, "terme",
@@ -1738,8 +1739,8 @@ def monument_square(atlas: Atlas, rng) -> dict:
 
 
 def via_marsala(atlas: Atlas, rng) -> dict:
-    return city_place(atlas, rng, "viaMarsala", "via-marsala-rows", {},
-                      rome=True)
+    return city_place(atlas, rng, "viaMarsala", "via-marsala-rows",
+                      brushes.VIA_MARSALA_STOREFRONTS, rome=True)
 
 
 PLACES = {

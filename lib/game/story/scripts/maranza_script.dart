@@ -9,6 +9,12 @@ import 'package:stepbound/game/story/story_director.dart';
 /// of value to let him by. From then on every step towards them gets one
 /// of their warnings, in turn, and Mario walked back up the street; the
 /// controls come back once he is.
+///
+/// Coming at them with the gold ingot from the bank's vault plays its
+/// handing over instead, and the ticket for the Colosseum they give him
+/// for it: the mission is done, and they let him by. They stay where they
+/// are, a line each for him if he talks to them, until he has left the
+/// square: back on it, they have gone.
 final class MaranzaScript extends StoryScript {
   MaranzaScript(super.director);
 
@@ -21,6 +27,9 @@ final class MaranzaScript extends StoryScript {
   static const String meetScene = 'assets/story/scenes/rome_maranza_meet.jpg';
   static const String marioScene = 'assets/story/scenes/rome_maranza_mario.jpg';
   static const String laughScene = 'assets/story/scenes/rome_maranza_laugh.jpg';
+  static const String ingotScene = 'assets/story/scenes/rome_maranza_ingot.jpg';
+  static const String ticketScene =
+      'assets/story/scenes/rome_maranza_ticket.jpg';
 
   static const List<CutsceneFrame> meetingScene = <CutsceneFrame>[
     CutsceneFrame(
@@ -57,6 +66,47 @@ final class MaranzaScript extends StoryScript {
     ),
   ];
 
+  /// The gold ingot handed over, and what they give Mario for it.
+  static const List<CutsceneFrame> paidScene = <CutsceneFrame>[
+    CutsceneFrame(
+      image: ingotScene,
+      speaker: tonino,
+      text:
+          'Grande frà, questo era proprio che intendevo con qualcosa di '
+          'prezioso!',
+    ),
+    CutsceneFrame(
+      image: ticketScene,
+      speaker: marcello,
+      text:
+          'Ci stai simpatico frà, tieni questo è un biglietto per il '
+          'Colosseo',
+    ),
+    CutsceneFrame(
+      image: ticketScene,
+      speaker: 'Mario Rossi',
+      text: 'Il Colosseo? Ci fanno ancora le gite turistiche?',
+    ),
+    CutsceneFrame(
+      image: ticketScene,
+      speaker: marcello,
+      text: 'Gite turistiche!? Hehehe niente del genere frà, lo scoprirai...',
+    ),
+  ];
+
+  /// What each of them says to Mario talking to them once they have the
+  /// ingot.
+  static const StoryLine toninoAfter = StoryLine(
+    'Ora dobbiamo trovare qualcosa da fare con questo lingotto adesso',
+    speaker: tonino,
+    portrait: toninoPortrait,
+  );
+  static const StoryLine marcelloAfter = StoryLine(
+    'Ci vediamo al Colosseo frà',
+    speaker: marcello,
+    portrait: marcelloPortrait,
+  );
+
   /// What they say to Mario coming at them again, one after the other.
   static const List<StoryLine> warnings = <StoryLine>[
     StoryLine(
@@ -78,20 +128,43 @@ final class MaranzaScript extends StoryScript {
   /// back: a single step towards them gets a single one.
   bool _warning = false;
 
+  /// The ingot handed over: they let Mario by.
+  bool _paid = false;
+
+  /// Gone from the square, once Mario has left it after paying them.
+  bool _gone = false;
+
   bool get metPlayed => _metPlayed;
+  bool get paid => _paid;
+  bool get gone => _gone;
 
   @override
   String get key => 'maranza';
 
   @override
+  void onEvent(WorldEvent event) {
+    if (event is! LookedOutEvent || !_paid || _gone) {
+      return;
+    }
+    if (event.at == toninoTile) {
+      say(StoryPrompt(const <StoryLine>[toninoAfter]));
+    } else if (event.at == marcelloTile) {
+      say(StoryPrompt(const <StoryLine>[marcelloAfter]));
+    }
+  }
+
+  @override
   void update({required bool turnAnimating}) {
+    final position = world.player.component<PositionComponent>().position;
+    if (_paid && !_gone && placeAt(position)?.id != PlaceId.piazzaCinquecento) {
+      _gone = true;
+    }
     if (_warning ||
         turnAnimating ||
         host.isPromptVisible ||
         progress.level != LevelId.rome) {
       return;
     }
-    final position = world.player.component<PositionComponent>().position;
     if (!_metPlayed) {
       if (maranzaSceneTrigger.contains(position)) {
         _metPlayed = true;
@@ -106,9 +179,36 @@ final class MaranzaScript extends StoryScript {
       }
       return;
     }
-    if (maranzaTurf.contains(position)) {
+    if (_paid || !maranzaTurf.contains(position)) {
+      return;
+    }
+    if (host.isUnlocked(HudElement.goldIngot)) {
+      _handOver();
+    } else {
       _warn();
     }
+  }
+
+  /// The ingot for the ticket: the mission done, the ingot's badge gone
+  /// and the ticket's up, and the next mission, to find out what goes on
+  /// at the Colosseum.
+  void _handOver() {
+    _paid = true;
+    host
+      ..stopWalking()
+      ..playCutscene(
+        paidScene,
+        memories: const <StoryMemory>{StoryMemory.maranzaPaid},
+        music: Music.maranza,
+        onFinished: () {
+          host
+            ..removeHud(HudElement.goldIngot)
+            ..unlock(HudElement.colosseumTicket);
+          progress.missions
+            ..complete(Mission.findValuable)
+            ..give(Mission.discoverColosseum);
+        },
+      );
   }
 
   /// One of their two lines, then Mario is walked a step back up the
@@ -134,11 +234,15 @@ final class MaranzaScript extends StoryScript {
   Map<String, Object?> toJson() => <String, Object?>{
     'met': _metPlayed,
     'warnings': _warningsGiven,
+    if (_paid) 'paid': true,
+    if (_gone) 'gone': true,
   };
 
   @override
   void restore(Map<String, Object?> json) {
     _metPlayed = json['met'] as bool? ?? false;
     _warningsGiven = json['warnings'] as int? ?? 0;
+    _paid = json['paid'] as bool? ?? false;
+    _gone = json['gone'] as bool? ?? false;
   }
 }

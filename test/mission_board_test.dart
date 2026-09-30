@@ -60,7 +60,9 @@ void main() {
     await _pumpCorner(tester, game);
     expect(_city(tester), 'ROMA');
     expect(
-      find.byKey(ValueKey<String>('mission-text-${Mission.findValuable.name}')),
+      find.byKey(
+        ValueKey<String>('mission-text-${Mission.discoverColosseum.name}'),
+      ),
       findsOneWidget,
     );
   });

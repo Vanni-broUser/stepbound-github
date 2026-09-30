@@ -136,6 +136,13 @@ enum HudElement {
 
   /// The key of the flat still locked on the palazzo's third floor.
   palazzoKey,
+
+  /// The gold ingot from the vault under the bank on Via Marsala.
+  goldIngot,
+
+  /// The ticket for the Colosseum Tonino and Marcello give Mario for the
+  /// ingot.
+  colosseumTicket,
 }
 
 extension HudElementLevel on HudElement {
@@ -149,6 +156,7 @@ extension HudElementLevel on HudElement {
     HudElement.episcopalRing ||
     HudElement.duomoKey ||
     HudElement.palazzoKey => LevelId.hometown,
+    HudElement.goldIngot || HudElement.colosseumTicket => LevelId.rome,
     _ => null,
   };
 }
