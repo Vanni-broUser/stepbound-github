@@ -81,7 +81,13 @@ RestartedLevel restartCity(GameSnapshot current) {
   for (final item in lost) {
     item.carry(ammo, carried: false);
   }
-  final badges = {for (final item in lost) item.badge.name};
+  // The errands' things are used up where they are found: the city's
+  // backpacks and story start over, so they go with the rest of it.
+  final badges = {
+    for (final item in lost) item.badge.name,
+    for (final element in HudElement.values)
+      if (element.level == city) element.name,
+  };
   return (
     world: saveGameWorld(world),
     story: _storyWithout(current.story, city),
@@ -135,7 +141,14 @@ RestartedLevel restartHometown(GameSnapshot? current, Progress fresh) {
     ),
     story: _storyWithout(current.story, LevelId.hometown),
     progress: fresh,
-    hud: const <String>[],
+    // The other cities' errands stay where Mario left them, and what he
+    // carries for them with them: out of sight until he is back there.
+    hud: <String>[
+      for (final name in current.hud)
+        if (HudElement.values.asNameMap()[name]?.level case final city?
+            when city != LevelId.hometown)
+          name,
+    ],
   );
 }
 

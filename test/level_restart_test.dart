@@ -63,7 +63,9 @@ void main() {
       ..steps[LevelId.rome] = 40;
     story.world.player.component<AmmoComponent>()
       ..loaded = 9
+      ..hasGun = true
       ..grapplingHook = true;
+    story.progress.activeOutfit = PlayerOutfit.cultist;
   }
 
   AmmoComponent ammoOf(StepboundGame game) =>
@@ -147,6 +149,10 @@ void main() {
       );
       expect(ammoOf(rome).loaded, 9, reason: 'the rounds left in Rome');
       expect(ammoOf(rome).grapplingHook, isTrue);
+      // The robe is Molfetta's: not found again there, it is not his in
+      // Rome either.
+      expect(rome.progress.unlockedOutfits, <PlayerOutfit>{PlayerOutfit.base});
+      expect(rome.progress.activeOutfit, PlayerOutfit.base);
       expect(rome.progress.hasGoldenPistol, isTrue);
       expect(
         rome.simulation.pickups[terminiRubbishBackpackId]!.collected,
@@ -156,6 +162,29 @@ void main() {
       expect(
         (await saves.load(1))!.story['maranza'],
         containsPair('met', true),
+      );
+    });
+
+    test("keeps what Mario carries for Rome's errands, out of sight, and "
+        "drops Molfetta's", () async {
+      final back = game((story) {
+        molfettaThenRome(story);
+        story
+          ..collect(bankIngotBackpackId)
+          ..unlock(HudElement.goldIngot)
+          ..travelTo(LevelId.hometown)
+          ..unlock(HudElement.barKey);
+      });
+      await session.saveLevelStart(current: back);
+      final again = session.newGame();
+      expect(
+        again.hud.value,
+        unorderedEquals(<HudElement>[HudElement.goldIngot]),
+      );
+      expect(
+        again.simulation.pickups[bankIngotBackpackId]!.collected,
+        isTrue,
+        reason: 'Rome is as it was: the vault is empty',
       );
     });
 
@@ -207,6 +236,25 @@ void main() {
       expect(progress.litCampfires, isEmpty);
     });
 
+    test("takes Rome's errand things away with its backpacks and story, "
+        "not Molfetta's", () {
+      final restarted = restartCity(
+        game((story) {
+          molfettaThenRome(story);
+          story
+            ..unlock(HudElement.barKey)
+            ..unlock(HudElement.goldIngot)
+            ..unlock(HudElement.colosseumTicket)
+            ..restAt(piazzaCampfireTile);
+        }),
+      );
+      expect(restarted.hud, isNot(contains(HudElement.goldIngot.name)));
+      expect(restarted.hud, isNot(contains(HudElement.colosseumTicket.name)));
+      expect(restarted.hud, contains(HudElement.barKey.name));
+      final world = restoreGameWorld(restarted.world);
+      expect(world.pickups[bankIngotBackpackId]!.collected, isFalse);
+    });
+
     test('leaves Molfetta as it was', () async {
       final restarted = restartCity(inRome);
       final progress = restarted.progress;
@@ -217,6 +265,9 @@ void main() {
       expect(progress.unlockedOutfits, contains(PlayerOutfit.cultist));
       expect(progress.steps[LevelId.hometown], 100);
       expect(restarted.hud, contains(HudElement.molotov.name));
+      // Molfetta's pistol and robe stay his, and the robe on him.
+      expect(world.player.component<AmmoComponent>().hasGun, isTrue);
+      expect(progress.activeOutfit, PlayerOutfit.cultist);
 
       session.slot = 1;
       final rome = await session.restartCityLevel(inRome);
