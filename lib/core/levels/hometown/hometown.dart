@@ -571,6 +571,14 @@ LevelContents hometownContents(EntityFactory factory) {
                   : Direction.west,
             ),
           );
+        case '♪':
+          entities.add(
+            factory.zombie(
+              id: caparezzaZombieId,
+              kind: EntityKind.wanderer,
+              position: point,
+            ),
+          );
         case '9':
           // The upper of the two is the one further up the road.
           final upper = point.y < barracksRoadZombieTiles.last.y;

@@ -42,6 +42,7 @@ void main() {
       'zombies/sprites/burning',
       'zombies/sprites/drunk',
       'zombies/sprites/cultist',
+      'zombies/sprites/caparezza',
       'npcs/sprites/chiara',
       'npcs/sprites/maranza_roma',
       'npcs/sprites/maranza_lazio',
