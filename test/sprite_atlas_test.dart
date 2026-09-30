@@ -383,6 +383,28 @@ void main() {
     );
   }
 
+  test('the rocket launcher is a shared layer on the gun poses grid, with '
+      'something of it in every frame', () async {
+    final image = await loadAsset('assets/objects/rocket_launcher_held.png');
+    expect(image.width, 96);
+    expect(image.height, 96);
+    final rgba = await pixelsOf(image);
+    for (var row = 0; row < 4; row++) {
+      for (var column = 0; column < 6; column++) {
+        var opaque = 0;
+        for (var y = row * 24; y < row * 24 + 24; y++) {
+          for (var x = column * 16; x < column * 16 + 16; x++) {
+            if (rgba[(y * 96 + x) * 4 + 3] == 255) {
+              opaque += 1;
+            }
+          }
+        }
+        expect(opaque, greaterThan(8), reason: 'frame $row,$column');
+      }
+    }
+    image.dispose();
+  });
+
   test('the pistols are shared layers on the gun poses grid, and no '
       'outfit holds one of its own', () async {
     final pistol = await pixelsOf(

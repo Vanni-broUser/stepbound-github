@@ -92,9 +92,13 @@ final GridPoint duomoFarTowerEdgeTile = GridPoint(
 );
 
 /// The backpack on the roof of the other tower, in sight from this one and
-/// out of reach without the grappling hook: a round for a rocket launcher.
+/// out of reach without the grappling hook: two rounds for the rocket
+/// launcher, which lies at the bottom of the block east of the hospital.
 final GridPoint duomoFarTowerBackpackTile = _duomoRoof.tileOf('9');
 const String duomoFarTowerBackpackId = 'backpack-duomo-tower';
+
+/// How many rounds it holds.
+const int duomoFarTowerBackpackRockets = 2;
 
 /// Where the cultist up on the other tower comes out, in its far corner,
 /// the first time the hook lands Mario there: nothing of it shows from

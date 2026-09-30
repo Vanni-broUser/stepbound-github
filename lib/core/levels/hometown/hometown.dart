@@ -17,6 +17,7 @@ export 'package:stepbound/core/levels/hometown/duomo_second_floor.dart';
 export 'package:stepbound/core/levels/hometown/duomo_tower.dart';
 export 'package:stepbound/core/levels/hometown/duomo_tower_roof.dart';
 export 'package:stepbound/core/levels/hometown/duomo_upper.dart';
+export 'package:stepbound/core/levels/hometown/east_block.dart';
 export 'package:stepbound/core/levels/hometown/electronics_shop.dart';
 export 'package:stepbound/core/levels/hometown/harbour.dart';
 export 'package:stepbound/core/levels/hometown/hospital.dart';
@@ -369,6 +370,29 @@ const List<PlaceSpec> hometownPlaces = <PlaceSpec>[
     daylight: 'E',
     name: 'Elettronica',
   ),
+  // The block east of the hospital's roof: its stairwell and the corridor
+  // across each floor have every light on; its flats and offices are
+  // nearly black, a lamp flickering here and there.
+  PlaceSpec(
+    id: PlaceId.eastBlockTopFloor,
+    area: AreaId.hometownTown,
+    rows: eastBlockTopFloorRows,
+    legend: eastBlockLegend,
+    indoor: true,
+    darkness: eastBlockDarkness,
+    litAreas: <GridRect>[eastBlockStairwell, eastBlockCorridor],
+    name: eastBlockName,
+  ),
+  PlaceSpec(
+    id: PlaceId.eastBlockLowerFloor,
+    area: AreaId.hometownTown,
+    rows: eastBlockLowerFloorRows,
+    legend: eastBlockLegend,
+    indoor: true,
+    darkness: eastBlockDarkness,
+    litAreas: <GridRect>[eastBlockStairwell, eastBlockCorridor],
+    name: eastBlockName,
+  ),
 ];
 
 /// The places [outdoorLegend] describes: what walks the streets, what
@@ -418,10 +442,9 @@ final List<FireSpot> hometownFireSpots = <FireSpot>[
   ...hospitalRoofFireSpots,
 ];
 
-/// Molfetta's doors to places not drawn yet (see `workInProgressDoors`).
-final Set<GridPoint> hometownWorkInProgressDoors = <GridPoint>{
-  ...hospitalNextRoofStairsFoot,
-};
+/// Molfetta's doors to places not drawn yet (see `workInProgressDoors`):
+/// none, now that the block east of the hospital's roof has its floors.
+final Set<GridPoint> hometownWorkInProgressDoors = <GridPoint>{};
 
 /// Molfetta's flights of stairs out in the open, each step with the way
 /// up it (see `WorldState.stairs`): the hypermarket's, the stairwells on
@@ -479,6 +502,7 @@ Map<GridPoint, Portal> _portals() => <GridPoint, Portal>{
   ...stationPortals,
   ...airlinerPortals,
   ...hospitalPortals,
+  ...eastBlockPortals,
   ...palazzoPortals,
   ...companyPortals,
   ...monumentSquarePortals,
@@ -622,7 +646,7 @@ LevelContents hometownContents(EntityFactory factory) {
     Pickup(
       id: duomoFarTowerBackpackId,
       position: duomoFarTowerBackpackTile,
-      rockets: 1,
+      rockets: duomoFarTowerBackpackRockets,
     ),
     Pickup(
       id: stationBackpackId,
@@ -642,6 +666,14 @@ LevelContents hometownContents(EntityFactory factory) {
     Pickup(id: palazzoBackpackId, position: palazzoBackpackTile, ammo: 2),
     Pickup(id: palazzoKeyPickupId, position: palazzoKeyTile, palazzoKey: true),
     Pickup(id: companyBackpackId, position: companyBackpackTile, ammo: 2),
+    // In the offices at the bottom of the block east of the hospital's
+    // roof: the rounds for it are found elsewhere, one on the Duomo's
+    // other tower.
+    Pickup(
+      id: rocketLauncherPickupId,
+      position: rocketLauncherTile,
+      rocketLauncher: true,
+    ),
   ]);
   // `Z` is a wanderer standing in the dark of a building, numbered in
   // reading order of its module's rows.
@@ -676,6 +708,7 @@ LevelContents hometownContents(EntityFactory factory) {
   for (final (tiles, prefix) in <(List<GridPoint>, String)>[
     (electronicsShopZombieTiles, electronicsShopZombiePrefix),
     (palazzoZombieTiles, palazzoZombiePrefix),
+    (eastBlockZombieTiles, eastBlockZombiePrefix),
   ]) {
     entities.addAll(_wanderers(factory, tiles, prefix));
   }

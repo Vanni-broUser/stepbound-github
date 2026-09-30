@@ -46,6 +46,7 @@ from street_paint import TILE  # noqa: E402
 import tile_atlas_bank as bank  # noqa: E402
 import tile_atlas_city as city  # noqa: E402
 import tile_atlas_company as company  # noqa: E402
+import tile_atlas_east_block as east_block  # noqa: E402
 import tile_atlas_shop as shop  # noqa: E402
 import tile_atlas_hospital as hospital  # noqa: E402
 import tile_atlas_palazzo as palazzo  # noqa: E402
@@ -166,6 +167,7 @@ PLACES = {
     **bank.PLACES,
     **company.PLACES,
     **shop.PLACES,
+    **east_block.PLACES,
 }
 
 
@@ -324,6 +326,7 @@ PREVIEW_ROWS = {
     **bank.PREVIEW_ROWS,
     **company.PREVIEW_ROWS,
     **shop.PREVIEW_ROWS,
+    **east_block.PREVIEW_ROWS,
 }
 
 

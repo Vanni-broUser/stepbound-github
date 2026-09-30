@@ -198,6 +198,7 @@ PickedUpEvent pickedUp(
   bool goldIngot = false,
   int molotovs = 0,
   int rockets = 0,
+  bool rocketLauncher = false,
 }) => PickedUpEvent(
   pickupId: id,
   at: world.pickups[id]!.position,
@@ -212,6 +213,7 @@ PickedUpEvent pickedUp(
   goldIngot: goldIngot,
   molotovs: molotovs,
   rockets: rockets,
+  rocketLauncher: rocketLauncher,
 );
 
 /// Molfetta from the start, a fresh director over it.

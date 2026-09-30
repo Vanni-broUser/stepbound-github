@@ -115,9 +115,8 @@ const List<String> hospitalThirdFloorRows = <String>[
 /// East, across the gap `x` to the street far below, stands the next
 /// block, built like this one: walled `W` round its roof, the parapet `^`
 /// along its front, its own stacks `T`, aerial `n` and gravel `:`, and
-/// the open stairwell `v` going down into it, a door to a block with no
-/// map yet that shows the work-in-progress screen
-/// (`workInProgressDoors`). `>` is the stretch of the
+/// the open stairwell `v` going down into it, onto its top floor
+/// (east_block.dart). `>` is the stretch of the
 /// east wall knocked down low, where Mario measures the gap: too far to
 /// jump, near enough for a grappling hook, as on the roofs past the
 /// airliner and at the top of the Duomo's tower. Straight across from it
@@ -233,8 +232,8 @@ final List<GridPoint> hospitalZombieTiles = <GridPoint>[
 ];
 
 /// The open stairwell `v` going down southward into the block east of the
-/// hospital's roof, two steps deep: its last step is the door to a place
-/// that has no map yet.
+/// hospital's roof, two steps deep: its last step is the door onto the
+/// block's top floor (see `eastBlockPortals`).
 final List<GridPoint> hospitalNextRoofStairs = _hospitalRoof.tilesOf('v');
 
 /// The last steps of [hospitalNextRoofStairs], at its south end.

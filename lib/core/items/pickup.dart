@@ -19,6 +19,7 @@ final class Pickup {
     this.palazzoKey = false,
     this.goldIngot = false,
     this.rockets = 0,
+    this.rocketLauncher = false,
     this.active = true,
     this.collected = false,
   });
@@ -38,6 +39,7 @@ final class Pickup {
       palazzoKey: json['palazzoKey'] as bool? ?? false,
       goldIngot: json['goldIngot'] as bool? ?? false,
       rockets: json['rockets'] as int? ?? 0,
+      rocketLauncher: json['rocketLauncher'] as bool? ?? false,
       active: json['active']! as bool,
       collected: json['collected'] as bool? ?? false,
     );
@@ -79,6 +81,10 @@ final class Pickup {
   /// Rounds for the rocket launcher.
   final int rockets;
 
+  /// The rocket launcher itself, in the offices at the bottom of the
+  /// block east of the hospital's roof.
+  final bool rocketLauncher;
+
   /// False while hidden by a script and after it has been collected.
   bool active;
 
@@ -99,6 +105,7 @@ final class Pickup {
     if (palazzoKey) 'palazzoKey': true,
     if (goldIngot) 'goldIngot': true,
     if (rockets > 0) 'rockets': rockets,
+    if (rocketLauncher) 'rocketLauncher': true,
     'active': active,
     'collected': collected,
   };

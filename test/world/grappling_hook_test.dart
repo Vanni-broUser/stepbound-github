@@ -160,19 +160,20 @@ void main() {
       'launcher, and Mario carries it without the launcher', () {
     final world = createGameWorld();
     final backpack = world.pickups[duomoFarTowerBackpackId]!;
-    expect(backpack.rockets, 1);
+    expect(backpack.rockets, duomoFarTowerBackpackRockets);
+    expect(backpack.rockets, 2);
     expect(backpack.ammo, 0);
     world.player.component<PositionComponent>()
       ..position = backpack.position.step(Direction.west)
       ..facing = Direction.east;
     final events = const TurnScheduler().advance(world, const InteractAction());
-    expect(events.whereType<PickedUpEvent>().single.rockets, 1);
+    expect(events.whereType<PickedUpEvent>().single.rockets, 2);
     final ammo = world.player.component<AmmoComponent>();
-    expect(ammo.rockets, 1);
+    expect(ammo.rockets, 2);
     expect(ammo.hasRocketLauncher, isFalse);
 
     final restored = restoreGameWorld(saveGameWorld(world));
-    expect(restored.player.component<AmmoComponent>().rockets, 1);
+    expect(restored.player.component<AmmoComponent>().rockets, 2);
   });
 
   test("the cultist comes out on the other tower's roof, out of sight of "
