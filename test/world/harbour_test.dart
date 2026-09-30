@@ -17,8 +17,16 @@ void main() {
         if (glyph(x, parapet) == 'l') {
           continue; // the shipyard's slipway runs down through it
         }
-        expect(map.tileAt(at(x, parapet)).isWalkable, isFalse);
-        expect(map.tileAt(at(x, parapet)).blocksSight, isFalse);
+        // Across from the crossroads the paving juts out over the sea and
+        // the parapet goes round it.
+        var y = parapet;
+        while (glyph(x, y) != 'R') {
+          expect(glyph(x, y), anyOf('P', 'ê'), reason: 'column $x');
+          y++;
+        }
+        expect(y - parapet, lessThanOrEqualTo(2), reason: 'column $x');
+        expect(map.tileAt(at(x, y)).isWalkable, isFalse);
+        expect(map.tileAt(at(x, y)).blocksSight, isFalse);
       }
       var piers = 0;
       for (var y = parapet + 1; glyph(corner, y) != 'B'; y++) {

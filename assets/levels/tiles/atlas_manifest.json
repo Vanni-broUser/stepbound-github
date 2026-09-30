@@ -6213,7 +6213,7 @@
         },
         {
           "layer": "structures",
-          "glyphs": "!&(*,-.567:=ACDFNPRSTUVXZbcdhilnostvwxz|~\u00e7",
+          "glyphs": "!&(*,-.567:=ACDFNPRSTUVXZbcdhilnostvwxz|~\u00e7\u00ea",
           "keys": [
             {
               "kind": "neighbour",
@@ -7282,6 +7282,16 @@
             "\u00e7\u00e7\u00e7\u00e7\u00e7",
             "\u00e7\u00e7\u00e7\u00e7\u00e7",
             "\u00e7\u00e7\u00e7\u00e7\u00e7"
+          ],
+          "rises": true
+        },
+        {
+          "image": "hometown/harbour_kiosk.png",
+          "at": [89, 26],
+          "underAt": [90, 27],
+          "under": [
+            "\u00ea\u00ea\u00ea",
+            "\u00ea\u00ea\u00ea"
           ],
           "rises": true
         },

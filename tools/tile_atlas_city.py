@@ -31,6 +31,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import street_airliner as plane  # noqa: E402
 import street_buildings as buildings  # noqa: E402
 import street_carousel as carousel  # noqa: E402
+import street_kiosk as kiosk  # noqa: E402
 import street_ground as floors  # noqa: E402
 import street_paint as brushes  # noqa: E402
 import street_props as props  # noqa: E402
@@ -66,6 +67,8 @@ BEND_EAST = "ɔ"
 MONUMENT = "Ω"
 # The children's carousel on the quay at the end of the harbour road.
 CAROUSEL = "ç"
+# The newsstand on the promenade across from the harbour's crossroads.
+KIOSK = "ê"
 BUILDINGS = "BHfKMGW#%0]\"\u00a7\u00c6\u00a3"
 FACADE = "Hf"
 # A front and the doors set in it at street level: the floor over a door
@@ -1551,6 +1554,13 @@ def city_place(atlas: Atlas, rng, name: str, marker, storefront_table,
             rows, level, f"{name}_carousel",
             lambda d, lv: carousel.paint_carousel(d, x * TILE, y * TILE, w, h),
             CAROUSEL), "rises": True})
+    stand = run_of(rows, KIOSK)
+    if stand:
+        x, y, w, h = stand
+        objects.append({**picture(
+            rows, level, f"{name}_kiosk",
+            lambda d, lv: kiosk.paint_kiosk(d, x * TILE, y * TILE, w, h),
+            KIOSK), "rises": True})
     fountain = run_of(rows, "O")
     if fountain:
         x, y, w, _ = fountain

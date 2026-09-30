@@ -137,14 +137,17 @@ void main() {
     }
   });
 
-  test("the harbour's carousel rises over the row behind it", () {
+  test("the harbour's carousel and newsstand rise over the row behind "
+      'them', () {
     final art = manifest.places[place(PlaceId.harbour).artId.name]!;
-    final carousel = art.objects.singleWhere(
-      (object) => object.image.contains('carousel'),
-    );
-    expect(carousel.rises, isTrue);
-    expect(carousel.underCorner, isNotNull);
-    expect(art.objects.where((object) => object.rises), <TileObject>[carousel]);
+    TileObject named(String name) =>
+        art.objects.singleWhere((object) => object.image.contains(name));
+    final tall = <TileObject>[named('carousel'), named('kiosk')];
+    for (final object in tall) {
+      expect(object.rises, isTrue);
+      expect(object.underCorner, isNotNull);
+    }
+    expect(art.objects.where((object) => object.rises), unorderedEquals(tall));
   });
 
   test('every car of a pile-up is drawn, even stacked lane on lane', () {

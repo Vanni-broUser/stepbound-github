@@ -3,7 +3,10 @@ road: an eight-sided glass pavilion on a cream plinth, the horses and
 the little cars standing still behind the panes, a white scalloped
 valance over them and, round the crown, painted panels in gilded frames
 with a lantern on every pilaster; over it all a white tent roof with a
-pink cupola on its point. tools/tile_atlas_city.py places it over the
+pink cupola on its point. Or what is left of it: half the panes smashed,
+a horse thrown on its side, a panel of the crown fallen, the lanterns
+dead, soot up the plinth, the canvas stained and torn open between its
+ribs and the spire bent over. tools/tile_atlas_city.py places it over the
 run of its glyph.
 """
 from __future__ import annotations
@@ -19,12 +22,16 @@ CREAM = (234, 222, 198)
 CREAM_DARK = (192, 176, 146)
 GOLD = (210, 168, 76)
 GOLD_DARK = (146, 108, 46)
-WHITE = (242, 240, 234)
+WHITE = (222, 216, 202)
+HOLE = (18, 18, 22)
+SHARD = (186, 212, 220)
+SOOT = (48, 42, 40)
+STAIN = (164, 146, 116)
 GLASS = (84, 110, 122)
 GLASS_LIGHT = (150, 178, 188)
 PINK = (226, 150, 162)
 PINK_DARK = (176, 100, 116)
-LAMP = (255, 222, 132)
+LAMP = (96, 90, 78)
 # The rides behind the glass, and the colours of the painted panels.
 RIDES = [(204, 52, 46), (232, 142, 42), (62, 112, 192), (240, 212, 84),
          (126, 64, 146), (62, 152, 92)]
@@ -53,7 +60,14 @@ def _face(d, rng, x0, x1, base, dark):
         colour = c(rng.choice(RIDES))
         ride_y = base - 17 + rng.randrange(-3, 3)
         rect(d, mid, top + 1, 1, ride_y - top - 1, c(GOLD))  # its pole
-        if rng.random() < 0.6:  # a horse: body, neck and head, legs
+        roll = rng.random()
+        if roll < 0.2:  # a horse thrown on its side, its pole snapped
+            rect(d, mid, top + 1, 1, ride_y - top - 8, c(GLASS))
+            rect(d, mid - 5, base - 10, 3, 4, colour)
+            rect(d, mid - 2, base - 9, 8, 3, colour)
+            rect(d, mid + 6, base - 10, 1, 1, colour)
+            rect(d, mid + 6, base - 8, 2, 1, colour)
+        elif roll < 0.65:  # a horse: body, neck and head, legs
             rect(d, mid - 4, ride_y, 8, 3, colour)
             rect(d, mid + 3, ride_y - 3, 2, 4, colour)
             rect(d, mid + 4, ride_y - 4, 3, 2, colour)
@@ -67,11 +81,31 @@ def _face(d, rng, x0, x1, base, dark):
         # the light on the pane, a slant across its top corner
         for i in range(4):
             rect(d, left + 3 + i, top + 2 + i * 2, 1, 2, c(GLASS_LIGHT))
+        if rng.random() < 0.5:  # smashed: a black hole ringed with shards
+            l, r = left + 2, right - 2
+            d.polygon([(l, top + 4), (l + 4, top + 1), (r, top + 6),
+                       (r - 1, top + 22), (l + 3, top + 25), (l, top + 16)],
+                      fill=c(HOLE))
+            for sx, sy in ((l, top + 3), (r - 1, top + 5), (l + 2, top + 24),
+                           (r - 2, top + 21)):
+                rect(d, sx, sy, 1, 2, c(SHARD))
     rect(d, x0, top + 10, w, 1, c(CREAM_DARK))  # the transom
-    for x in edges:  # the pilasters, gold down the middle
+    for x in edges:  # the pilasters, gold down the middle, rust run down
         px = min(max(x - 1, x0), x1 - 3)
         rect(d, px, top, 3, 28, c(CREAM))
-        rect(d, px + 1, top + 2, 1, 24, c(GOLD))
+        rect(d, px + 1, top + 2, 1, 24, c(GOLD_DARK))
+        rect(d, px + 1, top + 4 + rng.randrange(8), 1, 6, c((120, 70, 40)))
+    # Soot licking up the plinth and the glass, and a tag on the plinth.
+    for _ in range(max(1, w // 10)):
+        sx = x0 + rng.randrange(max(1, w - 4))
+        height = rng.randint(5, 9)
+        rect(d, sx, base - 3 - height, 2, height, c(SOOT))
+        rect(d, sx + 2, base - 1 - height, 1, height - 2, c(SOOT))
+    if w > 30:
+        tx = x0 + w // 3
+        rect(d, tx, base - 4, 9, 1, c((60, 110, 190)))
+        for i in range(0, 9, 2):
+            rect(d, tx + i, base - 5 + i % 3, 1, 2, c((60, 110, 190)))
     # The valance: a white band and its scallops over the glass.
     rect(d, x0, top - 4, w, 4, c(WHITE))
     for sx in range(x0, x1 - 1, 4):
@@ -84,8 +118,12 @@ def _face(d, rng, x0, x1, base, dark):
     rect(d, x0, crown + 12, w, 1, c(GOLD_DARK))
     # A wide face has one panel over every two panes.
     panels = edges[::2] if panes >= 4 else edges
-    for left, right in zip(panels, panels[1:]):
+    for index, (left, right) in enumerate(zip(panels, panels[1:])):
         if right - left < 7:
+            continue
+        if w > 30 and index == 1:  # fallen: the bare frame behind it
+            rect(d, left + 2, crown, right - left - 4, 12, c(HOLE))
+            rect(d, left + 3, crown + 5, right - left - 6, 1, c(GOLD_DARK))
             continue
         ml, mr = left + 2, right - 2
         mid = (ml + mr) // 2
@@ -106,7 +144,10 @@ def _face(d, rng, x0, x1, base, dark):
             rect(d, sx, crown + 4, 2, 4, c(GOLD_DARK))
     for x in edges:  # a lantern on every pilaster
         lx = min(max(x - 1, x0), x1 - 3)
+        if rng.random() < 0.3:
+            continue  # gone
         rect(d, lx, crown - 3, 3, 4, c(LAMP))
+        rect(d, lx + 1, crown - 2, 1, 1, c(HOLE))  # the bulb broken
         rect(d, lx, crown - 4, 3, 1, c(GOLD_DARK))
     return crown - 4, edges
 
@@ -158,13 +199,37 @@ def paint_carousel(d, px, py, tiles_w=5, tiles_h=3):
             sy = ay + (by - ay) * i // steps
             d.ellipse([sx, sy - 1, sx + 4, sy + 3], fill=shade(WHITE, -6))
             rect(d, sx + 2, sy + 3, 1, 1, GOLD)
+    # The canvas gone to rags: damp stains, a tear open on the dark between
+    # the ribs, a flap of it hanging over the eave.
+    for sx, sy, sw, sh in ((cx - 18, apex + 18, 9, 5), (cx + 6, apex + 22, 7, 4),
+                           (cx - 28, apex + 26, 6, 3)):
+        d.ellipse([sx, sy, sx + sw, sy + sh], fill=STAIN)
+    d.polygon([(cx + 4, apex + 9), (cx + 13, apex + 14), (cx + 16, apex + 24),
+               (cx + 7, apex + 22), (cx + 3, apex + 15)], fill=HOLE)
+    d.line([(cx + 5, apex + 10), (cx + 11, apex + 23)], fill=(120, 96, 60))
+    d.polygon([(fx0 + 6, front_top), (fx0 + 13, front_top + 1),
+               (fx0 + 12, front_top + 12), (fx0 + 9, front_top + 8),
+               (fx0 + 7, front_top + 13)], fill=shade(WHITE, -20))
     for x0, x1, lift, dark in faces:
         _face(d, rng, x0, x1, bottom - 2 - lift, dark)
-    # The cupola on the point, its gold spire and ball.
-    d.ellipse([cx - 5, apex - 7, cx + 5, apex + 3], fill=PINK,
+    # The flap again, over the crown it hangs in front of.
+    d.polygon([(fx0 + 6, front_top + 2), (fx0 + 13, front_top + 3),
+               (fx0 + 12, front_top + 14), (fx0 + 9, front_top + 10),
+               (fx0 + 7, front_top + 15)], fill=shade(WHITE, -20))
+    # The cupola on the point, cracked and faded, its spire bent over and
+    # its ball gone.
+    faded = shade(PINK, -30)
+    d.ellipse([cx - 5, apex - 7, cx + 5, apex + 3], fill=faded,
               outline=PINK_DARK)
-    rect(d, cx - 4, apex - 3, 3, 3, shade(PINK, 20))
-    rect(d, cx - 5, apex + 1, 11, 2, GOLD)
-    rect(d, cx - 1, apex - 14, 2, 8, GOLD)
-    rect(d, cx + 1, apex - 12, 1, 6, GOLD_DARK)
-    d.ellipse([cx - 2, apex - 17, cx + 2, apex - 13], fill=GOLD)
+    d.line([(cx - 2, apex - 6), (cx, apex - 2), (cx - 1, apex + 2)],
+           fill=PINK_DARK)
+    rect(d, cx - 5, apex + 1, 11, 2, GOLD_DARK)
+    rect(d, cx - 1, apex - 11, 2, 5, GOLD_DARK)
+    d.line([(cx, apex - 11), (cx + 5, apex - 15), (cx + 8, apex - 14)],
+           fill=GOLD_DARK, width=2)
+    # Glass and a fallen panel on the paving round it.
+    for _ in range(14):
+        rect(d, px + rng.randrange(w), bottom - 3 + rng.randrange(5), 1, 1,
+             SHARD)
+    rect(d, px + w - 22, bottom - 1, 10, 3, GOLD_DARK)
+    rect(d, px + w - 21, bottom, 8, 1, (150, 198, 224))
