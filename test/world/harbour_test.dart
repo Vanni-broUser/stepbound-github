@@ -9,19 +9,71 @@ void main() {
     String glyph(int x, int y) => harbourRows[y][x];
 
     test('the promenade ends at the parapet over the sea, round the corner '
-        'too, but for the two piers', () {
+        'too, jutting out square at it, but for the two piers', () {
       final map = createGameWorld().map;
+      void wall(int x, int y) {
+        expect(map.tileAt(at(x, y)).isWalkable, isFalse, reason: '$x,$y');
+        expect(map.tileAt(at(x, y)).blocksSight, isFalse, reason: '$x,$y');
+      }
+
       final parapet = harbourRows.indexWhere((row) => row.startsWith('R'));
-      final corner = harbourRows[parapet].lastIndexOf('R');
-      for (var x = 0; x <= corner; x++) {
+      final end = harbourRows[parapet].lastIndexOf('R');
+      for (var x = 0; x <= end; x++) {
         if (glyph(x, parapet) == 'l') {
           continue; // the shipyard's slipway runs down through it
         }
-        expect(map.tileAt(at(x, parapet)).isWalkable, isFalse);
-        expect(map.tileAt(at(x, parapet)).blocksSight, isFalse);
+        wall(x, parapet);
+      }
+      // By the corner the paving juts out square into the sea: the
+      // parapet turns south, runs down its west side, turns east at its
+      // point, along its south side, and turns south again onto the one
+      // along the road.
+      var x = end + 1;
+      var y = parapet;
+      expect(glyph(x, y), 'ò', reason: 'turning south, inside');
+      wall(x, y);
+      for (y++; glyph(x, y) == 'R'; y++) {
+        wall(x, y);
+        expect(glyph(x - 1, y), '~', reason: 'the sea west, row $y');
+      }
+      expect(glyph(x, y), 'ó', reason: 'the point');
+      wall(x, y);
+      for (x++; glyph(x, y) == 'R'; x++) {
+        wall(x, y);
+        expect(glyph(x, y + 1), '~', reason: 'the sea south, column $x');
+      }
+      expect(glyph(x, y), 'ò', reason: 'back onto the road, inside');
+      wall(x, y);
+      final corner = x;
+      expect(corner - end, greaterThanOrEqualTo(4), reason: 'room for it');
+      y++;
+
+      // The newsstand on it, with a cell of paving all the way round.
+      final stand = <GridPoint>[
+        for (var sy = 0; sy < harbourRows.length; sy++)
+          for (var sx = 0; sx < harbourRows[sy].length; sx++)
+            if (glyph(sx, sy) == 'ê') GridPoint(sx, sy),
+      ];
+      expect(stand, hasLength(6));
+      final left = stand.map((t) => t.x).reduce((a, b) => a < b ? a : b);
+      final right = stand.map((t) => t.x).reduce((a, b) => a > b ? a : b);
+      final top = stand.map((t) => t.y).reduce((a, b) => a < b ? a : b);
+      final bottom = stand.map((t) => t.y).reduce((a, b) => a > b ? a : b);
+      expect(left, greaterThan(end + 1));
+      expect(right, lessThan(corner));
+      for (var ry = top - 1; ry <= bottom + 1; ry++) {
+        for (var rx = left - 1; rx <= right + 1; rx++) {
+          if (rx < left || rx > right || ry < top || ry > bottom) {
+            expect(
+              map.tileAt(at(rx, ry)).isWalkable,
+              isTrue,
+              reason: 'the way round it, $rx,$ry',
+            );
+          }
+        }
       }
       var piers = 0;
-      for (var y = parapet + 1; glyph(corner, y) != 'B'; y++) {
+      for (; glyph(corner, y) != 'B'; y++) {
         if (glyph(corner, y) == 'l') {
           piers++;
           continue;
@@ -168,8 +220,32 @@ void main() {
         harbourRoadCampfireTile.x - harbour.origin.x,
         harbourRoadCampfireTile.y - harbour.origin.y,
       );
-      expect(localRoad.x, greaterThan(harbour.width - 10));
+      expect(harbourRows[localRoad.y].indexOf('ç'), greaterThan(localRoad.x));
       expect(localRoad.y, greaterThan(harbour.height - 10));
+    });
+
+    test("the harbour road stops short of the quay, where the children's "
+        'carousel stands and the last fire burns beside it', () {
+      final world = createGameWorld();
+      final carousel = harbour.tilesOf('ç');
+      expect(carousel, hasLength(15), reason: 'five cells by three');
+      for (final tile in carousel) {
+        expect(world.map.tileAt(tile).kind, TileKind.obstacle);
+      }
+      final fire = harbourRoadCampfireTile;
+      final nearest = carousel
+          .map((tile) => (tile.x - fire.x).abs() + (tile.y - fire.y).abs())
+          .reduce((a, b) => a < b ? a : b);
+      expect(nearest, lessThanOrEqualTo(2), reason: 'the fire is beside it');
+      final column = carousel.first.x - harbour.origin.x;
+      final top = carousel.first.y - harbour.origin.y;
+      for (var y = top - 1; y < harbourRows.length; y++) {
+        expect(
+          harbourRows[y][column],
+          isNot('.'),
+          reason: 'no tarmac between the end of the road and the quay',
+        );
+      }
     });
 
     test('the seafront road runs on west past the Duomo until the shipyard '
@@ -256,7 +332,10 @@ void main() {
       );
 
       // The fountain, two cells by two, with room to walk in front of it.
-      final fountain = tilesOf('!');
+      final fountain = <GridPoint>[
+        for (final tile in tilesOf('!'))
+          if (tile.x < duomoX) tile,
+      ];
       expect(fountain, hasLength(4));
       final top = fountain
           .map((tile) => tile.y)
@@ -270,6 +349,83 @@ void main() {
         );
       }
       expect(tilesOf('&'), isNotEmpty, reason: 'the flower beds with it');
+    });
+
+    test('east of the road down to the carousel two old-town alleys leave '
+        'the road and meet again at a fountain, blind alleys off them', () {
+      final world = createGameWorld();
+      final sidewalk = harbourRows[harbourRows.length - 10].lastIndexOf('=');
+      // The alleys open where the road's east sidewalk meets the paving.
+      final mouths = <int>[
+        for (var y = 0; y < harbourRows.length; y++)
+          if (glyph(sidewalk, y) == '=' &&
+              glyph(sidewalk + 1, y) == 'P' &&
+              glyph(sidewalk + 1, y - 1) != 'P')
+            y,
+      ];
+      expect(mouths, hasLength(2), reason: 'two alleys off the road');
+
+      // Walking the paving east of the road, from one mouth the other is
+      // reached without going back onto the road.
+      final start = at(sidewalk + 1, mouths.first);
+      final seen = <GridPoint>{start};
+      final queue = <GridPoint>[start];
+      while (queue.isNotEmpty) {
+        final here = queue.removeLast();
+        for (final direction in Direction.values) {
+          final next = here.step(direction);
+          final local = GridPoint(
+            next.x - harbour.origin.x,
+            next.y - harbour.origin.y,
+          );
+          if (local.x > sidewalk &&
+              local.x < harbour.width &&
+              !seen.contains(next) &&
+              world.map.tileAt(next).isWalkable) {
+            seen.add(next);
+            queue.add(next);
+          }
+        }
+      }
+      expect(seen, contains(at(sidewalk + 1, mouths.last)));
+
+      // The fountain and its flower beds are on the way round.
+      bool beside(String wanted) => seen.any(
+        (tile) => Direction.values.any((direction) {
+          final next = tile.step(direction);
+          return glyph(next.x - harbour.origin.x, next.y - harbour.origin.y) ==
+              wanted;
+        }),
+      );
+      expect(beside('!'), isTrue, reason: 'a fountain on the way');
+      expect(beside('&'), isTrue, reason: 'flower beds by it');
+
+      // Blind alleys, two cells wide: the pair at their end is shut ahead
+      // and on either side, open only back the way it came.
+      bool open(GridPoint tile) => world.map.tileAt(tile).isWalkable;
+      var deadEnds = 0;
+      for (final a in seen) {
+        for (final ahead in Direction.values) {
+          final side = Direction.values.firstWhere(
+            (d) => d.dx == ahead.dy.abs() && d.dy == ahead.dx.abs(),
+          );
+          final b = a.step(side);
+          if (seen.contains(b) &&
+              !open(a.step(ahead)) &&
+              !open(b.step(ahead)) &&
+              !open(a.step(side.opposite)) &&
+              !open(b.step(side)) &&
+              seen.contains(a.step(ahead.opposite)) &&
+              seen.contains(b.step(ahead.opposite))) {
+            deadEnds++;
+          }
+        }
+      }
+      expect(deadEnds, greaterThanOrEqualTo(3));
+      // The east edge of the map stays built over: no way off it.
+      for (var y = 0; y < harbourRows.length; y++) {
+        expect(glyph(harbour.width - 1, y), 'B');
+      }
     });
 
     test('the Duomo stands back from the road: a two-cell alley climbs to '

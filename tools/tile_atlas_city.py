@@ -30,6 +30,8 @@ from PIL import Image, ImageDraw
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import street_airliner as plane  # noqa: E402
 import street_buildings as buildings  # noqa: E402
+import street_carousel as carousel  # noqa: E402
+import street_kiosk as kiosk  # noqa: E402
 import street_ground as floors  # noqa: E402
 import street_paint as brushes  # noqa: E402
 import street_props as props  # noqa: E402
@@ -63,6 +65,13 @@ STOP_NORTH, STOP_WEST = "▔", "▏"
 BEND_EAST = "ɔ"
 # The monument on the square south of the street of the company.
 MONUMENT = "Ω"
+# The children's carousel on the quay at the end of the harbour road.
+CAROUSEL = "ç"
+# The newsstand on the corner where the seafront turns south.
+KIOSK = "ê"
+# The corners the parapet turns round the paving jutting out into the sea
+# there: inside, with the promenade round them, and outside, at the point.
+PARAPET_INNER, PARAPET_OUTER = "ò", "ó"
 BUILDINGS = "BHfKMGW#%0]\"\u00a7\u00c6\u00a3"
 FACADE = "Hf"
 # A front and the doors set in it at street level: the floor over a door
@@ -75,7 +84,7 @@ GROUND = ground_config(
     walks="={}¦",
     floors="PLY,°",
     footway="T/F¤",
-    keep="~bRlo5g",
+    keep="~bRlo5gòó",
     lawn="g",
     lawnProps="Apn^<",
 )
@@ -330,6 +339,15 @@ def ground_rules(atlas: Atlas, rng) -> list[dict]:
             d, rng, level, px // TILE, py // TILE)), (tx, ty)
     buckets, pieces = spread(atlas, pier, keys, (0, 1, 0, 0))
     rules.append(rule("ground", "l", buckets, keys, pieces))
+
+    # The corners the parapet turns round the paving jutting into the sea:
+    # inside, the promenade round them, and outside, the point. Their own
+    # stream, so the rest of the ground is painted as it was.
+    turn = random.Random(f"{SEED}/city/parapet-corners")
+    for glyph, outer in ((PARAPET_INNER, False), (PARAPET_OUTER, True)):
+        rules.append(rule("ground", glyph, [atlas.odds(
+            lambda outer=outer: cell(lambda d, x, y: floors.paint_parapet_corner(
+                d, turn, x, y, outer)), 4)]))
     return rules
 
 
@@ -1206,7 +1224,7 @@ def lone_columns(level) -> list[int]:
     for x0, width, top, _ in brushes.column_runs(level,
                                                  brushes.FACADE_GLYPHS):
         x1 = x0 + width - 1
-        shops = [(sx, sx + sw - 1) for sx, sw, _ in
+        shops = [(sx, sx + sw - 1) for sx, sw, *_ in
                  level.storefronts.get(top, []) if x0 <= sx <= x1]
         pieces, x = [], x0
         while x <= x1:
@@ -1241,12 +1259,14 @@ def storefronts(rows, level, name, rng) -> list[dict]:
     placed where the table puts it."""
     out = []
     for x0, width, top, bottom in brushes.column_runs(level, brushes.FACADE_GLYPHS):
-        for sx, sw, kind in level.storefronts.get(top, []):
+        for sx, sw, kind, *own in level.storefronts.get(top, []):
             if not x0 <= sx < x0 + width:
                 continue
             h = bottom - top + 1
             sprite = Image.new("RGBA", (sw * TILE, h * TILE), TRANSPARENT)
-            buildings.paint_storefront(ImageDraw.Draw(sprite), rng, 0, 0,
+            shop_rng = (random.Random(f"{SEED}/{name}/shop/{sx}/{top}")
+                        if own else rng)
+            buildings.paint_storefront(ImageDraw.Draw(sprite), shop_rng, 0, 0,
                                 sw * TILE, h * TILE, kind)
             out.append({
                 "image": f"{name}_shop_{sx}_{top}.png",
@@ -1537,6 +1557,22 @@ def city_place(atlas: Atlas, rng, name: str, marker, storefront_table,
             rows, level, f"{name}_monument",
             lambda d, lv: props.paint_monument(image_of(d), rng, x * TILE,
                                                y * TILE), MONUMENT))
+    ride = run_of(rows, CAROUSEL)
+    if ride:
+        x, y, w, h = ride
+        # Its roof and cupola rise over the row north of it: whoever walks
+        # there goes behind them.
+        objects.append({**picture(
+            rows, level, f"{name}_carousel",
+            lambda d, lv: carousel.paint_carousel(d, x * TILE, y * TILE, w, h),
+            CAROUSEL), "rises": True})
+    stand = run_of(rows, KIOSK)
+    if stand:
+        x, y, w, h = stand
+        objects.append({**picture(
+            rows, level, f"{name}_kiosk",
+            lambda d, lv: kiosk.paint_kiosk(d, x * TILE, y * TILE, w, h),
+            KIOSK), "rises": True})
     fountain = run_of(rows, "O")
     if fountain:
         x, y, w, _ = fountain

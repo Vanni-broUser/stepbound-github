@@ -414,7 +414,8 @@ final class TilePlaceComponent extends Component {
   /// object fills entirely -- its own, the airliner's hull and wings laid
   /// on their scorch -- so the top of the hull leans over the row north of
   /// it, while the shadow it throws south, or a road sign under its edge,
-  /// stays where it is.
+  /// stays where it is. An object that [TileObject.rises] also stands in
+  /// front of every cell it paints north of its own.
   Future<List<Set<(int, int)>>> _cellsBehindObjects(
     LoadedTileAtlas loaded,
     TilePlaceArt art,
@@ -452,6 +453,33 @@ final class TilePlaceComponent extends Component {
         return true;
       }
 
+      bool painted(int cx, int cy) {
+        for (var py = cy * tileHeight; py < (cy + 1) * tileHeight; py++) {
+          for (var px = cx * tileWidth; px < (cx + 1) * tileWidth; px++) {
+            if (pixels.getUint8((py * image.width + px) * 4 + 3) != 0) {
+              return true;
+            }
+          }
+        }
+        return false;
+      }
+
+      final footprintTop = object.rises ? object.underCorner?.$2 : null;
+      if (footprintTop != null) {
+        for (var cy = 0; cy < down && top + cy < footprintTop; cy++) {
+          for (var cx = 0; cx < across; cx++) {
+            final x = left + cx;
+            final y = top + cy;
+            if (x >= 0 &&
+                y >= 0 &&
+                x < grid.width &&
+                _walkable(grid, x, y) &&
+                painted(cx, cy)) {
+              cells.add((x, y));
+            }
+          }
+        }
+      }
       for (var cy = 1; cy < down; cy++) {
         for (var cx = 0; cx < across; cx++) {
           final x = left + cx;
