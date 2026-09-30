@@ -149,6 +149,22 @@ void main() {
     },
   );
 
+  test('each damaged door of the old town says a crowbar would open it, '
+      'every time', () {
+    for (final door in oldTownDamagedDoorTiles) {
+      director.onEvents(<WorldEvent>[LookedOutEvent(at: door)]);
+      settle();
+      expect(host.shown.last.single.text, DamagedDoorScript.doorLine);
+      host.dismiss();
+    }
+    expect(host.shown, hasLength(oldTownDamagedDoorTiles.length));
+    expect(
+      DamagedDoorScript.doorLine,
+      "Questa porta è un po' danneggiata, con un piede di porco potresti "
+      'aprirla',
+    );
+  });
+
   test('the gap in the roadblock east of Termini says the same', () {
     director.onEvents(<WorldEvent>[LookedOutEvent(at: roadblockFireTile)]);
     settle();

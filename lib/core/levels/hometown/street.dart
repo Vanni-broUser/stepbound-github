@@ -133,7 +133,7 @@ const List<String> streetLevelRows = <String>[
 /// and `¦` the Elettronica's door behind the barracks while its shutter
 /// is down are obstacles.
 const Legend outdoorLegend = Legend(
-  walls: 'BHfKMGW#%0_Æ',
+  walls: 'BHfKMGW#%0_ÆĦ',
   obstacles: 'CXUvkDFTSOyJQaAnI~RNbpx*i&!^;/+Ωçêòó¦',
   debris: ':q',
   fire: '?',

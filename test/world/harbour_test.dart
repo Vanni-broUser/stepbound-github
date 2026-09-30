@@ -177,7 +177,8 @@ void main() {
       );
       expect(
         harbourRows[localOldTown.y - 1][localOldTown.x],
-        'H',
+        // A front, its damaged door shut.
+        'Ħ',
         reason: 'the backpack is at the shut northern end of the alley',
       );
       expect(harbourRows[localOldTown.y + 1][localOldTown.x], 'P');
