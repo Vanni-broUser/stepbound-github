@@ -237,6 +237,8 @@ final class HometownStage extends LevelStage implements HometownActions {
         ),
       InteractGlintComponent(tile: shoppingStreetFireTile, active: canInteract),
       InteractGlintComponent(tile: stationTrackFireTile, active: canInteract),
+      for (final door in oldTownDamagedDoorTiles)
+        InteractGlintComponent(tile: door, active: canInteract),
       // On the closed leaf, until the key opens it.
       InteractGlintComponent(
         tile: barLockedDoorTile,

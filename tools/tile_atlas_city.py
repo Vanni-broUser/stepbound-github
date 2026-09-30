@@ -72,8 +72,11 @@ KIOSK = "ê"
 # The corners the parapet turns round the paving jutting out into the sea
 # there: inside, with the promenade round them, and outside, at the point.
 PARAPET_INNER, PARAPET_OUTER = "ò", "ó"
-BUILDINGS = "BHfKMGW#%0]\"\u00a7\u00c6\u00a3"
-FACADE = "Hf"
+# A door of the old town that has taken a beating: a front like `H`,
+# its door always there whatever column it falls on.
+DAMAGED_DOOR = "\u0126"
+BUILDINGS = "BHfKMGW#%0]\"\u00a7\u00c6\u00a3" + DAMAGED_DOOR
+FACADE = "Hf" + DAMAGED_DOOR
 # A front and the doors set in it at street level: the floor over a door
 # is not the street level, it has its windows like the rest.
 FRONT = FACADE + "\u00ab"
@@ -702,13 +705,21 @@ def facade_rules(atlas: Atlas, rng, old_town: bool,
     # tells its tall palazzi apart.
     keys = colour_keys + [neighbour_key(0, 1, FRONT),
                           neighbour_key(0, -3, FACADE),
-                          pattern_key(1, 0, SPAN, values=(1, 6, 12))]
+                          pattern_key(1, 0, SPAN, values=(1, 6, 12)),
+                          neighbour_key(0, 0, DAMAGED_DOOR)]
 
     def street_level(index):
         c = building(index & 7)
-        above_street, tall, door = bits(index >> 3, 3)
+        above_street, tall, door, damaged = bits(index >> 3, 4)
         if c is None or above_street:
             return None
+        if damaged:
+            # Only the old town has them, and the same picture on every
+            # one, painted off its own dice so the rest stay put.
+            if not old_town:
+                return None
+            return (lambda d, px, py, c=c:
+                    paint_damaged_door(d, px, py, c))
         if old_town:
             return (lambda d, px, py, c=c, dr=door:
                     paint_old_town_street(d, px, py, c, dr, rng))
@@ -907,6 +918,29 @@ def paint_old_town_street(d, px, py, stone, door, rng):
         gx, gh = rng.randrange(TILE), rng.randint(2, 7)
         rect(d, px + gx, py + TILE - gh, 1, gh,
              shade(stone, -rng.randint(30, 60)))
+
+
+def paint_damaged_door(d, px, py, stone):
+    """An old town doorway whose green door has been kicked at: the
+    leaves pushed apart at the lock, a panel split, splinters on the
+    step. Shut still; a crowbar would do the rest."""
+    paint_old_town_street(d, px, py, stone, True, random.Random(126))
+    door_x, door_y = px + 3, py + 1
+    green = brushes.DOOR_GREEN
+    # The gap between the leaves, wider at the lock, dark behind.
+    rect(d, door_x + 5, door_y + 5, 1, 10, (16, 12, 14))
+    rect(d, door_x + 4, door_y + 8, 3, 3, (16, 12, 14))
+    # The west leaf split down its panel, bare wood in the break.
+    for i, (cx, cy) in enumerate(((2, 5), (2, 6), (1, 7), (2, 8),
+                                  (3, 9), (2, 10), (2, 11))):
+        rect(d, door_x + cx, door_y + cy, 1, 1,
+             (122, 92, 60) if i % 2 else (40, 30, 26))
+    # Paint scraped off round the lock, a boot mark low on the east.
+    rect(d, door_x + 6, door_y + 7, 2, 1, shade(green, 30))
+    rect(d, door_x + 6, door_y + 11, 3, 2, shade(green, -22))
+    # Splinters fallen on the step.
+    for sx in (4, 7, 9):
+        rect(d, door_x + sx, door_y + 14, 1, 1, (122, 92, 60))
 
 
 # ------------------------------------------------------------------ props
