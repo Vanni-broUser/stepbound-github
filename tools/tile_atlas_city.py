@@ -73,7 +73,7 @@ GROUND = ground_config(
     buildings=BUILDINGS,
     roads=ROAD,
     walks="={}¦",
-    floors="PLY,",
+    floors="PLY,°",
     footway="T/F¤",
     keep="~bRlo5g",
     lawn="g",
@@ -1684,10 +1684,77 @@ def paint_ruined_fronts(d, rng, rows, x0, x1, y0, y1):
         rect(d, hx, hy + 5, 8, 3, brushes.BLOOD)
 
 
+COBBLES = "°"
+BASALT = (86, 84, 84)
+BASALT_JOINT = (44, 42, 44)
+TRAVERTINE = (210, 202, 180)
+
+
+def paint_sampietrini(d, rng, px, py):
+    """Rome's sampietrini, `°`: little squares of dark basalt set in
+    courses, each course half a stone along from the last, the sand of the
+    joints between them. Every stone its own shade; now and then one has
+    come out and left its hole."""
+    rect(d, px, py, TILE, TILE, BASALT_JOINT)
+    for row in range(4):
+        shift = 2 if row % 2 else 0
+        for col in range(-1, 4):
+            sx, sy = px + col * 4 + shift, py + row * 4
+            stone = shade(BASALT, rng.randint(-14, 14))
+            if rng.random() < 0.02:
+                stone = (30, 28, 30)
+            for x in range(max(sx, px), min(sx + 3, px + TILE)):
+                rect(d, x, sy, 1, 3, stone)
+            if px <= sx < px + TILE:
+                rect(d, sx, sy, 1, 1, shade(stone, 22))  # worn smooth
+
+
+def paint_sampietrini_edge(d, side):
+    """The travertine kerbstones that frame a run of sampietrini on the
+    side where the square's slabs begin; where they run into a road, the
+    asphalt simply starts."""
+    light, dark = TRAVERTINE, shade(TRAVERTINE, -46)
+    if side == "n":
+        rect(d, 0, 0, TILE, 2, light)
+        rect(d, 0, 2, TILE, 1, dark)
+    elif side == "s":
+        rect(d, 0, 14, TILE, 2, light)
+        rect(d, 0, 13, TILE, 1, dark)
+    elif side == "w":
+        rect(d, 0, 0, 2, TILE, light)
+        rect(d, 2, 0, 1, TILE, dark)
+    else:
+        rect(d, 14, 0, 2, TILE, light)
+        rect(d, 13, 0, 1, TILE, dark)
+    for i in range(3, TILE, 5):  # the joints between the kerbstones
+        if side in "ns":
+            rect(d, i, 0 if side == "n" else 14, 1, 2, dark)
+        else:
+            rect(d, 0 if side == "w" else 14, i, 2, 1, dark)
+
+
+def sampietrini_rules(atlas: Atlas) -> list[dict]:
+    """The sampietrini and their kerbstones. Their own stream, so nothing
+    else in the atlas is painted anew for them."""
+    stones = random.Random(f"{SEED}/city/sampietrini")
+    rules = [rule("ground", COBBLES, randomly(atlas, stones,
+                                                paint_sampietrini))]
+    for side, (dx, dy) in (("n", (0, -1)), ("s", (0, 1)), ("w", (-1, 0)),
+                           ("e", (1, 0))):
+        rules.append(rule("ground", COBBLES, [atlas.bucket(
+            lambda s=side: tile_of(lambda d: paint_sampietrini_edge(d, s)),
+            1), []], [neighbour_key(dx, dy, COBBLES + ROAD, ground=True)]))
+    return rules
+
+
 def piazza_cinquecento(atlas: Atlas, rng) -> dict:
     place = city_place(atlas, rng, "piazzaCinquecento",
                        "piazza-cinquecento-rows", brushes.ROME_PIAZZA_STOREFRONTS,
                        rome=True)
+    # After the city's floors, before anything stands on them.
+    rules = place["rules"]
+    last = max(i for i, r in enumerate(rules) if r["layer"] == "ground")
+    rules[last + 1:last + 1] = sampietrini_rules(atlas)
     # The palazzi east of the station: their whole band of fronts.
     rows = brushes.read_rows("piazza-cinquecento-rows")
     east = max(x for row in rows for x, glyph in enumerate(row)
@@ -1706,7 +1773,7 @@ def piazza_cinquecento(atlas: Atlas, rng) -> dict:
                        TRANSPARENT)
     paint_ruined_fronts(ImageDraw.Draw(sprite), ruin, rows, x0, x1, y0, y1)
     # The sheet strung across Via Cavour, over whoever walks down it.
-    road = [x for x, glyph in enumerate(rows[21]) if glyph not in "B"]
+    road = [x for x, glyph in enumerate(rows[21]) if glyph not in "B "]
     bx0, bx1 = road[0] - 1, road[-1] + 1
     banner = Image.new("RGBA", ((bx1 - bx0 + 1) * TILE, TILE), TRANSPARENT)
     termini.paint_street_banner(ImageDraw.Draw(banner), 0, 0, banner.width,

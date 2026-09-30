@@ -1088,11 +1088,12 @@ def paint_santa_maria_maggiore(d, rng, level):
                    words, (150, 24, 24))
         rect(d, px + 3, py + 12, w * TILE - 4, 3, (36, 34, 34))
 
-    # The Column of Peace, its Madonna thrown down at its foot.
-    col = [(x, y) for y in range(level.height) for x in range(level.width)
-           if level.at(x, y) == COLUMN]
-    if col:
-        (x, y), = col
+    # The Column of Peace, its Madonna thrown down at its foot, and the
+    # second column across Via Cavour's line of sampietrini from it, as far
+    # from the line: its saint still up on top.
+    cols = [(x, y) for y in range(level.height) for x in range(level.width)
+            if level.at(x, y) == COLUMN]
+    for i, (x, y) in enumerate(cols):
         ccx, base = x * TILE + TILE // 2, (y + 1) * TILE - 2
         rect(d, ccx - 6, base - 8, 18, 8, (30, 28, 30))  # its shadow
         rect(d, ccx - 8, base - 12, 16, 12, SMM_STONE_SHADE)
@@ -1102,10 +1103,20 @@ def paint_santa_maria_maggiore(d, rng, level):
             rect(d, fl, base - 90, 1, 76, SMM_STONE_SHADE)
         rect(d, ccx + 3, base - 92, 1, 80, SMM_STONE_DARK)
         rect(d, ccx - 6, base - 96, 12, 5, SMM_STONE)  # the capital
-        rect(d, ccx - 3, base - 99, 6, 3, (70, 60, 50))  # the empty plinth
-        rect(d, ccx + 8, base - 4, 11, 4, (70, 60, 50))  # the Madonna, down
-        rect(d, ccx + 18, base - 5, 3, 3, (70, 60, 50))
-        rect(d, ccx + 9, base - 5, 9, 1, (110, 96, 76))
+        rect(d, ccx - 3, base - 99, 6, 3, (70, 60, 50))  # the plinth
+        if i == 0:
+            rect(d, ccx + 8, base - 4, 11, 4, (70, 60, 50))  # the Madonna
+            rect(d, ccx + 18, base - 5, 3, 3, (70, 60, 50))  # down
+            rect(d, ccx + 9, base - 5, 9, 1, (110, 96, 76))
+            continue
+        # The saint, bronze gone green, an arm raised over the square.
+        bronze, lit = (58, 84, 72), (96, 128, 108)
+        rect(d, ccx - 2, base - 111, 5, 12, bronze)
+        rect(d, ccx - 3, base - 102, 7, 3, bronze)  # the robe's hem
+        rect(d, ccx - 1, base - 115, 3, 4, bronze)  # the head
+        rect(d, ccx + 3, base - 117, 1, 8, bronze)  # the raised arm
+        rect(d, ccx - 1, base - 110, 1, 9, lit)
+        rect(d, ccx, base - 115, 1, 1, lit)
 
 
 def paint_street_banner(d, px, py, w, text):

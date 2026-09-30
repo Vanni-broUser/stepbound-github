@@ -109,7 +109,7 @@ enum AreaId {
 /// What the glyphs of a place's ASCII map mean for movement and sight: the
 /// ones in [walls] block both, the ones in [obstacles] block movement but
 /// not sight (a wreck you can shoot over), the ones in [debris] are
-/// walkable but noisy. Anything else is floor.
+/// walkable but noisy. Anything else is floor, but for [offMap].
 final class Legend {
   const Legend({
     required this.walls,
@@ -125,8 +125,12 @@ final class Legend {
   /// Ground already burning when the level starts.
   final String fire;
 
+  /// Where a map that is not a rectangle has no place: a space, outside
+  /// the place as much as past its edge, and as solid.
+  static const String offMap = ' ';
+
   TileKind kindOf(String glyph) {
-    if (walls.contains(glyph)) {
+    if (glyph == offMap || walls.contains(glyph)) {
       return TileKind.wall;
     }
     if (obstacles.contains(glyph)) {
@@ -314,7 +318,8 @@ final class Place {
   /// The walkable tiles on the place's outer edge, each with the way back
   /// into the place: where a street, a platform or a track runs off the
   /// map. Past them there is only the wall between places, so each one is
-  /// a way that goes nowhere yet (see `workInProgressEnds`).
+  /// a way that goes nowhere yet (see `workInProgressEnds`). A map that is
+  /// not a rectangle has its edge along the [Legend.offMap] cells too.
   ///
   /// The way back is to a walkable tile off the edge, straight in if it
   /// can be. A tile with none, shut in by wrecks or fire, is left out:
@@ -326,8 +331,14 @@ final class Place {
         x < width &&
         y < height &&
         Tile(kindOf(rows[y][x])).isWalkable;
+    bool off(int x, int y) =>
+        x < 0 ||
+        y < 0 ||
+        x >= width ||
+        y >= height ||
+        rows[y][x] == Legend.offMap;
     bool onEdge(int x, int y) =>
-        x == 0 || y == 0 || x == width - 1 || y == height - 1;
+        off(x - 1, y) || off(x + 1, y) || off(x, y - 1) || off(x, y + 1);
     final ends = <GridPoint, Direction>{};
     for (var y = 0; y < height; y++) {
       for (var x = 0; x < width; x++) {
@@ -335,10 +346,10 @@ final class Place {
           continue;
         }
         final inward = <Direction>[
-          if (x == 0) Direction.east,
-          if (x == width - 1) Direction.west,
-          if (y == 0) Direction.south,
-          if (y == height - 1) Direction.north,
+          if (off(x - 1, y)) Direction.east,
+          if (off(x + 1, y)) Direction.west,
+          if (off(x, y - 1)) Direction.south,
+          if (off(x, y + 1)) Direction.north,
         ];
         for (final back in <Direction>[...inward, ...Direction.values]) {
           final (dx, dy) = (back.dx, back.dy);

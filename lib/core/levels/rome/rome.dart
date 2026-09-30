@@ -307,6 +307,12 @@ const Map<PlaceId, List<GridPoint>> romeZombieSpots =
         GridPoint(57, 44),
         GridPoint(81, 45),
         GridPoint(97, 42),
+        // Further down the square, and in the four roads off it.
+        GridPoint(104, 53),
+        GridPoint(37, 48),
+        GridPoint(131, 46),
+        GridPoint(62, 63),
+        GridPoint(96, 60),
       ],
       PlaceId.termeDiocleziano: <GridPoint>[
         GridPoint(10, 8),
