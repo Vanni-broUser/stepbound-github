@@ -312,6 +312,16 @@ const List<PlaceSpec> hometownPlaces = <PlaceSpec>[
     daylight: 'E',
     name: 'Palazzo',
   ),
+  // Behind the third floor's locked door: dim like the other flats.
+  PlaceSpec(
+    id: PlaceId.palazzoLockedFlat,
+    area: AreaId.hometownTown,
+    rows: palazzoLockedFlatRows,
+    legend: palazzoLegend,
+    indoor: true,
+    darkness: palazzoFlatDarkness,
+    name: 'Palazzo',
+  ),
   PlaceSpec(
     id: PlaceId.industryStreet,
     area: AreaId.hometownTown,
@@ -605,14 +615,24 @@ LevelContents hometownContents(EntityFactory factory) {
       }
     }
   }
-  entities.add(
-    factory.zombie(
-      id: hospitalForecourtSprinterId,
-      kind: EntityKind.sprinter,
-      position: hospitalForecourtSprinterTile,
-      facing: Direction.east,
-    ),
-  );
+  entities
+    ..add(
+      factory.zombie(
+        id: hospitalForecourtSprinterId,
+        kind: EntityKind.sprinter,
+        position: hospitalForecourtSprinterTile,
+        facing: Direction.east,
+      ),
+    )
+    // Shut in the flat behind the palazzo's locked door, turned to it
+    // (west, the way a zombie faces unless told).
+    ..add(
+      factory.zombie(
+        id: palazzoSprinterId,
+        kind: EntityKind.sprinter,
+        position: palazzoSprinterTile,
+      ),
+    );
   // The places whose own glyphs the outdoor legend does not reach: their
   // one backpack is placed by hand, at the tile its module names.
   pickups.addAll(<Pickup>[
@@ -665,6 +685,11 @@ LevelContents hometownContents(EntityFactory factory) {
     ),
     Pickup(id: palazzoBackpackId, position: palazzoBackpackTile, ammo: 2),
     Pickup(id: palazzoKeyPickupId, position: palazzoKeyTile, palazzoKey: true),
+    Pickup(
+      id: palazzoMolotovBackpackId,
+      position: palazzoMolotovBackpackTile,
+      molotovs: 2,
+    ),
     Pickup(id: companyBackpackId, position: companyBackpackTile, ammo: 2),
     // In the offices at the bottom of the block east of the hospital's
     // roof: the rounds for it are found elsewhere, one on the Duomo's

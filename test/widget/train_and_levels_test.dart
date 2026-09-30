@@ -140,10 +140,10 @@ void main() {
           .last
           .data!;
       final zombies = levelZombieKinds(LevelId.hometown);
-      // Among them the two rounds at the end of the dead-end street, and
-      // the rocket launcher at the bottom of the block east of the
-      // hospital.
-      expect(stat('backpack-stat'), '0 / 23');
+      // Among them the two rounds at the end of the dead-end street, the
+      // rocket launcher at the bottom of the block east of the hospital
+      // and the two molotovs behind the palazzo's locked door.
+      expect(stat('backpack-stat'), '0 / 24');
       expect(stat('kill-stat'), '1 / ${zombies.length}');
       expect(stat('zombie-kind-stat'), '1 / ${zombies.toSet().length}');
       expect(stat('campfire-stat'), '1 / 6');

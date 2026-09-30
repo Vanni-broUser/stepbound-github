@@ -36,12 +36,32 @@ void main() {
     expect(world.map.tileAt(palazzoLockedDoorTile).isWalkable, isFalse);
   });
 
-  test('with the key, the flat behind it has no map yet: the '
-      'work-in-progress screen, and the key is kept for it', () {
+  test('with the key, the door opens for good on the flat behind it and '
+      'the key is used up: a sprinter shut in there, and in the bedroom a '
+      'backpack with two molotovs', () {
     host.unlock(HudElement.palazzoKey);
     knockAtTheLockedDoor();
-    expect(host.workInProgressShown, 1);
-    expect(host.unlocked, contains(HudElement.palazzoKey));
-    expect(world.map.tileAt(palazzoLockedDoorTile).isWalkable, isFalse);
+    expect(host.workInProgressShown, 0);
+    expect(host.shown.single.single.text, PalazzoScript.keyUsedLine);
+    expect(host.unlocked, isNot(contains(HudElement.palazzoKey)));
+    expect(world.map.tileAt(palazzoLockedDoorTile).isWalkable, isTrue);
+    expect(placeAt(palazzoSprinterTile)?.id, PlaceId.palazzoLockedFlat);
+    expect(world.entities[palazzoSprinterId]!.kind, EntityKind.sprinter);
+    final backpack = world.pickups[palazzoMolotovBackpackId]!;
+    expect(backpack.molotovs, 2);
+    expect(placeAt(backpack.position)?.id, PlaceId.palazzoLockedFlat);
+    // Through the open door, into the flat.
+    world.player.component<PositionComponent>()
+      ..position = palazzoLockedDoorTile.step(Direction.west)
+      ..facing = Direction.east;
+    final events = const TurnScheduler().advance(
+      world,
+      const MoveAction(Direction.east),
+    );
+    expect(events.whereType<TeleportedEvent>(), hasLength(1));
+    expect(
+      world.player.component<PositionComponent>().position,
+      palazzoLockedFlatDoor.step(Direction.east),
+    );
   });
 }
