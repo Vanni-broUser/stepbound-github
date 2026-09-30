@@ -49,6 +49,7 @@ ROOT = os.path.dirname(TOOLS)
 # In the order they must run.
 GENERATORS = (
     "generate_action_sprites.py",
+    "generate_call_center_zombie.py",
     "generate_carabiniere.py",
     "generate_special_zombies.py",
     "generate_chiara.py",

@@ -27,6 +27,7 @@
     "mario/sprites/lazio.png",
     "zombies/sprites/wanderer.png",
     "zombies/sprites/sprinter.png",
+    "zombies/sprites/call_center.png",
     "zombies/sprites/brute.png",
     "zombies/sprites/blind.png",
     "zombies/sprites/carabiniere.png",
@@ -450,6 +451,43 @@
     },
     {
       "file": "zombies/sprites/sprinter_death.png",
+      "columns": [
+        "death_0",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5"
+      ],
+      "actions": [
+        "death"
+      ]
+    },
+    {
+      "file": "zombies/sprites/call_center_hit.png",
+      "columns": [
+        "hit_0",
+        "hit_1",
+        "hit_2"
+      ],
+      "actions": [
+        "hit"
+      ]
+    },
+    {
+      "file": "zombies/sprites/call_center_bite.png",
+      "columns": [
+        "bite_0",
+        "bite_1",
+        "bite_2",
+        "bite_3"
+      ],
+      "actions": [
+        "bite"
+      ]
+    },
+    {
+      "file": "zombies/sprites/call_center_death.png",
       "columns": [
         "death_0",
         "death_1",

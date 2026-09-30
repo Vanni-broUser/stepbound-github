@@ -34,6 +34,7 @@ void main() {
       'mario/sprites/lazio',
       'zombies/sprites/wanderer',
       'zombies/sprites/sprinter',
+      'zombies/sprites/call_center',
       'zombies/sprites/brute',
       'zombies/sprites/blind',
       'zombies/sprites/carabiniere',
@@ -98,6 +99,7 @@ void main() {
   test('zombie portraits match the story portrait contract', () async {
     for (final name in <String>[
       'assets/characters/zombies/portraits/sprinter.png',
+      'assets/characters/zombies/portraits/call_center.png',
       'assets/characters/zombies/portraits/mutilated.png',
       'assets/characters/zombies/portraits/burning.png',
       'assets/characters/zombies/portraits/drunk.png',
