@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,6 +15,31 @@ import 'package:stepbound/save/save_game.dart';
 import 'package:stepbound/ui/gameplay_dialogue.dart';
 import 'package:stepbound/ui/story_intro.dart';
 import 'app_harness.dart';
+
+/// Storage whose reads wait for the test to let them through, as a slow
+/// disk would keep the menu waiting for its slots.
+final class _SlowReadRepository extends StoredSaveRepository {
+  final Map<String, String> values = <String, String>{};
+
+  /// Every read waits on this until it is completed.
+  Completer<void> gate = Completer<void>();
+
+  @override
+  Future<String?> readValue(String key) async {
+    await gate.future;
+    return values[key];
+  }
+
+  @override
+  Future<void> writeValue(String key, String value) async {
+    values[key] = value;
+  }
+
+  @override
+  Future<void> removeValue(String key) async {
+    values.remove(key);
+  }
+}
 
 void main() {
   tapThroughDialogueAtOnce();
@@ -289,6 +317,49 @@ void main() {
     await tester.pump();
     expect(find.byKey(const ValueKey<String>('story-intro')), findsOneWidget);
     expect(await saves.load(1), isNull, reason: 'the old save is wiped');
+  });
+
+  testWidgets('a slot still being read is neither empty nor taken: it cannot '
+      'be picked, so a save is never written over unasked', (tester) async {
+    // Straight into the storage: a write would wait on the gate too.
+    final saves = _SlowReadRepository();
+    saves.values[StoredSaveRepository.slotKey(1)] = jsonEncode(
+      SaveGame(
+        slot: 1,
+        savedAt: DateTime(2026),
+        place: 'Dietro la caserma',
+        world: saveGameWorld(createGameWorld()),
+        story: const <String, Object?>{},
+        progress: Progress.newGame().toJson(),
+        hud: const <String>[],
+      ).toJson(),
+    );
+    await tester.pumpWidget(StepboundApp(saves: saves));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey<String>('menu-new-game')));
+    await tester.pump();
+    expect(find.textContaining('SLOT 1'), findsOne);
+    expect(find.textContaining('vuoto'), findsNothing);
+    await tester.tap(
+      find.byKey(const ValueKey<String>('menu-slot-1')),
+      warnIfMissed: false,
+    );
+    await tester.pump();
+    expect(find.byKey(const ValueKey<String>('story-intro')), findsNothing);
+    expect(
+      find.byKey(const ValueKey<String>('menu-slot-1-confirm')),
+      findsNothing,
+    );
+    expect(saves.values, hasLength(1), reason: 'the slot is untouched');
+
+    saves.gate.complete();
+    await tester.pump();
+    await tester.pump();
+    expect(find.textContaining('Dietro la caserma'), findsOne);
+    await tester.tap(find.byKey(const ValueKey<String>('menu-slot-1')));
+    await tester.pump();
+    expect(find.byKey(const ValueKey<String>('menu-slot-1-confirm')), findsOne);
+    expect(find.byKey(const ValueKey<String>('story-intro')), findsNothing);
   });
 
   testWidgets('starting the level over from the menu saves the level start '

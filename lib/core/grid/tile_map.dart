@@ -58,6 +58,14 @@ final class TileMap {
   final int height;
   final List<Tile> _tiles;
 
+  /// Where [setTile] has been, as indices into [tiles], whether or not
+  /// the tile there is any different now. A map built from the level's
+  /// tiles can only differ from it here, so a save (`saveGameWorld`)
+  /// looks at these instead of comparing every cell of the grid.
+  final Set<int> _touched = <int>{};
+
+  Iterable<int> get touched => _touched;
+
   /// Every tile, row by row: the tile at `x`, `y` is at `y * width + x`.
   /// For whoever walks the whole map at once, without a [GridPoint] a cell.
   List<Tile> get tiles => UnmodifiableListView<Tile>(_tiles);
@@ -85,7 +93,9 @@ final class TileMap {
     if (!contains(point)) {
       throw RangeError('Point $point is outside the map.');
     }
-    _tiles[_indexOf(point)] = tile;
+    final index = _indexOf(point);
+    _tiles[index] = tile;
+    _touched.add(index);
   }
 
   Iterable<GridPoint> walkableNeighbors(GridPoint point) sync* {

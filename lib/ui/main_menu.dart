@@ -50,10 +50,11 @@ final class MainMenu extends StatefulWidget {
 
 final class _MainMenuState extends State<MainMenu> {
   _MenuPage _page = _MenuPage.home;
-  List<SaveRead> _slots = List<SaveRead>.filled(
-    SaveRepository.slotCount,
-    const EmptySave(),
-  );
+
+  /// What the slots hold, once read; until then they are neither empty
+  /// nor taken, and cannot be picked: a slot that turns out to hold a
+  /// game is never written over without the question.
+  List<SaveRead>? _slots;
 
   /// The skins given to each slot by gift links: see
   /// [SaveRepository.loadGifts].
@@ -101,7 +102,11 @@ final class _MainMenuState extends State<MainMenu> {
   }
 
   void _pickNewGameSlot(int slot) {
-    if (_slots[slot - 1] is LoadedSave && _confirming != slot) {
+    final slots = _slots;
+    if (slots == null) {
+      return;
+    }
+    if (slots[slot - 1] is LoadedSave && _confirming != slot) {
       setState(() => _confirming = slot);
       return;
     }
@@ -124,7 +129,7 @@ final class _MainMenuState extends State<MainMenu> {
   /// save was damaged but had a good one before it shows that one, marked
   /// as the backup it is; one holding the game as it was put down, since
   /// its last campfire, says that too.
-  String _slotLabel(int slot) => switch (_slots[slot - 1]) {
+  String _slotLabel(int slot, SaveRead read) => switch (read) {
     EmptySave() => 'SLOT $slot\nvuoto',
     DamagedSave() => 'SLOT $slot\ndanneggiato, non si può caricare',
     LoadedSave(:final save, :final fromBackup, :final suspended) =>
@@ -196,7 +201,7 @@ final class _MainMenuState extends State<MainMenu> {
   }
 
   Widget _buttons(double unit) {
-    final hasSaves = _slots.any((slot) => slot is LoadedSave);
+    final hasSaves = _slots?.any((slot) => slot is LoadedSave) ?? false;
     final buttons = switch (_page) {
       _MenuPage.home => <Widget>[
         MenuButton(
@@ -294,13 +299,16 @@ final class _MainMenuState extends State<MainMenu> {
         onPressed: () => _pickNewGameSlot(slot),
       );
     }
-    final save = _slots[slot - 1].game;
+    final read = _slots?[slot - 1];
+    final save = read?.game;
     final button = MenuButton(
       key: ValueKey<String>('menu-slot-$slot'),
-      label: _slotLabel(slot),
+      // Still being read: neither empty nor taken, and not to be picked.
+      label: read == null ? 'SLOT $slot\n...' : _slotLabel(slot, read),
       unit: unit,
       compact: true,
       onPressed: switch (_page) {
+        _ when read == null => null,
         _MenuPage.newGame => () => _pickNewGameSlot(slot),
         _ when save != null => () => widget.onLoad(save),
         _ => null,

@@ -368,8 +368,9 @@ final class GameSession {
       place: trainPlaceName,
     );
     unawaited(store(arrival));
-    return gameOf(
-      world: arrival.world,
+    // The world just written, as it stands: no need to read it back.
+    return _gameOver(
+      world,
       story: arrival.story,
       progress: progress,
       hud: arrival.hud,
@@ -391,10 +392,23 @@ final class GameSession {
     required Map<String, Object?> story,
     required Progress progress,
     required List<String> hud,
+  }) => _gameOver(
+    restoreGameWorld(world),
+    story: story,
+    progress: progress,
+    hud: hud,
+  );
+
+  /// A game over [world] as it stands, the rest as [gameOf] takes it.
+  StepboundGame _gameOver(
+    WorldState world, {
+    required Map<String, Object?> story,
+    required Progress progress,
+    required List<String> hud,
   }) {
     progress.addViewedMemories(storyHistory);
     return _build(
-      world: restoreGameWorld(world),
+      world: world,
       storyState: story,
       progress: progress,
       unlocked: <HudElement>{
