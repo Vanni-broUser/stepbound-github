@@ -7,12 +7,16 @@ environment:
   sdk: 3.12.2
 
 dependencies:
+  app_links: 7.2.1
   audioplayers: 6.8.1
+  crypto: 3.0.7
   flame: 1.38.2
   flutter:
     sdk: flutter
   meta: 1.18.0
+  share_plus: 13.3.0
   shared_preferences: 2.5.5
+  url_launcher: 6.3.2
 
 dev_dependencies:
   flutter_test:
@@ -26,8 +30,20 @@ flutter:
     - assets/audio/ambience/
     - assets/audio/music/
     - assets/audio/sfx/
-    - assets/sprites/
-    - assets/story/
-    - assets/tiles/
-    - assets/tiles/objects/
+    - assets/characters/
+    - assets/characters/mario/portraits/
+    - assets/characters/mario/sprites/
+    - assets/characters/npcs/portraits/
+    - assets/characters/npcs/sprites/
+    - assets/characters/zombies/portraits/
+    - assets/characters/zombies/sprites/
+    - assets/objects/
+    - assets/story/scenes/
+    - assets/story/maps/
+    - assets/story/ui/
+    - assets/story/placeholders/
+    - assets/levels/tiles/
+    - assets/levels/places/hometown/
+    - assets/levels/places/rome/
+    - assets/levels/places/train/
     - assets/palette.gpl

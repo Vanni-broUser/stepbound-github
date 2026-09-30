@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:stepbound/core/core.dart';
+import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/game/zombie_lore.dart';
-import 'package:stepbound/ui/blood_decor.dart';
+import 'package:stepbound/ui/letterbox.dart';
 import 'package:stepbound/ui/main_menu.dart';
+import 'package:stepbound/ui/portrait_image.dart';
 import 'package:stepbound/ui/story_intro.dart';
 
 /// One card of the book of zombie types. [kind] is null for the
@@ -24,7 +26,8 @@ final class ZombieCard {
   final String description;
 }
 
-const String _unknownPortrait = 'assets/story/portrait_wanderer.png';
+const String _unknownPortrait =
+    'assets/characters/zombies/portraits/wanderer.png';
 
 /// Every card, known or not: first the types the game has, as
 /// [zombieLore] tells them, then the ones still to come, "???" until they
@@ -38,18 +41,12 @@ final List<ZombieCard> zombieCards = <ZombieCard>[
       description: lore.description,
     ),
   const ZombieCard(
-    kind: EntityKind.brute,
-    name: 'Bruto',
-    portrait: _unknownPortrait,
-    description: '',
-  ),
-  const ZombieCard(
     kind: EntityKind.blind,
     name: 'Cieco',
     portrait: _unknownPortrait,
     description: '',
   ),
-  for (var i = 0; i < 4; i++)
+  for (var i = 0; i < 3; i++)
     const ZombieCard(
       kind: null,
       name: '',
@@ -59,54 +56,145 @@ final List<ZombieCard> zombieCards = <ZombieCard>[
 ];
 
 /// The pictures and lines of each memory, lived again on Mario's cot.
-final Map<StoryMemory, List<StoryScene>>
-memoryScenes = <StoryMemory, List<StoryScene>>{
-  StoryMemory.newsBroadcast: introScenes,
-  StoryMemory.outbreakNight: outbreakScenes,
-  StoryMemory.luigiTrapped: <StoryScene>[
-    for (final frame in MallScript.luigiScene)
-      StoryScene(image: frame.image, speaker: frame.speaker, text: frame.text),
-  ],
-  StoryMemory.luigiRescued: <StoryScene>[
-    for (final frame in MallScript.reunionScene)
-      StoryScene(image: frame.image, speaker: frame.speaker, text: frame.text),
-  ],
-  StoryMemory.priestMet: <StoryScene>[
-    for (final frame in PriestScript.meetingScene)
-      StoryScene(image: frame.image, speaker: frame.speaker, text: frame.text),
-  ],
-  StoryMemory.priestErrand: <StoryScene>[
-    for (final frame in PriestScript.dealScene)
-      StoryScene(image: frame.image, speaker: frame.speaker, text: frame.text),
-  ],
-  StoryMemory.priestWelcomed: <StoryScene>[
-    for (final frame in PriestScript.welcomeScene)
-      StoryScene(image: frame.image, speaker: frame.speaker, text: frame.text),
-  ],
-  StoryMemory.priestFamily: <StoryScene>[
-    for (final frame in DuomoScript.initiationScene)
-      StoryScene(image: frame.image, speaker: frame.speaker, text: frame.text),
-  ],
-  StoryMemory.priestMass: <StoryScene>[
-    for (final frame in DuomoScript.massScene)
-      StoryScene(image: frame.image, speaker: frame.speaker, text: frame.text),
-  ],
-  StoryMemory.priestMassacre: <StoryScene>[
-    for (final frame in DuomoScript.massacreScene)
-      StoryScene(image: frame.image, speaker: frame.speaker, text: frame.text),
-  ],
-  StoryMemory.luigiAtStation: <StoryScene>[
-    for (final frame in StationScript.reunionScene)
-      StoryScene(image: frame.image, speaker: frame.speaker, text: frame.text),
-  ],
-};
+final Map<StoryMemory, List<StoryScene>> memoryScenes =
+    <StoryMemory, List<StoryScene>>{
+      StoryMemory.newsBroadcast: introScenes,
+      StoryMemory.presidentFled: romeScenes,
+      StoryMemory.outbreakNight: outbreakScenes,
+      StoryMemory.luigiTrapped: <StoryScene>[
+        for (final frame in MallScript.luigiScene)
+          StoryScene(
+            image: frame.image,
+            speaker: frame.speaker,
+            text: frame.text,
+          ),
+      ],
+      StoryMemory.luigiRescued: <StoryScene>[
+        for (final frame in MallScript.reunionScene)
+          StoryScene(
+            image: frame.image,
+            speaker: frame.speaker,
+            text: frame.text,
+            music: Music.luigi,
+          ),
+      ],
+      StoryMemory.priestMet: <StoryScene>[
+        for (final frame in PriestScript.meetingScene)
+          StoryScene(
+            image: frame.image,
+            speaker: frame.speaker,
+            text: frame.text,
+            music: Music.sacred,
+          ),
+      ],
+      StoryMemory.priestErrand: <StoryScene>[
+        for (final frame in PriestScript.dealScene)
+          StoryScene(
+            image: frame.image,
+            speaker: frame.speaker,
+            text: frame.text,
+            music: Music.sacred,
+          ),
+      ],
+      StoryMemory.priestWelcomed: <StoryScene>[
+        for (final frame in PriestScript.welcomeScene)
+          StoryScene(
+            image: frame.image,
+            speaker: frame.speaker,
+            text: frame.text,
+            music: Music.sacred,
+          ),
+      ],
+      StoryMemory.priestFamily: <StoryScene>[
+        for (final frame in DuomoScript.initiationScene)
+          StoryScene(
+            image: frame.image,
+            speaker: frame.speaker,
+            text: frame.text,
+            music: Music.sacred,
+          ),
+      ],
+      StoryMemory.priestMass: <StoryScene>[
+        for (final frame in DuomoScript.massScene)
+          StoryScene(
+            image: frame.image,
+            speaker: frame.speaker,
+            text: frame.text,
+            music: Music.sacred,
+          ),
+      ],
+      StoryMemory.priestMassacre: <StoryScene>[
+        for (final frame in DuomoScript.massacreScene)
+          StoryScene(
+            image: frame.image,
+            speaker: frame.speaker,
+            text: frame.text,
+            music: Music.sacred,
+          ),
+      ],
+      StoryMemory.luigiAtStation: <StoryScene>[
+        for (final frame in StationScript.reunionScene)
+          StoryScene(
+            image: frame.image,
+            speaker: frame.speaker,
+            text: frame.text,
+            music: Music.luigi,
+          ),
+      ],
+      // Luigi's words only: what the pistol does was said once, there.
+      StoryMemory.goldenPistol: <StoryScene>[
+        StoryScene(
+          image: StationScript.goldenPistolGift.image,
+          speaker: StationScript.goldenPistolGift.speaker,
+          text: StationScript.goldenPistolGift.text,
+          music: Music.luigi,
+        ),
+      ],
+      StoryMemory.chiaraCall: <StoryScene>[
+        for (final frame in CompanyScript.callFrames)
+          StoryScene(
+            image: frame.image,
+            speaker: frame.speaker,
+            text: frame.text,
+            music: Music.weasel,
+          ),
+      ],
+      StoryMemory.chiaraMet: <StoryScene>[
+        for (final frame in CompanyScript.meetingFrames)
+          StoryScene(
+            image: frame.image,
+            speaker: frame.speaker,
+            text: frame.text,
+            music: Music.weasel,
+          ),
+      ],
+      StoryMemory.maranzaMet: <StoryScene>[
+        for (final frame in MaranzaScript.meetingScene)
+          StoryScene(
+            image: frame.image,
+            speaker: frame.speaker,
+            text: frame.text,
+            music: Music.maranza,
+          ),
+      ],
+      StoryMemory.maranzaPaid: <StoryScene>[
+        for (final frame in MaranzaScript.paidScene)
+          StoryScene(
+            image: frame.image,
+            speaker: frame.speaker,
+            text: frame.text,
+            music: Music.maranza,
+          ),
+      ],
+    };
 
 /// Every story scene seen so far, one after the other, in the order they
 /// were lived: the harbour and the hypermarket can be played in either
 /// order, and half of one before the other, so the memories are replayed
-/// as [Progress.memories] holds them, not as the enum lists them.
-List<StoryScene> seenScenes(Progress progress) => <StoryScene>[
-  for (final memory in progress.memories) ...memoryScenes[memory]!,
+/// as [Progress.livedMemories] holds them, not as the enum lists them.
+List<StoryScene> seenScenes(Progress progress, LevelId level) => <StoryScene>[
+  for (final memory in progress.livedMemories)
+    if (memory.level == level) ...memoryScenes[memory]!,
 ];
 
 /// The books open on the crate by Mario's cot, aboard the train: the zombie
@@ -119,6 +207,9 @@ final class ZombieBook extends StatefulWidget {
   final Progress progress;
   final VoidCallback onClose;
 
+  /// Dims the whole screen behind the book, the world still in view.
+  static const Color backdrop = Letterbox.veil;
+
   @override
   State<ZombieBook> createState() => _ZombieBookState();
 }
@@ -126,8 +217,19 @@ final class ZombieBook extends StatefulWidget {
 final class _ZombieBookState extends State<ZombieBook> {
   int _selectedZombie = 0;
 
-  bool _known(ZombieCard card) =>
-      card.kind != null && widget.progress.knownZombies.contains(card.kind);
+  /// The book's pages: first the types met, in the order they were, then
+  /// as many blank ones as are left, null, whether the game has those types
+  /// or not yet -- a page does not tell which.
+  List<ZombieCard?> get _pages {
+    final met = <ZombieCard>[
+      for (final kind in widget.progress.knownZombies)
+        ...zombieCards.where((card) => card.kind == kind),
+    ];
+    return <ZombieCard?>[
+      ...met,
+      for (var i = met.length; i < zombieCards.length; i++) null,
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -136,13 +238,10 @@ final class _ZombieBookState extends State<ZombieBook> {
         final unit = constraints.maxHeight.isFinite
             ? constraints.maxHeight / IntegerResolutionViewport.virtualHeight
             : 1.0;
-        return ColoredBox(
-          color: const Color(0xc2180e0c),
-          child: Padding(
-            key: const ValueKey<String>('zombie-book'),
-            padding: EdgeInsets.all(8 * unit),
-            child: _zombies(unit),
-          ),
+        return Padding(
+          key: const ValueKey<String>('zombie-book'),
+          padding: EdgeInsets.all(8 * unit),
+          child: _zombies(unit),
         );
       },
     );
@@ -151,8 +250,8 @@ final class _ZombieBookState extends State<ZombieBook> {
   /// The list of cards on the left, the selected one's portrait and
   /// description on the right.
   Widget _zombies(double unit) {
-    final card = zombieCards[_selectedZombie];
-    final known = _known(card);
+    final pages = _pages;
+    final card = pages[_selectedZombie];
     return Column(
       key: const ValueKey<String>('zombie-book-page'),
       children: <Widget>[
@@ -163,14 +262,14 @@ final class _ZombieBookState extends State<ZombieBook> {
               SizedBox(
                 width: 96 * unit,
                 child: ListView.builder(
-                  itemCount: zombieCards.length,
+                  itemCount: pages.length,
                   itemBuilder: (context, index) {
-                    final entry = zombieCards[index];
+                    final entry = pages[index];
                     return Padding(
                       padding: EdgeInsets.only(bottom: 3 * unit),
                       child: MenuButton(
                         key: ValueKey<String>('zombie-book-$index'),
-                        label: _known(entry) ? entry.name.toUpperCase() : '???',
+                        label: entry?.name.toUpperCase() ?? '???',
                         unit: unit,
                         compact: true,
                         warning: index == _selectedZombie,
@@ -190,32 +289,29 @@ final class _ZombieBookState extends State<ZombieBook> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: <Widget>[
                       Expanded(
-                        child: known
-                            ? Image.asset(
+                        child: card != null
+                            ? PortraitImage(
                                 card.portrait,
                                 key: ValueKey<String>(
                                   'zombie-book-portrait-$_selectedZombie',
                                 ),
-                                fit: BoxFit.contain,
                               )
-                            // Unknown: just a black shape.
-                            : ColorFiltered(
-                                colorFilter: const ColorFilter.mode(
+                            // Unknown: the black shape of a wanderer,
+                            // whatever it will turn out to be.
+                            : const ColorFiltered(
+                                colorFilter: ColorFilter.mode(
                                   Color(0xff050303),
                                   BlendMode.srcIn,
                                 ),
-                                child: Image.asset(
-                                  card.portrait,
-                                  fit: BoxFit.contain,
-                                ),
+                                child: PortraitImage(_unknownPortrait),
                               ),
                       ),
                       SizedBox(height: 4 * unit),
                       Text(
-                        known ? card.name.toUpperCase() : '???',
+                        card?.name.toUpperCase() ?? '???',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: BloodColors.bright,
+                          color: menuTextColour,
                           fontFamily: 'monospace',
                           fontSize: 9 * unit,
                           fontWeight: FontWeight.bold,
@@ -224,9 +320,8 @@ final class _ZombieBookState extends State<ZombieBook> {
                       ),
                       SizedBox(height: 2 * unit),
                       MenuParagraph(
-                        known
-                            ? card.description
-                            : 'Non hai ancora incontrato questo zombi.',
+                        card?.description ??
+                            'Non hai ancora incontrato questo zombi.',
                         key: const ValueKey<String>('zombie-book-description'),
                         unit: unit,
                       ),

@@ -210,16 +210,29 @@ final class BloodOverlay extends StatelessWidget {
 /// by rasterising the row they start from and finding where the letters'
 /// strokes actually are; until that is done the letters show without drips.
 final class BloodyTitle extends StatefulWidget {
-  const BloodyTitle(this.text, {required this.fontSize, super.key});
+  const BloodyTitle(
+    this.text, {
+    required this.fontSize,
+    this.spacing = 0.18,
+    this.hangDrips = false,
+    super.key,
+  });
 
   final String text;
   final double fontSize;
+
+  /// The room between the letters, in font sizes.
+  final double spacing;
+
+  /// Whether the title takes only the room of its letters, its drips
+  /// hanging over what is laid out under it: see [DrippingOver].
+  final bool hangDrips;
 
   TextStyle get _style => TextStyle(
     fontFamily: 'monospace',
     fontSize: fontSize,
     fontWeight: FontWeight.w900,
-    letterSpacing: fontSize * 0.18,
+    letterSpacing: fontSize * spacing,
     height: 1,
     decoration: TextDecoration.none,
   );
@@ -242,7 +255,8 @@ final class _BloodyTitleState extends State<BloodyTitle> {
   void didUpdateWidget(BloodyTitle oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.text != widget.text ||
-        oldWidget.fontSize != widget.fontSize) {
+        oldWidget.fontSize != widget.fontSize ||
+        oldWidget.spacing != widget.spacing) {
       _drips = const <_TitleDrip>[];
       unawaited(_measure());
     }
@@ -264,7 +278,10 @@ final class _BloodyTitleState extends State<BloodyTitle> {
       text: TextSpan(text: widget.text, style: style),
       textDirection: TextDirection.ltr,
     )..layout();
-    final size = Size(layout.width, layout.height + widget.fontSize * 1.4);
+    final height = widget.hangDrips
+        ? layout.height
+        : layout.height + widget.fontSize * 1.4;
+    final size = Size(layout.width, height);
     layout.dispose();
     return CustomPaint(
       size: size,
@@ -273,6 +290,35 @@ final class _BloodyTitleState extends State<BloodyTitle> {
         style: style,
         drips: _drips,
       ),
+    );
+  }
+}
+
+/// A [title] with its drips hanging over the [child] laid out [gap] under
+/// it: the title is painted last, so the blood runs onto what is below.
+final class DrippingOver extends StatelessWidget {
+  const DrippingOver({
+    required this.title,
+    required this.gap,
+    required this.child,
+    super.key,
+  });
+
+  final BloodyTitle title;
+  final double gap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    // Laid out bottom up, so the title, last in paint order, is on top.
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      verticalDirection: VerticalDirection.up,
+      children: <Widget>[
+        child,
+        SizedBox(height: gap),
+        title,
+      ],
     );
   }
 }

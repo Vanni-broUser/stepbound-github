@@ -32,7 +32,7 @@ final class CrucifiedZombieComponent extends PositionComponent {
          priority: 18,
        );
 
-  static const String asset = 'assets/sprites/crucified_zombie.png';
+  static const String asset = 'assets/characters/zombies/sprites/crucified.png';
   static const double frameWidth = 32;
   static const double frameHeight = 40;
 

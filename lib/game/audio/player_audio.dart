@@ -13,11 +13,21 @@ import 'package:stepbound/game/audio/sound.dart';
 /// unless another is given. Music and ambience are looping players whose
 /// volumes glide towards a target on a small timer; effects are shots the
 /// device plays side by side.
+///
+/// With `startMuted` the game starts silent whatever was saved, and does not
+/// read the saved setting: the browser build, which is only for testing,
+/// starts that way, so a tab left open does not play on.
 final class PlayerAudio implements GameAudio {
-  PlayerAudio({SharedPreferencesAsync? preferences, AudioDevice? device})
-    : _preferences = preferences ?? SharedPreferencesAsync(),
-      _device = device ?? AudioplayersDevice() {
-    unawaited(_loadMuted());
+  PlayerAudio({
+    SharedPreferencesAsync? preferences,
+    AudioDevice? device,
+    bool startMuted = false,
+  }) : _preferences = preferences ?? SharedPreferencesAsync(),
+       _device = device ?? AudioplayersDevice(),
+       _muted = startMuted {
+    if (!startMuted) {
+      unawaited(_loadMuted());
+    }
     // The sounds of the first minutes are loaded ahead, so they are not
     // late the first time.
     for (final sfx in preloaded) {
@@ -61,7 +71,7 @@ final class PlayerAudio implements GameAudio {
   final LingeringShots _lingering = LingeringShots();
 
   Timer? _fader;
-  bool _muted = false;
+  bool _muted;
   bool _paused = false;
 
   LoopingPlayer _newPlayer(String id) => _device.loopingPlayer(id);
@@ -102,15 +112,14 @@ final class PlayerAudio implements GameAudio {
       return;
     }
     _music = music;
-    final outgoing = _decks[_activeDeck]..fadeTo(0, _crossfadeSeconds);
+    _decks[_activeDeck].fadeTo(0, _crossfadeSeconds);
     if (music == null) {
       _startFader();
       return;
     }
+    // The decks alternate: the other one takes the new music.
     _activeDeck = 1 - _activeDeck;
-    final incoming = _decks[_activeDeck];
-    assert(incoming != outgoing, 'the decks alternate');
-    incoming
+    _decks[_activeDeck]
       ..load(music.file, master: _master, paused: _paused)
       ..fadeTo(musicVolume * _musicLevel, _crossfadeSeconds);
     _startFader();
@@ -144,10 +153,11 @@ final class PlayerAudio implements GameAudio {
       if ((channel.target - target).abs() < 0.01) {
         return;
       }
-      if (target > 0) {
-        channel.ensurePlaying(paused: _paused);
-      }
-      channel.fadeTo(target, 1.5);
+      // The new target first: coming back from silence it is what says
+      // the loop has to start again.
+      channel
+        ..fadeTo(target, 1.5)
+        ..ensurePlaying(paused: _paused);
     }
     _startFader();
   }
@@ -234,13 +244,22 @@ final class PlayerAudio implements GameAudio {
   Future<void> dispose() async {
     _fader?.cancel();
     for (final channel in _channels) {
-      await channel.player.dispose();
+      await channel.dispose();
     }
     await _guard(_device.dispose());
   }
 }
 
 /// A looping player and the volume it is gliding to.
+///
+/// Every call that changes what the player plays -- its source, starting,
+/// pausing, stopping -- goes through one queue and waits for the one before.
+/// Overlapping them is what broke the sound: on the web a start that landed
+/// while a new source was still being set up made a second audio element,
+/// which nothing held any more, so it looped on for good, over the fades,
+/// over the pause, even with the app in the background. Whether it should
+/// be heard is a wish ([_wanted]) that the queue carries out when its turn
+/// comes, so a burst of changes settles on the last one.
 final class _Channel {
   _Channel(this.player);
 
@@ -251,25 +270,29 @@ final class _Channel {
   /// Volume change per second of the current fade.
   double _rate = 1;
   String? _file;
+  Future<void> _queue = Future<void>.value();
+
+  /// Whether it should be playing, and whether the player is.
+  bool _wanted = false;
   bool _playing = false;
 
   /// The browser refused to start it before the first tap.
   bool _blocked = false;
 
+  void _enqueue(Future<void> Function() operation) {
+    _queue = _queue.then((_) => _guard(operation()));
+  }
+
   void load(String file, {required double master, required bool paused}) {
     _file = file;
     volume = 0;
-    _playing = false;
-    unawaited(
-      _guard(() async {
-        await player.stop();
-        await player.setVolume(0);
-        await player.setSource(file);
-        if (!paused) {
-          await _start();
-        }
-      }()),
-    );
+    _enqueue(() async {
+      await player.stop();
+      _playing = false;
+      await player.setVolume(0);
+      await player.setSource(file);
+    });
+    _want(playing: !paused);
   }
 
   void fadeTo(double value, double seconds) {
@@ -278,32 +301,41 @@ final class _Channel {
   }
 
   void ensurePlaying({required bool paused}) {
-    if (_file == null || _playing || paused || target <= 0) {
+    if (_file == null || paused || target <= 0) {
       return;
     }
-    unawaited(_guard(_start()));
+    _want(playing: true);
   }
 
   void retryIfBlocked() {
     if (_blocked && target > 0) {
-      unawaited(_guard(_start()));
+      _want(playing: true);
     }
   }
 
-  Future<void> _start() async {
+  void pause() => _want(playing: false);
+
+  void _want({required bool playing}) {
+    _wanted = playing;
+    _enqueue(_settle);
+  }
+
+  /// Brings the player in line with [_wanted], as it is now.
+  Future<void> _settle() async {
+    if (_wanted == _playing) {
+      return;
+    }
+    if (!_wanted) {
+      _playing = false;
+      await player.pause();
+      return;
+    }
     try {
       await player.resume();
       _playing = true;
       _blocked = false;
     } on Object {
       _blocked = true;
-    }
-  }
-
-  void pause() {
-    if (_playing) {
-      _playing = false;
-      unawaited(_guard(player.pause()));
     }
   }
 
@@ -325,6 +357,12 @@ final class _Channel {
       pause();
     }
     return volume != target;
+  }
+
+  /// Lets go of the player once whatever it is doing is done.
+  Future<void> dispose() {
+    _enqueue(player.dispose);
+    return _queue;
   }
 }
 

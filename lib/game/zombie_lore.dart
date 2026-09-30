@@ -2,7 +2,7 @@ import 'package:stepbound/core/core.dart';
 
 /// Everything the game tells about one zombie type, in one place, so that
 /// a new type cannot be half introduced. The first time one is met the
-/// tutorial director's `introduceZombie` does all of it together:
+/// story director's `introduceZombie` does all of it together:
 ///
 /// 1. records the type in `Progress.knownZombies`, which a save keeps and
 ///    the book on the train reads (its card stops being "???");
@@ -42,7 +42,7 @@ final class ZombieLore {
 const Map<EntityKind, ZombieLore> zombieLore = <EntityKind, ZombieLore>{
   EntityKind.wanderer: ZombieLore(
     name: 'Vagante',
-    portrait: 'assets/story/portrait_wanderer.png',
+    portrait: 'assets/characters/zombies/portraits/wanderer.png',
     lesson:
         'I normali zombi vaganti faranno un passo verso di te ogni due passi '
         'tuoi',
@@ -53,7 +53,7 @@ const Map<EntityKind, ZombieLore> zombieLore = <EntityKind, ZombieLore>{
   ),
   EntityKind.carabiniere: ZombieLore(
     name: 'Carabiniere',
-    portrait: 'assets/story/portrait_carabiniere.png',
+    portrait: 'assets/characters/zombies/portraits/carabiniere.png',
     lesson:
         'Gli zombi carabinieri possono raggiungerti a due celle di distanza '
         'grazie al loro manganello',
@@ -64,7 +64,7 @@ const Map<EntityKind, ZombieLore> zombieLore = <EntityKind, ZombieLore>{
   ),
   EntityKind.sprinter: ZombieLore(
     name: 'Veloce',
-    portrait: 'assets/story/portrait_sprinter.png',
+    portrait: 'assets/characters/zombies/portraits/sprinter.png',
     lesson: 'Gli zombi veloci si muovono alla tua stessa velocità',
     description:
         'Si muove alla tua stessa velocità: correndo non lo semini. Ti vede '
@@ -73,7 +73,7 @@ const Map<EntityKind, ZombieLore> zombieLore = <EntityKind, ZombieLore>{
   ),
   EntityKind.mutilated: ZombieLore(
     name: 'Mutilato',
-    portrait: 'assets/story/portrait_mutilated.png',
+    portrait: 'assets/characters/zombies/portraits/mutilated.png',
     lesson:
         'Gli zombi mutilati non possono inseguirti, ma se passi loro accanto '
         'ti mordono a ogni tuo passo. Giragli alla larga, o abbattili se ti '
@@ -87,7 +87,7 @@ const Map<EntityKind, ZombieLore> zombieLore = <EntityKind, ZombieLore>{
   ),
   EntityKind.burning: ZombieLore(
     name: 'In fiamme',
-    portrait: 'assets/story/portrait_burning.png',
+    portrait: 'assets/characters/zombies/portraits/burning.png',
     lesson:
         'Gli zombi in fiamme si muovono come i vaganti, ma ogni cella che '
         'lasciano prende fuoco e non potrai più attraversarla',
@@ -99,7 +99,7 @@ const Map<EntityKind, ZombieLore> zombieLore = <EntityKind, ZombieLore>{
   ),
   EntityKind.drunk: ZombieLore(
     name: 'Ubriaco',
-    portrait: 'assets/story/portrait_drunk.png',
+    portrait: 'assets/characters/zombies/portraits/drunk.png',
     lesson:
         'Gli zombi ubriachi barcollano a caso e non ti inseguono, ma se gli '
         'capiti accanto ti mordono. Occhio: la prossima barcollata può '
@@ -113,7 +113,7 @@ const Map<EntityKind, ZombieLore> zombieLore = <EntityKind, ZombieLore>{
   ),
   EntityKind.cultist: ZombieLore(
     name: 'Cultista',
-    portrait: 'assets/story/portrait_zombie_cultist.png',
+    portrait: 'assets/characters/zombies/portraits/cultist.png',
     lesson:
         'Gli zombi cultisti si muovono come i vaganti, ma la loro massa '
         'muscolare richiede tre colpi di pistola per abbatterli',
@@ -122,6 +122,34 @@ const Map<EntityKind, ZombieLore> zombieLore = <EntityKind, ZombieLore>{
         'caduto sulle spalle, le vesti si sono strappate e vene gialle '
         'innaturali attraversano le braccia. Avanza al passo di un vagante, '
         'ma i primi due colpi non bastano: ne servono tre per abbatterlo.',
+    introducedOnSight: true,
+  ),
+  EntityKind.brute: ZombieLore(
+    name: 'Bruto',
+    portrait: 'assets/characters/zombies/portraits/brute.png',
+    lesson:
+        'Gli zombi bruti sono lentissimi, fanno un passo ogni tre tuoi, ma '
+        'servono due colpi di pistola per abbatterli',
+    description:
+        'Un colosso già prima di cambiare, e la mutazione lo ha gonfiato '
+        'ancora. Fa un passo ogni tre dei tuoi e ci vede poco, ma sente il '
+        'minimo rumore da lontano. Il primo colpo non lo ferma: ne servono '
+        'due.',
+    introducedOnSight: true,
+  ),
+  EntityKind.callCenter: ZombieLore(
+    name: 'Call center',
+    portrait: 'assets/characters/zombies/portraits/call_center.png',
+    lesson:
+        'Gli zombi del call center sono veloci come te, ma il filo della '
+        'cornetta li tiene legati alla loro postazione: oltre la lunghezza '
+        'del filo non possono seguirti',
+    description:
+        'È morto in cuffia, a metà di una telefonata, e la cornetta non la '
+        'molla più. Scatta veloce quanto te, ma il filo lo tiene legato alla '
+        'sua scrivania: si allunga verso di te finché il filo tiene, poi '
+        'resta lì a tirare. Stagli lontano quanto basta, o sparagli prima di '
+        'passargli accanto.',
     introducedOnSight: true,
   ),
 };

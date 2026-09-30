@@ -1,0 +1,104 @@
+# Build Android: debug APK, release APK firmato e Android App Bundle (AAB) firmato.
+#
+# I job firmati girano su combusken (tag combusken-docker) con le variabili protette
+# ANDROID_KEYSTORE_BASE64, ANDROID_STORE_PASSWORD, ANDROID_KEY_PASSWORD, ANDROID_KEY_ALIAS.
+
+build_android_debug:
+  extends: .flutter_3_44_2
+  stage: build-android
+  rules:
+    - when: manual
+      allow_failure: true
+  script:
+    - flutter build apk --debug --build-number="$CI_PIPELINE_IID" --dart-define=VANNI_DEPLOY="${VANNI_DEPLOY:-0}" --dart-define=STEPBOUND_COMMIT="$CI_COMMIT_SHORT_SHA"
+  artifacts:
+    name: "stepbound-debug-apk-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - build/app/outputs/flutter-apk/app-debug.apk
+    expire_in: 1 week
+
+.android_signed:
+  extends: .flutter_3_44_2
+  stage: build-android
+  tags:
+    - combusken-docker
+  interruptible: false
+  resource_group: stepbound-android-release
+  variables:
+    GRADLE_USER_HOME: "$CI_PROJECT_DIR/.gradle-home"
+    GRADLE_OPTS: "-Dorg.gradle.daemon=false"
+    ANDROID_SDK_CACHE: "$CI_PROJECT_DIR/.android-sdk-cache"
+    FF_USE_FASTZIP: "true"
+    CACHE_COMPRESSION_LEVEL: "fastest"
+  cache:
+    - key:
+        files:
+          - pubspec.lock
+      paths:
+        - .pub-cache/
+    - key: android-release-$FLUTTER_VERSION
+      when: always
+      paths:
+        - .gradle-home/caches/
+        - .gradle-home/wrapper/
+        - .android-sdk-cache/
+  before_script:
+    - !reference [.flutter_3_44_2, before_script]
+    - sh gitlab/android_sdk_cache.sh restore
+    - |
+      for var in ANDROID_KEYSTORE_BASE64 ANDROID_STORE_PASSWORD ANDROID_KEY_PASSWORD ANDROID_KEY_ALIAS; do
+        if [ -z "$(printenv "$var")" ]; then
+          echo "ERRORE: $var non impostata: configura le variabili protette ANDROID_* del progetto." >&2
+          exit 1
+        fi
+      done
+      echo "$ANDROID_KEYSTORE_BASE64" | base64 -d > android/app/release-keystore.jks
+      printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=release-keystore.jks\n' \
+        "$ANDROID_STORE_PASSWORD" "$ANDROID_KEY_PASSWORD" "$ANDROID_KEY_ALIAS" \
+        > android/key.properties
+  script:
+    - status=0
+    - flutter build "$ANDROID_PACKAGE" --release --build-number="$CI_PIPELINE_IID" --dart-define=STEPBOUND_DIAGNOSTICS="${STEPBOUND_DIAGNOSTICS:-0}" --dart-define=VANNI_DEPLOY="${VANNI_DEPLOY:-0}" --dart-define=STEPBOUND_COMMIT="$CI_COMMIT_SHORT_SHA" || status=$?
+    - sh gitlab/android_sdk_cache.sh save
+    - exit "$status"
+  after_script:
+    - rm -f android/app/release-keystore.jks android/key.properties
+
+# AAB firmato per Google Play Store (automatico su main, parte da solo al merge)
+build_android_signed:
+  extends: .android_signed
+  needs: []
+  dependencies: []
+  rules:
+
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: on_success
+    - if: '$CI_COMMIT_REF_PROTECTED == "true"'
+      when: manual
+      allow_failure: true
+    - when: never
+  variables:
+    ANDROID_PACKAGE: appbundle
+  artifacts:
+    name: "stepbound-aab-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - build/app/outputs/bundle/release/app-release.aab
+    expire_in: 1 month
+
+
+# APK release firmato per installazione diretta/test su dispositivo fisico (manuale)
+build_android_release_apk:
+  extends: .android_signed
+  rules:
+    - if: '$CI_COMMIT_REF_PROTECTED == "true"'
+      when: manual
+      allow_failure: true
+    - when: never
+  variables:
+    ANDROID_PACKAGE: apk
+  artifacts:
+    name: "stepbound-release-apk-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - build/app/outputs/flutter-apk/app-release.apk
+    expire_in: 1 month
+

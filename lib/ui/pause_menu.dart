@@ -1,8 +1,11 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
-import 'package:stepbound/ui/blood_decor.dart';
+import 'package:stepbound/ui/letterbox.dart';
 import 'package:stepbound/ui/main_menu.dart';
+import 'package:stepbound/ui/portrait_image.dart';
 
 enum _PausePage { home, outfits, resume, restart, quit }
 
@@ -62,8 +65,22 @@ final class PauseMenu extends StatefulWidget {
     required this.onMainMenu,
     required this.onClose,
     required this.onWearOutfit,
+    this.onShareReport,
+    this.restartsFromStory = true,
+    this.wardrobe = false,
     super.key,
   });
+
+  /// Opened from the wardrobe aboard: only the page of outfits, and its
+  /// back button goes straight back to the game.
+  final bool wardrobe;
+
+  /// Shares a report of the game as it is, trail and all, for the bugs
+  /// that throw nothing; the button is not there when the app cannot
+  /// share.
+  final VoidCallback? onShareReport;
+
+  static const String shareLabel = 'CONDIVIDI IL RAPPORTO';
 
   final Progress progress;
 
@@ -72,6 +89,10 @@ final class PauseMenu extends StatefulWidget {
   /// offered.
   final ResumePoint? resumePoint;
   final VoidCallback onResumeFromCamp;
+
+  /// Whether the level starts over from the first story scene (Molfetta),
+  /// or from where Mario arrived in it.
+  final bool restartsFromStory;
   final VoidCallback onRestartLevel;
   final VoidCallback onMainMenu;
   final VoidCallback onClose;
@@ -82,8 +103,14 @@ final class PauseMenu extends StatefulWidget {
 }
 
 final class _PauseMenuState extends State<PauseMenu> {
-  _PausePage _page = _PausePage.home;
-  int _selectedOutfit = 0;
+  late _PausePage _page = widget.wardrobe
+      ? _PausePage.outfits
+      : _PausePage.home;
+
+  /// Opens on what Mario is wearing: a gift can come before it.
+  late int _selectedOutfit = widget.progress.unlockedOutfits.toList().indexOf(
+    widget.progress.activeOutfit,
+  );
 
   void _open(_PausePage page) => setState(() => _page = page);
 
@@ -92,11 +119,16 @@ final class _PauseMenuState extends State<PauseMenu> {
     _PausePage.resume =>
       '${widget.resumePoint?.goBack} Quello che hai fatto da lì in '
           'poi va perso.',
+    _PausePage.restart when !widget.restartsFromStory =>
+      'Ricominciare il livello? Si riparte dall’arrivo in città: quello '
+          'che hai trovato e fatto qui si azzera, le altre città restano '
+          'come le hai lasciate, e lo slot viene salvato all’inizio del '
+          'livello.',
     _PausePage.restart =>
       'Ricominciare il livello? Si riparte dalla prima scena della storia: '
-          'proiettili, zombi conosciuti e ricordi si azzerano, e lo slot '
-          'viene salvato all’inizio del livello. Restano solo le ore '
-          'di gioco.',
+          'quello che hai trovato e fatto a Molfetta si azzera, le altre '
+          'città ti aspettano sul treno come le hai lasciate. Restano le '
+          'ore di gioco.',
     _PausePage.quit when widget.resumePoint != null =>
       'Uscire al menù principale? Quello che hai fatto '
           '${widget.resumePoint?.since} va perso.',
@@ -106,14 +138,25 @@ final class _PauseMenuState extends State<PauseMenu> {
     _PausePage.home || _PausePage.outfits => '',
   };
 
+  /// On the 16:9 picture over the whole screen. The choices leave the
+  /// world in view as it is; the clothes dim it with the veil of the other
+  /// things looked at over the game, wherever they are changed.
   @override
   Widget build(BuildContext context) {
+    return Letterbox(
+      color: _page == _PausePage.outfits
+          ? Letterbox.veil
+          : const Color(0x00000000),
+      child: _picture(),
+    );
+  }
+
+  Widget _picture() {
     return LayoutBuilder(
       builder: (context, constraints) {
         final unit = constraints.maxHeight.isFinite
             ? constraints.maxHeight / IntegerResolutionViewport.virtualHeight
             : 1.0;
-        // No backdrop: the world stays in view behind it.
         return Padding(
           key: const ValueKey<String>('pause-menu'),
           padding: EdgeInsets.all(8 * unit),
@@ -150,15 +193,6 @@ final class _PauseMenuState extends State<PauseMenu> {
           compact: true,
           onPressed: () => _open(_PausePage.resume),
         ),
-      // Offered once there is something besides the base clothes to wear.
-      if (widget.progress.unlockedOutfits.length > 1)
-        MenuButton(
-          key: const ValueKey<String>('pause-outfits'),
-          label: 'CAMBIA ABBIGLIAMENTO',
-          unit: unit,
-          compact: true,
-          onPressed: () => _open(_PausePage.outfits),
-        ),
       MenuButton(
         key: const ValueKey<String>('pause-restart'),
         label: 'RICOMINCIA IL LIVELLO',
@@ -173,6 +207,14 @@ final class _PauseMenuState extends State<PauseMenu> {
         compact: true,
         onPressed: () => _open(_PausePage.quit),
       ),
+      if (widget.onShareReport case final share?)
+        MenuButton(
+          key: const ValueKey<String>('pause-share'),
+          label: PauseMenu.shareLabel,
+          unit: unit,
+          compact: true,
+          onPressed: share,
+        ),
     ],
   );
 
@@ -218,16 +260,21 @@ final class _PauseMenuState extends State<PauseMenu> {
     );
   }
 
-  /// The outfit in [slot], null for the places still to come.
-  static PlayerOutfit? _outfitAt(int slot) =>
-      slot < PlayerOutfit.values.length ? PlayerOutfit.values[slot] : null;
+  /// The outfit in [slot], null for the places still to come: first the
+  /// ones Mario has, in the order they became his, then the rest, all
+  /// alike whether the game has them or not yet.
+  PlayerOutfit? _outfitAt(int slot) {
+    final owned = widget.progress.unlockedOutfits;
+    return slot < owned.length ? owned.elementAt(slot) : null;
+  }
 
   bool _unlocked(PlayerOutfit? outfit) =>
       outfit != null && widget.progress.unlockedOutfits.contains(outfit);
 
   /// The same catalogue layout as the known-zombie page: choices on the
   /// left, portrait on the right and a wear button in place of a description.
-  /// Outfits not found yet are "???" and a black shape.
+  /// Outfits not found yet are "???" and the black shape of the base
+  /// clothes, whichever they are.
   Widget _outfits(double unit) {
     final outfit = _outfitAt(_selectedOutfit);
     final unlocked = _unlocked(outfit);
@@ -247,7 +294,7 @@ final class _PauseMenuState extends State<PauseMenu> {
               SizedBox(
                 width: 96 * unit,
                 child: ListView.builder(
-                  itemCount: outfitSlots,
+                  itemCount: math.max(outfitSlots, PlayerOutfit.values.length),
                   itemBuilder: (context, index) {
                     final entry = _outfitAt(index);
                     return Padding(
@@ -277,12 +324,11 @@ final class _PauseMenuState extends State<PauseMenu> {
                     children: <Widget>[
                       Expanded(
                         child: unlocked
-                            ? Image.asset(
+                            ? PortraitImage(
                                 outfit!.portrait,
                                 key: ValueKey<String>(
                                   'pause-outfit-portrait-$_selectedOutfit',
                                 ),
-                                fit: BoxFit.contain,
                               )
                             // Not found yet: just a black shape.
                             : ColorFiltered(
@@ -290,9 +336,8 @@ final class _PauseMenuState extends State<PauseMenu> {
                                   Color(0xff050303),
                                   BlendMode.srcIn,
                                 ),
-                                child: Image.asset(
+                                child: PortraitImage(
                                   PlayerOutfit.base.portrait,
-                                  fit: BoxFit.contain,
                                 ),
                               ),
                       ),
@@ -301,7 +346,7 @@ final class _PauseMenuState extends State<PauseMenu> {
                         unlocked ? outfit!.label.toUpperCase() : '???',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: BloodColors.bright,
+                          color: menuTextColour,
                           fontFamily: 'monospace',
                           fontSize: 9 * unit,
                           fontWeight: FontWeight.bold,
@@ -339,7 +384,7 @@ final class _PauseMenuState extends State<PauseMenu> {
             label: 'INDIETRO',
             unit: unit,
             compact: true,
-            onPressed: () => _open(_PausePage.home),
+            onPressed: widget.onClose,
           ),
         ),
       ],

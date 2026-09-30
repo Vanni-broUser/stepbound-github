@@ -2,8 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:stepbound/game/audio/sound.dart';
+import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/ui/audio_scope.dart';
 import 'package:stepbound/ui/blood_splat.dart';
+import 'package:stepbound/ui/control_demo.dart';
+import 'package:stepbound/ui/portrait_image.dart';
 import 'package:stepbound/ui/story_intro.dart';
 
 /// One line spoken over the gameplay view, with the speaker's portrait
@@ -13,17 +16,33 @@ final class DialogueLine {
     required this.text,
     this.speaker = 'Mario Rossi',
     this.portrait = marioPortrait,
+    this.demo,
+    this.advanceOnRightDrag = false,
   });
 
   /// A hint or narration: no name over the box and no portrait.
-  const DialogueLine.tutorial(this.text) : speaker = null, portrait = null;
+  const DialogueLine.tutorial(
+    this.text, {
+    this.demo,
+    this.advanceOnRightDrag = false,
+  }) : speaker = null,
+       portrait = null;
 
-  static const String marioPortrait = 'assets/story/portrait_mario.png';
+  static const String marioPortrait =
+      'assets/characters/mario/portraits/base.png';
 
   /// Shown over the text only when a person is talking.
   final String? speaker;
   final String? portrait;
   final String text;
+
+  /// The gesture played on a small screen beside the box, over and over,
+  /// while the line is up.
+  final ControlDemo? demo;
+
+  /// Lets this exceptional line advance when the player tries a rightward
+  /// movement gesture instead of tapping through the tutorial first.
+  final bool advanceOnRightDrag;
 }
 
 const List<DialogueLine> tutorialOpening = <DialogueLine>[
@@ -34,6 +53,8 @@ const List<DialogueLine> tutorialOpening = <DialogueLine>[
   ),
   DialogueLine.tutorial(
     'Trascina il dito sulla parte sinistra dello schermo per muoverti',
+    demo: ControlDemo.move,
+    advanceOnRightDrag: true,
   ),
 ];
 
@@ -53,6 +74,11 @@ final class GameplayDialogue extends StatefulWidget {
   /// those taps eat the first lines before they can be read. Tests that
   /// only tap through the lines set it to zero.
   static Duration settleTime = defaultSettleTime;
+
+  /// Where the panel of a line's gesture stands, and how tall it is, as
+  /// shares of the view's height: over the box, out of the corner badges.
+  static const double demoTop = 0.16;
+  static const double demoHeight = 0.48;
 
   final List<DialogueLine> lines;
   final VoidCallback onFinished;
@@ -76,6 +102,9 @@ final class _GameplayDialogueState extends State<GameplayDialogue> {
   /// wherever on the screen it was.
   Offset? _tappedAt;
 
+  /// Movement accumulated while the opening movement hint is on screen.
+  Offset _dragDelta = Offset.zero;
+
   @override
   void initState() {
     super.initState();
@@ -95,15 +124,18 @@ final class _GameplayDialogueState extends State<GameplayDialogue> {
     _settling = _settled ? null : Timer(wait, () => _settled = true);
   }
 
-  void _press() => _pressWasFresh = _settled;
+  void _press({bool allowUnsettled = false}) {
+    _pressWasFresh = _settled || allowUnsettled;
+  }
 
-  void _advance() {
+  void _advance({bool leavesSplat = true}) {
     if (!_pressWasFresh) {
       return;
     }
     _pressWasFresh = false;
     final at = _tappedAt;
-    if (at != null) {
+    _tappedAt = null;
+    if (leavesSplat && at != null) {
       BloodSplatLayer.maybeOf(context)?.splat(at, SplatKind.tap);
     }
     AudioScope.of(context).play(Sfx.dialogue);
@@ -113,6 +145,28 @@ final class _GameplayDialogueState extends State<GameplayDialogue> {
       return;
     }
     widget.onFinished();
+  }
+
+  void _dragStart() {
+    _dragDelta = Offset.zero;
+    _tappedAt = null;
+    // Unlike ordinary dialogue input, this is an intentional attempt to use
+    // the control the line is teaching, so it need not wait for the guard
+    // against a finger already resting on an old movement button.
+    _press(allowUnsettled: true);
+  }
+
+  void _dragUpdate(DragUpdateDetails details) {
+    _dragDelta += details.delta;
+  }
+
+  void _dragEnd() {
+    if (_dragDelta.dx > 0) {
+      _advance(leavesSplat: false);
+    } else {
+      _pressWasFresh = false;
+    }
+    _dragDelta = Offset.zero;
   }
 
   @override
@@ -125,11 +179,16 @@ final class _GameplayDialogueState extends State<GameplayDialogue> {
       onTapDown: (_) => _press(),
       onTapUp: (details) => _tappedAt = details.globalPosition,
       onTap: _advance,
+      onPanStart: line.advanceOnRightDrag ? (_) => _dragStart() : null,
+      onPanUpdate: line.advanceOnRightDrag ? _dragUpdate : null,
+      onPanEnd: line.advanceOnRightDrag ? (_) => _dragEnd() : null,
+      onPanCancel: line.advanceOnRightDrag ? _dragEnd : null,
       child: Semantics(
         label: 'Tocca per continuare',
         child: LayoutBuilder(
           builder: (context, constraints) {
-            return Align(
+            final demo = line.demo;
+            final box = Align(
               alignment: Alignment.bottomCenter,
               child: StoryTextBox(
                 speaker: line.speaker,
@@ -139,14 +198,34 @@ final class _GameplayDialogueState extends State<GameplayDialogue> {
                     ? null
                     : Transform.flip(
                         flipX: true,
-                        child: Image.asset(
+                        child: PortraitImage(
                           portrait,
                           key: ValueKey<String>('dialogue-portrait-$_index'),
                           height: constraints.maxHeight * 0.66,
-                          fit: BoxFit.contain,
                         ),
                       ),
               ),
+            );
+            if (demo == null) {
+              return box;
+            }
+            final height = constraints.maxHeight * GameplayDialogue.demoHeight;
+            return Stack(
+              children: <Widget>[
+                Positioned(
+                  left: ControlDemoView.standsRight(demo) ? null : 16,
+                  right: ControlDemoView.standsRight(demo) ? 16 : null,
+                  top: constraints.maxHeight * GameplayDialogue.demoTop,
+                  height: height,
+                  // Keyed by the gesture: lines that show the same one keep
+                  // it playing on without starting over.
+                  child: ControlDemoView(
+                    key: ValueKey<ControlDemo>(demo),
+                    demo: demo,
+                  ),
+                ),
+                box,
+              ],
             );
           },
         ),

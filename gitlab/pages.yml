@@ -1,0 +1,25 @@
+# Pubblica la privacy policy solo quando l'utente avvia esplicitamente il job
+# sulla branch predefinita: fa parte del rituale di pubblicazione
+# (docs/save_policy.md, "Quando una build diventa pubblica"). I dati
+# dell'editore in privacy/index.html sono compilati; il grep sotto ferma il
+# job se torna un segnaposto.
+privacy_policy_pages:
+  stage: deploy
+  image: alpine:3.22
+  tags:
+    - test
+  interruptible: true
+  before_script: []
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: manual
+      allow_failure: true
+    - when: never
+  script:
+    - grep -q 'REPLACE_BEFORE_PUBLICATION' privacy/index.html && { echo 'Replace all REPLACE_BEFORE_PUBLICATION placeholders before publishing.' >&2; exit 1; } || true
+    - mkdir -p public
+    - cp privacy/index.html public/index.html
+  pages: true
+  artifacts:
+    paths:
+      - public

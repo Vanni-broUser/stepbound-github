@@ -78,4 +78,11 @@ const Map<EntityKind, ActorStats> _defaultActorStats = <EntityKind, ActorStats>{
     hearing: 8,
     contactDamage: 1,
   ),
+  EntityKind.callCenter: ActorStats(
+    tickCost: 1,
+    health: 1,
+    vision: 8,
+    hearing: 12,
+    contactDamage: 1,
+  ),
 };

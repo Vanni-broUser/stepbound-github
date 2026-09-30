@@ -5,17 +5,41 @@ import 'package:flutter/services.dart';
 import 'package:stepbound/core/core.dart' hide PositionComponent;
 import 'package:stepbound/core/entities/components.dart' as simulation;
 import 'package:stepbound/game/progress.dart';
+import 'package:stepbound/game/render/asset_image.dart';
+import 'package:stepbound/game/render/depth_sorted_world.dart';
 import 'package:stepbound/game/render/pixel_palette.dart';
 
-enum CharacterAction { none, fire, hit, bite, death, pickup, rest }
+enum CharacterAction { none, fire, throwWeapon, hit, bite, death, pickup, rest }
 
-final class CharacterComponent extends PositionComponent {
+/// Outfit-specific body poses. Weapons are separate visual layers, so every
+/// weapon in the same family can reuse the same animation for every outfit.
+enum PlayerPoseFamily { locomotion, oneHanded, throwable, pickup }
+
+/// Weapon art shared by all outfits and attached to a pose at runtime.
+/// A weapon drawn as a layer of its own over whichever outfit's pose holds
+/// it: the outfit gives the moveset, the weapon its design. The molotov is
+/// one bottle placed per frame; the pistols and the rocket launcher are
+/// whole sheets on the gun pose's own grid (see
+/// tools/generate_protagonist_actions.py).
+enum PlayerWeaponSprite {
+  molotov,
+  pistol,
+  goldenPistol,
+  grapplingHook,
+  rocketLauncher,
+}
+
+final class CharacterComponent extends PositionComponent with StandsOnFloor {
   CharacterComponent({
     required this.entity,
     this.playerOutfit = PlayerOutfit.base,
   }) : super(size: Vector2(16, 24), anchor: Anchor.bottomCenter, priority: 20);
 
   static const double fireDuration = 0.21;
+  static const double throwDuration = 0.42;
+
+  /// The bottle starts its world-space flight after the wind-up frame.
+  static const double throwReleaseDelay = throwDuration / 3;
   static const double hitDuration = 0.18;
   static const double biteDuration = 0.28;
   static const double deathDuration = 0.45;
@@ -26,18 +50,23 @@ final class CharacterComponent extends PositionComponent {
 
   final Entity entity;
   ui.Image? _atlas;
-  ui.Image? _gunAtlas;
-  ui.Image? _pickupAtlas;
   ui.Image? _hitAtlas;
   ui.Image? _biteAtlas;
   ui.Image? _deathAtlas;
-  final Map<PlayerOutfit, ui.Image?> _outfitAtlases =
-      <PlayerOutfit, ui.Image?>{};
-  final Map<PlayerOutfit, ui.Image?> _outfitGunAtlases =
-      <PlayerOutfit, ui.Image?>{};
-  final Map<PlayerOutfit, ui.Image?> _outfitPickupAtlases =
-      <PlayerOutfit, ui.Image?>{};
+  final Map<PlayerOutfit, Map<PlayerPoseFamily, ui.Image?>> _outfitPoseAtlases =
+      <PlayerOutfit, Map<PlayerPoseFamily, ui.Image?>>{};
+  final Map<PlayerPoseFamily, ui.Image?> _poseAtlases =
+      <PlayerPoseFamily, ui.Image?>{};
+  final Map<PlayerWeaponSprite, ui.Image?> _weaponSprites =
+      <PlayerWeaponSprite, ui.Image?>{};
   PlayerOutfit playerOutfit;
+
+  /// Whether the pistol in Mario's hand is Luigi's golden one.
+  bool goldenPistol = false;
+
+  PlayerWeaponSprite get _pistol => goldenPistol
+      ? PlayerWeaponSprite.goldenPistol
+      : PlayerWeaponSprite.pistol;
   double animationProgress = 1;
   double _breathElapsed = 0;
   double _alertElapsed = alertDuration;
@@ -56,8 +85,9 @@ final class CharacterComponent extends PositionComponent {
   double actionDuration = 0;
   int _actionRow = 0;
 
-  /// True while the player should hold the drawn-pistol stance.
-  bool aiming = false;
+  /// Pose and optional shared weapon shown while the player is aiming.
+  PlayerPoseFamily? aimingPose;
+  PlayerWeaponSprite? aimingWeapon;
 
   bool get isDying => _action == CharacterAction.death;
 
@@ -75,81 +105,157 @@ final class CharacterComponent extends PositionComponent {
   @override
   Future<void> onLoad() async {
     await super.onLoad();
-    final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
-    final assets = manifest.listAssets();
+    final assets = await (_bundled ??= _listBundled());
     if (entity.kind == EntityKind.player) {
       for (final outfit in PlayerOutfit.values) {
         final stem = outfit.spriteStem;
-        _outfitAtlases[outfit] = await _loadImage(
-          assets,
-          'assets/sprites/$stem.png',
-        );
-        _outfitGunAtlases[outfit] = await _loadImage(
-          assets,
-          'assets/sprites/${stem}_gun.png',
-        );
-        _outfitPickupAtlases[outfit] = await _loadImage(
-          assets,
-          'assets/sprites/${stem}_pickup.png',
-        );
+        _outfitPoseAtlases[outfit] = <PlayerPoseFamily, ui.Image?>{
+          PlayerPoseFamily.locomotion: await _loadImage(
+            assets,
+            'assets/characters/mario/sprites/$stem.png',
+          ),
+          PlayerPoseFamily.oneHanded: await _loadImage(
+            assets,
+            'assets/characters/mario/sprites/${stem}_gun.png',
+          ),
+          PlayerPoseFamily.throwable: await _loadImage(
+            assets,
+            'assets/characters/mario/sprites/${stem}_throwable.png',
+          ),
+          PlayerPoseFamily.pickup: await _loadImage(
+            assets,
+            'assets/characters/mario/sprites/${stem}_pickup.png',
+          ),
+        };
       }
+      _weaponSprites[PlayerWeaponSprite.molotov] = await _loadOptionalImage(
+        assets,
+        'assets/objects/molotov_held.png',
+      );
+      _weaponSprites[PlayerWeaponSprite.grapplingHook] =
+          await _loadOptionalImage(
+            assets,
+            'assets/objects/grappling_hook_held.png',
+          );
+      _weaponSprites[PlayerWeaponSprite.pistol] = await _loadOptionalImage(
+        assets,
+        'assets/objects/pistol_held.png',
+      );
+      _weaponSprites[PlayerWeaponSprite.goldenPistol] =
+          await _loadOptionalImage(
+            assets,
+            'assets/objects/pistol_gold_held.png',
+          );
+      _weaponSprites[PlayerWeaponSprite.rocketLauncher] =
+          await _loadOptionalImage(
+            assets,
+            'assets/objects/rocket_launcher_held.png',
+          );
       wearOutfit(playerOutfit);
     } else {
-      final name = _atlasName(entity.kind);
-      _atlas = await _loadImage(assets, 'assets/sprites/$name.png');
-      _hitAtlas = await _loadImage(assets, 'assets/sprites/${name}_hit.png');
-      _biteAtlas = await _loadImage(assets, 'assets/sprites/${name}_bite.png');
+      // The Caparezza wanderer is a wanderer in his own clothes and curls.
+      final name = entity.id == caparezzaZombieId
+          ? 'caparezza'
+          : _atlasName(entity.kind);
+      _atlas = await _loadImage(
+        assets,
+        'assets/characters/zombies/sprites/$name.png',
+      );
+      _hitAtlas = await _loadImage(
+        assets,
+        'assets/characters/zombies/sprites/${name}_hit.png',
+      );
+      _biteAtlas = await _loadImage(
+        assets,
+        'assets/characters/zombies/sprites/${name}_bite.png',
+      );
       _deathAtlas = await _loadImage(
         assets,
-        'assets/sprites/${name}_death.png',
+        'assets/characters/zombies/sprites/${name}_death.png',
       );
     }
   }
 
-  /// Swaps the three player sheets together, including gun and pickup/rest
-  /// actions. They are preloaded, so the change can happen while black.
+  /// Swaps every pose family together. Shared weapon art stays loaded once.
   void wearOutfit(PlayerOutfit outfit) {
     if (entity.kind != EntityKind.player) {
       return;
     }
     playerOutfit = outfit;
-    _atlas = _outfitAtlases[outfit];
-    _gunAtlas = _outfitGunAtlases[outfit];
-    _pickupAtlas = _outfitPickupAtlases[outfit];
+    _poseAtlases
+      ..clear()
+      ..addAll(
+        _outfitPoseAtlases[outfit] ?? const <PlayerPoseFamily, ui.Image?>{},
+      );
+    _atlas = _poseAtlases[PlayerPoseFamily.locomotion];
   }
 
-  Future<ui.Image?> _loadImage(
-    Iterable<String> assets,
-    String assetPath,
-  ) async {
+  /// The assets in the bundle, read once for every character.
+  static Future<Set<String>>? _bundled;
+
+  static Future<Set<String>> _listBundled() async {
+    final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
+    return manifest.listAssets().toSet();
+  }
+
+  Future<ui.Image?> _loadImage(Set<String> assets, String assetPath) async {
     if (!assets.contains(assetPath)) {
       return null;
     }
-    final data = await rootBundle.load(assetPath);
-    final bytes = data.buffer.asUint8List(
-      data.offsetInBytes,
-      data.lengthInBytes,
-    );
-    final codec = await ui.instantiateImageCodec(bytes);
-    final frame = await codec.getNextFrame();
-    codec.dispose();
-    final loaded = frame.image;
+    final loaded = await loadAssetImage(assetPath);
     if (loaded.width < 96 || loaded.height < 96) {
       return null;
     }
     return loaded;
   }
 
-  void playFire(Direction facing) {
-    if (_gunAtlas == null || _action == CharacterAction.death) {
+  Future<ui.Image?> _loadOptionalImage(
+    Set<String> assets,
+    String assetPath,
+  ) async {
+    if (!assets.contains(assetPath)) {
+      return null;
+    }
+    return loadAssetImage(assetPath);
+  }
+
+  /// Fires from the gun pose: the pistol, or the rocket launcher on the
+  /// shoulder when [weapon] is it.
+  void playFire(Direction facing, {PlayerWeaponSprite? weapon}) {
+    if (_poseAtlases[PlayerPoseFamily.oneHanded] == null ||
+        _action == CharacterAction.death) {
       return;
     }
+    _firesRocket = weapon == PlayerWeaponSprite.rocketLauncher;
     _startAction(CharacterAction.fire, rowFor(facing), fireDuration);
   }
 
+  /// Whether the shot under way is from the rocket launcher.
+  bool _firesRocket = false;
+
+  /// Winds up with the outfit-specific throwable pose. What is thrown, the
+  /// bottle or the grappling hook, is a shared layer in the hand and
+  /// disappears on [throwReleaseDelay].
+  void playThrow(
+    Direction facing, {
+    PlayerWeaponSprite thrown = PlayerWeaponSprite.molotov,
+  }) {
+    if (_poseAtlases[PlayerPoseFamily.throwable] == null ||
+        _weaponSprites[thrown] == null ||
+        _action == CharacterAction.death) {
+      return;
+    }
+    _thrown = thrown;
+    _startAction(CharacterAction.throwWeapon, rowFor(facing), throwDuration);
+  }
+
+  /// What the throw under way has in hand.
+  PlayerWeaponSprite _thrown = PlayerWeaponSprite.molotov;
+
   /// Crouch, grab the backpack in front and stand up again.
   void playPickup(Direction facing) {
-    if (_pickupAtlas == null || _action == CharacterAction.death) {
+    if (_poseAtlases[PlayerPoseFamily.pickup] == null ||
+        _action == CharacterAction.death) {
       return;
     }
     _startAction(CharacterAction.pickup, rowFor(facing), pickupDuration);
@@ -157,7 +263,8 @@ final class CharacterComponent extends PositionComponent {
 
   /// Kneel by a campfire to warm up, then stand again.
   void playRest(Direction facing) {
-    if (_pickupAtlas == null || _action == CharacterAction.death) {
+    if (_poseAtlases[PlayerPoseFamily.pickup] == null ||
+        _action == CharacterAction.death) {
       return;
     }
     _startAction(CharacterAction.rest, rowFor(facing), restDuration);
@@ -241,6 +348,7 @@ final class CharacterComponent extends PositionComponent {
   }
 
   void _renderCharacter(ui.Canvas canvas) {
+    _drawCord(canvas);
     if (_action == CharacterAction.death) {
       final atlas = _deathAtlas;
       if (atlas == null) {
@@ -260,18 +368,38 @@ final class CharacterComponent extends PositionComponent {
     final facing = entity.component<simulation.PositionComponent>().facing;
     final row = rowFor(facing);
     switch (_action) {
-      case CharacterAction.fire when _gunAtlas != null:
+      case CharacterAction.fire
+          when _poseAtlases[PlayerPoseFamily.oneHanded] != null:
         final progress = (_actionElapsed / actionDuration).clamp(0, 1);
-        _drawCell(canvas, _gunAtlas!, _actionRow, 3 + (progress * 3).floor());
-      case CharacterAction.pickup when _pickupAtlas != null:
+        _drawPlayerPose(
+          canvas,
+          _poseAtlases[PlayerPoseFamily.oneHanded]!,
+          _actionRow,
+          3 + (progress * 3).floor().clamp(0, 2),
+          weapon: _firesRocket ? PlayerWeaponSprite.rocketLauncher : _pistol,
+        );
+      case CharacterAction.throwWeapon
+          when _poseAtlases[PlayerPoseFamily.throwable] != null:
+        final progress = (_actionElapsed / actionDuration).clamp(0, 1);
+        final column = 3 + (progress * 3).floor().clamp(0, 2);
+        _drawPlayerPose(
+          canvas,
+          _poseAtlases[PlayerPoseFamily.throwable]!,
+          _actionRow,
+          column,
+          weapon: column == 3 ? _thrown : null,
+        );
+      case CharacterAction.pickup
+          when _poseAtlases[PlayerPoseFamily.pickup] != null:
         final progress = (_actionElapsed / actionDuration).clamp(0, 1);
         _drawCell(
           canvas,
-          _pickupAtlas!,
+          _poseAtlases[PlayerPoseFamily.pickup]!,
           _actionRow,
           (progress * 6).floor().clamp(0, 5),
         );
-      case CharacterAction.rest when _pickupAtlas != null:
+      case CharacterAction.rest
+          when _poseAtlases[PlayerPoseFamily.pickup] != null:
         // Kneel (pick_0, pick_1), stay down warming up, rise (pick_0, idle).
         final progress = (_actionElapsed / actionDuration).clamp(0, 1);
         final column = switch (progress) {
@@ -280,7 +408,12 @@ final class CharacterComponent extends PositionComponent {
           < 0.92 => 0,
           _ => 5,
         };
-        _drawCell(canvas, _pickupAtlas!, _actionRow, column);
+        _drawCell(
+          canvas,
+          _poseAtlases[PlayerPoseFamily.pickup]!,
+          _actionRow,
+          column,
+        );
       case CharacterAction.hit when _hitAtlas != null:
         final progress = (_actionElapsed / actionDuration).clamp(0, 1);
         _drawCell(canvas, _hitAtlas!, _actionRow, (progress * 3).floor());
@@ -296,6 +429,63 @@ final class CharacterComponent extends PositionComponent {
     }
     if (_alertElapsed < alertDuration) {
       _drawAlertBalloon(canvas);
+    }
+  }
+
+  /// The telephone on the desk a call-centre zombie is tied to: where on
+  /// its tile, in pixels, the cord comes out of it.
+  static const ui.Offset deskPhone = ui.Offset(12, 7);
+
+  /// Where the cord meets the handset in the sprite, in the cell's own
+  /// pixels: the bottom of the receiver held up at the right of the head,
+  /// at the left when the sheet is mirrored facing east, and by the
+  /// hand on the floor once fallen.
+  static ui.Offset handset(int row, {bool fallen = false}) => fallen
+      ? const ui.Offset(12, 21)
+      : row == rowFor(Direction.east)
+      ? const ui.Offset(2, 6)
+      : const ui.Offset(13, 6);
+
+  static const ui.Color _cordLight = ui.Color(0xffd2be8e);
+  static const ui.Color _cordDark = ui.Color(0xff2f2622);
+
+  /// The coiled cord from the phone on the desk to the handset, drawn
+  /// before the zombie so the receiver is held over it: pixel by pixel,
+  /// sagging the slacker it is, a dark turn of the coil every third pixel.
+  void _drawCord(ui.Canvas canvas) {
+    final tether = entity.maybeComponent<simulation.TetherComponent>();
+    if (tether == null) {
+      return;
+    }
+    final dying = _action == CharacterAction.death;
+    if (dying ? _actionElapsed >= actionDuration : !entity.isAlive) {
+      return;
+    }
+    final row = dying
+        ? _actionRow
+        : rowFor(entity.component<simulation.PositionComponent>().facing);
+    final fallen = dying && _actionElapsed / actionDuration >= 4 / 6;
+    final end = handset(row, fallen: fallen);
+    final start = ui.Offset(
+      tether.anchor.x * 16 + deskPhone.dx - (position.x - 8),
+      tether.anchor.y * 16 + deskPhone.dy - (position.y - 24),
+    );
+    final along = end - start;
+    final distance = along.distance;
+    final reach = tether.length * 16.0;
+    final sag = ((reach - distance) / 8).clamp(0.0, 5.0);
+    final steps = distance.ceil().clamp(1, 1 << 12);
+    for (var i = 0; i <= steps; i++) {
+      final t = i / steps;
+      final x = (start.dx + along.dx * t).roundToDouble();
+      final y = (start.dy + along.dy * t + sag * 4 * t * (1 - t))
+          .roundToDouble();
+      _paint.color = i % 3 == 0 ? _cordDark : _cordLight;
+      canvas.drawRect(ui.Rect.fromLTWH(x, y, 1, 1), _paint);
+      if (i % 3 == 0) {
+        _paint.color = _cordDark;
+        canvas.drawRect(ui.Rect.fromLTWH(x, y + 1, 1, 1), _paint);
+      }
     }
   }
 
@@ -334,10 +524,19 @@ final class CharacterComponent extends PositionComponent {
   }
 
   void _renderBase(ui.Canvas canvas, int row) {
-    final gunAtlas = _gunAtlas;
-    if (aiming && gunAtlas != null) {
-      final breathe = (_breathElapsed * 1.6).floor() % 2;
-      _drawCell(canvas, gunAtlas, row, breathe);
+    final pose = aimingPose;
+    final poseAtlas = pose == null ? null : _poseAtlases[pose];
+    if (poseAtlas != null) {
+      final breathe = (_breathElapsed * 1.6).floor() % 3;
+      _drawPlayerPose(
+        canvas,
+        poseAtlas,
+        row,
+        breathe,
+        weapon:
+            aimingWeapon ??
+            (pose == PlayerPoseFamily.oneHanded ? _pistol : null),
+      );
       return;
     }
     final atlas = _atlas;
@@ -351,18 +550,109 @@ final class CharacterComponent extends PositionComponent {
     }
   }
 
+  static const List<List<ui.Offset?>> _throwableAttachments =
+      <List<ui.Offset?>>[
+        <ui.Offset?>[
+          ui.Offset(5, 12),
+          ui.Offset(5, 11),
+          ui.Offset(5, 12),
+          ui.Offset(5, 8),
+          null,
+          null,
+        ],
+        <ui.Offset?>[
+          ui.Offset(4, 12),
+          ui.Offset(3, 12),
+          ui.Offset(4, 11),
+          ui.Offset(9, 8),
+          null,
+          null,
+        ],
+        <ui.Offset?>[
+          ui.Offset(11, 12),
+          ui.Offset(12, 12),
+          ui.Offset(11, 11),
+          ui.Offset(6, 8),
+          null,
+          null,
+        ],
+        <ui.Offset?>[
+          ui.Offset(12, 11),
+          ui.Offset(12, 10),
+          ui.Offset(12, 10),
+          ui.Offset(11, 6),
+          null,
+          null,
+        ],
+      ];
+
+  void _drawPlayerPose(
+    ui.Canvas canvas,
+    ui.Image poseAtlas,
+    int row,
+    int column, {
+    PlayerWeaponSprite? weapon,
+  }) {
+    // Wound back behind the head: the bottle only facing away, the hook,
+    // too wide to hold in front of the face, whichever way he faces.
+    final behind =
+        weapon != null &&
+        column == 3 &&
+        (weapon == PlayerWeaponSprite.grapplingHook ||
+            (weapon.isThrown && row == 3));
+    if (behind) {
+      _drawWeapon(canvas, weapon, row, column);
+    }
+    _drawCell(canvas, poseAtlas, row, column);
+    if (weapon != null && !behind) {
+      _drawWeapon(canvas, weapon, row, column);
+    }
+  }
+
+  void _drawWeapon(
+    ui.Canvas canvas,
+    PlayerWeaponSprite weapon,
+    int row,
+    int column,
+  ) {
+    final image = _weaponSprites[weapon];
+    if (!weapon.isThrown) {
+      // A pistol sheet shares the pose's grid: its cell goes right over.
+      if (image != null) {
+        _drawCell(canvas, image, row, column);
+      }
+      return;
+    }
+    final attachment = _throwableAttachments[row][column];
+    if (image == null || attachment == null) {
+      return;
+    }
+    canvas.drawImageRect(
+      image,
+      ui.Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+      ui.Rect.fromLTWH(
+        attachment.dx - 4,
+        attachment.dy - 7 + _outfitOffset,
+        image.width.toDouble(),
+        image.height.toDouble(),
+      ),
+      _paint,
+    );
+  }
+
+  double get _outfitOffset =>
+      entity.kind == EntityKind.player && playerOutfit == PlayerOutfit.cultist
+      ? 2
+      : 0;
+
   void _drawCell(ui.Canvas canvas, ui.Image atlas, int row, int column) {
     // The supplied occultist sheets leave two transparent pixels under
     // every frame. Compensate at draw time so Mario keeps the same foot
     // anchor when changing clothes.
-    final outfitOffset =
-        entity.kind == EntityKind.player && playerOutfit == PlayerOutfit.cultist
-        ? 2.0
-        : 0.0;
     canvas.drawImageRect(
       atlas,
       ui.Rect.fromLTWH(column * 16, row * 24, 16, 24),
-      ui.Rect.fromLTWH(0, outfitOffset, 16, 24),
+      ui.Rect.fromLTWH(0, _outfitOffset, 16, 24),
       _paint,
     );
   }
@@ -472,18 +762,33 @@ final class CharacterComponent extends PositionComponent {
           PixelPalette.cultistRobe,
           PixelPalette.cultistVein,
         ),
+        EntityKind.callCenter => (
+          PixelPalette.zombie,
+          PixelPalette.hair,
+          PixelPalette.jacket,
+          PixelPalette.zombieDark,
+        ),
       };
 
   String _atlasName(EntityKind kind) => switch (kind) {
-    EntityKind.player => 'protagonist',
-    EntityKind.wanderer => 'zombie_wanderer',
-    EntityKind.sprinter => 'zombie_sprinter',
-    EntityKind.brute => 'zombie_brute',
-    EntityKind.blind => 'zombie_blind',
-    EntityKind.carabiniere => 'zombie_carabiniere',
-    EntityKind.mutilated => 'zombie_mutilated',
-    EntityKind.burning => 'zombie_burning',
-    EntityKind.drunk => 'zombie_drunk',
-    EntityKind.cultist => 'zombie_cultist',
+    EntityKind.player => 'base',
+    EntityKind.wanderer => 'wanderer',
+    EntityKind.sprinter => 'sprinter',
+    EntityKind.brute => 'brute',
+    EntityKind.blind => 'blind',
+    EntityKind.carabiniere => 'carabiniere',
+    EntityKind.mutilated => 'mutilated',
+    EntityKind.burning => 'burning',
+    EntityKind.drunk => 'drunk',
+    EntityKind.cultist => 'cultist',
+    EntityKind.callCenter => 'call_center',
   };
+}
+
+extension on PlayerWeaponSprite {
+  /// Held in the hand of the throwable pose, at its attachment points,
+  /// rather than a sheet on the pose's own grid.
+  bool get isThrown =>
+      this == PlayerWeaponSprite.molotov ||
+      this == PlayerWeaponSprite.grapplingHook;
 }

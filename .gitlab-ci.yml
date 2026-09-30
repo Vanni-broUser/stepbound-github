@@ -9,20 +9,15 @@ workflow:
       when: never
     - if: '$CI_COMMIT_BRANCH'
 
-# La build viene prima delle verifiche: i job che producono qualcosa sono
-# tutti manuali e non bloccanti (allow_failure), quindi si possono lanciare
-# appena parte la pipeline senza aspettare analisi e test. Le verifiche hanno
-# `needs: []` e partono subito comunque, nello stage successivo.
 stages:
-  - build
+  - build-android
+  - build-ios
   - verify
+  - deploy
 
 variables:
   PUB_CACHE: "$CI_PROJECT_DIR/.pub-cache"
 
-# Tutti i job girano sui runner `test`, come nelle pipeline degli altri
-# progetti; quelli firmati dichiarano i propri runner locali
-# (gitlab/package.yml), che sostituiscono questi.
 default:
   image: ghcr.io/cirruslabs/flutter:3.44.0
   interruptible: true
@@ -39,9 +34,6 @@ cache:
   paths:
     - .pub-cache/
 
-# cirruslabs non pubblica ancora un'immagine 3.44.2. I job containerizzati
-# partono dalla 3.44.0 e passano al tag richiesto da .fvmrc/pubspec.yaml.
-# I job firmati su runner locali non estendono questo template.
 .flutter_3_44_2:
   variables:
     FLUTTER_VERSION: "3.44.2"
@@ -55,6 +47,9 @@ cache:
     - flutter pub get
 
 include:
+  - local: 'gitlab/build-android.yml'
+  - local: 'gitlab/build-ios.yml'
   - local: 'gitlab/verify.yml'
-  - local: 'gitlab/build.yml'
-  - local: 'gitlab/package.yml'
+  - local: 'gitlab/pages.yml'
+  - local: 'gitlab/deploy-play.yml'
+  - local: 'gitlab/deploy-testflight.yml'

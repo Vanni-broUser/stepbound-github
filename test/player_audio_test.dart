@@ -20,26 +20,50 @@ final class _FakeLoop implements LoopingPlayer {
   /// How many of the next resumes the browser refuses (before a tap).
   int refusals = 0;
 
+  /// How long each call takes to settle, as a browser takes a moment to
+  /// set up a source; zero answers at once.
+  Duration lag = Duration.zero;
+
+  /// Calls still under way, and how many times a call started while
+  /// another was: on the web that is how an audio element gets lost.
+  int _busy = 0;
+  int overlaps = 0;
+
+  Future<void> _call(void Function() effect) async {
+    if (_busy > 0) {
+      overlaps++;
+    }
+    _busy++;
+    try {
+      if (lag > Duration.zero) {
+        await Future<void>.delayed(lag);
+      }
+      effect();
+    } finally {
+      _busy--;
+    }
+  }
+
   @override
-  Future<void> stop() async => playing = false;
+  Future<void> stop() => _call(() => playing = false);
 
   @override
   Future<void> setVolume(double volume) async => this.volume = volume;
 
   @override
-  Future<void> setSource(String file) async => source = file;
+  Future<void> setSource(String file) => _call(() => source = file);
 
   @override
-  Future<void> resume() async {
+  Future<void> resume() => _call(() {
     if (refusals > 0) {
       refusals--;
       throw StateError('play() refused before a tap');
     }
     playing = true;
-  }
+  });
 
   @override
-  Future<void> pause() async => playing = false;
+  Future<void> pause() => _call(() => playing = false);
 
   @override
   Future<void> dispose() async => disposed = true;
@@ -201,6 +225,24 @@ void main() {
     expect(await preferences.getBool(PlayerAudio.mutedKey), isTrue);
   });
 
+  testWidgets('started muted, as in the browser, it is silent whatever was '
+      'saved, and a choice made then is still remembered', (tester) async {
+    await preferences.setBool(PlayerAudio.mutedKey, false);
+    final sound = PlayerAudio(
+      preferences: preferences,
+      device: device,
+      startMuted: true,
+    )..playMusic(Music.menu);
+    await run(tester, 2);
+    expect(sound.muted, isTrue);
+    expect(device.loop('music-b').volume, 0);
+
+    sound.muted = false;
+    await run(tester, 2);
+    expect(device.loop('music-b').volume, greaterThan(0));
+    expect(await preferences.getBool(PlayerAudio.mutedKey), isFalse);
+  });
+
   testWidgets('in the background everything pauses, and comes back after', (
     tester,
   ) async {
@@ -289,5 +331,39 @@ void main() {
       ),
     );
     expect(device.disposed, isTrue);
+  });
+  testWidgets('a loop never gets two calls at once, so a fire that swells '
+      'and fades step by step still stops, and stays stopped in the '
+      'background', (tester) async {
+    // Walking past the fire by the churchyard gate: every step moves its
+    // level while the player is still setting up its source.
+    final sound = audio()..setAmbience(Ambience.fire, 0.2);
+    final fire = device.loop(Ambience.fire.name)
+      ..lag = const Duration(milliseconds: 40);
+    for (var step = 1; step <= 6; step++) {
+      sound.setAmbience(Ambience.fire, 0.2 + step / 20);
+      await tester.pump(const Duration(milliseconds: 15));
+    }
+    // Into the Duomo: no fire indoors.
+    sound.setAmbience(Ambience.fire, 0);
+    await run(tester, 3);
+    expect(fire.overlaps, 0);
+    expect(fire.volume, 0);
+    expect(fire.playing, isFalse);
+
+    // Back by the fire, the loop starts again at the first call.
+    sound.setAmbience(Ambience.fire, 0.3);
+    await run(tester, 2);
+    expect(fire.playing, isTrue);
+    expect(fire.volume, closeTo(0.3, 0.001));
+
+    sound.pause();
+    await run(tester, 1);
+    expect(fire.overlaps, 0);
+    expect(fire.playing, isFalse, reason: 'silent in the background');
+
+    sound.resume();
+    await run(tester, 1);
+    expect(fire.playing, isTrue);
   });
 }

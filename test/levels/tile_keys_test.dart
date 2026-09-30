@@ -213,5 +213,27 @@ void main() {
       expect(grid.groundAt(0, 0), 'B');
       expect(grid.glyphAt(-1, 0), 'B', reason: 'the city goes on');
     });
+
+    test('a car parked across a road running north-south is on the road, '
+        'and where it pokes onto the pavement, on the pavement', () {
+      // Its row alone would pave its left half with the pavement beside
+      // it, and its right half with the road.
+      final grid = GlyphGrid(
+        <String>['=...=', '=CC.C', '=...='],
+        outside: 'B',
+        ground: config,
+      );
+      expect(grid.groundAt(1, 1), '.');
+      expect(grid.groundAt(2, 1), '.');
+      expect(grid.groundAt(4, 1), '=');
+      // A car in the outside lane of a road running east-west keeps the
+      // road of its row, with the kerb only along one side of it.
+      final lane = GlyphGrid(
+        <String>['=====', '..C..', '.....'],
+        outside: 'B',
+        ground: config,
+      );
+      expect(lane.groundAt(2, 1), '.');
+    });
   });
 }

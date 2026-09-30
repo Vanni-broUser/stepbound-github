@@ -16,7 +16,9 @@ sealed class WorldEvent {
       'damaged' => DamagedEvent.fromJson(json),
       'died' => DiedEvent.fromJson(json),
       'shot' => ShotEvent.fromJson(json),
+      'rocketFired' => RocketFiredEvent.fromJson(json),
       'dryFired' => DryFiredEvent.fromJson(json),
+      'molotovThrown' => MolotovThrownEvent.fromJson(json),
       'alerted' => AlertedEvent.fromJson(json),
       'pickedUp' => PickedUpEvent.fromJson(json),
       'teleported' => TeleportedEvent.fromJson(json),
@@ -256,6 +258,52 @@ final class ShotEvent extends WorldEvent {
   };
 }
 
+/// A round from the rocket launcher left [entityId] at [origin] and flew
+/// the way [direction] to [impact], the wall it burst against or the last
+/// tile of the map, through everyone in [hitEntityIds] on its way.
+final class RocketFiredEvent extends WorldEvent {
+  const RocketFiredEvent({
+    required this.entityId,
+    required this.origin,
+    required this.impact,
+    required this.direction,
+    this.hitEntityIds = const <String>[],
+  });
+
+  factory RocketFiredEvent.fromJson(Map<String, Object?> json) {
+    return RocketFiredEvent(
+      entityId: json['entityId']! as String,
+      origin: GridPoint.fromJson(json['origin']! as Map<String, Object?>),
+      impact: GridPoint.fromJson(json['impact']! as Map<String, Object?>),
+      direction: Direction.values.byName(json['direction']! as String),
+      hitEntityIds:
+          (json['hitEntityIds'] as List<Object?>? ?? const <Object?>[])
+              .cast<String>(),
+    );
+  }
+
+  final String entityId;
+  final GridPoint origin;
+  final GridPoint impact;
+  final Direction direction;
+  final List<String> hitEntityIds;
+
+  @override
+  String get description => hitEntityIds.isEmpty
+      ? '$entityId fires a rocket toward ${direction.name}'
+      : '$entityId fires a rocket through ${hitEntityIds.join(', ')}';
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+    'type': 'rocketFired',
+    'entityId': entityId,
+    'origin': origin.toJson(),
+    'impact': impact.toJson(),
+    'direction': direction.name,
+    'hitEntityIds': hitEntityIds,
+  };
+}
+
 final class DryFiredEvent extends WorldEvent {
   const DryFiredEvent({required this.entityId});
 
@@ -272,6 +320,40 @@ final class DryFiredEvent extends WorldEvent {
   Map<String, Object?> toJson() => <String, Object?>{
     'type': 'dryFired',
     'entityId': entityId,
+  };
+}
+
+/// A molotov left [entityId]'s hand at [origin] and burst over the 3x3
+/// square centred on [target]. Emitted before the damage it does, so the
+/// game knows which hits to show only once the bottle has landed.
+final class MolotovThrownEvent extends WorldEvent {
+  const MolotovThrownEvent({
+    required this.entityId,
+    required this.origin,
+    required this.target,
+  });
+
+  factory MolotovThrownEvent.fromJson(Map<String, Object?> json) {
+    return MolotovThrownEvent(
+      entityId: json['entityId']! as String,
+      origin: GridPoint.fromJson(json['origin']! as Map<String, Object?>),
+      target: GridPoint.fromJson(json['target']! as Map<String, Object?>),
+    );
+  }
+
+  final String entityId;
+  final GridPoint origin;
+  final GridPoint target;
+
+  @override
+  String get description => '$entityId throws a molotov at $target';
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+    'type': 'molotovThrown',
+    'entityId': entityId,
+    'origin': origin.toJson(),
+    'target': target.toJson(),
   };
 }
 
@@ -417,12 +499,14 @@ final class LookedOutEvent extends WorldEvent {
   };
 }
 
-/// The player went through a door into another place.
+/// The player went through a door into another place, or, [grappled],
+/// swung across to the roof on the far side of a gap.
 final class TeleportedEvent extends WorldEvent {
   const TeleportedEvent({
     required this.entityId,
     required this.from,
     required this.to,
+    this.grappled = false,
   });
 
   factory TeleportedEvent.fromJson(Map<String, Object?> json) {
@@ -430,6 +514,7 @@ final class TeleportedEvent extends WorldEvent {
       entityId: json['entityId']! as String,
       from: GridPoint.fromJson(json['from']! as Map<String, Object?>),
       to: GridPoint.fromJson(json['to']! as Map<String, Object?>),
+      grappled: json['grappled'] as bool? ?? false,
     );
   }
 
@@ -437,8 +522,13 @@ final class TeleportedEvent extends WorldEvent {
   final GridPoint from;
   final GridPoint to;
 
+  /// Across a gap with the grappling hook rather than through a door.
+  final bool grappled;
+
   @override
-  String get description => '$entityId goes through the door $from -> $to';
+  String get description => grappled
+      ? '$entityId grapples across $from -> $to'
+      : '$entityId goes through the door $from -> $to';
 
   @override
   Map<String, Object?> toJson() => <String, Object?>{
@@ -446,6 +536,7 @@ final class TeleportedEvent extends WorldEvent {
     'entityId': entityId,
     'from': from.toJson(),
     'to': to.toJson(),
+    if (grappled) 'grappled': true,
   };
 }
 
@@ -455,10 +546,16 @@ final class PickedUpEvent extends WorldEvent {
     required this.at,
     required this.ammo,
     required this.gun,
+    this.molotovs = 0,
     this.incense = false,
     this.episcopalRing = false,
     this.cultistRobe = false,
     this.duomoKey = false,
+    this.grapplingHook = false,
+    this.palazzoKey = false,
+    this.goldIngot = false,
+    this.rockets = 0,
+    this.rocketLauncher = false,
   });
 
   factory PickedUpEvent.fromJson(Map<String, Object?> json) {
@@ -467,10 +564,16 @@ final class PickedUpEvent extends WorldEvent {
       at: GridPoint.fromJson(json['at']! as Map<String, Object?>),
       ammo: json['ammo']! as int,
       gun: json['gun']! as bool,
+      molotovs: json['molotovs']! as int,
       incense: json['incense']! as bool,
       episcopalRing: json['episcopalRing']! as bool,
       cultistRobe: json['cultistRobe']! as bool,
       duomoKey: json['duomoKey'] as bool? ?? false,
+      grapplingHook: json['grapplingHook'] as bool? ?? false,
+      palazzoKey: json['palazzoKey'] as bool? ?? false,
+      goldIngot: json['goldIngot'] as bool? ?? false,
+      rockets: json['rockets'] as int? ?? 0,
+      rocketLauncher: json['rocketLauncher'] as bool? ?? false,
     );
   }
 
@@ -478,19 +581,31 @@ final class PickedUpEvent extends WorldEvent {
   final GridPoint at;
   final int ammo;
   final bool gun;
+  final int molotovs;
   final bool incense;
   final bool episcopalRing;
   final bool cultistRobe;
   final bool duomoKey;
+  final bool grapplingHook;
+  final bool palazzoKey;
+  final bool goldIngot;
+  final int rockets;
+  final bool rocketLauncher;
 
   @override
   String get description =>
       'player picks up $pickupId: $ammo rounds'
       '${gun ? ' and a pistol' : ''}'
+      '${molotovs > 0 ? ' and $molotovs molotovs' : ''}'
       '${incense ? ' and the incense' : ''}'
       '${episcopalRing ? ' and the episcopal ring' : ''}'
       '${cultistRobe ? ' and the occultist robe' : ''}'
-      '${duomoKey ? ' and the key of the Duomo' : ''}';
+      '${duomoKey ? ' and the key of the Duomo' : ''}'
+      '${grapplingHook ? ' and a grappling hook' : ''}'
+      '${palazzoKey ? ' and the key of the third floor' : ''}'
+      '${goldIngot ? ' and a gold ingot' : ''}'
+      '${rockets > 0 ? ' and $rockets rockets' : ''}'
+      '${rocketLauncher ? ' and a rocket launcher' : ''}';
 
   @override
   Map<String, Object?> toJson() => <String, Object?>{
@@ -499,10 +614,16 @@ final class PickedUpEvent extends WorldEvent {
     'at': at.toJson(),
     'ammo': ammo,
     'gun': gun,
+    'molotovs': molotovs,
     'incense': incense,
     'episcopalRing': episcopalRing,
     'cultistRobe': cultistRobe,
     'duomoKey': duomoKey,
+    if (grapplingHook) 'grapplingHook': true,
+    if (palazzoKey) 'palazzoKey': true,
+    if (goldIngot) 'goldIngot': true,
+    if (rockets > 0) 'rockets': rockets,
+    if (rocketLauncher) 'rocketLauncher': true,
   };
 }
 

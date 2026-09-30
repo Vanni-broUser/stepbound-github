@@ -97,11 +97,103 @@ final class BarServiceDoorComponent extends PositionComponent {
     if (!_closed) {
       return;
     }
-    _rect(canvas, 1, 0, 14, 32, const ui.Color(0xff181616));
-    _rect(canvas, 3, 2, 10, 29, const ui.Color(0xff483022));
-    _rect(canvas, 4, 3, 8, 2, const ui.Color(0xff6c4c32));
-    _rect(canvas, 4, 18, 8, 1, const ui.Color(0xff2c1e18));
-    _rect(canvas, 11, 23, 2, 2, const ui.Color(0xffbc9e52));
+    // One leaf, a little lower than the wall, whose top shows over it.
+    _rect(canvas, 1, 6, 14, 26, const ui.Color(0xff181616));
+    _rect(canvas, 3, 8, 10, 23, const ui.Color(0xff483022));
+    _rect(canvas, 4, 9, 8, 2, const ui.Color(0xff6c4c32));
+    _rect(canvas, 11, 21, 2, 2, const ui.Color(0xffbc9e52));
+  }
+}
+
+/// The Elettronica's back door, bolted on the inside. The background
+/// has the doorway open on the street behind the barracks; the steel leaf
+/// is drawn over it until Mario draws the bolt and its tile turns floor.
+final class ShopBackDoorComponent extends PositionComponent {
+  ShopBackDoorComponent({
+    required this.door,
+    required this.map,
+    double tileSize = 16,
+  }) : super(
+         position: Vector2(door.x * tileSize, door.y * tileSize),
+         size: Vector2.all(tileSize),
+         priority: 19,
+       );
+
+  final GridPoint door;
+  final TileMap map;
+  final ui.Paint _paint = ui.Paint()..isAntiAlias = false;
+
+  bool get _closed => !map.tileAt(door).isWalkable;
+
+  void _rect(
+    ui.Canvas canvas,
+    double x,
+    double y,
+    double w,
+    double h,
+    ui.Color color,
+  ) {
+    _paint.color = color;
+    canvas.drawRect(ui.Rect.fromLTWH(x, y, w, h), _paint);
+  }
+
+  @override
+  void render(ui.Canvas canvas) {
+    if (!_closed) {
+      return;
+    }
+    _rect(canvas, 1, 2, 14, 14, const ui.Color(0xff5c6068));
+    _rect(canvas, 2, 3, 12, 12, const ui.Color(0xff7a7f88));
+    _rect(canvas, 2, 8, 12, 1, const ui.Color(0xff5c6068));
+    // The bolt across it, shot home.
+    _rect(canvas, 3, 10, 9, 2, const ui.Color(0xff2c2e34));
+    _rect(canvas, 10, 9, 2, 4, const ui.Color(0xffb0b4bc));
+  }
+}
+
+/// The shutter down over the door of the Elettronica behind the barracks,
+/// by the camp: the storefront has the door open on the lit shop; the
+/// shutter covers it until the back door is opened from inside, and with
+/// it this door's tile turns floor.
+final class ShopShutterComponent extends PositionComponent {
+  ShopShutterComponent({
+    required this.door,
+    required this.map,
+    double tileSize = 16,
+  }) : super(
+         position: Vector2(door.x * tileSize, (door.y - 1) * tileSize),
+         size: Vector2.all(tileSize),
+         priority: 19,
+       );
+
+  final GridPoint door;
+  final TileMap map;
+  final ui.Paint _paint = ui.Paint()..isAntiAlias = false;
+
+  bool get _closed => !map.tileAt(door).isWalkable;
+
+  void _rect(
+    ui.Canvas canvas,
+    double x,
+    double y,
+    double w,
+    double h,
+    ui.Color color,
+  ) {
+    _paint.color = color;
+    canvas.drawRect(ui.Rect.fromLTWH(x, y, w, h), _paint);
+  }
+
+  @override
+  void render(ui.Canvas canvas) {
+    if (!_closed) {
+      return;
+    }
+    _rect(canvas, 2, 0, 12, 16, const ui.Color(0xff8a8e96));
+    for (var y = 1.0; y < 16; y += 2) {
+      _rect(canvas, 2, y, 12, 1, const ui.Color(0xff6a6e76));
+    }
+    _rect(canvas, 7, 13, 2, 2, const ui.Color(0xff2c2e34)); // the lock
   }
 }
 

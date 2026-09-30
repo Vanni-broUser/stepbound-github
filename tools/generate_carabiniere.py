@@ -5,11 +5,11 @@ Same body, walk cycle and green skin as the wanderer, dressed in the
 uniform: dark navy jacket and trousers with the red stripe, white cross
 belt, black cap with the red band, and a baton in the hand.
 
-  zombie_carabiniere.png        idle/walk (4x6, like every character)
-  zombie_carabiniere_bite.png   baton swing: wind-up, swing, strike, recover
+  carabiniere.png        idle/walk (4x6, like every character)
+  carabiniere_bite.png   baton swing: wind-up, swing, strike, recover
                                 (the game uses the "bite" slot for attacks)
-  zombie_carabiniere_hit.png    flinch
-  zombie_carabiniere_death.png  collapse
+  carabiniere_hit.png    flinch
+  carabiniere_death.png  collapse
 
 Run from the repository root:  python tools/generate_carabiniere.py
 """
@@ -20,7 +20,7 @@ import os
 from PIL import Image
 
 W, H = 16, 24
-SPRITES = os.path.join("assets", "sprites")
+SPRITES = os.path.join("assets", "characters", "zombies", "sprites")
 ROWS = ("south", "west", "east", "north")
 
 NAVY = (26, 32, 58, 255)
@@ -228,21 +228,21 @@ def sheet(rows: dict[str, list[Image.Image]], columns: int) -> Image.Image:
 
 
 def main() -> None:
-    base = base_sheet(load("zombie_wanderer.png"))
+    base = base_sheet(load("wanderer.png"))
     idle = {d: base[d][0] for d in ROWS}
     outputs = {
-        "zombie_carabiniere.png": sheet(base, 6),
-        "zombie_carabiniere_bite.png": sheet({d: swing_frames(idle[d], d) for d in ROWS}, 4),
-        "zombie_carabiniere_hit.png": sheet(
+        "carabiniere.png": sheet(base, 6),
+        "carabiniere_bite.png": sheet({d: swing_frames(idle[d], d) for d in ROWS}, 4),
+        "carabiniere_hit.png": sheet(
             {d: [flinch(idle[d], d, i) for i in range(3)] for d in ROWS}, 3
         ),
-        "zombie_carabiniere_death.png": sheet(
+        "carabiniere_death.png": sheet(
             {d: [collapse(idle[d], d, i) for i in range(6)] for d in ROWS}, 6
         ),
     }
     for name, image in outputs.items():
         image.save(os.path.join(SPRITES, name))
-        print(f"wrote assets/sprites/{name}")
+        print(f"wrote assets/characters/zombies/sprites/{name}")
 
 
 if __name__ == "__main__":

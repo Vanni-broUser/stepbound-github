@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/ui/blood_decor.dart';
 import 'package:stepbound/ui/main_menu.dart';
@@ -16,10 +17,10 @@ final class LevelMap extends StatefulWidget {
     super.key,
   });
 
-  static const String mapImage = 'assets/story/level_map_europe.jpg';
-  static const String hometownImage = 'assets/story/scene_harbour.jpg';
-  static const String romeImage = 'assets/story/level_rome.jpg';
-  static const String northCapeImage = 'assets/story/level_north_cape.jpg';
+  static const String mapImage = 'assets/story/maps/europe.jpg';
+  static const String hometownImage = hometownCoverImage;
+  static const String romeImage = 'assets/story/maps/rome.jpg';
+  static const String northCapeImage = 'assets/story/maps/north_cape.jpg';
 
   final VoidCallback onStartHometown;
   final VoidCallback onStartRome;
@@ -187,7 +188,7 @@ final class _LevelMapState extends State<LevelMap> {
       LevelDestination.northCape => LevelMap.northCapeImage,
     };
     final name = switch (destination) {
-      LevelDestination.hometown => 'Città Natale',
+      LevelDestination.hometown => 'Città natale',
       LevelDestination.rome => 'Roma',
       LevelDestination.northCape => 'Capo Nord',
     };

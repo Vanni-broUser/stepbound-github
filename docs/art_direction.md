@@ -22,6 +22,21 @@ The result should feel compact, colorful, and immediately legible at native reso
 
 The protagonist uses a rust-red jacket, desaturated blue trousers, pale boots, dark hair, and an olive backpack. The silhouette must remain distinct from every enemy.
 
+The wardrobe also includes four Halloween skins, all preserving Mario's
+backpack and stable foot anchor:
+
+- Ghost: an off-white sheet with dark eye holes, exposed hands and the
+  backpack worn over the sheet.
+- Vampire: charcoal medieval clothes, burgundy waistcoat, black cape with
+  red lining and two small upper fangs.
+- Jack-o'-lantern: moss-green medieval traveller clothes and a carved pumpkin
+  helmet.
+- Zombie: unmistakable olive-green skin and worn, patched versions of Mario's
+  red top and blue trousers, kept readable and non-gory.
+
+Their walk, gun and pickup sheets are generated from the production Mario
+atlases by `tools/generate_halloween_skins.py`.
+
 Every zombie has unmistakably green exposed skin. Use a sickly olive or yellow-green base, forest-green shadow, and a pale yellow-green highlight. At 16×24, a zombie must never be mistaken for a living human.
 
 Archetype cues:
@@ -35,27 +50,27 @@ Keep the designs readable and non-gory. Archetypes should be distinguishable by 
 
 ## Current production assets
 
-The zombie atlases in `assets/sprites/` are original pixel art, converted to the runtime 96×96 contract with nearest-neighbor sampling and verified in the Flame build. The runtime files are:
+The zombie atlases in `assets/characters/zombies/sprites/` are original pixel art, converted to the runtime 96×96 contract with nearest-neighbor sampling and verified in the Flame build. The runtime files are:
 
-- `zombie_wanderer.png`
-- `zombie_sprinter.png`
-- `zombie_brute.png`
-- `zombie_blind.png`
-- `zombie_carabiniere.png`
-- `zombie_mutilated.png`
-- `zombie_burning.png`
-- `zombie_drunk.png`
+- `wanderer.png`
+- `sprinter.png`
+- `brute.png`
+- `blind.png`
+- `carabiniere.png`
+- `mutilated.png`
+- `burning.png`
+- `drunk.png`
 
-`assets/sprites/atlas_manifest.json` is the machine-readable contract used by the project.
+`assets/characters/atlas_manifest.json` is the machine-readable contract used by the project.
 
 ## Action sheets
 
 Combat animations share the same 96×96, 4-rows-by-6-columns grid and are listed under `actionSheets` in the manifest. Rows keep the south/west/east/north order; the east row mirrors the west row.
 
-- `protagonist_gun.png`: columns `aim_0..aim_2` (drawn-pistol stance held while aiming) and `fire_0..fire_2` (muzzle flash and recoil).
-- `zombie_<type>_hit.png`: three-frame flinch repeated to fill the row.
-- `zombie_<type>_bite.png`: wind-up, two lunge frames with an open maw, recovery.
-- `zombie_<type>_death.png`: six-frame collapse from flinch to prone.
+- `mario/sprites/base_gun.png`: columns `aim_0..aim_2` (drawn-pistol stance held while aiming) and `fire_0..fire_2` (muzzle flash and recoil).
+- `zombies/sprites/<type>_hit.png`: three-frame flinch repeated to fill the row.
+- `zombies/sprites/<type>_bite.png`: wind-up, two lunge frames with an open maw, recovery.
+- `zombies/sprites/<type>_death.png`: six-frame collapse from flinch to prone.
 
 The common sheets are produced by `tools/generate_action_sprites.py`; the carabiniere and special archetypes are derived by `tools/generate_carabiniere.py` and `tools/generate_special_zombies.py`. Run the scripts from the repository root with Python and Pillow.
 
@@ -65,7 +80,7 @@ Not everything drawn in the world is a character on the 96×96 grid. Props
 are their own sheets, outside `atlas_manifest.json`, each with its own
 contract, and the game draws them from a component of its own.
 
-- `crucified_zombie.png`: 128×40, four 32×40 frames in a row — `hang_0`,
+- `assets/characters/zombies/sprites/crucified.png`: 128×40, four 32×40 frames in a row — `hang_0`,
   `hang_1` (a breath lower), `twitch_0`, `twitch_1` (the fit). Two tiles
   wide and two and a half tall, it hangs on the back wall over the middle
   of the Duomo's altar once the mass is over. It follows the story frame
@@ -82,12 +97,10 @@ intro frames are PNGs at the virtual 16:9 resolution doubled (768×432); the
 scenes played during the game keep the source frame as it is, `scene_*.jpg`
 at 1376×768.
 
-`tools/process_story_images.py` puts them in place from the folder the
-source art is generated into, named source by source, so which frame a
-scene comes from is written down rather than remembered. A scene whose
-source is not on the machine running the script gets a painted stand-in of
-the moment instead, captioned `arte provvisoria` on the frame itself: the
-story always has something to show, and running the script where the art
-is overwrites it. The four frames of the Duomo massacre
-(`scene_priest_worship`, `scene_cultists_feast`, `scene_cultists_mutation`
-and `scene_priest_seized`) are stand-ins at the moment.
+They are drawn by hand and dropped in as they are: nothing in `tools/`
+makes or remakes them, so nothing checks their pixels. What is checked,
+by `test/story_scenes_test.dart` on every run of `flutter test`, is that
+each one has the size the screens draw it at (the intro frames 768×432,
+the scenes 768 tall and 1376 wide, a pixel either way). A new scene goes
+in `assets/story/scenes` at that size, and the test says so if it does
+not.

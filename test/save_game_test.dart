@@ -6,6 +6,7 @@ import 'package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/progress.dart';
+import 'package:stepbound/save/published_save.dart';
 import 'package:stepbound/save/save_game.dart';
 
 /// Storage that cannot even be read, as a broken preferences store.
@@ -22,16 +23,34 @@ final class _UnreadableRepository extends StoredSaveRepository {
   Future<void> removeValue(String key) async {}
 }
 
+/// Storage that writes but never removes, as a store that has stopped
+/// answering to one call.
+final class _StuckRepository extends StoredSaveRepository {
+  final Map<String, String> values = <String, String>{};
+
+  @override
+  Future<String?> readValue(String key) async => values[key];
+
+  @override
+  Future<void> writeValue(String key, String value) async =>
+      values[key] = value;
+
+  @override
+  Future<void> removeValue(String key) async =>
+      throw StateError('cannot remove');
+}
+
 void main() {
   SaveGame save({
     String place = 'Dietro la caserma',
     Map<String, Object?>? progress,
+    DateTime? savedAt,
   }) => SaveGame(
     slot: 1,
-    savedAt: DateTime(2026),
+    savedAt: savedAt ?? DateTime(2026),
     place: place,
-    world: saveTutorialWorld(createTutorialWorld()),
-    tutorial: const <String, Object?>{},
+    world: saveGameWorld(createGameWorld()),
+    story: const <String, Object?>{},
     progress: progress ?? Progress.newGame().toJson(),
     hud: const <String>[],
     played: const Duration(hours: 2, minutes: 7, seconds: 3),
@@ -70,6 +89,89 @@ void main() {
     ]);
   });
 
+  test('viewed story stays separate until a campfire or train confirms it', () {
+    final progress = Progress(
+      viewedMemories: const <StoryMemory>{StoryMemory.priestMet},
+    );
+    expect(progress.hasViewed(StoryMemory.priestMet), isTrue);
+    expect(progress.hasExperienced(StoryMemory.priestMet), isFalse);
+    expect(progress.memories, isEmpty);
+
+    progress.view(StoryMemory.priestMet);
+    expect(progress.hasExperienced(StoryMemory.priestMet), isTrue);
+    expect(progress.memories, isEmpty, reason: 'not saved yet');
+    expect(progress.toJson()['memories'], isEmpty);
+    expect(progress.toJson(confirmPendingMemories: true)['memories'], <String>[
+      StoryMemory.priestMet.name,
+    ]);
+
+    progress.confirmPendingMemories();
+    expect(progress.memories, <StoryMemory>{StoryMemory.priestMet});
+  });
+
+  test(
+    'story viewing history survives without becoming save progress',
+    () async {
+      final saves = MemorySaveRepository();
+      await saves.saveStoryHistory(1, <StoryMemory>{
+        StoryMemory.luigiTrapped,
+        StoryMemory.priestMet,
+      });
+
+      expect(await saves.load(1), isNull);
+      expect(await saves.loadStoryHistory(1), <StoryMemory>{
+        StoryMemory.luigiTrapped,
+        StoryMemory.priestMet,
+      });
+
+      await saves.clear(1);
+      expect(await saves.loadStoryHistory(1), isEmpty);
+    },
+  );
+
+  test('a save keeps the steps walked in each level and the fires lit', () {
+    final progress = Progress.newGame()
+      ..countStep()
+      ..countStep()
+      ..lightCampfire('Zona nord')
+      ..level = LevelId.rome
+      ..countStep();
+    final loaded = Progress.fromJson(progress.toJson());
+    expect(loaded.steps, <LevelId, int>{LevelId.hometown: 2, LevelId.rome: 1});
+    expect(loaded.litCampfires, <String>{'Zona nord'});
+  });
+
+  test(
+    'bullets stay in the level they were found in: the train arrives '
+    'with those left there, never fewer than five, and a save keeps them',
+    () {
+      final progress = Progress.newGame();
+      expect(progress.hasTravelled, isFalse);
+
+      expect(progress.travel(LevelId.rome, rounds: 12), arrivalRounds);
+      expect(progress.level, LevelId.rome);
+      expect(progress.hasTravelled, isTrue);
+      expect(
+        progress.travel(LevelId.hometown, rounds: 3),
+        12,
+        reason: 'more than five left at home stay his',
+      );
+      expect(progress.travel(LevelId.rome, rounds: 1), arrivalRounds);
+      expect(
+        progress.travel(LevelId.hometown, rounds: 2),
+        arrivalRounds,
+        reason: 'the one left at home made up to five',
+      );
+
+      final loaded = Progress.fromJson(progress.toJson());
+      expect(loaded.roundsLeft, <LevelId, int>{
+        LevelId.hometown: 1,
+        LevelId.rome: 2,
+      });
+      expect(loaded.hasTravelled, isTrue);
+    },
+  );
+
   test('a save keeps unlocked clothes and the outfit in use', () {
     final progress = Progress.newGame()
       ..unlockOutfit(PlayerOutfit.cultist)
@@ -88,6 +190,50 @@ void main() {
     final migrated = Progress.fromJson(oldSave);
     expect(migrated.unlockedOutfits, <PlayerOutfit>{PlayerOutfit.base});
     expect(migrated.activeOutfit, PlayerOutfit.base);
+  });
+
+  group('the saves of the public build', () {
+    const publicFormat = SaveGame.format - 1;
+    String public() => jsonEncode(save().toJson()..['format'] = publicFormat);
+
+    test('are migrated to the current format', () {
+      final read = SaveGame.decode(
+        public(),
+        published: PublishedSaves(
+          format: publicFormat,
+          migrate: (old) => <String, Object?>{...old, 'place': 'Migrato'},
+        ),
+      );
+      expect(read.game?.place, 'Migrato');
+      expect(read.game?.toJson()['format'], SaveGame.format);
+    });
+
+    test('are damaged while the migration fails', () {
+      final read = SaveGame.decode(
+        public(),
+        published: const PublishedSaves(format: publicFormat),
+      );
+      expect(
+        (read as DamagedSave).reason,
+        startsWith('cannot be migrated from format $publicFormat'),
+      );
+    });
+
+    test('are the only older ones migrated', () {
+      final older = jsonEncode(save().toJson()..['format'] = publicFormat - 1);
+      final read = SaveGame.decode(
+        older,
+        published: PublishedSaves(format: publicFormat, migrate: (old) => old),
+      );
+      expect(read, isA<EmptySave>());
+    });
+
+    test('have no migration until one is written', () {
+      expect(
+        () => migratePublishedSave(save().toJson()),
+        throwsUnsupportedError,
+      );
+    });
   });
 
   group('reading a slot', () {
@@ -120,7 +266,7 @@ void main() {
       'savedAt',
       'place',
       'world',
-      'tutorial',
+      'story',
       'progress',
       'hud',
       'atCampfire',
@@ -165,7 +311,7 @@ void main() {
         SaveGame.decode(jsonEncode(zombies), check: checkRestorable),
         isA<DamagedSave>(),
       );
-      final world = saveTutorialWorld(createTutorialWorld());
+      final world = saveGameWorld(createGameWorld());
       world['mapChanges'] = <Object?>[
         <String, Object?>{'x': 1, 'y': 1, 'kind': 'lava'},
       ];
@@ -176,6 +322,25 @@ void main() {
       );
       // The save's own fields alone look fine: only the check sees it.
       expect(SaveGame.decode(jsonEncode(tiles)), isA<LoadedSave>());
+    });
+
+    test('a story flag of the wrong type is damaged, not a crash at the '
+        'start of the game', () {
+      for (final story in <Map<String, Object?>>[
+        <String, Object?>{
+          'street': <String, Object?>{'zombieLesson': 'yes'},
+        },
+        <String, Object?>{'duomo': 'ringDelivered'},
+      ]) {
+        final json = save().toJson()..['story'] = story;
+        expect(
+          SaveGame.decode(jsonEncode(json), check: checkRestorable),
+          isA<DamagedSave>(),
+          reason: '$story',
+        );
+        // The save's own fields alone look fine: only the check sees it.
+        expect(SaveGame.decode(jsonEncode(json)), isA<LoadedSave>());
+      }
     });
 
     test('a world with its entities missing is damaged', () {
@@ -192,6 +357,40 @@ void main() {
       final slots = await _UnreadableRepository().all();
       expect(slots, hasLength(SaveRepository.slotCount));
       expect(slots, everyElement(isA<DamagedSave>()));
+    });
+  });
+
+  group('reading a slot again', () {
+    test('the same string is not decoded and checked twice', () async {
+      var checks = 0;
+      final saves = MemorySaveRepository(check: (_) => checks++);
+      await saves.save(save());
+      expect(checks, 0, reason: 'a save written here is known to be good');
+      expect(await saves.read(1), isA<LoadedSave>());
+      expect(await saves.load(1), isNotNull);
+      expect(checks, 0);
+      await saves.save(save(place: 'Il porto'));
+      expect(checks, 0, reason: 'the save it replaces was written here too');
+      expect((await saves.load(1))!.place, 'Il porto');
+      expect(checks, 0);
+    });
+
+    test('a string that changed under the key is read afresh', () async {
+      var checks = 0;
+      final saves = MemorySaveRepository(check: (_) => checks++);
+      final key = StoredSaveRepository.slotKey(1);
+      saves.values[key] = jsonEncode(save(place: 'Il porto').toJson());
+      expect((await saves.read(1)).game!.place, 'Il porto');
+      expect(checks, 1);
+      await saves.read(1);
+      expect(checks, 1, reason: 'the same string reads the same');
+      saves.values[key] = jsonEncode(save(place: 'La stazione').toJson());
+      expect((await saves.read(1)).game!.place, 'La stazione');
+      expect(checks, 2);
+      saves.values[key] = '{';
+      expect(await saves.read(1), isA<DamagedSave>());
+      saves.values.remove(key);
+      expect(await saves.read(1), isA<EmptySave>());
     });
   });
 
@@ -235,6 +434,119 @@ void main() {
       await saves.clear(1);
       expect(saves.values, isEmpty);
       expect(await saves.read(1), isA<EmptySave>());
+    });
+  });
+
+  group('the game put down', () {
+    test(
+      'is what the menu reads, while the fire is what is gone back to',
+      () async {
+        final saves = MemorySaveRepository();
+        await saves.save(save(place: 'Il porto'));
+        await saves.suspend(save(place: 'Via del porto'));
+        final read = await saves.read(1);
+        expect(read, isA<LoadedSave>());
+        expect((read as LoadedSave).suspended, isTrue);
+        expect(read.save.place, 'Via del porto');
+        expect((await saves.load(1))!.place, 'Il porto');
+        expect((await saves.all()).first, isA<LoadedSave>());
+      },
+    );
+
+    test('can be put down with no fire behind it', () async {
+      final saves = MemorySaveRepository();
+      await saves.suspend(save(place: 'Via del porto'));
+      expect((await saves.read(1)).game!.place, 'Via del porto');
+      expect(await saves.load(1), isNull);
+    });
+
+    test(
+      'goes with the next campfire, or with going back to the fire',
+      () async {
+        final saves = MemorySaveRepository();
+        await saves.save(save(place: 'Il porto'));
+        await saves.suspend(save(place: 'Via del porto'));
+        await saves.save(save(place: 'La stazione'));
+        expect((await saves.read(1)).game!.place, 'La stazione');
+        expect((await saves.read(1) as LoadedSave).suspended, isFalse);
+
+        await saves.suspend(save(place: 'Via del porto'));
+        await saves.clearSuspended(1);
+        expect((await saves.read(1)).game!.place, 'La stazione');
+        expect((await saves.read(1) as LoadedSave).suspended, isFalse);
+      },
+    );
+
+    test('older than the fire is left aside: the fire wrote over it', () async {
+      final saves = MemorySaveRepository();
+      await saves.suspend(
+        save(place: 'Via del porto', savedAt: DateTime(2026, 9, 30, 10)),
+      );
+      // As if the fire's save had gone through but not the dropping of
+      // the game put down: written straight, past `save`.
+      saves.values[StoredSaveRepository.slotKey(1)] = jsonEncode(
+        save(place: 'Il porto', savedAt: DateTime(2026, 9, 30, 11)).toJson(),
+      );
+      final read = await saves.read(1);
+      expect(read.game!.place, 'Il porto');
+      expect((read as LoadedSave).suspended, isFalse);
+      expect((await saves.all()).first.game!.place, 'Il porto');
+    });
+
+    test('as old as the fire is still the game put down', () async {
+      final saves = MemorySaveRepository();
+      await saves.save(save(place: 'Il porto'));
+      saves.values[StoredSaveRepository.suspendedKey(1)] = jsonEncode(
+        save(place: 'Via del porto').toJson(),
+      );
+      expect((await saves.read(1)).game!.place, 'Via del porto');
+    });
+
+    test(
+      'that the fire cannot drop is no failed save, and stays aside',
+      () async {
+        final saves = _StuckRepository();
+        await saves.suspend(
+          save(place: 'Via del porto', savedAt: DateTime(2026, 9, 30, 10)),
+        );
+        await saves.save(
+          save(place: 'Il porto', savedAt: DateTime(2026, 9, 30, 11)),
+        );
+        expect(
+          saves.values,
+          contains(StoredSaveRepository.suspendedKey(1)),
+          reason: 'still there',
+        );
+        final read = await saves.read(1);
+        expect(read.game!.place, 'Il porto');
+        expect((read as LoadedSave).suspended, isFalse);
+        expect((await saves.load(1))!.place, 'Il porto');
+      },
+    );
+
+    test('damaged, leaves the fire to play', () async {
+      final saves = MemorySaveRepository();
+      await saves.save(save(place: 'Il porto'));
+      saves.values[StoredSaveRepository.suspendedKey(1)] = '{';
+      final read = await saves.read(1);
+      expect(read.game!.place, 'Il porto');
+      expect((read as LoadedSave).suspended, isFalse);
+    });
+
+    test('is wiped with the slot', () async {
+      final saves = MemorySaveRepository();
+      await saves.save(save(place: 'Il porto'));
+      await saves.suspend(save(place: 'Via del porto'));
+      await saves.clear(1);
+      expect(saves.values, isEmpty);
+    });
+
+    test('that cannot be written is a SaveWriteException', () async {
+      final saves = MemorySaveRepository()..failWrites = true;
+      await expectLater(
+        saves.suspend(save()),
+        throwsA(isA<SaveWriteException>()),
+      );
     });
   });
 

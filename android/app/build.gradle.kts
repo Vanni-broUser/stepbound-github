@@ -41,9 +41,23 @@ android {
     }
 
     buildTypes {
+        // A debug build is another app for Android: it installs beside the
+        // release one instead of conflicting with its signature.
+        debug {
+            applicationIdSuffix = ".debug"
+        }
         release {
-            if (keystorePropertiesFile.exists()) {
-                signingConfig = signingConfigs.getByName("release")
+            signingConfig = if (keystorePropertiesFile.exists()) {
+                signingConfigs.getByName("release")
+            } else {
+                // No release key on this machine: the APK is signed with
+                // the local debug key, so it can still be installed to try
+                // a release build. CI never gets here: build_android_signed
+                // stops when the key is missing.
+                logger.warn(
+                    "android/key.properties missing: release signed with the debug key",
+                )
+                signingConfigs.getByName("debug")
             }
         }
     }

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:stepbound/game/audio/sound.dart';
+import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/save/save_game.dart';
 import 'package:stepbound/ui/audio_scope.dart';
@@ -17,15 +18,27 @@ final class MainMenu extends StatefulWidget {
     required this.saves,
     required this.onNewGame,
     required this.onLoad,
+    this.linkNotice,
     super.key,
   });
 
-  static const String logo = 'assets/story/logo.png';
+  static const String logo = 'assets/story/ui/logo.png';
 
   /// The city overrun: zombies chasing people through a burning street.
-  static const String background = 'assets/story/menu_background.jpg';
+  ///
+  /// The app draws it over the whole screen, bands included (see
+  /// [MenuBackdrop]); the menu itself stays on the 16:9 picture.
+  static const String background = 'assets/story/ui/menu_background.jpg';
+
+  /// The classic line at the foot of the first screen.
+  static const String disclaimer =
+      'Ogni riferimento a persone esistenti o a fatti realmente accaduti è '
+      'puramente casuale';
 
   final SaveRepository saves;
+
+  /// What the gift link the app was just opened with did.
+  final LinkNotice? linkNotice;
 
   /// Starts the story; the game will save in the given slot.
   final void Function(int slot) onNewGame;
@@ -37,10 +50,21 @@ final class MainMenu extends StatefulWidget {
 
 final class _MainMenuState extends State<MainMenu> {
   _MenuPage _page = _MenuPage.home;
-  List<SaveRead> _slots = List<SaveRead>.filled(
+
+  /// What the slots hold, once read; until then they are neither empty
+  /// nor taken, and cannot be picked: a slot that turns out to hold a
+  /// game is never written over without the question.
+  List<SaveRead>? _slots;
+
+  /// The skins given to each slot by gift links: see
+  /// [SaveRepository.loadGifts].
+  List<Set<PlayerOutfit>> _gifts = List<Set<PlayerOutfit>>.filled(
     SaveRepository.slotCount,
-    const EmptySave(),
+    const <PlayerOutfit>{},
   );
+
+  /// Whether the player has put the [MainMenu.linkNotice] away.
+  bool _noticeClosed = false;
 
   /// Slot waiting for the "overwrite?" answer.
   int? _confirming;
@@ -53,8 +77,17 @@ final class _MainMenuState extends State<MainMenu> {
 
   Future<void> _refresh() async {
     final slots = await widget.saves.all();
+    if (!mounted) {
+      return;
+    }
+    setState(() => _slots = slots);
+    // Only a label: the slots need not wait for it.
+    final gifts = <Set<PlayerOutfit>>[
+      for (var slot = 1; slot <= SaveRepository.slotCount; slot++)
+        await widget.saves.loadGifts(slot),
+    ];
     if (mounted) {
-      setState(() => _slots = slots);
+      setState(() => _gifts = gifts);
     }
   }
 
@@ -69,7 +102,11 @@ final class _MainMenuState extends State<MainMenu> {
   }
 
   void _pickNewGameSlot(int slot) {
-    if (_slots[slot - 1] is LoadedSave && _confirming != slot) {
+    final slots = _slots;
+    if (slots == null) {
+      return;
+    }
+    if (slots[slot - 1] is LoadedSave && _confirming != slot) {
       setState(() => _confirming = slot);
       return;
     }
@@ -90,12 +127,15 @@ final class _MainMenuState extends State<MainMenu> {
 
   /// A slot whose save is damaged says so, and cannot be loaded; one whose
   /// save was damaged but had a good one before it shows that one, marked
-  /// as the backup it is.
-  String _slotLabel(int slot) => switch (_slots[slot - 1]) {
+  /// as the backup it is; one holding the game as it was put down, since
+  /// its last campfire, says that too.
+  String _slotLabel(int slot, SaveRead read) => switch (read) {
     EmptySave() => 'SLOT $slot\nvuoto',
     DamagedSave() => 'SLOT $slot\ndanneggiato, non si può caricare',
-    LoadedSave(:final save, :final fromBackup) =>
-      'SLOT $slot  ${_date(save.savedAt)}${fromBackup ? '  (riserva)' : ''}\n'
+    LoadedSave(:final save, :final fromBackup, :final suspended) =>
+      'SLOT $slot  ${_date(save.savedAt)}'
+          '${fromBackup ? '  (riserva)' : ''}'
+          '${suspended ? '  (in sospeso)' : ''}\n'
           '${save.place}  ·  ${_played(save.played)}',
   };
 
@@ -110,7 +150,6 @@ final class _MainMenuState extends State<MainMenu> {
           key: const ValueKey<String>('main-menu'),
           fit: StackFit.expand,
           children: <Widget>[
-            Image.asset(MainMenu.background, fit: BoxFit.cover),
             Padding(
               padding: EdgeInsets.all(8 * unit),
               child: Column(
@@ -131,6 +170,30 @@ final class _MainMenuState extends State<MainMenu> {
                 ],
               ),
             ),
+            if (_page == _MenuPage.home)
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: IgnorePointer(
+                  child: Padding(
+                    padding: EdgeInsets.all(4 * unit),
+                    child: Text(
+                      MainMenu.disclaimer,
+                      key: const ValueKey<String>('menu-disclaimer'),
+                      textAlign: TextAlign.center,
+                      style: menuTextStyle(
+                        unit,
+                        5,
+                      ).copyWith(color: const Color(0xccd8ccbb)),
+                    ),
+                  ),
+                ),
+              ),
+            if (widget.linkNotice case final notice? when !_noticeClosed)
+              _LinkNoticePanel(
+                notice: notice,
+                unit: unit,
+                onClose: () => setState(() => _noticeClosed = true),
+              ),
           ],
         );
       },
@@ -138,7 +201,7 @@ final class _MainMenuState extends State<MainMenu> {
   }
 
   Widget _buttons(double unit) {
-    final hasSaves = _slots.any((slot) => slot is LoadedSave);
+    final hasSaves = _slots?.any((slot) => slot is LoadedSave) ?? false;
     final buttons = switch (_page) {
       _MenuPage.home => <Widget>[
         MenuButton(
@@ -236,20 +299,200 @@ final class _MainMenuState extends State<MainMenu> {
         onPressed: () => _pickNewGameSlot(slot),
       );
     }
-    final save = _slots[slot - 1].game;
-    return MenuButton(
+    final read = _slots?[slot - 1];
+    final save = read?.game;
+    final button = MenuButton(
       key: ValueKey<String>('menu-slot-$slot'),
-      label: _slotLabel(slot),
+      // Still being read: neither empty nor taken, and not to be picked.
+      label: read == null ? 'SLOT $slot\n...' : _slotLabel(slot, read),
       unit: unit,
       compact: true,
       onPressed: switch (_page) {
+        _ when read == null => null,
         _MenuPage.newGame => () => _pickNewGameSlot(slot),
         _ when save != null => () => widget.onLoad(save),
         _ => null,
       },
     );
+    if (_gifts[slot - 1].isEmpty) {
+      return button;
+    }
+    // Pinned across the top right corner, like a label stuck on a parcel.
+    return Stack(
+      clipBehavior: Clip.none,
+      children: <Widget>[
+        button,
+        Positioned(
+          top: -4 * unit,
+          right: -5 * unit,
+          child: IgnorePointer(
+            child: GiftTag(
+              key: ValueKey<String>('menu-slot-$slot-gift'),
+              unit: unit,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
+
+/// What opening a gift link did, as the main menu tells it.
+sealed class LinkNotice {
+  const LinkNotice();
+}
+
+/// The link gave [outfit] to the four slots.
+final class SkinGiftNotice extends LinkNotice {
+  const SkinGiftNotice(this.outfit);
+
+  final PlayerOutfit outfit;
+}
+
+/// The link had expired, or was not one the game made: nothing given.
+final class InvalidLinkNotice extends LinkNotice {
+  const InvalidLinkNotice();
+}
+
+/// A [LinkNotice] over the menu until put away: the skin given,
+/// with Mario wearing it, or the link that gave nothing.
+final class _LinkNoticePanel extends StatelessWidget {
+  const _LinkNoticePanel({
+    required this.notice,
+    required this.unit,
+    required this.onClose,
+  });
+
+  final LinkNotice notice;
+  final double unit;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final content = switch (notice) {
+      SkinGiftNotice(:final outfit) => <Widget>[
+        BloodyTitle('REGALO', fontSize: 15 * unit),
+        Text(
+          'Skin ${outfit.label}',
+          key: const ValueKey<String>('skin-gift-name'),
+          textAlign: TextAlign.center,
+          style: menuTextStyle(unit, 9).copyWith(fontWeight: FontWeight.bold),
+        ),
+        SizedBox(height: 3 * unit),
+        Image.asset(
+          outfit.portrait,
+          key: const ValueKey<String>('skin-gift-portrait'),
+          height: 96 * unit,
+          fit: BoxFit.contain,
+        ),
+      ],
+      InvalidLinkNotice() => <Widget>[
+        BloodyTitle('LINK SCADUTO', fontSize: 15 * unit),
+        BloodyTitle('O NON VALIDO', fontSize: 15 * unit),
+      ],
+    };
+    return ColoredBox(
+      key: ValueKey<String>(
+        notice is SkinGiftNotice ? 'skin-gift-notice' : 'skin-link-invalid',
+      ),
+      // Clear, but it still keeps taps off the menu underneath.
+      color: const Color(0x00000000),
+      child: Center(
+        child: MenuPanel(
+          unit: unit,
+          opaque: true,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ...content,
+              SizedBox(height: 5 * unit),
+              MenuButton(
+                key: const ValueKey<String>('skin-link-close'),
+                label: 'OK',
+                unit: unit,
+                compact: true,
+                width: MenuButton.halfWidth,
+                onPressed: onClose,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "REGALO" on a slot that holds gifts, written in blood on a scrap of
+/// label, tilted, with a couple of drips running off it.
+final class GiftTag extends StatelessWidget {
+  const GiftTag({required this.unit, super.key});
+
+  final double unit;
+
+  @override
+  Widget build(BuildContext context) {
+    return Transform.rotate(
+      angle: 0.14,
+      child: BloodOverlay(
+        painter: BloodPainter(
+          band: 1.2 * unit,
+          cornerRadius: 1.5 * unit,
+          drips: <BloodDrip>[
+            BloodDrip(0.2, 2.6 * unit, 1.4 * unit),
+            BloodDrip(0.72, 3.2 * unit, 1.6 * unit),
+          ],
+          // Dripped off the label onto the slot below.
+          drops: <BloodDrop>[
+            BloodDrop(0.3, 1.3, 0.9 * unit),
+            BloodDrop(0.78, 1.5, 1.1 * unit),
+          ],
+          color: BloodColors.bright,
+        ),
+        child: Container(
+          padding: EdgeInsets.symmetric(
+            horizontal: 4 * unit,
+            vertical: 1.5 * unit,
+          ),
+          decoration: BoxDecoration(
+            color: const Color(0xffe8dccb),
+            border: Border.all(color: BloodColors.fresh, width: 1.2 * unit),
+            borderRadius: BorderRadius.circular(1.5 * unit),
+            boxShadow: <BoxShadow>[
+              BoxShadow(color: const Color(0x99000000), blurRadius: 2 * unit),
+            ],
+          ),
+          child: Text(
+            'REGALO',
+            style: TextStyle(
+              color: BloodColors.fresh,
+              fontFamily: 'monospace',
+              fontSize: 7 * unit,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.2 * unit,
+              height: 1.1,
+              decoration: TextDecoration.none,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// The pale letters of the menus, with a black shadow so they read over
+/// any picture: [size] in virtual pixels.
+TextStyle menuTextStyle(double unit, double size) => TextStyle(
+  color: menuTextColour,
+  fontFamily: 'monospace',
+  fontSize: size * unit,
+  decoration: TextDecoration.none,
+  shadows: <Shadow>[
+    Shadow(blurRadius: 3 * unit),
+    Shadow(offset: Offset(unit * 0.6, unit * 0.6)),
+  ],
+);
+
+const Color menuTextColour = Color(0xffe8dccb);
 
 final class MenuHeading extends StatelessWidget {
   const MenuHeading({required this.text, required this.unit, super.key});
@@ -261,14 +504,10 @@ final class MenuHeading extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: TextStyle(
-        color: BloodColors.bright,
-        fontFamily: 'monospace',
-        fontSize: 11 * unit,
-        fontWeight: FontWeight.bold,
-        letterSpacing: 1.5 * unit,
-        decoration: TextDecoration.none,
-      ),
+      style: menuTextStyle(
+        unit,
+        11,
+      ).copyWith(fontWeight: FontWeight.bold, letterSpacing: 1.5 * unit),
     );
   }
 }
@@ -384,7 +623,7 @@ final class _Credits extends StatelessWidget {
       padding: EdgeInsets.symmetric(vertical: 3 * unit),
       child: Column(
         children: <Widget>[
-          Text('MUSICA', style: style.copyWith(color: BloodColors.bright)),
+          Text('MUSICA', style: style.copyWith(fontWeight: FontWeight.bold)),
           for (final credit in musicCredits)
             Text(
               '"${credit.title}" - ${credit.author} - ${credit.licence}',
@@ -412,9 +651,11 @@ final class MenuColumn extends StatelessWidget {
 
   final double unit;
   final List<Widget> children;
+
   final Widget? trailing;
 
-  /// The gap between two choices, and the wider one above [trailing].
+  /// The gap between two choices, and the wider one that sets [trailing]
+  /// apart.
   static const double gap = 2.5;
   static const double trailingGap = 9;
 
@@ -448,6 +689,7 @@ final class MenuPanel extends StatelessWidget {
     required this.unit,
     required this.child,
     this.width,
+    this.opaque = false,
     super.key,
   });
 
@@ -457,13 +699,16 @@ final class MenuPanel extends StatelessWidget {
   /// In virtual pixels; as wide as it can be when null.
   final double? width;
 
+  /// Whether nothing behind shows through it.
+  final bool opaque;
+
   @override
   Widget build(BuildContext context) {
     return Container(
       width: width == null ? null : width! * unit,
       padding: EdgeInsets.all(6 * unit),
       decoration: BoxDecoration(
-        color: const Color(0xe6140c0c),
+        color: Color(opaque ? 0xff140c0c : 0xe6140c0c),
         border: Border.all(color: BloodColors.fresh, width: 1.5 * unit),
         borderRadius: BorderRadius.circular(4 * unit),
       ),
@@ -499,4 +744,19 @@ final class MenuParagraph extends StatelessWidget {
       ),
     );
   }
+}
+
+/// The menu's picture over the whole screen, whatever its shape: it is cut
+/// at the edges rather than leaving bands beside it.
+final class MenuBackdrop extends StatelessWidget {
+  const MenuBackdrop({super.key});
+
+  @override
+  Widget build(BuildContext context) => Image.asset(
+    MainMenu.background,
+    key: const ValueKey<String>('menu-backdrop'),
+    fit: BoxFit.cover,
+    width: double.infinity,
+    height: double.infinity,
+  );
 }

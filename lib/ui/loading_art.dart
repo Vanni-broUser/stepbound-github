@@ -3,16 +3,24 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
+import 'package:stepbound/ui/letterbox.dart';
 import 'package:stepbound/ui/main_menu.dart';
 import 'package:stepbound/ui/screen_caption.dart';
 
-/// The loading picture: a man turning into a zombie, stage by stage, with the
-/// Stepbound logo over the top and [caption] along the bottom.
+/// The loading picture, with the Stepbound logo over the top and [caption]
+/// along the bottom: by default a man turning into a zombie, stage by
+/// stage; a level's own once there is one.
 final class LoadingArt extends StatelessWidget {
-  const LoadingArt({required this.caption, this.captionKey, super.key});
+  const LoadingArt({
+    required this.caption,
+    this.captionKey,
+    this.picture = image,
+    super.key,
+  });
 
-  static const String image = 'assets/story/title_loading.jpg';
+  static const String image = 'assets/story/ui/title_loading.jpg';
 
+  final String picture;
   final String caption;
   final Key? captionKey;
 
@@ -26,7 +34,7 @@ final class LoadingArt extends StatelessWidget {
         return Stack(
           fit: StackFit.expand,
           children: <Widget>[
-            Image.asset(image, fit: BoxFit.cover, gaplessPlayback: true),
+            Image.asset(picture, fit: BoxFit.cover, gaplessPlayback: true),
             Align(
               alignment: Alignment.topCenter,
               child: Padding(
@@ -47,11 +55,32 @@ final class LoadingArt extends StatelessWidget {
   }
 }
 
+/// The loading picture across the whole screen, bands and all, dimmed by
+/// the [Letterbox.veil] so words and buttons laid over it stay readable:
+/// behind the screens that stand on their own, away from the game, such
+/// as the error screen.
+final class LoadingBackdrop extends StatelessWidget {
+  const LoadingBackdrop({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      key: const ValueKey<String>('loading-backdrop'),
+      fit: StackFit.expand,
+      children: <Widget>[
+        Image.asset(LoadingArt.image, fit: BoxFit.cover, gaplessPlayback: true),
+        const ColoredBox(color: Letterbox.veil),
+      ],
+    );
+  }
+}
+
 /// Covers the game with [LoadingArt] while it loads, instead of a black
-/// screen: it shows at once (or, with [fadeIn], fades in from the black a
-/// story scene ended on), stays at least [minimum] so it never just
-/// flickers, and once [ready] is true fades out on the game. It never
-/// intercepts taps.
+/// screen: it shows at once (or, with [fadeIn], its picture fades in over
+/// the black a story scene ended on, the black itself hiding the game from
+/// the first frame), stays at least [minimum] so it never just flickers,
+/// and once [ready] is true fades out on the game. It never intercepts
+/// taps.
 final class LoadingCover extends StatefulWidget {
   const LoadingCover({
     required this.ready,
@@ -59,6 +88,7 @@ final class LoadingCover extends StatefulWidget {
     this.fadeIn = false,
     this.minimum = const Duration(milliseconds: 900),
     this.artSize,
+    this.image = LoadingArt.image,
     super.key,
   });
 
@@ -70,6 +100,9 @@ final class LoadingCover extends StatefulWidget {
   final bool fadeIn;
   final Duration minimum;
 
+  /// The picture shown.
+  final String image;
+
   /// The size of the picture, centred on black; the whole of the space
   /// when null. It covers the whole screen either way, so nothing laid out
   /// beside the game shows through while it loads.
@@ -80,10 +113,18 @@ final class LoadingCover extends StatefulWidget {
 }
 
 final class _LoadingCoverState extends State<LoadingCover>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _opacity = AnimationController(
+    with TickerProviderStateMixin {
+  /// The picture over the black, faded in with [LoadingCover.fadeIn].
+  late final AnimationController _picture = AnimationController(
     vsync: this,
     duration: LoadingCover.fadeInDuration,
+  );
+
+  /// The whole cover, black and all: faded out on the game once it is
+  /// ready.
+  late final AnimationController _opacity = AnimationController(
+    vsync: this,
+    value: 1,
     reverseDuration: LoadingCover.fadeOut,
   );
   bool _shownLongEnough = false;
@@ -95,9 +136,9 @@ final class _LoadingCoverState extends State<LoadingCover>
     super.initState();
     widget.ready.addListener(_maybeLeave);
     if (widget.fadeIn) {
-      unawaited(_opacity.forward());
+      unawaited(_picture.forward());
     } else {
-      _opacity.value = 1;
+      _picture.value = 1;
     }
     _minimum = Timer(widget.minimum, () {
       _shownLongEnough = true;
@@ -123,6 +164,7 @@ final class _LoadingCoverState extends State<LoadingCover>
   void dispose() {
     widget.ready.removeListener(_maybeLeave);
     _minimum?.cancel();
+    _picture.dispose();
     _opacity.dispose();
     super.dispose();
   }
@@ -138,15 +180,24 @@ final class _LoadingCoverState extends State<LoadingCover>
         opacity: _opacity,
         child: ColoredBox(
           color: Colors.black,
-          child: switch (widget.artSize) {
-            null => LoadingArt(caption: widget.caption),
-            final size => Center(
-              child: SizedBox.fromSize(
-                size: size,
-                child: LoadingArt(caption: widget.caption),
+          child: FadeTransition(
+            opacity: _picture,
+            child: switch (widget.artSize) {
+              null => LoadingArt(
+                caption: widget.caption,
+                picture: widget.image,
               ),
-            ),
-          },
+              final size => Center(
+                child: SizedBox.fromSize(
+                  size: size,
+                  child: LoadingArt(
+                    caption: widget.caption,
+                    picture: widget.image,
+                  ),
+                ),
+              ),
+            },
+          ),
         ),
       ),
     );

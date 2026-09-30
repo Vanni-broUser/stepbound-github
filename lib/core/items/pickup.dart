@@ -9,11 +9,17 @@ final class Pickup {
     required this.id,
     required this.position,
     this.ammo = 0,
+    this.molotovs = 0,
     this.gun = false,
     this.incense = false,
     this.episcopalRing = false,
     this.cultistRobe = false,
     this.duomoKey = false,
+    this.grapplingHook = false,
+    this.palazzoKey = false,
+    this.goldIngot = false,
+    this.rockets = 0,
+    this.rocketLauncher = false,
     this.active = true,
     this.collected = false,
   });
@@ -23,11 +29,17 @@ final class Pickup {
       id: json['id']! as String,
       position: GridPoint.fromJson(json['position']! as Map<String, Object?>),
       ammo: json['ammo']! as int,
+      molotovs: json['molotovs'] as int? ?? 0,
       gun: json['gun']! as bool,
       incense: json['incense']! as bool,
       episcopalRing: json['episcopalRing']! as bool,
       cultistRobe: json['cultistRobe']! as bool,
       duomoKey: json['duomoKey'] as bool? ?? false,
+      grapplingHook: json['grapplingHook'] as bool? ?? false,
+      palazzoKey: json['palazzoKey'] as bool? ?? false,
+      goldIngot: json['goldIngot'] as bool? ?? false,
+      rockets: json['rockets'] as int? ?? 0,
+      rocketLauncher: json['rocketLauncher'] as bool? ?? false,
       active: json['active']! as bool,
       collected: json['collected'] as bool? ?? false,
     );
@@ -36,6 +48,9 @@ final class Pickup {
   final String id;
   final GridPoint position;
   final int ammo;
+
+  /// Molotov cocktails, ready to throw.
+  final int molotovs;
   final bool gun;
 
   /// The censer's worth of incense Don Angelo asked for: there is one
@@ -52,6 +67,24 @@ final class Pickup {
   /// Don Angelo's body once the mass is over.
   final bool duomoKey;
 
+  /// The grappling hook, in the Baths of Diocletian.
+  final bool grapplingHook;
+
+  /// The key of the flat still locked on the palazzo's third floor, in a
+  /// bedroom on its first.
+  final bool palazzoKey;
+
+  /// The gold ingot, in the open vault under the bank on Via Marsala: the
+  /// thing of value Tonino and Marcello want.
+  final bool goldIngot;
+
+  /// Rounds for the rocket launcher.
+  final int rockets;
+
+  /// The rocket launcher itself, in the offices at the bottom of the
+  /// block east of the hospital's roof.
+  final bool rocketLauncher;
+
   /// False while hidden by a script and after it has been collected.
   bool active;
 
@@ -61,11 +94,18 @@ final class Pickup {
     'id': id,
     'position': position.toJson(),
     'ammo': ammo,
+    // Only in the one backpack that has any: saves stay small.
+    if (molotovs > 0) 'molotovs': molotovs,
     'gun': gun,
     'incense': incense,
     'episcopalRing': episcopalRing,
     'cultistRobe': cultistRobe,
     'duomoKey': duomoKey,
+    if (grapplingHook) 'grapplingHook': true,
+    if (palazzoKey) 'palazzoKey': true,
+    if (goldIngot) 'goldIngot': true,
+    if (rockets > 0) 'rockets': rockets,
+    if (rocketLauncher) 'rocketLauncher': true,
     'active': active,
     'collected': collected,
   };

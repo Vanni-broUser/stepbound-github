@@ -1,0 +1,802 @@
+{
+  "format": "stepbound-character-atlas-v1",
+  "cellWidth": 16,
+  "cellHeight": 24,
+  "columns": [
+    "idle_0",
+    "idle_1",
+    "walk_0",
+    "walk_1",
+    "walk_2",
+    "walk_3"
+  ],
+  "rows": [
+    "south",
+    "west",
+    "east",
+    "north"
+  ],
+  "files": [
+    "mario/sprites/base.png",
+    "mario/sprites/cultist.png",
+    "mario/sprites/ghost.png",
+    "mario/sprites/vampire.png",
+    "mario/sprites/jack_o_lantern.png",
+    "mario/sprites/zombie.png",
+    "mario/sprites/roma.png",
+    "mario/sprites/lazio.png",
+    "zombies/sprites/wanderer.png",
+    "zombies/sprites/sprinter.png",
+    "zombies/sprites/call_center.png",
+    "zombies/sprites/brute.png",
+    "zombies/sprites/blind.png",
+    "zombies/sprites/carabiniere.png",
+    "zombies/sprites/mutilated.png",
+    "zombies/sprites/burning.png",
+    "zombies/sprites/drunk.png",
+    "zombies/sprites/cultist.png",
+    "zombies/sprites/caparezza.png"
+  ],
+  "actionSheets": [
+    {
+      "file": "mario/sprites/base_gun.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "fire_0",
+        "fire_1",
+        "fire_2"
+      ],
+      "actions": [
+        "aim",
+        "fire"
+      ]
+    },
+    {
+      "file": "mario/sprites/base_pickup.png",
+      "columns": [
+        "pick_0",
+        "pick_1",
+        "pick_2",
+        "pick_3",
+        "pick_4",
+        "pick_5"
+      ],
+      "actions": [
+        "pickup"
+      ]
+    },
+    {
+      "file": "mario/sprites/base_throwable.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "throw_0",
+        "throw_1",
+        "throw_2"
+      ],
+      "actions": [
+        "aim_throwable",
+        "throw"
+      ]
+    },
+    {
+      "file": "mario/sprites/cultist_gun.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "fire_0",
+        "fire_1",
+        "fire_2"
+      ],
+      "actions": [
+        "aim",
+        "fire"
+      ]
+    },
+    {
+      "file": "mario/sprites/cultist_pickup.png",
+      "columns": [
+        "pick_0",
+        "pick_1",
+        "pick_2",
+        "pick_3",
+        "pick_4",
+        "pick_5"
+      ],
+      "actions": [
+        "pickup"
+      ]
+    },
+    {
+      "file": "mario/sprites/cultist_throwable.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "throw_0",
+        "throw_1",
+        "throw_2"
+      ],
+      "actions": [
+        "aim_throwable",
+        "throw"
+      ]
+    },
+    {
+      "file": "mario/sprites/ghost_gun.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "fire_0",
+        "fire_1",
+        "fire_2"
+      ],
+      "actions": [
+        "aim",
+        "fire"
+      ]
+    },
+    {
+      "file": "mario/sprites/ghost_pickup.png",
+      "columns": [
+        "pick_0",
+        "pick_1",
+        "pick_2",
+        "pick_3",
+        "pick_4",
+        "pick_5"
+      ],
+      "actions": [
+        "pickup"
+      ]
+    },
+    {
+      "file": "mario/sprites/ghost_throwable.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "throw_0",
+        "throw_1",
+        "throw_2"
+      ],
+      "actions": [
+        "aim_throwable",
+        "throw"
+      ]
+    },
+    {
+      "file": "mario/sprites/vampire_gun.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "fire_0",
+        "fire_1",
+        "fire_2"
+      ],
+      "actions": [
+        "aim",
+        "fire"
+      ]
+    },
+    {
+      "file": "mario/sprites/vampire_pickup.png",
+      "columns": [
+        "pick_0",
+        "pick_1",
+        "pick_2",
+        "pick_3",
+        "pick_4",
+        "pick_5"
+      ],
+      "actions": [
+        "pickup"
+      ]
+    },
+    {
+      "file": "mario/sprites/vampire_throwable.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "throw_0",
+        "throw_1",
+        "throw_2"
+      ],
+      "actions": [
+        "aim_throwable",
+        "throw"
+      ]
+    },
+    {
+      "file": "mario/sprites/jack_o_lantern_gun.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "fire_0",
+        "fire_1",
+        "fire_2"
+      ],
+      "actions": [
+        "aim",
+        "fire"
+      ]
+    },
+    {
+      "file": "mario/sprites/jack_o_lantern_pickup.png",
+      "columns": [
+        "pick_0",
+        "pick_1",
+        "pick_2",
+        "pick_3",
+        "pick_4",
+        "pick_5"
+      ],
+      "actions": [
+        "pickup"
+      ]
+    },
+    {
+      "file": "mario/sprites/jack_o_lantern_throwable.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "throw_0",
+        "throw_1",
+        "throw_2"
+      ],
+      "actions": [
+        "aim_throwable",
+        "throw"
+      ]
+    },
+    {
+      "file": "mario/sprites/zombie_gun.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "fire_0",
+        "fire_1",
+        "fire_2"
+      ],
+      "actions": [
+        "aim",
+        "fire"
+      ]
+    },
+    {
+      "file": "mario/sprites/zombie_pickup.png",
+      "columns": [
+        "pick_0",
+        "pick_1",
+        "pick_2",
+        "pick_3",
+        "pick_4",
+        "pick_5"
+      ],
+      "actions": [
+        "pickup"
+      ]
+    },
+    {
+      "file": "mario/sprites/zombie_throwable.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "throw_0",
+        "throw_1",
+        "throw_2"
+      ],
+      "actions": [
+        "aim_throwable",
+        "throw"
+      ]
+    },
+    {
+      "file": "mario/sprites/roma_gun.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "fire_0",
+        "fire_1",
+        "fire_2"
+      ],
+      "actions": [
+        "aim",
+        "fire"
+      ]
+    },
+    {
+      "file": "mario/sprites/roma_pickup.png",
+      "columns": [
+        "pick_0",
+        "pick_1",
+        "pick_2",
+        "pick_3",
+        "pick_4",
+        "pick_5"
+      ],
+      "actions": [
+        "pickup"
+      ]
+    },
+    {
+      "file": "mario/sprites/roma_throwable.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "throw_0",
+        "throw_1",
+        "throw_2"
+      ],
+      "actions": [
+        "aim_throwable",
+        "throw"
+      ]
+    },
+    {
+      "file": "mario/sprites/lazio_gun.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "fire_0",
+        "fire_1",
+        "fire_2"
+      ],
+      "actions": [
+        "aim",
+        "fire"
+      ]
+    },
+    {
+      "file": "mario/sprites/lazio_pickup.png",
+      "columns": [
+        "pick_0",
+        "pick_1",
+        "pick_2",
+        "pick_3",
+        "pick_4",
+        "pick_5"
+      ],
+      "actions": [
+        "pickup"
+      ]
+    },
+    {
+      "file": "mario/sprites/lazio_throwable.png",
+      "columns": [
+        "aim_0",
+        "aim_1",
+        "aim_2",
+        "throw_0",
+        "throw_1",
+        "throw_2"
+      ],
+      "actions": [
+        "aim_throwable",
+        "throw"
+      ]
+    },
+    {
+      "file": "zombies/sprites/wanderer_hit.png",
+      "columns": [
+        "hit_0",
+        "hit_1",
+        "hit_2"
+      ],
+      "actions": [
+        "hit"
+      ]
+    },
+    {
+      "file": "zombies/sprites/wanderer_bite.png",
+      "columns": [
+        "bite_0",
+        "bite_1",
+        "bite_2",
+        "bite_3"
+      ],
+      "actions": [
+        "bite"
+      ]
+    },
+    {
+      "file": "zombies/sprites/wanderer_death.png",
+      "columns": [
+        "death_0",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5"
+      ],
+      "actions": [
+        "death"
+      ]
+    },
+    {
+      "file": "zombies/sprites/sprinter_hit.png",
+      "columns": [
+        "hit_0",
+        "hit_1",
+        "hit_2"
+      ],
+      "actions": [
+        "hit"
+      ]
+    },
+    {
+      "file": "zombies/sprites/sprinter_bite.png",
+      "columns": [
+        "bite_0",
+        "bite_1",
+        "bite_2",
+        "bite_3"
+      ],
+      "actions": [
+        "bite"
+      ]
+    },
+    {
+      "file": "zombies/sprites/sprinter_death.png",
+      "columns": [
+        "death_0",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5"
+      ],
+      "actions": [
+        "death"
+      ]
+    },
+    {
+      "file": "zombies/sprites/call_center_hit.png",
+      "columns": [
+        "hit_0",
+        "hit_1",
+        "hit_2"
+      ],
+      "actions": [
+        "hit"
+      ]
+    },
+    {
+      "file": "zombies/sprites/call_center_bite.png",
+      "columns": [
+        "bite_0",
+        "bite_1",
+        "bite_2",
+        "bite_3"
+      ],
+      "actions": [
+        "bite"
+      ]
+    },
+    {
+      "file": "zombies/sprites/call_center_death.png",
+      "columns": [
+        "death_0",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5"
+      ],
+      "actions": [
+        "death"
+      ]
+    },
+    {
+      "file": "zombies/sprites/brute_hit.png",
+      "columns": [
+        "hit_0",
+        "hit_1",
+        "hit_2"
+      ],
+      "actions": [
+        "hit"
+      ]
+    },
+    {
+      "file": "zombies/sprites/brute_bite.png",
+      "columns": [
+        "bite_0",
+        "bite_1",
+        "bite_2",
+        "bite_3"
+      ],
+      "actions": [
+        "bite"
+      ]
+    },
+    {
+      "file": "zombies/sprites/brute_death.png",
+      "columns": [
+        "death_0",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5"
+      ],
+      "actions": [
+        "death"
+      ]
+    },
+    {
+      "file": "zombies/sprites/blind_hit.png",
+      "columns": [
+        "hit_0",
+        "hit_1",
+        "hit_2"
+      ],
+      "actions": [
+        "hit"
+      ]
+    },
+    {
+      "file": "zombies/sprites/blind_bite.png",
+      "columns": [
+        "bite_0",
+        "bite_1",
+        "bite_2",
+        "bite_3"
+      ],
+      "actions": [
+        "bite"
+      ]
+    },
+    {
+      "file": "zombies/sprites/blind_death.png",
+      "columns": [
+        "death_0",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5"
+      ],
+      "actions": [
+        "death"
+      ]
+    },
+    {
+      "file": "zombies/sprites/carabiniere_hit.png",
+      "columns": [
+        "hit_0",
+        "hit_1",
+        "hit_2"
+      ],
+      "actions": [
+        "hit"
+      ]
+    },
+    {
+      "file": "zombies/sprites/carabiniere_bite.png",
+      "columns": [
+        "swing_0",
+        "swing_1",
+        "swing_2",
+        "swing_3"
+      ],
+      "actions": [
+        "baton"
+      ]
+    },
+    {
+      "file": "zombies/sprites/carabiniere_death.png",
+      "columns": [
+        "death_0",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5"
+      ],
+      "actions": [
+        "death"
+      ]
+    },
+    {
+      "file": "zombies/sprites/mutilated_hit.png",
+      "columns": [
+        "hit_0",
+        "hit_1",
+        "hit_2"
+      ],
+      "actions": [
+        "hit"
+      ]
+    },
+    {
+      "file": "zombies/sprites/mutilated_bite.png",
+      "columns": [
+        "bite_0",
+        "bite_1",
+        "bite_2",
+        "bite_3"
+      ],
+      "actions": [
+        "bite"
+      ]
+    },
+    {
+      "file": "zombies/sprites/mutilated_death.png",
+      "columns": [
+        "death_0",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5"
+      ],
+      "actions": [
+        "death"
+      ]
+    },
+    {
+      "file": "zombies/sprites/burning_hit.png",
+      "columns": [
+        "hit_0",
+        "hit_1",
+        "hit_2"
+      ],
+      "actions": [
+        "hit"
+      ]
+    },
+    {
+      "file": "zombies/sprites/burning_bite.png",
+      "columns": [
+        "bite_0",
+        "bite_1",
+        "bite_2",
+        "bite_3"
+      ],
+      "actions": [
+        "bite"
+      ]
+    },
+    {
+      "file": "zombies/sprites/burning_death.png",
+      "columns": [
+        "death_0",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5"
+      ],
+      "actions": [
+        "death"
+      ]
+    },
+    {
+      "file": "zombies/sprites/drunk_hit.png",
+      "columns": [
+        "hit_0",
+        "hit_1",
+        "hit_2"
+      ],
+      "actions": [
+        "hit"
+      ]
+    },
+    {
+      "file": "zombies/sprites/drunk_bite.png",
+      "columns": [
+        "bite_0",
+        "bite_1",
+        "bite_2",
+        "bite_3"
+      ],
+      "actions": [
+        "bite"
+      ]
+    },
+    {
+      "file": "zombies/sprites/drunk_death.png",
+      "columns": [
+        "death_0",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5"
+      ],
+      "actions": [
+        "death"
+      ]
+    },
+    {
+      "file": "zombies/sprites/cultist_hit.png",
+      "columns": [
+        "hit_0",
+        "hit_1",
+        "hit_2"
+      ],
+      "actions": [
+        "hit"
+      ]
+    },
+    {
+      "file": "zombies/sprites/cultist_bite.png",
+      "columns": [
+        "bite_0",
+        "bite_1",
+        "bite_2",
+        "bite_3"
+      ],
+      "actions": [
+        "bite"
+      ]
+    },
+    {
+      "file": "zombies/sprites/cultist_death.png",
+      "columns": [
+        "death_0",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5"
+      ],
+      "actions": [
+        "death"
+      ]
+    },
+    {
+      "file": "zombies/sprites/caparezza_hit.png",
+      "columns": [
+        "hit_0",
+        "hit_1",
+        "hit_2"
+      ],
+      "actions": [
+        "hit"
+      ]
+    },
+    {
+      "file": "zombies/sprites/caparezza_bite.png",
+      "columns": [
+        "bite_0",
+        "bite_1",
+        "bite_2",
+        "bite_3"
+      ],
+      "actions": [
+        "bite"
+      ]
+    },
+    {
+      "file": "zombies/sprites/caparezza_death.png",
+      "columns": [
+        "death_0",
+        "death_1",
+        "death_2",
+        "death_3",
+        "death_4",
+        "death_5"
+      ],
+      "actions": [
+        "death"
+      ]
+    }
+  ],
+  "style": "original GBA-era top-down monster-catching RPG pixel art"
+}

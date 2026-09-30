@@ -11,6 +11,9 @@
 # the file, so a different PNG encoder or zlib does not fail the job on
 # its own; the pin keeps the drawing itself from moving.
 #
-# Only the level bakers are covered. The sprite, audio and quest-item
-# generators still have no pinned environment.
+# Every picture generator runs in it: the sprite, outfit, quest-item, sign
+# and icon generators through `python tools/build_sprites.py --check`, in
+# the `sprites_check` job, the same way. They only need Pillow and the
+# standard library. The audio (`tools/build_audio.py`) needs ffmpeg, not
+# Python packages: see the version it declares.
 Pillow==12.3.0

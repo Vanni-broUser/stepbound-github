@@ -3,7 +3,7 @@ import 'package:stepbound/core/core.dart';
 
 void main() {
   test('every place is a rectangle of glyphs', () {
-    for (final place in tutorialPlaces) {
+    for (final place in gamePlaces) {
       for (final (index, row) in place.rows.indexed) {
         expect(
           row.length,

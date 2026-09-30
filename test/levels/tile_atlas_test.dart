@@ -7,7 +7,7 @@ import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/render/tile_atlas.dart';
 
 /// The places the game paints from the tile atlas: every one of them.
-Iterable<Place> get convertedPlaces => tutorialPlaces;
+Iterable<Place> get convertedPlaces => gamePlaces;
 
 void main() {
   final manifest = TileAtlasManifest.parse(
@@ -28,7 +28,7 @@ void main() {
     for (final place in convertedPlaces) {
       expect(
         manifest.places,
-        contains(place.id.name),
+        contains(place.artId.name),
         reason:
             '${place.id} has no entry in '
             '$tileAtlasManifestPath: it would be drawn as a bare rectangle. '
@@ -39,7 +39,7 @@ void main() {
 
   test('no glyph of a converted place goes unpainted', () {
     for (final place in convertedPlaces) {
-      final art = manifest.places[place.id.name]!;
+      final art = manifest.places[place.artId.name]!;
       expect(
         art.unpainted(art.gridFor(place.rows)),
         isEmpty,
@@ -72,7 +72,7 @@ void main() {
 
   test('a placed object still lies over the rows it was painted for', () {
     for (final place in convertedPlaces) {
-      for (final object in manifest.places[place.id.name]!.objects) {
+      for (final object in manifest.places[place.artId.name]!.objects) {
         final at = object.underCorner;
         if (at == null) {
           continue;
@@ -108,7 +108,7 @@ void main() {
 
   test('an object is painted for the run of glyphs it was drawn for', () {
     for (final place in convertedPlaces) {
-      for (final object in manifest.places[place.id.name]!.objects) {
+      for (final object in manifest.places[place.artId.name]!.objects) {
         final tiles = object.tiles;
         final glyph = object.glyph;
         if (tiles == null || glyph == null) {
@@ -137,8 +137,54 @@ void main() {
     }
   });
 
+  test("the harbour's carousel and newsstand rise over the row behind "
+      'them', () {
+    final art = manifest.places[place(PlaceId.harbour).artId.name]!;
+    TileObject named(String name) =>
+        art.objects.singleWhere((object) => object.image.contains(name));
+    final tall = <TileObject>[named('carousel'), named('kiosk')];
+    for (final object in tall) {
+      expect(object.rises, isTrue);
+      expect(object.underCorner, isNotNull);
+    }
+    expect(art.objects.where((object) => object.rises), unorderedEquals(tall));
+  });
+
+  test('every car of a pile-up is drawn, even stacked lane on lane', () {
+    var cars = 0;
+    // Only outdoors are these glyphs cars (in the bar `U` is a zombie).
+    for (final place in convertedPlaces.where(
+      (place) => place.spec.legend == outdoorLegend,
+    )) {
+      final art = manifest.places[place.artId.name]!;
+      final grid = art.gridFor(place.rows);
+      for (var y = 0; y < place.rows.length; y++) {
+        final row = place.rows[y];
+        for (var x = 0; x < row.length; x++) {
+          final glyph = row[x];
+          // `CC`, `XX` and `UU` lie across two cells, drawn from the first.
+          if (!'CXU'.contains(glyph) || (x > 0 && row[x - 1] == glyph)) {
+            continue;
+          }
+          final rules = art.rules.where(
+            (rule) => rule.layer == 'foreground' && rule.covers(glyph),
+          );
+          cars++;
+          expect(
+            rules.any((rule) => rule.bucketFor(grid, x, y).isNotEmpty),
+            isTrue,
+            reason:
+                '${place.id}: the car at $x,$y blocks the way and is not '
+                'drawn',
+          );
+        }
+      }
+    }
+    expect(cars, greaterThan(10), reason: 'the cars were found');
+  });
+
   test('every place of the atlas is a place of the game', () {
-    final ids = <String>{for (final place in tutorialPlaces) place.id.name};
+    final ids = <String>{for (final place in gamePlaces) place.id.name};
     for (final name in manifest.places.keys) {
       expect(
         ids,

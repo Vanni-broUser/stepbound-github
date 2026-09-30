@@ -34,5 +34,6 @@ final class AsciiRenderer {
     EntityKind.burning => 'F',
     EntityKind.drunk => 'U',
     EntityKind.cultist => 'T',
+    EntityKind.callCenter => 'Q',
   };
 }

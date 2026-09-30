@@ -4,6 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/progress.dart';
+import 'package:stepbound/game/story/silent_story_host.dart';
+import 'package:stepbound/game/story/story_director.dart';
+import 'package:stepbound/save/published_save.dart';
 
 /// Everything needed to resume a game from a campfire.
 final class SaveGame {
@@ -12,7 +15,7 @@ final class SaveGame {
     required this.savedAt,
     required this.place,
     required this.world,
-    required this.tutorial,
+    required this.story,
     required this.progress,
     required this.hud,
     this.atCampfire = true,
@@ -48,7 +51,7 @@ final class SaveGame {
       savedAt: savedAt,
       place: fields.read<String>('place'),
       world: fields.read<Map<String, Object?>>('world'),
-      tutorial: fields.read<Map<String, Object?>>('tutorial'),
+      story: fields.read<Map<String, Object?>>('story'),
       progress: fields.read<Map<String, Object?>>('progress'),
       hud: hud.cast<String>(),
       atCampfire: fields.read<bool>('atCampfire'),
@@ -57,30 +60,42 @@ final class SaveGame {
   }
 
   /// What [encoded], as a slot stores it, holds: nothing, a save that can
-  /// be played, or a damaged one. It never throws. A save of another
-  /// [format] reads as empty, like no save at all: old saves are dropped,
-  /// never migrated. [check] is asked whether a save that reads well can
-  /// really be played (see [checkRestorable]); whatever it throws makes the
-  /// save a damaged one.
-  static SaveRead decode(String? encoded, {SaveCheck? check}) {
+  /// be played, or a damaged one. It never throws. A save of the last
+  /// public build, [published], is migrated; one of any other [format]
+  /// reads as empty, like no save at all. [check] is asked whether a save
+  /// that reads well can really be played (see [checkRestorable]); whatever
+  /// it throws makes the save a damaged one.
+  static SaveRead decode(
+    String? encoded, {
+    SaveCheck? check,
+    PublishedSaves published = const PublishedSaves(),
+  }) {
     if (encoded == null) {
       return const EmptySave();
     }
-    final Object? json;
+    final Object? decoded;
     try {
-      json = jsonDecode(encoded);
+      decoded = jsonDecode(encoded);
     } on FormatException {
       return const DamagedSave('not JSON');
     }
-    if (json is! Map<String, Object?>) {
+    if (decoded is! Map<String, Object?>) {
       return const DamagedSave('not a JSON object');
     }
+    var json = decoded;
     final version = json['format'];
     if (version is! int) {
       return const DamagedSave('no format');
     }
     if (version != format) {
-      return const EmptySave();
+      if (version != published.format) {
+        return const EmptySave();
+      }
+      try {
+        json = <String, Object?>{...published.migrate(json), 'format': format};
+      } on Object catch (error) {
+        return DamagedSave('cannot be migrated from format $version: $error');
+      }
     }
     final SaveGame save;
     try {
@@ -96,9 +111,10 @@ final class SaveGame {
     return LoadedSave(save);
   }
 
-  /// A save of any other format reads as an empty slot. Bump it whenever
-  /// what a save holds changes: old saves are dropped, never migrated.
-  static const int format = 18;
+  /// Bump it whenever what a save holds changes. Saves of the formats in
+  /// between public builds are dropped, never migrated; those of the last
+  /// public build are, see `docs/save_policy.md`.
+  static const int format = 52;
 
   /// 1 to [SaveRepository.slotCount].
   final int slot;
@@ -107,11 +123,11 @@ final class SaveGame {
   /// Where the save was made, as shown in the slot list.
   final String place;
 
-  /// The simulation, as `saveTutorialWorld`.
+  /// The simulation, as `saveGameWorld`.
   final Map<String, Object?> world;
 
-  /// What the tutorial's scripts have done, as `TutorialDirector.toJson`.
-  final Map<String, Object?> tutorial;
+  /// What the story's scripts have done, as `StoryDirector.toJson`.
+  final Map<String, Object?> story;
 
   /// The zombie types met and the story scenes seen, as `Progress.toJson`.
   final Map<String, Object?> progress;
@@ -136,7 +152,7 @@ final class SaveGame {
     savedAt: savedAt,
     place: place,
     world: world,
-    tutorial: tutorial,
+    story: story,
     progress: progress,
     hud: hud,
     atCampfire: atCampfire,
@@ -149,7 +165,7 @@ final class SaveGame {
     'savedAt': savedAt.toIso8601String(),
     'place': place,
     'world': world,
-    'tutorial': tutorial,
+    'story': story,
     'progress': progress,
     'hud': hud,
     'atCampfire': atCampfire,
@@ -181,12 +197,16 @@ final class _Fields {
 /// them, so that a slot the menu shows as a save is one that loads.
 typedef SaveCheck = void Function(SaveGame save);
 
-/// The [SaveCheck] of the game: the world and the progress rebuild. What
-/// they throw (a missing field, a zombie type or a tile kind the game does
-/// not know) marks the save as damaged.
+/// The [SaveCheck] of the game: the world, the progress and the story's
+/// scripts rebuild, as they do when the game starts. What they throw (a
+/// missing field, a zombie type or a tile kind the game does not know, a
+/// script's flag of the wrong type) marks the save as damaged.
 void checkRestorable(SaveGame save) {
-  restoreTutorialWorld(save.world);
-  Progress.fromJson(save.progress);
+  StoryDirector(
+    world: restoreGameWorld(save.world),
+    host: const SilentStoryHost(),
+    progress: Progress.fromJson(save.progress),
+  ).restore(save.story);
 }
 
 /// What a slot holds, read back.
@@ -203,12 +223,19 @@ final class EmptySave extends SaveRead {
 }
 
 /// A save that can be played. [fromBackup] when the slot's own save was
-/// damaged and this is the good one it had replaced.
+/// damaged and this is the good one it had replaced; [suspended] when it
+/// is the game as it was put down, not the last campfire (see
+/// [SaveRepository.suspend]).
 final class LoadedSave extends SaveRead {
-  const LoadedSave(this.save, {this.fromBackup = false});
+  const LoadedSave(
+    this.save, {
+    this.fromBackup = false,
+    this.suspended = false,
+  });
 
   final SaveGame save;
   final bool fromBackup;
+  final bool suspended;
 
   @override
   SaveGame get game => save;
@@ -237,22 +264,57 @@ final class SaveWriteException implements Exception {
 abstract interface class SaveRepository {
   static const int slotCount = 4;
 
-  /// Every slot in order.
+  /// Every slot in order, as [read] gives them.
   Future<List<SaveRead>> all();
 
-  /// What [slot] holds. Never throws: storage that cannot be read makes
-  /// the slot a damaged one.
+  /// What [slot] holds for the menu: the game as it was put down, if it
+  /// was put down since the last campfire (by its date: one older than
+  /// the campfire's save is left aside), else the campfire's save.
+  /// Never throws: storage that cannot be read makes the slot a damaged
+  /// one.
   Future<SaveRead> read(int slot);
 
-  /// The save in [slot], null when there is none to play.
+  /// The save in [slot] to go back to: the last campfire's (or the
+  /// train's), never the game as it was put down. Null when there is
+  /// none to play.
   Future<SaveGame?> load(int slot);
 
-  /// Writes [game] in its slot, keeping the save it replaces as a backup.
-  /// Throws a [SaveWriteException] when it cannot.
+  /// Writes [game] in its slot, keeping the save it replaces as a backup,
+  /// and drops the game put down since: this is newer. Throws a
+  /// [SaveWriteException] when it cannot.
   Future<void> save(SaveGame game);
 
-  /// Empties [slot], backup included.
+  /// Writes [game] beside its slot's save, as the game put down: what
+  /// the app was doing when it went to the background, to be picked up
+  /// from the menu. The slot's own save, the campfire to go back to,
+  /// stays as it is; the next campfire, or going back to it, drops this.
+  /// Throws a [SaveWriteException] when it cannot.
+  Future<void> suspend(SaveGame game);
+
+  /// Drops the game put down in [slot], if any: the player went back to
+  /// the campfire instead.
+  Future<void> clearSuspended(int slot);
+
+  /// Empties [slot], backup and game put down included. Its gifts stay:
+  /// see [loadGifts].
   Future<void> clear(int slot);
+
+  /// The skins given to [slot] by gift links: the game saved there has
+  /// them, or the one started there next if it was empty. A game started
+  /// over one that is saved there drops them (see `GameSession.startNew`).
+  Future<Set<PlayerOutfit>> loadGifts(int slot);
+
+  /// Replaces the gifts of [slot]. Throws a [SaveWriteException] when it
+  /// cannot.
+  Future<void> saveGifts(int slot, Set<PlayerOutfit> gifts);
+
+  /// Story sequences watched on [slot], even when the attempt that showed
+  /// them ended before a campfire or the train saved the game.
+  Future<Set<StoryMemory>> loadStoryHistory(int slot);
+
+  /// Replaces the lightweight viewing history for [slot]. It only enables
+  /// skipping repeated scenes; it is not part of the saved game progress.
+  Future<void> saveStoryHistory(int slot, Set<StoryMemory> memories);
 }
 
 /// A [SaveRepository] over a store of strings: each slot's save under
@@ -264,8 +326,20 @@ abstract base class StoredSaveRepository implements SaveRepository {
   /// Asked whether a save that reads well can really be played.
   final SaveCheck? check;
 
+  /// What each key last read as, with the string it was read from. The
+  /// storage is read every time, but the same string reads the same, and
+  /// checking a save rebuilds the world: a slot the menu has shown, or a
+  /// save written here, is not decoded and checked again when the menu
+  /// opens once more, a game is loaded, or a campfire looks at the save
+  /// it replaces.
+  final Map<String, (String, SaveRead)> _lastRead =
+      <String, (String, SaveRead)>{};
+
   static String slotKey(int slot) => 'stepbound.save.$slot';
   static String backupKey(int slot) => 'stepbound.save.$slot.previous';
+  static String suspendedKey(int slot) => 'stepbound.save.$slot.suspended';
+  static String storyHistoryKey(int slot) => 'stepbound.story-history.$slot';
+  static String giftsKey(int slot) => 'stepbound.gifts.$slot';
 
   @protected
   Future<String?> readValue(String key);
@@ -284,6 +358,41 @@ abstract base class StoredSaveRepository implements SaveRepository {
 
   @override
   Future<SaveRead> read(int slot) async {
+    // Both at once: the menu is waiting on this.
+    final reads = await Future.wait(<Future<Object>>[
+      _readAt(suspendedKey(slot)),
+      _readCheckpoint(slot),
+    ]);
+    final (_, suspended) = reads[0] as (String?, SaveRead);
+    final checkpoint = reads[1] as SaveRead;
+    switch (suspended) {
+      case LoadedSave(:final save)
+          when checkpoint.game == null ||
+              !save.savedAt.isBefore(checkpoint.game!.savedAt):
+        return LoadedSave(save, suspended: true);
+      case LoadedSave():
+        // A campfire wrote over it and could not drop it (or the app was
+        // killed in between): the fire is the newer of the two.
+        debugPrint(
+          'save: the game put down in slot $slot is older than '
+          'the fire, and is left aside',
+        );
+      case DamagedSave(:final reason):
+        // The campfire's save is still there to play.
+        debugPrint(
+          'save: the game put down in slot $slot is damaged ($reason)',
+        );
+      case EmptySave():
+        break;
+    }
+    return checkpoint;
+  }
+
+  @override
+  Future<SaveGame?> load(int slot) async => (await _readCheckpoint(slot)).game;
+
+  /// The slot's own save, or the backup it replaced when it is damaged.
+  Future<SaveRead> _readCheckpoint(int slot) async {
     final (_, current) = await _readAt(slotKey(slot));
     if (current is! DamagedSave) {
       return current;
@@ -297,9 +406,6 @@ abstract base class StoredSaveRepository implements SaveRepository {
   }
 
   @override
-  Future<SaveGame?> load(int slot) async => (await read(slot)).game;
-
-  @override
   Future<void> save(SaveGame game) async {
     final (encoded, current) = await _readAt(slotKey(game.slot));
     try {
@@ -307,17 +413,120 @@ abstract base class StoredSaveRepository implements SaveRepository {
       // the one save there is to fall back on.
       if (encoded != null && current is LoadedSave) {
         await writeValue(backupKey(game.slot), encoded);
+        _lastRead[backupKey(game.slot)] = (encoded, current);
       }
-      await writeValue(slotKey(game.slot), jsonEncode(game.toJson()));
+      final written = jsonEncode(game.toJson());
+      await writeValue(slotKey(game.slot), written);
+      _lastRead[slotKey(game.slot)] = (written, LoadedSave(game));
+    } on Object catch (error) {
+      throw SaveWriteException(game.slot, error);
+    }
+    // Whatever was put down before this campfire is older than it. The
+    // save is written by now, so failing to drop it is no failed save:
+    // [read] leaves an older game put down aside by its date.
+    try {
+      await removeValue(suspendedKey(game.slot));
+    } on Object catch (error) {
+      debugPrint(
+        'save: could not drop the game put down in slot ${game.slot} '
+        '($error)',
+      );
+    }
+  }
+
+  @override
+  Future<void> suspend(SaveGame game) async {
+    try {
+      final written = jsonEncode(game.toJson());
+      await writeValue(suspendedKey(game.slot), written);
+      _lastRead[suspendedKey(game.slot)] = (written, LoadedSave(game));
     } on Object catch (error) {
       throw SaveWriteException(game.slot, error);
     }
   }
 
   @override
+  Future<void> clearSuspended(int slot) => removeValue(suspendedKey(slot));
+
+  @override
   Future<void> clear(int slot) async {
     await removeValue(slotKey(slot));
     await removeValue(backupKey(slot));
+    await removeValue(suspendedKey(slot));
+    await removeValue(storyHistoryKey(slot));
+  }
+
+  @override
+  Future<Set<StoryMemory>> loadStoryHistory(int slot) async {
+    final String? encoded;
+    try {
+      encoded = await readValue(storyHistoryKey(slot));
+    } on Object catch (error) {
+      debugPrint('story history: slot $slot is unreadable ($error)');
+      return <StoryMemory>{};
+    }
+    if (encoded == null) {
+      return <StoryMemory>{};
+    }
+    try {
+      final decoded = jsonDecode(encoded);
+      if (decoded is! List<Object?> || decoded.any((name) => name is! String)) {
+        throw const FormatException('not a list of names');
+      }
+      return <StoryMemory>{
+        for (final name in decoded.cast<String>())
+          StoryMemory.values.byName(name),
+      };
+    } on Object catch (error) {
+      debugPrint('story history: slot $slot is damaged ($error)');
+      return <StoryMemory>{};
+    }
+  }
+
+  @override
+  Future<void> saveStoryHistory(int slot, Set<StoryMemory> memories) async {
+    try {
+      await writeValue(
+        storyHistoryKey(slot),
+        jsonEncode(<String>[for (final memory in memories) memory.name]),
+      );
+    } on Object catch (error) {
+      debugPrint('story history: could not write slot $slot ($error)');
+    }
+  }
+
+  @override
+  Future<Set<PlayerOutfit>> loadGifts(int slot) async {
+    try {
+      final encoded = await readValue(giftsKey(slot));
+      if (encoded == null) {
+        return <PlayerOutfit>{};
+      }
+      final names = (jsonDecode(encoded) as List<Object?>).cast<String>();
+      return <PlayerOutfit>{
+        for (final outfit in PlayerOutfit.values)
+          if (names.contains(outfit.name)) outfit,
+      };
+    } on Object catch (error) {
+      debugPrint('gifts: slot $slot is unreadable ($error)');
+      return <PlayerOutfit>{};
+    }
+  }
+
+  @override
+  Future<void> saveGifts(int slot, Set<PlayerOutfit> gifts) async {
+    try {
+      if (gifts.isEmpty) {
+        await removeValue(giftsKey(slot));
+      } else {
+        await writeValue(
+          giftsKey(slot),
+          jsonEncode(<String>[for (final outfit in gifts) outfit.name]),
+        );
+      }
+    } on Object catch (error) {
+      throw SaveWriteException(slot, error);
+    }
   }
 
   Future<(String?, SaveRead)> _readAt(String key) async {
@@ -327,7 +536,15 @@ abstract base class StoredSaveRepository implements SaveRepository {
     } on Object catch (error) {
       return (null, DamagedSave('unreadable: $error'));
     }
-    return (encoded, SaveGame.decode(encoded, check: check));
+    if (encoded == null) {
+      return (null, const EmptySave());
+    }
+    if (_lastRead[key] case (final last, final read) when last == encoded) {
+      return (encoded, read);
+    }
+    final read = SaveGame.decode(encoded, check: check);
+    _lastRead[key] = (encoded, read);
+    return (encoded, read);
   }
 }
 

@@ -3,10 +3,11 @@ import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart';
 import 'package:stepbound/game/audio/audio_device.dart';
+import 'package:stepbound/game/audio/effect_voices.dart';
 import 'package:stepbound/game/audio/lingering_shots.dart';
 
 /// The device's sound through audioplayers: every looping player and every
-/// pool of effect players mixes with the rest of the phone's sound.
+/// set of effect voices mixes with the rest of the phone's sound.
 ///
 /// It needs the native player, so it is exercised on devices and not by the
 /// tests, which give `PlayerAudio` a fake instead: keep it this thin.
@@ -22,7 +23,7 @@ final class AudioplayersDevice implements AudioDevice {
   ).build();
 
   final AudioCache _cache = AudioCache(prefix: 'assets/audio/');
-  final Map<String, Future<AudioPool>> _pools = <String, Future<AudioPool>>{};
+  final Map<String, EffectVoices> _voices = <String, EffectVoices>{};
 
   @override
   LoopingPlayer loopingPlayer(String id) {
@@ -32,35 +33,60 @@ final class AudioplayersDevice implements AudioDevice {
 
   @override
   Future<void> preload(String file, {required int voices}) =>
-      _pool(file, voices: voices);
+      _voicesOf(file, voices: voices).preload();
 
   @override
   Future<StopShot> shoot(
     String file, {
     required int voices,
     required double volume,
-  }) async {
-    final pool = await _pool(file, voices: voices);
-    return pool.start(volume: volume);
-  }
+  }) => _voicesOf(file, voices: voices).start(volume: volume);
 
-  Future<AudioPool> _pool(String file, {required int voices}) =>
-      _pools.putIfAbsent(
+  EffectVoices _voicesOf(String file, {required int voices}) =>
+      _voices.putIfAbsent(
         file,
-        () => AudioPool.create(
-          source: AssetSource(file),
-          maxPlayers: voices,
-          audioCache: _cache,
-          audioContext: _context,
+        () => EffectVoices(
+          count: voices,
+          newPlayer: () => _AudioplayersEffect.load(file, _cache),
         ),
       );
 
   @override
   Future<void> dispose() async {
-    for (final pool in _pools.values) {
-      await (await pool).dispose();
+    for (final voices in _voices.values) {
+      await voices.dispose();
     }
   }
+}
+
+/// One voice of an effect, as `EffectVoices` wants it.
+final class _AudioplayersEffect implements EffectPlayer {
+  _AudioplayersEffect(this._player);
+
+  static Future<EffectPlayer> load(String file, AudioCache cache) async {
+    final player = AudioPlayer()..audioCache = cache;
+    await player.setAudioContext(AudioplayersDevice._context);
+    await player.setReleaseMode(ReleaseMode.stop);
+    await player.setSource(AssetSource(file));
+    return _AudioplayersEffect(player);
+  }
+
+  final AudioPlayer _player;
+
+  @override
+  bool get isPlaying => _player.state == PlayerState.playing;
+
+  @override
+  Future<void> stop() => _player.stop();
+
+  @override
+  Future<void> setVolume(double volume) => _player.setVolume(volume);
+
+  @override
+  Future<void> resume() => _player.resume();
+
+  @override
+  Future<void> dispose() => _player.dispose();
 }
 
 final class _AudioplayersLoop implements LoopingPlayer {

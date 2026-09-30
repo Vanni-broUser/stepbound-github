@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/core/core.dart';
+import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/ui/game_cutscene.dart';
 import 'package:stepbound/ui/location_card.dart';
 
@@ -23,7 +24,7 @@ void main() {
         tester,
         LocationCard(
           name: 'Porto e centro storico',
-          image: 'assets/story/scene_harbour.jpg',
+          image: hometownCoverImage,
           onBlack: () => blacks++,
           onFinished: () => finishes++,
         ),
@@ -76,12 +77,12 @@ void main() {
   group('the in-game cutscene', () {
     const frames = <CutsceneFrame>[
       CutsceneFrame(
-        image: 'assets/story/scene_luigi_trapped.jpg',
+        image: 'assets/story/scenes/luigi_trapped.jpg',
         speaker: 'Luigi Rovaga',
         text: 'Mario! Sono qui dentro!',
       ),
       CutsceneFrame(
-        image: 'assets/story/scene_luigi_rescue.jpg',
+        image: 'assets/story/scenes/luigi_rescue.jpg',
         text: 'La saracinesca si alza.',
       ),
     ];
@@ -89,6 +90,7 @@ void main() {
     Future<int Function()> playThrough(
       WidgetTester tester, {
       required bool stayBlack,
+      VoidCallback? onBlack,
     }) async {
       var finishes = 0;
       await pumpIn(
@@ -96,6 +98,7 @@ void main() {
         GameCutscene(
           frames: frames,
           stayBlack: stayBlack,
+          onBlack: onBlack,
           onFinished: () => finishes++,
         ),
       );
@@ -132,6 +135,25 @@ void main() {
       expect(finishes(), 1);
     });
 
+    testWidgets('what the scene changes is done while the screen is still '
+        'black, before the game fades back in', (tester) async {
+      var blacks = 0;
+      final finishes = await playThrough(
+        tester,
+        stayBlack: false,
+        onBlack: () => blacks++,
+      );
+      expect(blacks, 1);
+      expect(
+        find.byKey(const ValueKey<String>('cutscene-from-black')),
+        findsOneWidget,
+      );
+      expect(finishes(), 0);
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pump();
+      expect((blacks, finishes()), (1, 1));
+    });
+
     testWidgets('one that ends the level stays black', (tester) async {
       final finishes = await playThrough(tester, stayBlack: true);
       expect(finishes(), 1);
@@ -139,6 +161,42 @@ void main() {
         find.byKey(const ValueKey<String>('cutscene-from-black')),
         findsNothing,
       );
+    });
+
+    testWidgets('an already watched sequence can be skipped as a whole', (
+      tester,
+    ) async {
+      var blacks = 0;
+      var finishes = 0;
+      await pumpIn(
+        tester,
+        GameCutscene(
+          frames: frames,
+          canSkip: true,
+          onBlack: () => blacks++,
+          onFinished: () => finishes++,
+        ),
+      );
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey<String>('story-skip')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey<String>('story-skip')));
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey<String>('story-fade-out')),
+        findsOneWidget,
+      );
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pump();
+      expect(blacks, 1);
+      expect(
+        find.byKey(const ValueKey<String>('cutscene-from-black')),
+        findsOneWidget,
+      );
+      await tester.pump(const Duration(seconds: 2));
+      await tester.pump();
+      expect(finishes, 1);
     });
   });
 }

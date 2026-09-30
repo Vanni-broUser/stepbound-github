@@ -14,13 +14,12 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from build_street_level import (  # noqa: E402
+from street_buildings import paint_boards, paint_smashed_display  # noqa: E402
+from street_paint import (  # noqa: E402
     BLOOD,
     BLOOD_DARK,
     OUTLINE,
     TILE,
-    paint_boards,
-    paint_smashed_display,
     paint_text,
     rect,
     text_width,
@@ -55,16 +54,12 @@ GROUND_SHOPS = {
     (7, 1): (6, "OTTICA", (30, 80, 110), (220, 240, 250), "smashed"),
     (13, 1): (6, "GIOCATTOLI", (170, 50, 60), (250, 230, 120), "shutter"),
     (19, 1): (6, "LIBRERIA", (60, 90, 50), (236, 240, 220), "smashed"),
-    (25, 1): (6, "FERRAMENTA", (70, 70, 80), (230, 230, 236), "boards"),
-    (31, 1): (6, "SPORT", (20, 90, 130), (235, 245, 250), "glass"),
-    (37, 1): (6, "CARTOLERIA", (190, 120, 40), (255, 240, 210), "smashed"),
-    # The hall's, below it, three on either side of the central stairs.
+    (25, 1): (3, "FIORI", (50, 110, 60), (240, 250, 236), "shutter"),
+    # The hall's, below it, three left of the stairs and one right of them.
     (4, 15): (6, "ELETTRONICA", (26, 46, 96), (120, 220, 240), "smashed"),
     (10, 15): (6, "SCARPE", (60, 60, 64), (240, 200, 90), "shutter"),
     (16, 15): (6, "PROFUMERIA", (120, 60, 110), (246, 226, 240), "glass"),
     (25, 15): (6, "BAR", (70, 44, 30), (236, 214, 160), "boards"),
-    (31, 15): (6, "GIOIELLERIA", (90, 70, 110), (240, 225, 160), "shutter"),
-    (37, 15): (6, "CASALINGHI", (40, 100, 100), (230, 245, 240), "smashed"),
 }
 FIRST_SHOPS = {
     (5, 3): (6, "FARMACIA", (30, 120, 70), (236, 250, 236), "shutter"),

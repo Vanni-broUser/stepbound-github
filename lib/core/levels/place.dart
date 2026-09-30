@@ -30,12 +30,87 @@ enum PlaceId {
   duomo,
   barBackroom,
   duomoUpper,
+  romeTermini,
+  duomoSecondFloor,
+  duomoTower,
+  duomoBells,
+  duomoTowerRoof,
+  hospitalFirstFloor,
+  hospitalSecondFloor,
+  hospitalThirdFloor,
+  hospitalRoof,
+  terminiOverpass,
+  terminiFarPlatform,
+  terminiConcourse,
+  piazzaCinquecento,
+  viaMarsala,
+  termeDiocleziano,
+  palazzoThirdFloor,
+  palazzoSecondFloor,
+  palazzoFirstFloor,
+  palazzoGroundFloor,
+  palazzoLockedFlat,
+  industryStreet,
+  romePalazzoGround,
+  romePalazzoFirst,
+  romePalazzoSecond,
+  romePalazzoRoof,
+  bankOffices,
+  bankVault,
+  companyGround,
+  companyFirst,
+  companySecond,
+  monumentSquare,
+  electronicsShop,
+  eastBlockTopFloor,
+  eastBlockLowerFloor,
+}
+
+/// The levels of the game, one city each. The train Mario and Luigi live
+/// in is the one place they share: it stands at the station of whichever
+/// level they last travelled to (see `parkTrain`).
+enum LevelId {
+  /// Molfetta, where Mario wakes up: the tutorial.
+  hometown,
+
+  /// Rome, reached by the train from Molfetta.
+  rome,
+}
+
+/// A part of a level whose places are loaded together: their pictures are
+/// composed while Mario is in the area, or one door away from it, and
+/// released once he has left. A level is split into a few of them so its
+/// places need not all be in memory at once, however much it grows.
+enum AreaId {
+  /// Molfetta from the street Mario wakes up in to the station: the
+  /// barracks, the north district with the hypermarket and the hospital,
+  /// the airliner and the station's three places.
+  hometownTown(LevelId.hometown),
+
+  /// Molfetta's harbour and old town: the Duomo and its tower, the Bar
+  /// Arcobaleno and the church of San Nicola.
+  hometownHarbour(LevelId.hometown),
+
+  /// The train, shared by every level. It counts as Molfetta's, where it
+  /// is found.
+  train(LevelId.hometown),
+
+  /// Roma Termini: its platforms, the overpass and the concourse.
+  romeTermini(LevelId.rome),
+
+  /// The streets just outside Termini, and the Baths of Diocletian at
+  /// the end of one of them.
+  romeStreets(LevelId.rome);
+
+  const AreaId(this.level);
+
+  final LevelId level;
 }
 
 /// What the glyphs of a place's ASCII map mean for movement and sight: the
 /// ones in [walls] block both, the ones in [obstacles] block movement but
 /// not sight (a wreck you can shoot over), the ones in [debris] are
-/// walkable but noisy. Anything else is floor.
+/// walkable but noisy. Anything else is floor, but for [offMap].
 final class Legend {
   const Legend({
     required this.walls,
@@ -51,8 +126,12 @@ final class Legend {
   /// Ground already burning when the level starts.
   final String fire;
 
+  /// Where a map that is not a rectangle has no place: a space, outside
+  /// the place as much as past its edge, and as solid.
+  static const String offMap = ' ';
+
   TileKind kindOf(String glyph) {
-    if (walls.contains(glyph)) {
+    if (glyph == offMap || walls.contains(glyph)) {
       return TileKind.wall;
     }
     if (obstacles.contains(glyph)) {
@@ -90,13 +169,18 @@ final class PlaceSpec {
     required this.id,
     required this.rows,
     required this.legend,
+    required this.area,
     this.indoor = false,
     this.lit = false,
     this.daylight = '',
     this.name,
     this.cardImage,
     this.torches = const <GridPoint>[],
+    this.lamps = const <GridPoint>[],
+    this.flickeringLamps = const <GridPoint>[],
     this.darkness = defaultDarkness,
+    this.litAreas = const <GridRect>[],
+    this.art,
   });
 
   /// How dark an unlit room is, between its lamps: nearly black.
@@ -119,9 +203,34 @@ final class PlaceSpec {
   /// their flames and they light the room like its lamps.
   final List<GridPoint> torches;
 
+  /// Ceiling lamps over something that has a glyph of its own -- a pool
+  /// table, a sign on the wall -- in the place's own tile coordinates:
+  /// they light the room like its `*`.
+  final List<GridPoint> lamps;
+
+  /// Lamps fixed over a wall or another occupied tile that flicker like
+  /// the `+` lamps in the place's map.
+  final List<GridPoint> flickeringLamps;
+
   /// How dark the room is between its lights, 0 to 1; only for indoor
   /// places that are not [lit].
   final double darkness;
+
+  /// Parts of a room that are not [lit] as a whole where every light is
+  /// on, so no darkness falls there at all: the stairwell of a block of
+  /// flats, whose flats stay dim. In the place's own tile coordinates.
+  final List<GridRect> litAreas;
+
+  /// The place whose art in the tile atlas this one is painted with, when
+  /// it has none of its own: its rows then keep to that place's glyphs.
+  final PlaceId? art;
+
+  /// The area the place is loaded with.
+  final AreaId area;
+
+  /// The level the place belongs to. The train, shared by all of them,
+  /// counts as Molfetta's, where it is found.
+  LevelId get level => area.level;
 }
 
 /// A place laid on the level's grid at [origin].
@@ -139,7 +248,24 @@ final class Place {
   bool get lit => spec.lit;
   String? get name => spec.name;
   String? get cardImage => spec.cardImage;
+
+  AreaId get area => spec.area;
+  LevelId get level => spec.level;
+
+  /// The place whose art in the tile atlas paints this one.
+  PlaceId get artId => spec.art ?? id;
   double get darkness => spec.darkness;
+
+  /// [PlaceSpec.litAreas], on the level's grid.
+  late final List<GridRect> litAreas = <GridRect>[
+    for (final area in spec.litAreas)
+      GridRect(
+        origin.x + area.left,
+        origin.y + area.top,
+        origin.x + area.right,
+        origin.y + area.bottom,
+      ),
+  ];
 
   /// The [PlaceSpec.torches], on the shared grid.
   late final List<GridPoint> torches = <GridPoint>[
@@ -190,6 +316,54 @@ final class Place {
         GridPoint(origin.x + x, origin.y + y),
   ];
 
+  /// The walkable tiles on the place's outer edge, each with the way back
+  /// into the place: where a street, a platform or a track runs off the
+  /// map. Past them there is only the wall between places, so each one is
+  /// a way that goes nowhere yet (see `workInProgressEnds`). A map that is
+  /// not a rectangle has its edge along the [Legend.offMap] cells too.
+  ///
+  /// The way back is to a walkable tile off the edge, straight in if it
+  /// can be. A tile with none, shut in by wrecks or fire, is left out:
+  /// nobody gets there but along the edge, through a tile that is in.
+  late final Map<GridPoint, Direction> edgeEnds = () {
+    bool walkable(int x, int y) =>
+        x >= 0 &&
+        y >= 0 &&
+        x < width &&
+        y < height &&
+        Tile(kindOf(rows[y][x])).isWalkable;
+    bool off(int x, int y) =>
+        x < 0 ||
+        y < 0 ||
+        x >= width ||
+        y >= height ||
+        rows[y][x] == Legend.offMap;
+    bool onEdge(int x, int y) =>
+        off(x - 1, y) || off(x + 1, y) || off(x, y - 1) || off(x, y + 1);
+    final ends = <GridPoint, Direction>{};
+    for (var y = 0; y < height; y++) {
+      for (var x = 0; x < width; x++) {
+        if (!onEdge(x, y) || !walkable(x, y)) {
+          continue;
+        }
+        final inward = <Direction>[
+          if (off(x - 1, y)) Direction.east,
+          if (off(x + 1, y)) Direction.west,
+          if (off(x, y - 1)) Direction.south,
+          if (off(x, y + 1)) Direction.north,
+        ];
+        for (final back in <Direction>[...inward, ...Direction.values]) {
+          final (dx, dy) = (back.dx, back.dy);
+          if (walkable(x + dx, y + dy) && !onEdge(x + dx, y + dy)) {
+            ends[GridPoint(origin.x + x, origin.y + y)] = back;
+            break;
+          }
+        }
+      }
+    }
+    return Map<GridPoint, Direction>.unmodifiable(ends);
+  }();
+
   /// Indoors, the lamps and the daylight at the doors; none outdoors.
   late final List<LightSpot> lights = <LightSpot>[
     if (indoor)
@@ -200,6 +374,15 @@ final class Place {
           LightSpot(tile, flickers: true),
     if (indoor)
       for (final torch in torches) LightSpot(torch, torch: true),
+    if (indoor)
+      for (final lamp in spec.lamps)
+        LightSpot(GridPoint(origin.x + lamp.x, origin.y + lamp.y)),
+    if (indoor)
+      for (final lamp in spec.flickeringLamps)
+        LightSpot(
+          GridPoint(origin.x + lamp.x, origin.y + lamp.y),
+          flickers: true,
+        ),
   ];
 }
 

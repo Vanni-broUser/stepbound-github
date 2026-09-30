@@ -6,8 +6,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/stepbound_game.dart';
+import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/game/test_scenarios.dart';
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
 import 'package:stepbound/save/save_game.dart';
 
 const int _slot = SaveRepository.slotCount;
@@ -19,8 +19,8 @@ TestScenario _named(String name) =>
 Future<StepboundGame> _play(WidgetTester tester, TestScenario scenario) async {
   final save = scenario.save(_slot);
   final game = StepboundGame(
-    world: restoreTutorialWorld(save.world),
-    tutorialState: save.tutorial,
+    world: restoreGameWorld(save.world),
+    storyState: save.story,
     progress: Progress.fromJson(save.progress),
     unlocked: <HudElement>{
       for (final name in save.hud) HudElement.values.byName(name),
@@ -48,12 +48,12 @@ void main() {
         check: checkRestorable,
       );
       expect(read, isA<LoadedSave>(), reason: scenario.name);
-      final mario = restoreTutorialWorld(
+      final mario = restoreGameWorld(
         save.world,
       ).player.component<PositionComponent>();
       if (save.place == trainPlaceName) {
         expect(mario.position, trainMapStandTile, reason: scenario.name);
-        expect(mario.facing, Direction.south, reason: scenario.name);
+        expect(mario.facing, trainArrivalFacing, reason: scenario.name);
         continue;
       }
       final fire = mario.position.step(mario.facing);
@@ -67,17 +67,16 @@ void main() {
 
   test('the fire is the one nearest on foot, not across the grid', () {
     String savedAt(String name) => _named(name).save(_slot).place;
-    String fireIn(PlaceId id) => campfireNames.entries
+    String onlyFireIn(PlaceId id) => campfireNames.entries
         .singleWhere((fire) => placeAt(fire.key)?.id == id)
         .value;
-    expect(
-      savedAt('Porto, Don Angelo al cancello'),
-      fireIn(PlaceId.northDistrict),
-    );
-    expect(savedAt("Duomo, con l'anello"), fireIn(PlaceId.northDistrict));
+    expect(savedAt('Porto, Don Angelo al cancello'), 'Fine del porto');
+    expect(savedAt("Porto, in cerca dell'incenso"), 'Fine del porto');
+    expect(savedAt("Porto, ritorno con l'incenso"), 'Fine del porto');
+    expect(savedAt("Duomo, con l'anello"), 'Sagrato del Duomo');
     expect(
       savedAt('Luigi liberato, verso la stazione'),
-      fireIn(PlaceId.mallNorthStreet),
+      onlyFireIn(PlaceId.mallNorthStreet),
     );
     expect(savedAt('Treno, dopo la fine del livello'), trainPlaceName);
   });
@@ -85,6 +84,28 @@ void main() {
   test('a scenario that is not saved anywhere is refused', () {
     final nowhere = TestScenario('Da nessuna parte', (story) {});
     expect(() => nowhere.save(_slot), throwsStateError);
+  });
+
+  test('the VANNI_DEPLOY save is Rome as far as it goes, with test '
+      'supplies', () {
+    final save = vanniDeployScenario.save(_slot);
+    final world = restoreGameWorld(save.world);
+    final ammo = world.player.component<AmmoComponent>();
+    final progress = Progress.fromJson(save.progress);
+
+    expect(save.place, trainPlaceName);
+    expect(progress.level, LevelId.rome);
+    expect(ammo.loaded, 10);
+    expect(ammo.molotovs, molotovBackpackCount);
+    expect(save.hud, contains(HudElement.molotov.name));
+    expect(world.pickups[molotovBackpackId]!.collected, isTrue);
+    expect(progress.memories, containsAll(StoryMemory.values));
+    expect(progress.missions.open, <Mission>[
+      Mission.findSupplies,
+      Mission.discoverColosseum,
+    ]);
+    expect(save.story['maranza'], containsPair('met', true));
+    expect(save.story['maranza'], containsPair('paid', true));
   });
 
   testWidgets('each scenario loads into a game that runs, with the story '

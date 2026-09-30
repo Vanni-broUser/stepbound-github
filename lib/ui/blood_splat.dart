@@ -91,14 +91,16 @@ final class BloodSplatShape {
         drips = rng.nextInt(2);
         dripLength = (2, 5);
       case SplatKind.hold:
-        final r = between(4.4, 5.8);
+        // A small burst, not a pool: the aiming stick comes up right on
+        // top of it and its middle ring has to show through.
+        final r = between(3.4, 4);
         gloss = r;
         blobs.add(_Blob(0, 0, r));
-        _around(rng, blobs, r, count: 4 + rng.nextInt(3), spread: (0.55, 1));
-        rays(r, 4 + rng.nextInt(4));
-        scatter(r, 5 + rng.nextInt(5), 1.7, 2.8);
-        drips = 2 + rng.nextInt(2);
-        dripLength = (5, 12);
+        _around(rng, blobs, r, count: 3 + rng.nextInt(2), spread: (0.55, 1));
+        rays(r, 3 + rng.nextInt(3));
+        scatter(r, 4 + rng.nextInt(3), 1.8, 2.8);
+        drips = 1 + rng.nextInt(2);
+        dripLength = (5, 10);
       case SplatKind.swipe:
         final along = direction.distance == 0
             ? const Offset(1, 0)

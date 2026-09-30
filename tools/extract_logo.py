@@ -2,7 +2,7 @@
 """Cut the "Stepbound" sign out of the title card for the main menu.
 
 The sign (metal plate, black "Step", bloody "bound") is cropped from
-assets/story/title_loading.jpg and its edges are feathered to transparent,
+assets/story/ui/title_loading.jpg and its edges are feathered to transparent,
 so it sits on any menu background.
 
 Run from the repository root:  python tools/extract_logo.py
@@ -13,8 +13,8 @@ import os
 
 from PIL import Image, ImageDraw, ImageFilter
 
-SOURCE = os.path.join("assets", "story", "title_loading.jpg")
-OUTPUT = os.path.join("assets", "story", "logo.png")
+SOURCE = os.path.join("assets", "story", "ui", "title_loading.jpg")
+OUTPUT = os.path.join("assets", "story", "ui", "logo.png")
 BOX = (300, 28, 1082, 240)
 FEATHER = 10
 

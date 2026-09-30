@@ -2,13 +2,13 @@
 """Paint what the levels are drawn with, or check that it is current.
 
 A place used to live twice: as the ASCII `rows` the simulation reads
-(lib/core/levels/tutorial) and as a PNG the player saw (assets/levels),
+(lib/core/levels/<level>/) and as a PNG the player saw (assets/levels),
 baked from those rows by one of eleven bakers. Nothing in `flutter test` or
 `flutter analyze` saw the PNGs, so the two could drift apart unnoticed, and
 this script was the gate that noticed.
 
 No place has a baked picture any more: the game paints every one of them
-at runtime from its rows, out of the tile atlas (assets/tiles). What is
+at runtime from its rows, out of the tile atlas (assets/levels/tiles). What is
 left to keep current is the atlas itself -- the tiles and the objects the
 painters make -- and that is what this runs.
 

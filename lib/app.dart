@@ -1,320 +1,315 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
+import 'package:stepbound/app_flow.dart';
+import 'package:stepbound/app_services.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/game_audio.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/input/touch_controls.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
+import 'package:stepbound/game/render/pixel_palette.dart';
 import 'package:stepbound/game/stepbound_game.dart';
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/report/breadcrumbs.dart';
+import 'package:stepbound/report/error_report.dart';
 import 'package:stepbound/save/save_game.dart';
+import 'package:stepbound/save/skin_links.dart';
 import 'package:stepbound/ui/audio_scope.dart';
 import 'package:stepbound/ui/black_fade.dart';
 import 'package:stepbound/ui/blood_decor.dart';
 import 'package:stepbound/ui/blood_splat.dart';
+import 'package:stepbound/ui/crash_guard.dart';
+import 'package:stepbound/ui/diagnostics_overlay.dart';
 import 'package:stepbound/ui/game_cutscene.dart';
 import 'package:stepbound/ui/gameplay_dialogue.dart';
+import 'package:stepbound/ui/letterbox.dart';
 import 'package:stepbound/ui/level_complete.dart';
 import 'package:stepbound/ui/level_map.dart';
 import 'package:stepbound/ui/loading_art.dart';
 import 'package:stepbound/ui/location_card.dart';
 import 'package:stepbound/ui/main_menu.dart';
 import 'package:stepbound/ui/pause_menu.dart';
-import 'package:stepbound/ui/rome_placeholder.dart';
+import 'package:stepbound/ui/save_failed_notice.dart';
 import 'package:stepbound/ui/screen_wide_layer.dart';
 import 'package:stepbound/ui/story_intro.dart';
-import 'package:stepbound/ui/title_splash.dart';
+import 'package:stepbound/ui/work_in_progress_screen.dart';
 import 'package:stepbound/ui/zombie_book.dart';
 
-/// The main menu first; a new game then plays the story scenes, the title
-/// card and the protagonist's line before the controls appear, while a
-/// loaded game goes straight to playing.
-enum _Phase {
-  menu,
-  story,
-  title,
-  outbreak,
-  dialogue,
-  playing,
-  levelComplete,
-  levelMap,
-  romePlaceholder,
-}
-
 final class StepboundApp extends StatefulWidget {
-  const StepboundApp({this.saves, this.audio, super.key});
+  const StepboundApp({
+    this.services,
+    this.saves,
+    this.skinLinks = const Stream<Uri>.empty(),
+    this.audio,
+    this.clock = DateTime.now,
+    this.reporter,
+    this.share,
+    super.key,
+  });
 
-  /// Where the four save slots live; the device storage when null.
+  /// What the app runs on, made by whoever runs it and closed by them
+  /// too: the `CrashGuard` over the app keeps them through an error, for
+  /// the app it builds anew (see [AppServices]). Without one the app
+  /// makes its own around [saves] and [audio], and closes those when it
+  /// goes, owning only what it had to make itself.
+  final AppServices? services;
+
+  /// Where the four save slots live; the device storage when null. Read
+  /// only without [services].
   final SaveRepository? saves;
 
-  /// The sound of the game; silent when null.
+  /// Where an uncaught error ends up (see `CrashGuard`): the app tells it
+  /// what to put in the report about the game in play.
+  final ErrorReporter? reporter;
+
+  /// How the report of a failed save leaves the phone (see `CrashGuard`,
+  /// which shares the report of an error the same way); nowhere when
+  /// null.
+  final ShareReport? share;
+
+  /// Gift links (see `lib/save/skin_links.dart`) the app was opened with,
+  /// cold or warm, as the platform delivers them.
+  final Stream<Uri> skinLinks;
+
+  /// What time it is, to tell whether a gift link has expired.
+  final DateTime Function() clock;
+
+  /// The sound of the game; silent when null. Read only without
+  /// [services].
   final GameAudio? audio;
 
   @override
   State<StepboundApp> createState() => _StepboundAppState();
 }
 
+/// Draws whatever phase the [AppFlowController] is in, and hands it what
+/// the player does; the phone's side (gift links, the app going to the
+/// background, the error report) is here too.
 final class _StepboundAppState extends State<StepboundApp> {
-  late final SaveRepository _saves =
-      widget.saves ?? PreferencesSaveRepository();
-  late final GameAudio _audio = widget.audio ?? SilentAudio();
+  late final AppServices _services =
+      widget.services ?? AppServices(saves: widget.saves, audio: widget.audio);
+
+  /// Whether the services are the app's own to close: only when it made
+  /// them itself; the ones handed in are their maker's.
+  bool get _ownsServices => widget.services == null;
+  SaveRepository get _saves => _services.saves;
+  GameAudio get _audio => _services.audio;
+
+  /// Which screen the app is on, and the game being played.
+  late final AppFlowController _flow = AppFlowController(
+    saves: _saves,
+    audio: _audio,
+  );
 
   /// Silences the game whenever it is not the app in front.
   late final AppLifecycleListener _lifecycle;
-  StepboundGame? _game;
-  _Phase _phase = _Phase.menu;
-  GameSnapshot? _completedSnapshot;
-  int _foundBackpacks = 0;
-  int _totalBackpacks = 0;
-  int _foundMemoryImages = 0;
-  int _totalMemoryImages = 0;
-  String _gameLoadingCaption = 'Caricamento della partita';
+  StreamSubscription<Uri>? _skinLinkSubscription;
 
-  /// The slot this game saves into at campfires and on the train.
-  int _slot = 1;
-
-  /// Where the current slot's save was made: a campfire or the train. Only
-  /// with one is there anywhere to go back to, so only then do the menus
-  /// offer it. The slot written when the level starts over does not count.
-  ResumePoint? _resumePoint;
-
-  /// What this game had been played for when it was loaded or started, and
-  /// the clock running since. Together they are what a save records: it
-  /// only runs while the game is in front and out of the menu, so a phone
-  /// in a pocket is not play, and nothing between two saves is kept.
-  Duration _playedBefore = Duration.zero;
-  final Stopwatch _clock = Stopwatch();
-
-  Duration get _played => _playedBefore + _clock.elapsed;
-
-  /// Starts this game's clock over from [played].
-  void _startClock(Duration played) {
-    _playedBefore = played;
-    _clock
-      ..reset()
-      ..start();
-  }
+  /// One link at a time: two gifts written at once would each keep only
+  /// their own skin.
+  Future<void> _skinLinkHandling = Future<void>.value();
 
   @override
   void initState() {
     super.initState();
+    _flow.addListener(_flowChanged);
+    _skinLinkSubscription = widget.skinLinks.listen((uri) {
+      _skinLinkHandling = _skinLinkHandling.then((_) => _handleSkinLink(uri));
+    }, onError: (Object error) => debugPrint('skin links: $error'));
     // Only `resumed` means the player is looking at the game. Android
     // goes inactive, then hidden, then paused on the way out, and a
     // call or the app switcher stops at inactive: all of them silence
     // it, or the game over sting plays on over whatever comes next, and
     // all of them stop the clock.
-    _lifecycle = AppLifecycleListener(onStateChange: _onLifecycle);
+    _lifecycle = AppLifecycleListener(
+      onStateChange: _onLifecycle,
+      // The engine is letting go of the app: the last chance to close what
+      // was made for it (the phone's sound), before the process ends.
+      onDetach: _closeOwnServices,
+    );
+    widget.reporter?.context = _reportSections;
+    Breadcrumbs.shared.add('app: menù principale');
     _audio.playMusic(Music.menu);
+  }
+
+  void _flowChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  /// What an error report says about the game in play: the slot, the
+  /// phase, where Mario is, and the save the menu would offer for that
+  /// slot, to load and play the error back. Nothing here may throw.
+  Future<List<ReportSection>> _reportSections() async {
+    final game = _flow.game;
+    final slot = _flow.session.slot;
+    final sections = <ReportSection>[
+      ReportSection(
+        'Partita',
+        'slot: $slot\n'
+            'fase: ${_flow.phase.name}\n'
+            'posto: ${game == null ? 'nessuno' : _placeOf(game)}',
+      ),
+    ];
+    try {
+      final read = await _saves.read(slot);
+      sections.add(
+        ReportSection('Salvataggio dello slot $slot', switch (read) {
+          LoadedSave(:final game) => jsonEncode(game.toJson()),
+          DamagedSave(:final reason) => 'danneggiato: $reason',
+          _ => 'vuoto',
+        }),
+      );
+    } on Object catch (error) {
+      sections.add(
+        ReportSection('Salvataggio dello slot $slot', 'illeggibile: $error'),
+      );
+    }
+    return sections;
+  }
+
+  /// The report of the last save that could not be written, to send like
+  /// the one of an error: the same text, the failure in the error's place.
+  Future<void> _shareSaveFailure() async {
+    final failure = _flow.session.lastSaveFailure;
+    if (failure == null) {
+      return;
+    }
+    Breadcrumbs.shared.add('app: rapporto del salvataggio condiviso');
+    await _shareReport(
+      ErrorReport(
+        error: failure.error,
+        stack: failure.stack,
+        source: 'salvataggio: ${failure.place}',
+        at: failure.at,
+      ),
+    );
+  }
+
+  /// The report a player asks for from the pause menu, with no error in
+  /// it: the trail is the point, for the bugs that throw nothing, a script
+  /// that never lets go of Mario or a button that does not answer.
+  Future<void> _shareTrail() async {
+    Breadcrumbs.shared.add('app: rapporto chiesto dal menù pausa');
+    await _shareReport(
+      ErrorReport(
+        error: 'nessun errore: rapporto chiesto dal giocatore',
+        source: 'menù pausa',
+        at: DateTime.now(),
+      ),
+    );
+  }
+
+  /// Renders [report] like the one of an error and hands it to the share
+  /// sheet; nothing if the app cannot share.
+  Future<void> _shareReport(ErrorReport report) async {
+    final share = widget.share;
+    if (share == null) {
+      return;
+    }
+    final reporter = (widget.reporter ?? ErrorReporter())
+      ..context ??= _reportSections;
+    try {
+      await share(reporter.fileNameFor(report), await reporter.render(report));
+    } on Object catch (error) {
+      debugPrint('report: could not share ($error)');
+    }
+  }
+
+  /// The game may be the very thing that broke.
+  String _placeOf(StepboundGame game) {
+    try {
+      return game.placeName;
+    } on Object catch (error) {
+      return 'sconosciuto ($error)';
+    }
+  }
+
+  /// A gift link gives its skin to all four slots, whatever they hold,
+  /// and the game being played gets it at once; the menu then says so.
+  /// An expired or broken one gives nothing, and the menu says that.
+  Future<void> _handleSkinLink(Uri uri) async {
+    if (!isSkinLink(uri)) {
+      return;
+    }
+    final link = readSkinLink(uri);
+    final LinkNotice notice;
+    if (link == null || link.expiredAt(widget.clock())) {
+      notice = const InvalidLinkNotice();
+    } else {
+      final outfit = link.outfit;
+      for (var slot = 1; slot <= SaveRepository.slotCount; slot++) {
+        try {
+          await _saves.saveGifts(slot, {
+            ...await _saves.loadGifts(slot),
+            outfit,
+          });
+        } on Object catch (error) {
+          debugPrint('gifts: could not give ${outfit.name} to $slot ($error)');
+        }
+      }
+      _flow.giveOutfit(outfit);
+      notice = SkinGiftNotice(outfit);
+    }
+    if (mounted) {
+      _flow.backToMenu(linkNotice: notice);
+    }
   }
 
   void _onLifecycle(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
-      _audio.resume();
-      if (_phase != _Phase.menu) {
-        _clock.start();
-      }
+      _flow.cameToFront();
       return;
     }
-    _audio.pause();
-    _clock.stop();
+    _flow.leftFront();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Decoded up front, so the loading picture is there at once.
-    for (final image in <String>[LoadingArt.image, MainMenu.logo]) {
+    for (final image in <String>[
+      LoadingArt.image,
+      LevelMap.hometownImage,
+      LevelMap.romeImage,
+      WorkInProgressScreen.image,
+      MainMenu.logo,
+    ]) {
       unawaited(precacheImage(AssetImage(image), context));
     }
   }
 
   @override
   void dispose() {
+    unawaited(_skinLinkSubscription?.cancel());
     _lifecycle.dispose();
+    if (widget.reporter?.context == _reportSections) {
+      widget.reporter?.context = null;
+    }
+    _flow
+      ..removeListener(_flowChanged)
+      ..dispose();
+    _closeOwnServices();
     super.dispose();
   }
 
-  Future<void> _newGame(int slot) async {
-    try {
-      await _saves.clear(slot);
-    } on Object catch (error) {
-      // The old game stays in the slot until the first campfire writes
-      // over it: no reason to keep the new one from starting.
-      debugPrint('save: could not clear slot $slot ($error)');
+  /// Closes the services the app made itself; the ones handed in stay
+  /// their maker's, so the app the `CrashGuard` builds anew after an
+  /// error runs on live services, not on closed ones.
+  void _closeOwnServices() {
+    if (_ownsServices) {
+      unawaited(_services.dispose());
     }
-    if (!mounted) {
-      return;
-    }
-    _playStoryAudio();
-    _startClock(Duration.zero);
-    setState(() {
-      _slot = slot;
-      _resumePoint = null;
-      _completedSnapshot = null;
-      _phase = _Phase.story;
-    });
   }
 
-  void _loadGame(SaveGame save) {
-    _startClock(save.played);
-    _gameLoadingCaption = 'Caricamento della partita';
-    setState(() {
-      _slot = save.slot;
-      _resumePoint = _resumePointOf(save);
-      _game = _gameFrom(save);
-      _phase = _Phase.playing;
-    });
-  }
-
-  StepboundGame _gameFrom(SaveGame save) => StepboundGame(
-    world: restoreTutorialWorld(save.world),
-    tutorialState: save.tutorial,
-    progress: Progress.fromJson(save.progress),
-    unlocked: <HudElement>{
-      for (final name in save.hud)
-        for (final element in HudElement.values)
-          if (element.name == name) element,
-    },
-    onRest: _store,
-    onLevelCompleted: _completeLevel,
-    onTravelMapRequested: _travelFromTrain,
-    audio: _audio,
-  );
-
-  static ResumePoint? _resumePointOf(SaveGame save) => !save.atCampfire
-      ? null
-      : save.place == trainPlaceName
-      ? ResumePoint.train
-      : ResumePoint.campfire;
-
-  /// Called by the game when Mario rests at a campfire, and when the level
-  /// ends with him aboard the train. False when the save could not be
-  /// written: the slot still holds the one before, and so does
-  /// [_resumePoint].
-  Future<bool> _store(GameSnapshot snapshot) async {
-    try {
-      await _saves.save(
-        SaveGame(
-          slot: _slot,
-          savedAt: DateTime.now(),
-          place: snapshot.place,
-          world: snapshot.world,
-          tutorial: snapshot.tutorial,
-          progress: snapshot.progress,
-          hud: snapshot.hud,
-          played: _played,
-        ),
-      );
-    } on SaveWriteException catch (error) {
-      debugPrint('save: $error');
-      return false;
-    }
-    _resumePoint = snapshot.place == trainPlaceName
-        ? ResumePoint.train
-        : ResumePoint.campfire;
-    return true;
-  }
-
-  void _finishIntro() {
-    setState(() => _phase = _Phase.title);
-  }
-
-  void _finishTitle() {
-    setState(() => _phase = _Phase.outbreak);
-  }
-
-  void _finishOutbreak() {
-    setState(() {
-      _phase = _Phase.dialogue;
-      _game = StepboundGame(
-        onRest: _store,
-        onLevelCompleted: _completeLevel,
-        onTravelMapRequested: _travelFromTrain,
-        audio: _audio,
-      )..inputLocked = true;
-    });
-  }
-
-  void _finishDialogue() {
-    setState(() {
-      _phase = _Phase.playing;
-      _game?.inputLocked = false;
-    });
-  }
-
-  /// Back to the last campfire or to the train, from the menu or after
-  /// dying. Only offered while there is a [_resumePoint]; if the slot has
-  /// gone missing anyway, the level starts over rather than leaving the
-  /// player stuck.
-  Future<void> _resumeFromCamp() async {
-    final save = await _saves.load(_slot);
-    if (!mounted) {
-      return;
-    }
-    if (save == null) {
-      await _restartLevel();
-      return;
-    }
-    _startClock(save.played);
-    _gameLoadingCaption = 'Caricamento della partita';
-    setState(() {
-      _game = _gameFrom(save);
-      _phase = _Phase.playing;
-    });
-  }
-
-  /// The level from the very start, the first story picture, with nothing
-  /// kept but the hours played (bullets, known zombies, memories all go).
-  /// It counts as a save: the slot now holds the start of the level, so
-  /// loading it later starts the level over too — but not a campfire one,
-  /// so there is nothing to resume from until the next fire.
-  Future<void> _restartLevel() async {
-    // The camp's fire and hushed music stop at once: the story plays.
-    _game?.soundscapePaused = true;
-    _playStoryAudio();
-    var saved = true;
-    try {
-      await _saves.save(
-        SaveGame(
-          slot: _slot,
-          savedAt: DateTime.now(),
-          place: levelStartPlace,
-          world: saveTutorialWorld(createTutorialWorld()),
-          tutorial: const <String, Object?>{},
-          progress: Progress.newGame().toJson(),
-          hud: const <String>[],
-          atCampfire: false,
-          // The hours played are the one thing starting over keeps.
-          played: _played,
-        ),
-      );
-    } on SaveWriteException catch (error) {
-      // The level starts over all the same; the slot keeps the save it
-      // had, and with it the fire to go back to.
-      debugPrint('save: $error');
-      saved = false;
-    }
-    if (!mounted) {
-      return;
-    }
-    setState(() {
-      if (saved) {
-        _resumePoint = null;
-      }
-      _game = null;
-      _phase = _Phase.story;
-    });
-  }
-
-  /// The story's music at full volume, no ambience.
-  void _playStoryAudio() {
-    _audio
-      ..silenceAmbience()
-      ..setMusicLevel(1)
-      ..playMusic(Music.story);
+  /// The game over sting stops with the choice made on its screen.
+  void _afterGameOver(void Function() choice) {
+    _audio.stop(Sfx.gameOver);
+    choice();
   }
 
   /// What is drawn over the game for [cover]: the touch controls when
@@ -332,14 +327,17 @@ final class _StepboundAppState extends State<StepboundApp> {
             portrait: line.speaker == 'Mario Rossi'
                 ? game.progress.activeOutfit.portrait
                 : line.portrait,
+            demo: line.demo,
           ),
       ],
       onFinished: game.dismissPrompt,
     ),
-    CutsceneCover(:final frames) => GameCutscene(
+    CutsceneCover(:final frames, :final canSkip) => GameCutscene(
       key: ObjectKey(cover),
       frames: frames,
       stayBlack: cover.stayBlack,
+      canSkip: canSkip,
+      onBlack: game.cutsceneBlack,
       onFinished: game.finishCutscene,
     ),
     PlaceCardCover(:final name, :final image) => LocationCard(
@@ -349,149 +347,111 @@ final class _StepboundAppState extends State<StepboundApp> {
       onBlack: game.placeCardBlack,
       onFinished: game.dismissPlaceCard,
     ),
-    ZombieBookCover() => ZombieBook(
-      progress: game.progress,
-      onClose: game.closeZombieBook,
+    AdventureStatsCover(:final level) => Letterbox(
+      color: AdventureStats.backdrop,
+      child: AdventureStats(
+        world: game.simulation,
+        level: level,
+        progress: game.progress,
+        onClose: game.closeAdventureStats,
+        onReplayMemories: game.replayMemories,
+      ),
     ),
-    MemoriesCover() => StoryIntro(
-      key: const ValueKey<String>('train-memories-story'),
-      scenes: seenScenes(game.progress),
-      onFinished: game.closeMemories,
-      onExit: game.closeMemories,
+    ZombieBookCover() => Letterbox(
+      color: ZombieBook.backdrop,
+      child: ZombieBook(progress: game.progress, onClose: game.closeZombieBook),
     ),
-    PauseCover() => PauseMenu(
+    MemoriesCover(:final level) => Letterbox(
+      color: Colors.black,
+      child: StoryIntro(
+        key: const ValueKey<String>('train-memories-story'),
+        scenes: seenScenes(game.progress, level),
+        allowBackNavigation: true,
+        // Each memory with the music it was lived with, the rest with the
+        // story's.
+        onScene: (scene) => _audio.playMusic(scene.music ?? Music.story),
+        onFinished: game.closeMemories,
+        onExit: game.closeMemories,
+      ),
+    ),
+    SaveFailedCover(:final line) => SaveFailedNotice(
+      key: ObjectKey(cover),
+      line: line,
+      onShare: () => unawaited(_shareSaveFailure()),
+      onContinue: game.dismissSaveFailed,
+    ),
+    WorkInProgressCover() => Letterbox(
+      color: Colors.black,
+      child: WorkInProgressScreen(
+        key: ObjectKey(cover),
+        onBack: game.closeWorkInProgress,
+      ),
+    ),
+    PauseCover(:final wardrobe) => PauseMenu(
       progress: game.progress,
-      resumePoint: _resumePoint,
-      onResumeFromCamp: () => unawaited(_resumeFromCamp()),
-      onRestartLevel: () => unawaited(_restartLevel()),
-      onMainMenu: _backToMenu,
+      wardrobe: wardrobe,
+      resumePoint: _flow.session.resumePoint,
+      restartsFromStory: game.progress.level == LevelId.hometown,
+      onResumeFromCamp: () => unawaited(_flow.resumeFromCamp()),
+      onRestartLevel: () => unawaited(_flow.restartLevel()),
+      onMainMenu: _flow.backToMenu,
       onClose: game.closeMenu,
       onWearOutfit: game.wearOutfit,
+      onShareReport: widget.share == null
+          ? null
+          : () => unawaited(_shareTrail()),
     ),
-    GameOverCover() => _GameOverOverlay(
-      resumePoint: _resumePoint,
-      onResumeFromCamp: () {
-        _audio.stop(Sfx.gameOver);
-        unawaited(_resumeFromCamp());
-      },
-      onRestartLevel: () {
-        _audio.stop(Sfx.gameOver);
-        unawaited(_restartLevel());
-      },
-      onMenu: () {
-        _audio.stop(Sfx.gameOver);
-        _backToMenu();
-      },
+    LevelEndCover() => const ColoredBox(
+      key: ValueKey<String>('level-end-black'),
+      color: Colors.black,
+    ),
+    GameOverCover() => Letterbox(
+      color: _GameOverOverlay.backdrop,
+      child: _GameOverOverlay(
+        resumePoint: _flow.session.resumePoint,
+        restartsFromStory: game.progress.level == LevelId.hometown,
+        onResumeFromCamp: () =>
+            _afterGameOver(() => unawaited(_flow.resumeFromCamp())),
+        onRestartLevel: () =>
+            _afterGameOver(() => unawaited(_flow.restartLevel())),
+        onMenu: () => _afterGameOver(_flow.backToMenu),
+      ),
     ),
   };
 
-  /// What a save made by starting the level over is called in the slots.
-  static const String levelStartPlace = 'Inizio del livello';
-
-  void _completeLevel(GameSnapshot snapshot) {
-    final world = restoreTutorialWorld(snapshot.world);
-    final progress = Progress.fromJson(snapshot.progress);
-    Set<String> pictures(Iterable<StoryMemory> memories) => <String>{
-      for (final memory in memories)
-        for (final scene in memoryScenes[memory] ?? const <StoryScene>[])
-          scene.image,
-    };
-    _playStoryAudio();
-    setState(() {
-      _completedSnapshot = snapshot;
-      _foundBackpacks = world.pickups.values
-          .where((pickup) => pickup.collected)
-          .length;
-      _totalBackpacks = world.pickups.length;
-      _foundMemoryImages = pictures(progress.memories).length;
-      _totalMemoryImages = pictures(StoryMemory.values).length;
-      _game = null;
-      _phase = _Phase.levelComplete;
-    });
-  }
-
-  void _openLevelMap() => setState(() => _phase = _Phase.levelMap);
-
-  void _travelFromTrain(GameSnapshot snapshot) {
-    _playStoryAudio();
-    setState(() {
-      _completedSnapshot = snapshot;
-      _game = null;
-      _phase = _Phase.levelMap;
-    });
-  }
-
-  void _startHometown() {
-    final snapshot = _completedSnapshot;
-    if (snapshot == null) {
-      return;
-    }
-    _gameLoadingCaption = 'Caricamento di Città Natale';
-    setState(() {
-      _game = StepboundGame(
-        world: restoreTutorialWorld(snapshot.world),
-        tutorialState: snapshot.tutorial,
-        progress: Progress.fromJson(snapshot.progress),
-        unlocked: <HudElement>{
-          for (final name in snapshot.hud)
-            for (final element in HudElement.values)
-              if (element.name == name) element,
-        },
-        onRest: _store,
-        onLevelCompleted: _completeLevel,
-        onTravelMapRequested: _travelFromTrain,
-        audio: _audio,
-      );
-      _phase = _Phase.playing;
-    });
-  }
-
-  void _startRome() => setState(() => _phase = _Phase.romePlaceholder);
-
-  void _backToMenu() {
-    _audio
-      ..silenceAmbience()
-      ..playMusic(Music.menu);
-    setState(() {
-      _game = null;
-      _completedSnapshot = null;
-      _phase = _Phase.menu;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    final game = _game;
     return MaterialApp(
       title: 'Stepbound',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xff111718),
+        scaffoldBackgroundColor: PixelPalette.screenBlack,
       ),
       // Browsers only start sound after a tap: the first one lets it play.
       home: Listener(
         onPointerDown: (_) => _audio.unlock(),
         child: AudioScope(
           audio: _audio,
-          child: BloodSplatLayer(child: _surface(game)),
+          child: BloodSplatLayer(child: _surface()),
         ),
       ),
     );
   }
 
-  Widget _surface(StepboundGame? game) {
+  Widget _surface() {
+    final phase = _flow.phase;
+    final session = _flow.session;
     return ColoredBox(
       key: const ValueKey<String>('stepbound-game-surface'),
-      color: const Color(0xff111718),
+      color: PixelPalette.screenBlack,
       child: LayoutBuilder(
         builder: (context, constraints) {
           final scale = IntegerResolutionViewport.scaleFor(
             constraints.maxWidth,
             constraints.maxHeight,
           );
-          if (game != null &&
-              (_phase == _Phase.dialogue || _phase == _Phase.playing)) {
+          if (_flow.game case final game? when _flow.showsGame) {
             return _playing(
               game,
               Size(
@@ -500,66 +460,111 @@ final class _StepboundAppState extends State<StepboundApp> {
               ),
             );
           }
-          return Center(
+          final picture = Center(
             child: SizedBox(
               width: IntegerResolutionViewport.virtualWidth * scale,
               height: IntegerResolutionViewport.virtualHeight * scale,
-              child: switch (_phase) {
-                _Phase.menu => MainMenu(
+              child: switch (phase) {
+                AppPhase.menu => MainMenu(
+                  key: ValueKey<int>(_flow.linkNoticeRevision),
                   saves: _saves,
-                  onNewGame: (slot) => unawaited(_newGame(slot)),
-                  onLoad: _loadGame,
+                  linkNotice: _flow.linkNotice,
+                  onNewGame: (slot) => unawaited(_flow.newGame(slot)),
+                  onLoad: (save) => unawaited(_flow.loadGame(save)),
                 ),
-                _Phase.story => StoryIntro(onFinished: _finishIntro),
-                _Phase.title => TitleSplash(onFinished: _finishTitle),
-                _Phase.outbreak => StoryIntro(
+                AppPhase.story => StoryIntro(
+                  onFinished: _flow.finishIntro,
+                  onSkip: session.openingStorySeen
+                      ? _flow.finishOutbreak
+                      : null,
+                ),
+                AppPhase.outbreak => StoryIntro(
                   key: const ValueKey<String>('outbreak-story'),
                   scenes: outbreakScenes,
                   fadeOutAtEnd: true,
-                  onFinished: _finishOutbreak,
+                  onFinished: _flow.finishOutbreak,
+                  onSkip: session.openingStorySeen
+                      ? _flow.finishOutbreak
+                      : null,
                 ),
-                _Phase.levelComplete => LevelComplete(
-                  foundBackpacks: _foundBackpacks,
-                  totalBackpacks: _totalBackpacks,
-                  foundMemories: _foundMemoryImages,
-                  totalMemories: _totalMemoryImages,
-                  onContinue: _openLevelMap,
+                AppPhase.levelComplete => LevelComplete(
+                  stats: _flow.results!.stats,
+                  finale: _flow.results!.finale,
+                  secret: _flow.results!.secret,
+                  saveFailed: _flow.results!.saveFailed,
+                  onShareReport: () => unawaited(_shareSaveFailure()),
+                  onContinue: _flow.openLevelMap,
                 ),
-                _Phase.levelMap => LevelMap(
-                  onStartHometown: _startHometown,
-                  onStartRome: _startRome,
+                AppPhase.levelMap => LevelMap(
+                  onStartHometown: _flow.startHometown,
+                  onStartRome: _flow.startRome,
                 ),
-                _Phase.romePlaceholder => RomePlaceholder(
-                  onBack: _openLevelMap,
+                AppPhase.romeStory => StoryIntro(
+                  key: const ValueKey<String>('rome-story'),
+                  scenes: romeScenes,
+                  fadeOutAtEnd: true,
+                  onFinished: _flow.finishRomeStory,
+                  onSkip:
+                      session.storyHistory.contains(StoryMemory.presidentFled)
+                      ? _flow.finishRomeStory
+                      : null,
                 ),
                 _ => const SizedBox.shrink(),
               },
             ),
           );
+          // The menu's picture spreads over the bands too.
+          if (phase == AppPhase.menu) {
+            return Stack(
+              fit: StackFit.expand,
+              children: <Widget>[const MenuBackdrop(), picture],
+            );
+          }
+          return picture;
         },
       ),
     );
   }
 
-  /// The game picture keeps its 16:9 in the middle of the screen, while the
-  /// controls and the dialogue box spread sideways into the bands a longer
-  /// phone leaves beside it. Every other cover stays on the picture.
-  Widget _playing(StepboundGame game, Size picture) {
-    Widget onPicture(Widget child) => Center(
-      child: SizedBox.fromSize(size: picture, child: child),
+  /// The loading picture of the level the game is in: Rome's, and once
+  /// Molfetta is behind them (Mario reached the train with Luigi) the
+  /// harbour's, each with the level's name; before that the zombie one.
+  Widget _levelLoadingCover(StepboundGame game, Size picture) {
+    final progress = game.progress;
+    final (image, caption) = switch (progress.level) {
+      LevelId.rome => (LevelMap.romeImage, 'Roma'),
+      LevelId.hometown when progress.hometownCompleted => (
+        LevelMap.hometownImage,
+        'Città natale',
+      ),
+      LevelId.hometown => (LoadingArt.image, 'Caricamento della partita'),
+    };
+    return LoadingCover(
+      key: ObjectKey(game),
+      ready: game.readyToShow,
+      artSize: picture,
+      fadeIn: _flow.loadingFadesIn,
+      image: image,
+      caption: caption,
     );
+  }
+
+  /// The world fills the whole screen (see ScreenFillingViewport). The
+  /// controls and the dialogue box spread as wide as it, as tall as the
+  /// 16:9 picture; every other cover lays its picture out itself, with its
+  /// backdrop across the bands (see [Letterbox]).
+  Widget _playing(StepboundGame game, Size picture) {
+    final dialogue = _flow.phase == AppPhase.dialogue;
     Widget screenWide(Widget child) =>
         ScreenWideLayer(pictureHeight: picture.height, child: child);
     return Stack(
       fit: StackFit.expand,
       children: <Widget>[
-        onPicture(
-          GameWidget<StepboundGame>(
-            key: const ValueKey<String>('stepbound-game'),
-            game: game,
-          ),
+        GameWidget<StepboundGame>(
+          key: const ValueKey<String>('stepbound-game'),
+          game: game,
         ),
-        if (_phase == _Phase.dialogue) ...<Widget>[
+        if (dialogue) ...<Widget>[
           // Mario speaks once the game behind him is there, so no line goes
           // by unseen under the loading picture.
           ValueListenableBuilder<bool>(
@@ -567,7 +572,7 @@ final class _StepboundAppState extends State<StepboundApp> {
             builder: (context, ready, _) => ready
                 ? screenWide(
                     SafeArea(
-                      child: GameplayDialogue(onFinished: _finishDialogue),
+                      child: GameplayDialogue(onFinished: _flow.finishDialogue),
                     ),
                   )
                 : const SizedBox.shrink(),
@@ -585,21 +590,23 @@ final class _StepboundAppState extends State<StepboundApp> {
               PromptCover() => screenWide(
                 SafeArea(child: _coverOf(game, cover)),
               ),
-              _ => onPicture(_coverOf(game, cover)),
+              _ => _coverOf(game, cover),
             },
           ),
+        if (diagnosticsEnabled) DiagnosticsOverlay(game: game),
         // The loading picture instead of a black screen while the maps and
         // sprites load, over the bands too so no button shows beside it.
-        LoadingCover(
-          key: ObjectKey(game),
-          ready: game.readyToShow,
-          artSize: picture,
-          // A new game comes out of the story's fade to black.
-          fadeIn: _phase == _Phase.dialogue,
-          caption: _phase == _Phase.dialogue
-              ? 'Caricamento del tutorial'
-              : _gameLoadingCaption,
-        ),
+        if (dialogue)
+          LoadingCover(
+            key: ObjectKey(game),
+            ready: game.readyToShow,
+            artSize: picture,
+            // A new game comes out of the story's fade to black.
+            fadeIn: true,
+            caption: 'Caricamento del tutorial',
+          )
+        else
+          _levelLoadingCover(game, picture),
       ],
     );
   }
@@ -608,6 +615,7 @@ final class _StepboundAppState extends State<StepboundApp> {
 final class _GameOverOverlay extends StatefulWidget {
   const _GameOverOverlay({
     required this.resumePoint,
+    required this.restartsFromStory,
     required this.onResumeFromCamp,
     required this.onRestartLevel,
     required this.onMenu,
@@ -618,9 +626,16 @@ final class _GameOverOverlay extends StatefulWidget {
   /// level over is offered under it; without one the level from the start
   /// is the only way on.
   final ResumePoint? resumePoint;
+
+  /// Whether the level starts over from the first story scene (Molfetta),
+  /// or from where Mario arrived in it.
+  final bool restartsFromStory;
   final VoidCallback onResumeFromCamp;
   final VoidCallback onRestartLevel;
   final VoidCallback onMenu;
+
+  /// Dims the whole screen, the world still in view behind it.
+  static const Color backdrop = Color(0xc2180e0c);
 
   @override
   State<_GameOverOverlay> createState() => _GameOverOverlayState();
@@ -680,9 +695,8 @@ final class _GameOverOverlayState extends State<_GameOverOverlay> {
         final unit = constraints.maxHeight.isFinite
             ? constraints.maxHeight / IntegerResolutionViewport.virtualHeight
             : 1.0;
-        return ColoredBox(
+        return KeyedSubtree(
           key: const ValueKey<String>('game-over-overlay'),
-          color: const Color(0xc2180e0c),
           child: Center(
             child: SingleChildScrollView(
               child: Column(
@@ -732,9 +746,13 @@ final class _GameOverOverlayState extends State<_GameOverOverlay> {
       unit: unit,
       width: MenuButton.fullWidth,
       child: MenuParagraph(
-        'Ricominciare il livello? ${widget.resumePoint!.savedHere} '
-        'va perso: si riparte dalla prima scena della storia, e restano '
-        'solo le ore di gioco.',
+        widget.restartsFromStory
+            ? 'Ricominciare il livello? ${widget.resumePoint!.savedHere} '
+                  'va perso: si riparte dalla prima scena della storia. Le '
+                  'altre città restano come sono.'
+            : 'Ricominciare il livello? ${widget.resumePoint!.savedHere} '
+                  'va perso: si riparte dall’arrivo in città. Le altre '
+                  'città restano come sono.',
         key: const ValueKey<String>('game-over-cost'),
         unit: unit,
         center: true,

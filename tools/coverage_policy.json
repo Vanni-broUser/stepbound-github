@@ -8,7 +8,8 @@
         "lib/game/audio/",
         "lib/game/haptics/",
         "lib/bootstrap.dart",
-        "lib/main.dart"
+        "lib/main.dart",
+        "lib/report/"
       ],
       "minimum": 80
     },
@@ -30,7 +31,9 @@
       "name": "ui",
       "paths": [
         "lib/ui/",
-        "lib/app.dart"
+        "lib/app.dart",
+        "lib/app_flow.dart",
+        "lib/app_services.dart"
       ],
       "minimum": 92
     },
@@ -44,6 +47,7 @@
   ],
   "excluded": {
     "lib/main.dart": "the entry point: one line handing over to bootstrap()",
-    "lib/bootstrap.dart": "device set-up (screen orientation, immersive mode, the phone's audio): runs only on a device"
+    "lib/bootstrap.dart": "device set-up (screen orientation, immersive mode, the phone's audio): runs only on a device",
+    "lib/report/share_report.dart": "hands the error report to the system's share sheet (share_plus): runs only on a device"
   }
 }

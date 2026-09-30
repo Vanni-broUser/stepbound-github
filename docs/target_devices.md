@@ -18,4 +18,4 @@ F0 must be checked on at least one physical Android phone in landscape immersive
 5. Confirm that the screen is a stable blank dark surface.
 6. Background and resume the app, then repeat the orientation and fullscreen checks.
 
-Record the device model, OS version, build type, commit SHA, and result in the merge request.
+Record the device model, OS version, build type, commit SHA, and result in the merge request, and add the run to `docs/device_measurements.md`.

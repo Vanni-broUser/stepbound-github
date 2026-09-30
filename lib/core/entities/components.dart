@@ -24,7 +24,7 @@ final class PositionComponent extends EntityComponent {
 
   /// Set by the `WorldState` holding this entity, and by nobody else, so
   /// its tile index follows a position written straight into [position] —
-  /// which is how the player's action, the AI, the tutorial scripts and the
+  /// which is how the player's action, the AI, the story's scripts and the
   /// tests all move somebody.
   void Function(GridPoint from, GridPoint to)? onMoved;
 
@@ -77,12 +77,23 @@ final class HealthComponent extends EntityComponent {
 }
 
 final class AmmoComponent extends EntityComponent {
-  AmmoComponent({required this.loaded, this.hasGun = true});
+  AmmoComponent({
+    required this.loaded,
+    this.hasGun = true,
+    this.molotovs = 0,
+    this.grapplingHook = false,
+    this.rockets = 0,
+    this.hasRocketLauncher = false,
+  });
 
   factory AmmoComponent.fromJson(Map<String, Object?> json) {
     return AmmoComponent(
       loaded: json['loaded']! as int,
       hasGun: json['hasGun'] as bool? ?? true,
+      molotovs: json['molotovs']! as int,
+      grapplingHook: json['grapplingHook'] as bool? ?? false,
+      rockets: json['rockets'] as int? ?? 0,
+      hasRocketLauncher: json['hasRocketLauncher'] as bool? ?? false,
     );
   }
 
@@ -92,6 +103,22 @@ final class AmmoComponent extends EntityComponent {
 
   /// Bullets can be carried before the pistol is found.
   bool hasGun;
+
+  /// Bottles of spirits with a rag in the neck, ready to be lit and
+  /// thrown: each one bursts into flames over a 3x3 square.
+  int molotovs;
+
+  /// The grappling hook, found in the Baths of Diocletian: it carries
+  /// Mario across the gap between two roofs (see `WorldState.grapples`).
+  /// It is not used up, so like the pistol it goes wherever he goes.
+  bool grapplingHook;
+
+  /// Rounds for the rocket launcher. Like the bullets, they can be carried
+  /// before the weapon is found.
+  int rockets;
+
+  /// The rocket launcher itself, which nobody has found yet.
+  bool hasRocketLauncher;
 
   void add(int rounds) => loaded += rounds;
 
@@ -103,6 +130,10 @@ final class AmmoComponent extends EntityComponent {
     'type': type,
     'loaded': loaded,
     'hasGun': hasGun,
+    'molotovs': molotovs,
+    if (grapplingHook) 'grapplingHook': true,
+    if (rockets > 0) 'rockets': rockets,
+    if (hasRocketLauncher) 'hasRocketLauncher': true,
   };
 }
 
@@ -233,6 +264,40 @@ final class ActorComponent extends EntityComponent {
   };
 }
 
+/// What keeps a zombie within reach of a fixed point: the call-centre
+/// operator's handset, still on its cord to the phone on the desk at
+/// [anchor]. It never stands further than [length] tiles from it, in a
+/// straight line, the way the cord would stretch.
+final class TetherComponent extends EntityComponent {
+  TetherComponent({required this.anchor, required this.length});
+
+  factory TetherComponent.fromJson(Map<String, Object?> json) =>
+      TetherComponent(
+        anchor: GridPoint.fromJson(json['anchor']! as Map<String, Object?>),
+        length: json['length']! as int,
+      );
+
+  final GridPoint anchor;
+  final int length;
+
+  /// Whether the cord reaches [tile].
+  bool reaches(GridPoint tile) {
+    final dx = tile.x - anchor.x;
+    final dy = tile.y - anchor.y;
+    return dx * dx + dy * dy <= length * length;
+  }
+
+  @override
+  String get type => 'tether';
+
+  @override
+  Map<String, Object?> toJson() => <String, Object?>{
+    'type': type,
+    'anchor': anchor.toJson(),
+    'length': length,
+  };
+}
+
 EntityComponent componentFromJson(Map<String, Object?> json) {
   return switch (json['type']) {
     'position' => PositionComponent.fromJson(json),
@@ -241,6 +306,7 @@ EntityComponent componentFromJson(Map<String, Object?> json) {
     'vision' => VisionComponent.fromJson(json),
     'hearing' => HearingComponent.fromJson(json),
     'actor' => ActorComponent.fromJson(json),
+    'tether' => TetherComponent.fromJson(json),
     _ => throw FormatException('Unknown component type: ${json['type']}'),
   };
 }

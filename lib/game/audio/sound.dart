@@ -8,7 +8,26 @@ enum Music {
   story('music/story.mp3'),
   street('music/street.mp3'),
   barracks('music/barracks.mp3'),
-  danger('music/danger.mp3');
+  danger('music/danger.mp3'),
+
+  /// Organ and choir gone wrong: San Nicola, the Duomo and Don Angelo.
+  sacred('music/sacred.mp3'),
+
+  /// Setting off together: Luigi, the station and the train.
+  luigi('music/luigi.mp3'),
+
+  /// Chords like Gregorian chant under a cold organ, a harp plucking
+  /// alone: Rome, from Termini out into its streets.
+  rome('music/rome.mp3'),
+
+  /// A catchy beat to rap over, all swagger: Tonino and Marcello, in
+  /// their scenes and whenever they come into view once they are known.
+  maranza('music/maranza.mp3'),
+
+  /// Pizzicato tiptoeing like a cartoon villain, slowed down: the hold
+  /// music of a call centre gone wrong. Molfetta's industries, the company
+  /// and Chiara's scenes.
+  weasel('music/weasel.mp3');
 
   const Music(this.file);
 
@@ -41,10 +60,24 @@ enum Sfx {
     voices: 4,
   ),
   gunshot(<String>['sfx/gunshot.mp3']),
+
+  /// A rocket leaving the launcher: the thump of the charge and the roar
+  /// of its motor going off down the line.
+  rocket(<String>['sfx/rocket_launch.mp3']),
+
+  /// The rocket bursting against the wall at the end of its line.
+  explosion(<String>['sfx/explosion.mp3']),
+
+  /// A bottle shattering and the petrol catching.
+  molotov(<String>['sfx/molotov_1.mp3', 'sfx/molotov_2.mp3']),
   dryFire(<String>['sfx/dry_fire.mp3'], volume: 0.8),
   pickup(<String>['sfx/pickup.mp3'], volume: 0.8),
   pickupGun(<String>['sfx/pickup_gun.mp3'], volume: 0.9),
   door(<String>['sfx/door.mp3'], volume: 0.8),
+
+  /// The grappling hook: the rope through the air, the hook catching on
+  /// the stone across the gap, the rope creaking as Mario goes over.
+  grapple(<String>['sfx/grapple.mp3'], volume: 0.9),
   rest(<String>['sfx/rest.mp3'], volume: 0.7),
   zombieAlert(
     <String>[
@@ -66,6 +99,13 @@ enum Sfx {
   playerFall(<String>['sfx/player_fall.mp3']),
   gameOver(<String>['sfx/game_over.mp3'], voices: 1, lingers: true),
   uiClick(<String>['sfx/ui_click.mp3'], volume: 0.6),
+
+  /// A pen drawn lightly across paper: one stroke of a mission's cross,
+  /// quiet under whatever else is playing.
+  penStroke(<String>[
+    'sfx/pen_stroke_1.mp3',
+    'sfx/pen_stroke_2.mp3',
+  ], volume: 0.35),
   dialogue(<String>['sfx/dialogue.mp3'], volume: 0.5);
 
   const Sfx(
@@ -107,6 +147,31 @@ const List<SoundCredit> musicCredits = <SoundCredit>[
   ),
   (
     title: 'Oppressive Gloom',
+    author: 'Kevin MacLeod (incompetech.com)',
+    licence: 'CC BY 4.0',
+  ),
+  (
+    title: 'Halls of the Undead',
+    author: 'Kevin MacLeod (incompetech.com)',
+    licence: 'CC BY 4.0',
+  ),
+  (
+    title: 'At Launch',
+    author: 'Kevin MacLeod (incompetech.com)',
+    licence: 'CC BY 4.0',
+  ),
+  (
+    title: 'Rites',
+    author: 'Kevin MacLeod (incompetech.com)',
+    licence: 'CC BY 4.0',
+  ),
+  (
+    title: 'Basic Implosion',
+    author: 'Kevin MacLeod (incompetech.com)',
+    licence: 'CC BY 4.0',
+  ),
+  (
+    title: 'Scheming Weasel (slower version)',
     author: 'Kevin MacLeod (incompetech.com)',
     licence: 'CC BY 4.0',
   ),

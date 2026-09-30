@@ -43,6 +43,85 @@ void main() {
       expect(world.alertTriggers, isEmpty);
     });
 
+    test("through a door, the turn is Mario's again: a zombie waiting "
+        'right outside it neither bites nor moves until he has acted', () {
+      final factory = EntityFactory(BalanceConfig.standard());
+      final world = WorldState(
+        map: TileMap.fromAscii(const <String>[
+          '############',
+          '#..........#',
+          '############',
+        ]),
+        entities: <Entity>[
+          factory.player(id: 'player', position: const GridPoint(2, 1)),
+          factory.zombie(
+            id: 'zombie',
+            kind: EntityKind.sprinter,
+            position: const GridPoint(9, 1),
+          ),
+        ],
+        portals: <GridPoint, Portal>{
+          const GridPoint(1, 1): const Portal(
+            to: GridPoint(8, 1),
+            facing: Direction.east,
+          ),
+        },
+        playerId: 'player',
+        random: SeededRandom(1),
+      );
+      const scheduler = TurnScheduler();
+
+      final arrival = scheduler.advance(
+        world,
+        const MoveAction(Direction.west),
+      );
+      expect(arrival.whereType<TeleportedEvent>(), hasLength(1));
+      expect(arrival.whereType<DamagedEvent>(), isEmpty);
+      expect(
+        world.entities['zombie']!.component<PositionComponent>().position,
+        const GridPoint(9, 1),
+      );
+
+      final next = scheduler.advance(world, const WaitAction());
+      expect(
+        next.whereType<DamagedEvent>().single.sourceEntityId,
+        'zombie',
+        reason: 'from then on the zombies act as ever',
+      );
+    });
+
+    test('through a door right into the zombie standing behind it is the '
+        'end of Mario, turn or no turn', () {
+      final factory = EntityFactory(BalanceConfig.standard());
+      final world = WorldState(
+        map: TileMap.fromAscii(const <String>['#######', '#.....#', '#######']),
+        entities: <Entity>[
+          factory.player(id: 'player', position: const GridPoint(2, 1)),
+          factory.zombie(
+            id: 'zombie',
+            kind: EntityKind.wanderer,
+            position: const GridPoint(5, 1),
+          ),
+        ],
+        portals: <GridPoint, Portal>{
+          const GridPoint(1, 1): const Portal(
+            to: GridPoint(5, 1),
+            facing: Direction.east,
+          ),
+        },
+        playerId: 'player',
+        random: SeededRandom(1),
+      );
+
+      final events = const TurnScheduler().advance(
+        world,
+        const MoveAction(Direction.west),
+      );
+      expect(events.whereType<DiedEvent>().single.entityId, 'player');
+      expect(events.whereType<DamagedEvent>().single.sourceEntityId, 'zombie');
+      expect(world.player.isAlive, isFalse);
+    });
+
     test('actors outside forty tiles are not simulated', () {
       final factory = EntityFactory(BalanceConfig.standard());
       final world = WorldState(

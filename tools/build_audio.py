@@ -9,17 +9,56 @@ as MP3, the one format Android, iOS and the browsers all play.
 
 Needs ffmpeg on the PATH. Downloads are cached in build/audio_src/.
 
-Run from the repository root:  python tools/build_audio.py
+Run from the repository root:
+
+    python tools/build_audio.py            bake every sound into assets/audio
+    python tools/build_audio.py --check    bake into a temporary folder and
+                                           fail if any file differs from the
+                                           committed one
+
+The bake is reproducible to the byte with the ffmpeg build named in
+FFMPEG_VERSION (verified 2026-09-30: 40 files of 40 identical), and with
+that build `--check` compares the bytes. Another build encodes MP3 a
+little differently, so with one `--check` decodes each pair and compares
+their loudness envelopes instead, 50 ms by 50 ms, within
+ENVELOPE_TOLERANCE_DB: a loop cut elsewhere, a fade, a filter or a gain
+changed shows up there, encoder noise does not. That is how the
+`audio_check` job (gitlab/verify.yml, and its twin on GitHub) runs it,
+on the ffmpeg of its image, with the downloads cached between runs.
 """
 from __future__ import annotations
 
+import argparse
+import array
+import filecmp
+import math
 import os
 import re
 import subprocess
+import sys
+import tempfile
 import zipfile
 
 CACHE = os.path.join("build", "audio_src")
 OUTPUT = os.path.join("assets", "audio")
+
+# The build every committed sound was baked with, as `ffmpeg -version`
+# names it (the first token after "ffmpeg version"). gyan.dev's full build
+# of that day; another ffmpeg gives files that play the same but are not
+# the same bytes.
+FFMPEG_VERSION = "2023-04-24-git-2aad9765ef-full_build-www.gyan.dev"
+
+# How `--check` judges a bake made with another ffmpeg: both files decoded
+# to mono at ENVELOPE_RATE, the loudness of every ENVELOPE_FRAME samples
+# (50 ms) compared, ignoring frames quieter than ENVELOPE_FLOOR_DB in both.
+# The two builds this was measured on (the one above, and Debian's 7.1)
+# stay within a few tenths of a decibel of each other; a gain moved by one
+# decibel, a fade or a loop point moved by a frame go well past it.
+ENVELOPE_RATE = 8000
+ENVELOPE_FRAME = 400
+ENVELOPE_FLOOR_DB = -50.0
+ENVELOPE_TOLERANCE_DB = 1.0
+DURATION_TOLERANCE = 0.05
 
 INCOMPETECH = "https://incompetech.com/music/royalty-free/mp3-royaltyfree/"
 SOUNDIMAGE = "https://soundimage.org/wp-content/uploads/"
@@ -37,6 +76,19 @@ SOURCES = {
     "oppressive_gloom": (INCOMPETECH + "Oppressive%20Gloom.mp3",
                          "Oppressive Gloom",
                          "Kevin MacLeod (incompetech.com)", "CC BY 4.0"),
+    "halls_of_the_undead": (INCOMPETECH + "Halls%20of%20the%20Undead.mp3",
+                            "Halls of the Undead",
+                            "Kevin MacLeod (incompetech.com)", "CC BY 4.0"),
+    "at_launch": (INCOMPETECH + "At%20Launch.mp3", "At Launch",
+                  "Kevin MacLeod (incompetech.com)", "CC BY 4.0"),
+    "rites": (INCOMPETECH + "Rites.mp3", "Rites",
+              "Kevin MacLeod (incompetech.com)", "CC BY 4.0"),
+    "basic_implosion": (INCOMPETECH + "Basic%20Implosion.mp3",
+                        "Basic Implosion",
+                        "Kevin MacLeod (incompetech.com)", "CC BY 4.0"),
+    "scheming_weasel": (INCOMPETECH + "Scheming%20Weasel%20slower.mp3",
+                        "Scheming Weasel (slower version)",
+                        "Kevin MacLeod (incompetech.com)", "CC BY 4.0"),
     "lurking": (SOUNDIMAGE + "2014/03/Lurking-in-the-Shadows.mp3",
                 "Lurking in the Shadows", "Eric Matyas (soundimage.org)",
                 "Free with attribution"),
@@ -71,6 +123,9 @@ SOURCES = {
             "RPG Audio", "Kenney.nl", "CC0"),
     "ui": (KENNEY + "ui-audio/490d233f68-1677590494/kenney_ui-audio.zip",
            "UI Audio", "Kenney.nl", "CC0"),
+    "interface": (KENNEY + "interface-sounds/fa43c1dd4d-1677589452/"
+                  "kenney_interface-sounds.zip", "Interface Sounds",
+                  "Kenney.nl", "CC0"),
 }
 
 # Loops: (output, source, start s, end s, crossfade s, loudness LUFS).
@@ -82,6 +137,22 @@ MUSIC = [
     ("music/street.mp3", "oppressive_gloom", 0.0, 190.0, 6.0, -21),
     ("music/barracks.mp3", "lurking", 1.37, 91.2, 0.6, -22),
     ("music/danger.mp3", "closing_in", 1.38, 78.15, 0.6, -19),
+    # Organ, choir and bells over the undead: the churches and Don Angelo.
+    ("music/sacred.mp3", "halls_of_the_undead", 0.42, 284.0, 6.0, -21),
+    # Brass, snare and strings setting off: Luigi, the station, the train.
+    ("music/luigi.mp3", "at_launch", 1.0, 180.0, 4.0, -20),
+    # Chords like Gregorian chant under a cold organ and a lone harp: Rome.
+    ("music/rome.mp3", "rites", 0.0, 119.0, 6.0, -21),
+    # A catchy beat to rap over, all swagger: Tonino and Marcello. The
+    # piece repeats itself 40 bars (101.05 s) on, so the beat at 152.55 s
+    # lands on the one at 51.5 s: the loop is cut there, with a short
+    # crossfade that keeps the kicks sharp.
+    # Pizzicato strings tiptoeing like a cartoon villain, slowed down:
+    # the hold music of a call centre gone wrong, for Molfetta's industries,
+    # the company and Chiara. The piece opens and ends on silence, so the
+    # loop runs from its first note to its last with a short crossfade.
+    ("music/weasel.mp3", "scheming_weasel", 0.45, 106.75, 0.3, -21),
+    ("music/maranza.mp3", "basic_implosion", 51.5, 153.05, 0.5, -20),
 ]
 
 AMBIENCE = [
@@ -89,6 +160,10 @@ AMBIENCE = [
     ("ambience/indoor.mp3", "dungeon", 0.0, None, 2.0, -27, None),
     ("ambience/fire.mp3", "fireplace", 0.0, None, 1.5, -24, None),
 ]
+
+# A soft pen stroke out of a scratch: no rumble, no hiss, faded in and out.
+PEN_SOFTEN = ("highpass=f=250,lowpass=f=2200,afade=t=in:d=0.03,"
+              "afade=t=out:st=0.16:d=0.16")
 
 # One-shots: (output, source, start, end, peak dBFS, extra filter).
 IMPACT = "Audio/"
@@ -127,6 +202,69 @@ SFX = [
      None, -3, None),
     ("sfx/ui_click.mp3", "ui", "Audio/click3.ogg", None, -8, None),
     ("sfx/dialogue.mp3", "ui", "Audio/switch2.ogg", None, -14, None),
+    # A pen drawn lightly across paper: the two strokes of a mission's
+    # cross. The hiss is taken off the top and the tail eased out, so it
+    # is a soft stroke, not a scratch.
+    ("sfx/pen_stroke_1.mp3", "interface", "Audio/scratch_004.ogg", None, -16,
+     PEN_SOFTEN),
+    ("sfx/pen_stroke_2.mp3", "interface", "Audio/scratch_005.ogg", None, -16,
+     PEN_SOFTEN),
+]
+
+# One-shots mixed from several sounds: (output, peak dBFS, layers), each
+# layer (source, start, end, delay s, gain dB, extra filter) as in SFX.
+LAYERED = [
+    # The grappling hook: the rope whipping through the air from the
+    # release of the throw (0.14 s, CharacterComponent.throwReleaseDelay),
+    # the hook biting into the stone across the gap as it catches (0.49 s,
+    # GrappleComponent.throwSeconds), then the rope creaking under Mario
+    # all the way over.
+    ("sfx/grapple.mp3", -4, [
+        ("rpg", RPG + "knifeSlice.ogg", None, 0.1, 0,
+         "asetrate=44100*0.72,aresample=44100,lowpass=f=2600,"
+         "afade=t=out:st=0.25:d=0.2"),
+        ("impact", IMPACT + "impactMetal_light_002.ogg", None, 0.47, -2,
+         None),
+        ("rpg", RPG + "creak1.ogg", None, 0.56, -2, None),
+        ("rpg", RPG + "creak3.ogg", None, 0.94, -5,
+         "afade=t=out:st=0.15:d=0.2"),
+    ]),
+    # The rocket launcher: the charge going off with a thump, and the
+    # round's motor roaring away down the line, fading with the distance.
+    ("sfx/rocket_launch.mp3", -1, [
+        ("pistol", 0.0, 0.59, 0.0, 3,
+         "asetrate=44100*0.55,aresample=44100,bass=g=14:f=80,"
+         "afade=t=out:st=0.45:d=0.5"),
+        ("fireplace", 30.0, 30.9, 0.04, 9,
+         "highpass=f=600,lowpass=f=5000,afade=t=in:d=0.04,"
+         "afade=t=out:st=0.4:d=0.5"),
+    ]),
+    # The round bursting against the wall at the end of its line: a deep
+    # blast, the plaster coming down, the fire of it dying away.
+    ("sfx/explosion.mp3", -1, [
+        ("pistol", 0.0, 0.59, 0.0, 6,
+         "asetrate=44100*0.4,aresample=44100,bass=g=16:f=70"),
+        ("impact", IMPACT + "impactPlate_heavy_000.ogg", None, 0.02, -2,
+         "asetrate=44100*0.7,aresample=44100"),
+        ("fireplace", 18.0, 19.2, 0.1, 12,
+         "bass=g=8:f=90,lowpass=f=2800,afade=t=in:d=0.05,"
+         "afade=t=out:st=0.4:d=0.8"),
+    ]),
+    # A bottle shattering, then the petrol catching with a roar.
+    ("sfx/molotov_1.mp3", -2, [
+        ("impact", IMPACT + "impactGlass_heavy_001.ogg", None, 0.0, 0,
+         None),
+        ("fireplace", 12.0, 13.8, 0.06, 14,
+         "bass=g=10:f=90,lowpass=f=3200,afade=t=in:d=0.12,"
+         "afade=t=out:st=0.5:d=1.3"),
+    ]),
+    ("sfx/molotov_2.mp3", -2, [
+        ("impact", IMPACT + "impactGlass_heavy_004.ogg", None, 0.0, 0,
+         None),
+        ("fireplace", 22.0, 23.8, 0.06, 17,
+         "bass=g=10:f=90,lowpass=f=3200,afade=t=in:d=0.12,"
+         "afade=t=out:st=0.5:d=1.3"),
+    ]),
 ]
 
 
@@ -162,6 +300,41 @@ def duration(path: str) -> float:
     return float(result.stdout)
 
 
+def ffmpeg_version() -> str:
+    banner = subprocess.run(["ffmpeg", "-version"], capture_output=True,
+                            text=True, check=True).stdout
+    return banner.split()[2]
+
+
+def envelope(path: str) -> tuple[list[float], float]:
+    """The loudness of [path] in dBFS, frame by frame, and its length in
+    seconds, decoded to mono at ENVELOPE_RATE."""
+    raw = subprocess.run(
+        ["ffmpeg", "-hide_banner", "-nostats", "-v", "error", "-i", path,
+         "-f", "s16le", "-ac", "1", "-ar", str(ENVELOPE_RATE), "-"],
+        capture_output=True, check=True).stdout
+    samples = array.array("h")
+    samples.frombytes(raw[:len(raw) - len(raw) % 2])
+    frames = []
+    for start in range(0, len(samples) - ENVELOPE_FRAME // 2, ENVELOPE_FRAME):
+        chunk = samples[start:start + ENVELOPE_FRAME]
+        rms = math.sqrt(sum(s * s for s in chunk) / len(chunk)) / 32768
+        frames.append(20 * math.log10(rms) if rms > 0 else -120.0)
+    return frames, len(samples) / ENVELOPE_RATE
+
+
+def envelope_difference(a: str, b: str) -> tuple[float, float]:
+    """How far apart two sounds are: seconds of length, and decibels in
+    the frame where their loudness differs most."""
+    frames_a, length_a = envelope(a)
+    frames_b, length_b = envelope(b)
+    worst = 0.0
+    for x, y in zip(frames_a, frames_b):
+        if max(x, y) > ENVELOPE_FLOOR_DB:
+            worst = max(worst, abs(x - y))
+    return abs(length_a - length_b), worst
+
+
 def out_path(name: str) -> str:
     path = os.path.join(OUTPUT, name)
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -181,14 +354,18 @@ def bake_loop(output, source, start, end, fade, lufs, extra=None,
     path = fetch(source)
     end = end if end is not None else duration(path)
     pre = f"{extra}," if extra else ""
+    # The segment is read twice, once for its body and once for its head,
+    # rather than split: fed both ends of a crossfade from one asplit,
+    # ffmpeg 7 delivers nothing. Same samples either way.
     graph = (
-        f"[0:a]atrim={start}:{end},asetpts=PTS-STARTPTS,{pre}asplit[a][b];"
-        f"[a]atrim={fade},asetpts=PTS-STARTPTS[body];"
-        f"[b]atrim=0:{fade},asetpts=PTS-STARTPTS[head];"
+        f"[0:a]atrim={start}:{end},asetpts=PTS-STARTPTS,{pre}"
+        f"atrim={fade},asetpts=PTS-STARTPTS[body];"
+        f"[1:a]atrim={start}:{end},asetpts=PTS-STARTPTS,{pre}"
+        f"atrim=0:{fade},asetpts=PTS-STARTPTS[head];"
         f"[body][head]acrossfade=d={fade}:c1=tri:c2=tri,"
         f"loudnorm=I={lufs}:TP=-2:LRA=11[out]"
     )
-    ffmpeg("-i", path, "-filter_complex", graph, "-map", "[out]",
+    ffmpeg("-i", path, "-i", path, "-filter_complex", graph, "-map", "[out]",
            *encode_args(stereo), out_path(output))
 
 
@@ -209,16 +386,115 @@ def bake_one_shot(output, source, start, end, peak, extra):
            out_path(output))
 
 
-def main() -> None:
+def bake_layered(output, peak, layers):
+    inputs, chains, labels = [], [], []
+    for index, (source, start, end, delay, gain, extra) in enumerate(layers):
+        path = fetch(source)
+        if isinstance(start, str):
+            path, start = os.path.join(path, source, start), 0.0
+        trim = f"atrim={start}" + (f":{end}" if end is not None else "")
+        chain = f"{trim},asetpts=PTS-STARTPTS,aformat=channel_layouts=mono"
+        if extra:
+            chain += "," + extra
+        chain += f",volume={gain}dB,adelay={int(delay * 1000)}"
+        inputs += ["-i", path]
+        chains.append(f"[{index}:a]{chain}[l{index}]")
+        labels.append(f"[l{index}]")
+    mix = (";".join(chains) + ";" + "".join(labels) +
+           f"amix=inputs={len(layers)}:duration=longest:normalize=0")
+    probe = ffmpeg(*inputs, "-filter_complex", mix + ",volumedetect",
+                   "-f", "null", "-")
+    loudest = float(re.search(r"max_volume: (-?[\d.]+) dB", probe).group(1))
+    ffmpeg(*inputs, "-filter_complex",
+           mix + f",volume={peak - loudest:.2f}dB[out]", "-map", "[out]",
+           *encode_args(stereo=False), out_path(output))
+
+
+def bake_all() -> list[str]:
+    """Bakes every sound into OUTPUT; returns their paths under it."""
+    made = []
     for output, source, start, end, fade, lufs in MUSIC:
         bake_loop(output, source, start, end, fade, lufs)
+        made.append(output)
         print(output)
     for output, source, start, end, fade, lufs, extra in AMBIENCE:
         bake_loop(output, source, start, end, fade, lufs, extra, stereo=False)
+        made.append(output)
         print(output)
     for output, source, start, end, peak, extra in SFX:
         bake_one_shot(output, source, start, end, peak, extra)
+        made.append(output)
         print(output)
+    for output, peak, layers in LAYERED:
+        bake_layered(output, peak, layers)
+        made.append(output)
+        print(output)
+    return made
+
+
+def check() -> None:
+    """Bakes into a temporary folder and compares every file with the one
+    committed under assets/audio: byte by byte with the ffmpeg build that
+    baked them, by loudness envelope with any other."""
+    global OUTPUT
+    found = ffmpeg_version()
+    exact = found == FFMPEG_VERSION
+    committed = OUTPUT
+    with tempfile.TemporaryDirectory(prefix="stepbound-audio-") as temp:
+        OUTPUT = temp
+        try:
+            made = bake_all()
+        finally:
+            OUTPUT = committed
+        differing = []
+        for name in made:
+            fresh, kept = os.path.join(temp, name), os.path.join(committed, name)
+            if not os.path.exists(kept):
+                differing.append(f"{name}: not committed")
+            elif exact:
+                if not filecmp.cmp(fresh, kept, shallow=False):
+                    differing.append(f"{name}: differs from what the bake makes")
+            else:
+                seconds, decibels = envelope_difference(fresh, kept)
+                if seconds > DURATION_TOLERANCE or decibels > ENVELOPE_TOLERANCE_DB:
+                    differing.append(
+                        f"{name}: the bake makes it {seconds:.2f} s off in "
+                        f"length, {decibels:.1f} dB off at the loudest "
+                        f"difference")
+    on_disk = sorted(
+        os.path.relpath(os.path.join(directory, file), committed)
+        .replace(os.sep, "/")
+        for directory, _, files in os.walk(committed)
+        for file in files if file.endswith(".mp3"))
+    left_over = sorted(set(on_disk) - set(made))
+    if differing or left_over:
+        lines = differing + [f"{name}: no bake makes it any more"
+                             for name in left_over]
+        raise SystemExit(
+            "assets/audio is not what tools/build_audio.py makes:\n  "
+            + "\n  ".join(lines)
+            + "\nBake and commit: python tools/build_audio.py")
+    how = ("byte for byte" if exact else
+           "not the build that baked them: by loudness envelope, within "
+           f"{ENVELOPE_TOLERANCE_DB} dB")
+    print(f"every sound of {len(made)} is what the bake makes "
+          f"(ffmpeg {found}, {how})")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--check", action="store_true",
+                        help="bake into a temporary folder and fail if any "
+                             "sound differs from the committed one")
+    if parser.parse_args().check:
+        check()
+    else:
+        found = ffmpeg_version()
+        if found != FFMPEG_VERSION:
+            print(f"note: ffmpeg {found}, not {FFMPEG_VERSION}: the files "
+                  f"will play the same but differ in bytes from the last "
+                  f"bake", file=sys.stderr)
+        bake_all()
 
 
 if __name__ == "__main__":

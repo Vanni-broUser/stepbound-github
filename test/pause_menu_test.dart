@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/game/progress.dart';
+import 'package:stepbound/ui/main_menu.dart';
 import 'package:stepbound/ui/pause_menu.dart';
+import 'package:stepbound/ui/portrait_image.dart';
 
 void main() {
   late int resumes;
@@ -15,13 +17,21 @@ void main() {
     WidgetTester tester, {
     ResumePoint? resumePoint = ResumePoint.campfire,
     bool cultistFound = true,
+    bool wardrobe = false,
+    Iterable<PlayerOutfit> linkedOutfits = const <PlayerOutfit>[],
+    Iterable<PlayerOutfit> giftsBeforeStart = const <PlayerOutfit>[],
   }) async {
     resumes = 0;
     restarts = 0;
     quits = 0;
     closes = 0;
     progress = Progress(
-      unlockedOutfits: <PlayerOutfit>[if (cultistFound) PlayerOutfit.cultist],
+      unlockedOutfits: <PlayerOutfit>[
+        ...giftsBeforeStart,
+        PlayerOutfit.base,
+        if (cultistFound) PlayerOutfit.cultist,
+        ...linkedOutfits,
+      ],
     );
     outfitsWorn = <PlayerOutfit>[];
     tester.view.physicalSize = const Size(768, 432);
@@ -33,6 +43,7 @@ void main() {
           progress: progress,
           key: ValueKey<ResumePoint?>(resumePoint),
           resumePoint: resumePoint,
+          wardrobe: wardrobe,
           onResumeFromCamp: () => resumes++,
           onRestartLevel: () => restarts++,
           onMainMenu: () => quits++,
@@ -56,7 +67,6 @@ void main() {
     await pumpMenu(tester);
     for (final text in <String>[
       'RIPRENDI DAL FALÒ',
-      'CAMBIA ABBIGLIAMENTO',
       'RICOMINCIA IL LIVELLO',
       'VAI AL MENÙ PRINCIPALE',
       'TORNA AL GIOCO',
@@ -85,12 +95,14 @@ void main() {
     expect(find.text('VAI AL MENÙ PRINCIPALE'), findsOneWidget);
   });
 
-  testWidgets('before the first outfit is found, no outfit button', (
-    tester,
-  ) async {
-    await pumpMenu(tester, cultistFound: false);
+  testWidgets('the clothes are never changed from the menu, only at the '
+      'wardrobe aboard, whatever Mario has', (tester) async {
+    await pumpMenu(
+      tester,
+      linkedOutfits: const <PlayerOutfit>[PlayerOutfit.ghost],
+    );
     expect(find.text('CAMBIA ABBIGLIAMENTO'), findsNothing);
-    expect(find.text('RIPRENDI DAL FALÒ'), findsOneWidget);
+    expect(find.byKey(const ValueKey<String>('pause-outfits')), findsNothing);
   });
 
   testWidgets('the way back to the game sits apart from the choices', (
@@ -108,32 +120,50 @@ void main() {
     expect(beforeTheWayBack, greaterThan(betweenChoices * 2));
   });
 
-  testWidgets('the top-right menu changes between unlocked outfits', (
+  testWidgets('the first time aboard, without the robe: a gift had before '
+      'the game began, then the base clothes, and nothing else', (
     tester,
   ) async {
-    await pumpMenu(tester);
-    await tap(tester, 'pause-outfits');
+    await pumpMenu(
+      tester,
+      wardrobe: true,
+      cultistFound: false,
+      giftsBeforeStart: const <PlayerOutfit>[PlayerOutfit.ghost],
+    );
+    String label(int index) => tester
+        .widget<MenuButton>(find.byKey(ValueKey<String>('pause-outfit-$index')))
+        .label;
+    expect(
+      <String>[label(0), label(1), label(2)],
+      <String>['FANTASMA', 'BASE', '???'],
+    );
+    expect(
+      find.byKey(const ValueKey<String>('pause-outfit-portrait-1')),
+      findsOneWidget,
+      reason: 'open on the base clothes Mario is wearing',
+    );
+    expect(find.text('OCCULTISTA'), findsNothing);
+  });
+
+  testWidgets('the wardrobe aboard changes between unlocked outfits', (
+    tester,
+  ) async {
+    await pumpMenu(tester, wardrobe: true);
 
     expect(find.text('BASE'), findsNWidgets(2));
     expect(find.text('OCCULTISTA'), findsOneWidget);
     expect(find.text('GIÀ IN USO'), findsOneWidget);
-    final basePortrait = tester.widget<Image>(
+    final basePortrait = tester.widget<PortraitImage>(
       find.byKey(const ValueKey<String>('pause-outfit-portrait-0')),
     );
-    expect(
-      (basePortrait.image as AssetImage).assetName,
-      PlayerOutfit.base.portrait,
-    );
+    expect(basePortrait.asset, PlayerOutfit.base.portrait);
 
     await tap(tester, 'pause-outfit-1');
     expect(find.text('INDOSSA'), findsOneWidget);
-    final cultistPortrait = tester.widget<Image>(
+    final cultistPortrait = tester.widget<PortraitImage>(
       find.byKey(const ValueKey<String>('pause-outfit-portrait-1')),
     );
-    expect(
-      (cultistPortrait.image as AssetImage).assetName,
-      PlayerOutfit.cultist.portrait,
-    );
+    expect(cultistPortrait.asset, PlayerOutfit.cultist.portrait);
 
     await tap(tester, 'pause-outfit-wear');
     expect(outfitsWorn, <PlayerOutfit>[PlayerOutfit.cultist]);
@@ -141,14 +171,44 @@ void main() {
     expect(find.text('GIÀ IN USO'), findsOneWidget);
 
     await tap(tester, 'pause-outfit-back');
-    expect(find.text('TORNA AL GIOCO'), findsOneWidget);
+    expect(closes, 1, reason: 'back to the game');
+  });
+
+  testWidgets('from the wardrobe aboard it opens on the outfits, even with '
+      'only the base clothes, and going back returns to the game', (
+    tester,
+  ) async {
+    await pumpMenu(tester, wardrobe: true, cultistFound: false);
+    expect(
+      find.byKey(const ValueKey<String>('pause-outfit-page')),
+      findsOneWidget,
+    );
+    await tap(tester, 'pause-outfit-back');
+    expect(closes, 1);
+    expect(find.text('TORNA AL GIOCO'), findsNothing);
+  });
+
+  testWidgets('the train wardrobe can wear a linked skin before the Duomo', (
+    tester,
+  ) async {
+    await pumpMenu(
+      tester,
+      wardrobe: true,
+      cultistFound: false,
+      linkedOutfits: const <PlayerOutfit>[PlayerOutfit.ghost],
+    );
+    // Right after the base clothes, the first one Mario had.
+    const ghostSlot = 1;
+    await tap(tester, 'pause-outfit-$ghostSlot');
+    expect(find.text('FANTASMA'), findsWidgets);
+    await tap(tester, 'pause-outfit-wear');
+    expect(outfitsWorn, <PlayerOutfit>[PlayerOutfit.ghost]);
   });
 
   testWidgets('the outfits still to come are "???" and cannot be worn', (
     tester,
   ) async {
-    await pumpMenu(tester);
-    await tap(tester, 'pause-outfits');
+    await pumpMenu(tester, wardrobe: true);
     // Many places already, only two of them filled.
     expect(outfitSlots, greaterThan(PlayerOutfit.values.length));
     await tap(tester, 'pause-outfit-2');
@@ -161,6 +221,118 @@ void main() {
     await tap(tester, 'pause-outfit-wear');
     expect(outfitsWorn, isEmpty);
     expect(find.text('???'), findsWidgets);
+  });
+
+  testWidgets('the outfits come in the order they became his, and every '
+      'place still empty looks the same, outfits of the game or not', (
+    tester,
+  ) async {
+    progress = Progress(
+      unlockedOutfits: const <PlayerOutfit>[
+        PlayerOutfit.jackOLantern,
+        PlayerOutfit.base,
+        PlayerOutfit.cultist,
+        PlayerOutfit.ghost,
+      ],
+    );
+    tester.view.physicalSize = const Size(768, 432);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PauseMenu(
+          progress: progress,
+          wardrobe: true,
+          resumePoint: ResumePoint.campfire,
+          onResumeFromCamp: () {},
+          onRestartLevel: () {},
+          onMainMenu: () {},
+          onClose: () {},
+          onWearOutfit: (_) {},
+        ),
+      ),
+    );
+    String label(int index) => tester
+        .widget<MenuButton>(find.byKey(ValueKey<String>('pause-outfit-$index')))
+        .label;
+    expect(
+      find.byKey(const ValueKey<String>('pause-outfit-portrait-1')),
+      findsOneWidget,
+      reason: 'it opens on the base clothes Mario is wearing, not the gift',
+    );
+    expect(
+      <String>[label(0), label(1), label(2), label(3)],
+      <String>[
+        PlayerOutfit.jackOLantern.label.toUpperCase(),
+        'BASE',
+        'OCCULTISTA',
+        PlayerOutfit.ghost.label.toUpperCase(),
+      ],
+    );
+
+    // Whatever is behind a "???", the vampire and the Roma shirt of the game
+    // or a place for outfits still to come, it is the base clothes' shape.
+    for (var index = 4; index < outfitSlots; index++) {
+      await tester.scrollUntilVisible(
+        find.byKey(ValueKey<String>('pause-outfit-$index')),
+        20,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tap(tester, 'pause-outfit-$index');
+      expect(label(index), '???');
+      expect(
+        tester.widget<PortraitImage>(find.byType(PortraitImage)).asset,
+        PlayerOutfit.base.portrait,
+      );
+      expect(find.text('NON DISPONIBILE'), findsOneWidget);
+    }
+  });
+
+  testWidgets('the Halloween catalogue exposes every seasonal skin', (
+    tester,
+  ) async {
+    progress = Progress(
+      unlockedOutfits: const <PlayerOutfit>[
+        PlayerOutfit.cultist,
+        ...halloweenOutfits,
+      ],
+    );
+    outfitsWorn = <PlayerOutfit>[];
+    tester.view.physicalSize = const Size(768, 432);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PauseMenu(
+          progress: progress,
+          wardrobe: true,
+          resumePoint: ResumePoint.campfire,
+          onResumeFromCamp: () {},
+          onRestartLevel: () {},
+          onMainMenu: () {},
+          onClose: () {},
+          onWearOutfit: (outfit) {
+            outfitsWorn.add(outfit);
+            progress.wearOutfit(outfit);
+          },
+        ),
+      ),
+    );
+    final owned = progress.unlockedOutfits.toList();
+    for (final outfit in halloweenOutfits) {
+      final slot = owned.indexOf(outfit);
+      await tap(tester, 'pause-outfit-$slot');
+      expect(find.text(outfit.label.toUpperCase()), findsWidgets);
+      final portrait = tester.widget<PortraitImage>(
+        find.byKey(ValueKey<String>('pause-outfit-portrait-$slot')),
+      );
+      expect(portrait.asset, outfit.portrait);
+    }
+
+    final zombieSlot = owned.indexOf(PlayerOutfit.zombie);
+    await tap(tester, 'pause-outfit-$zombieSlot');
+    await tap(tester, 'pause-outfit-wear');
+    expect(outfitsWorn, <PlayerOutfit>[PlayerOutfit.zombie]);
   });
 
   for (final (choice, name, count) in <(String, String, int Function())>[
@@ -201,7 +373,8 @@ void main() {
     expect(await costOf(tester, 'pause-resume'), contains('va perso'));
     await tap(tester, 'pause-back');
     final restart = await costOf(tester, 'pause-restart');
-    expect(restart, contains('si azzerano'));
+    expect(restart, contains('si azzera'));
+    expect(restart, contains('altre città'));
     expect(
       restart,
       contains('ore di gioco'),
@@ -213,5 +386,46 @@ void main() {
     // Never saved: leaving costs the whole game, and it says so.
     await pumpMenu(tester, resumePoint: null);
     expect(await costOf(tester, 'pause-quit'), contains('mai stata salvata'));
+  });
+
+  testWidgets('with a way to share, a report can be asked for from here', (
+    tester,
+  ) async {
+    var shared = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PauseMenu(
+          progress: Progress(),
+          resumePoint: null,
+          onResumeFromCamp: () {},
+          onRestartLevel: () {},
+          onMainMenu: () {},
+          onClose: () {},
+          onWearOutfit: (_) {},
+          onShareReport: () => shared++,
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey<String>('pause-share')));
+    await tester.pump();
+    expect(shared, 1);
+    expect(find.text(PauseMenu.shareLabel), findsOneWidget);
+  });
+
+  testWidgets('without one, the report is not offered', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PauseMenu(
+          progress: Progress(),
+          resumePoint: null,
+          onResumeFromCamp: () {},
+          onRestartLevel: () {},
+          onMainMenu: () {},
+          onClose: () {},
+          onWearOutfit: (_) {},
+        ),
+      ),
+    );
+    expect(find.byKey(const ValueKey<String>('pause-share')), findsNothing);
   });
 }

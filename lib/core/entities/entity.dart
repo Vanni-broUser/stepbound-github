@@ -8,6 +8,10 @@ import 'package:stepbound/core/entities/components.dart';
 /// not, and only bites straight when he is next to it.
 /// [cultist]: a towering cultist zombie which walks like a wanderer but
 /// survives the first pistol shot.
+/// [callCenter]: an operator of the call centre, as fast as a sprinter but
+/// still caught by the cord of the handset at its ear: it never goes
+/// further from its workstation than the cord reaches (see
+/// `TetherComponent`).
 enum EntityKind {
   player,
   wanderer,
@@ -19,6 +23,7 @@ enum EntityKind {
   burning,
   drunk,
   cultist,
+  callCenter,
 }
 
 final class Entity {

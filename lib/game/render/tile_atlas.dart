@@ -13,7 +13,7 @@ import 'package:stepbound/game/render/asset_image.dart';
 /// The place's ASCII rows stay the only place its layout is written down:
 /// nothing here knows where anything is, only what a glyph looks like and
 /// how its look changes with its neighbours.
-const String tileAtlasManifestPath = 'assets/tiles/atlas_manifest.json';
+const String tileAtlasManifestPath = 'assets/levels/tiles/atlas_manifest.json';
 
 /// The glyphs of a place, as the rules read them.
 final class GlyphGrid {
@@ -177,6 +177,15 @@ final class GroundConfig {
       return own;
     }
     final onFootway = footway.contains(glyph);
+    if (!onFootway && y > 0 && y < grid.height - 1) {
+      // Right between two cells of one floor, a prop is on that floor: a
+      // car parked across a road that runs north-south has the carriageway
+      // above and below it, whatever its row says.
+      final above = _floor(grid.rows[y - 1][x]);
+      if (above != null && above == _floor(grid.rows[y + 1][x])) {
+        return above;
+      }
+    }
     final found = <(String?, int)>[
       _floorAlong(grid, x, y, -1, 0),
       _floorAlong(grid, x, y, 1, 0),
@@ -581,6 +590,8 @@ final class TileObject {
     this.at,
     this.under,
     this.underAt,
+    this.overhead = false,
+    this.rises = false,
   });
 
   factory TileObject.fromJson(Map<String, Object?> json) => TileObject(
@@ -595,6 +606,8 @@ final class TileObject {
         row! as String,
     ],
     underAt: _pair(json['underAt']),
+    overhead: json['overhead'] == true,
+    rises: json['rises'] == true,
   );
 
   /// The glyph whose run it is drawn over, unless it says [at].
@@ -623,6 +636,16 @@ final class TileObject {
 
   /// A second image, for when the story has opened it.
   final String? whenOpen;
+
+  /// Whether it hangs over everything, the characters too: a banner
+  /// strung across a street, walked under.
+  final bool overhead;
+
+  /// Whether all of it above its own cells stands in front of whoever
+  /// walks there, however little of a cell it fills: a pavilion whose
+  /// sloping roof and cupola rise over the row north of it, never a thing
+  /// that could be walked in front of.
+  final bool rises;
 }
 
 /// Everything the renderer needs for one converted place.
@@ -704,7 +727,7 @@ final class TilePlaceArt {
   }
 }
 
-/// The manifest as it is written in assets/tiles/atlas_manifest.json.
+/// The manifest as it is written in assets/levels/tiles/atlas_manifest.json.
 final class TileAtlasManifest {
   const TileAtlasManifest({
     required this.tileWidth,
@@ -781,7 +804,7 @@ Future<LoadedTileAtlas> _load(String manifestPath) async {
     for (final object in place.objects) {
       for (final name in <String?>[object.image, object.whenOpen]) {
         if (name != null && !objects.containsKey(name)) {
-          objects[name] = await loadAssetImage('assets/tiles/objects/$name');
+          objects[name] = await loadAssetImage('assets/levels/places/$name');
         }
       }
     }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
@@ -9,28 +11,37 @@ import 'package:stepbound/ui/main_menu.dart';
 
 /// One full-screen frame of the intro story with its dialogue line.
 final class StoryScene {
-  const StoryScene({required this.image, required this.text, this.speaker});
+  const StoryScene({
+    required this.image,
+    required this.text,
+    this.speaker,
+    this.music,
+  });
 
   final String image;
   final String? speaker;
   final String text;
+
+  /// The music the scene was lived with, when it had its own: played again
+  /// when it is remembered.
+  final Music? music;
 }
 
 const List<StoryScene> introScenes = <StoryScene>[
   StoryScene(
-    image: 'assets/story/scene_news.png',
+    image: 'assets/story/scenes/news.png',
     speaker: 'Telecronista',
     text:
         'Attenzione, interrompiamo le comunicazioni per una edizione '
         'straordinaria del telegiornale',
   ),
   StoryScene(
-    image: 'assets/story/scene_blackout.png',
+    image: 'assets/story/scenes/blackout.png',
     speaker: 'Telecronista',
     text: '... Che succede? ... Ragazzi, la luce?',
   ),
   StoryScene(
-    image: 'assets/story/scene_attack.png',
+    image: 'assets/story/scenes/attack.png',
     speaker: 'Telecronista',
     text: 'Aaaaahhh!',
   ),
@@ -39,27 +50,93 @@ const List<StoryScene> introScenes = <StoryScene>[
 /// Played after the title card: the night the outbreak spread.
 const List<StoryScene> outbreakScenes = <StoryScene>[
   StoryScene(
-    image: 'assets/story/scene_outbreak.jpg',
+    image: 'assets/story/scenes/outbreak.jpg',
     text:
         'Quella notte migliaia di persone in ogni dove si trasformarono in '
         'zombi, creature non morte prive di una coscienza propria, '
         'interessate solo a divorare altri esseri umani',
   ),
   StoryScene(
-    image: 'assets/story/scene_plane_help.jpg',
+    image: 'assets/story/scenes/plane_help.jpg',
     speaker: 'Hostess',
     text: 'Aiuto, comandante! Aiuto!',
   ),
   StoryScene(
-    image: 'assets/story/scene_plane_captain.jpg',
+    image: 'assets/story/scenes/plane_captain.jpg',
     speaker: 'Hostess',
     text: 'Comandante?',
   ),
   StoryScene(
-    image: 'assets/story/scene_collapse.jpg',
+    image: 'assets/story/scenes/collapse.jpg',
     text:
         "Quella notte l'intera civiltà umana crollò per colpa di "
         'questa malvagia e misteriosa minaccia',
+  ),
+];
+
+/// Played when the train sets off for Rome, before the city loads: the
+/// army cannot hold Rome and the President keeps his troops for himself.
+/// Rome's own music plays under it, then and when it is remembered.
+const List<StoryScene> romeScenes = <StoryScene>[
+  StoryScene(
+    image: 'assets/story/scenes/rome_vittoriano.jpg',
+    speaker: 'Generale',
+    text: 'Signor presidente, abbiamo bisogno di rinforzi!',
+    music: Music.rome,
+  ),
+  StoryScene(
+    image: 'assets/story/scenes/rome_president_call.jpg',
+    speaker: 'Presidente del consiglio',
+    text: 'Non è possibile, tutte le nostre forze sono già occupate',
+    music: Music.rome,
+  ),
+  StoryScene(
+    image: 'assets/story/scenes/rome_president_call.jpg',
+    speaker: 'Generale',
+    text:
+        'Signore qui siamo nella merda, ci sono centinaia e centinaia di '
+        'questi zombi bastardi',
+    music: Music.rome,
+  ),
+  StoryScene(
+    image: 'assets/story/scenes/rome_president_call.jpg',
+    speaker: 'Presidente del consiglio',
+    text: 'Generale non posso fare altrimenti, dovete vedervela da soli',
+    music: Music.rome,
+  ),
+  StoryScene(
+    image: 'assets/story/scenes/rome_secretary.jpg',
+    speaker: 'Segretaria',
+    text: 'Signor presidente siete sicuro di quello che state facendo?',
+    music: Music.rome,
+  ),
+  StoryScene(
+    image: 'assets/story/scenes/rome_secretary.jpg',
+    speaker: 'Presidente del consiglio',
+    text:
+        'Non preoccuparti Petunia, quei rinforzi servono per proteggere il '
+        'mio bunker',
+    music: Music.rome,
+  ),
+  StoryScene(
+    image: 'assets/story/scenes/rome_departure.jpg',
+    speaker: 'Segretaria',
+    text:
+        'Ma... ma signor presidente quelle persone lì fuori stanno '
+        'morendo...',
+    music: Music.rome,
+  ),
+  StoryScene(
+    image: 'assets/story/scenes/rome_departure.jpg',
+    speaker: 'Presidente del consiglio',
+    text: 'Petunia non essere petulante oppure non ti ci porto nel bunker',
+    music: Music.rome,
+  ),
+  StoryScene(
+    image: 'assets/story/scenes/rome_president_attacked.jpg',
+    speaker: 'Presidente del consiglio',
+    text: 'Oddio aiuto! Petunia, aiutooo!',
+    music: Music.rome,
   ),
 ];
 
@@ -68,12 +145,17 @@ const List<StoryScene> outbreakScenes = <StoryScene>[
 /// With [fadeOutAtEnd] the last scene fades to black before [onFinished].
 /// With [onExit] an exit button stays in the corner, from the first picture
 /// on, to leave at any moment (watching a memory again at a camp).
+/// With [onSkip], a sequence already watched in an earlier attempt can be
+/// skipped as a whole from the button in the top-right corner.
 final class StoryIntro extends StatefulWidget {
   const StoryIntro({
     required this.onFinished,
     this.scenes = introScenes,
     this.fadeOutAtEnd = false,
     this.onExit,
+    this.onSkip,
+    this.allowBackNavigation = false,
+    this.onScene,
     super.key,
   });
 
@@ -81,6 +163,11 @@ final class StoryIntro extends StatefulWidget {
   final VoidCallback onFinished;
   final bool fadeOutAtEnd;
   final VoidCallback? onExit;
+  final VoidCallback? onSkip;
+  final bool allowBackNavigation;
+
+  /// Told of every scene as it comes up, the first one included.
+  final ValueChanged<StoryScene>? onScene;
 
   @override
   State<StoryIntro> createState() => _StoryIntroState();
@@ -90,10 +177,33 @@ final class _StoryIntroState extends State<StoryIntro> {
   int _sceneIndex = 0;
   bool _showText = false;
   bool _fadingOut = false;
+  bool _skipping = false;
 
   /// Where the finger lifted: the tap that turns the story leaves blood
   /// there, on the left of the screen as much as on the right.
   Offset? _tappedAt;
+  Offset? _tappedLocal;
+
+  /// The picture shown before the current one: it stays up until the new
+  /// one is decoded, so turning a page never lets the game show through.
+  String? _previousImage;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.onScene?.call(widget.scenes.first);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Decoding every picture up front lets each page come up at once.
+    for (final image in <String>{
+      for (final scene in widget.scenes) scene.image,
+    }) {
+      unawaited(precacheImage(AssetImage(image), context));
+    }
+  }
 
   void _advance() {
     if (_fadingOut) {
@@ -114,8 +224,10 @@ final class _StoryIntroState extends State<StoryIntro> {
         // it; when the next line is spoken over the same one there is
         // nothing new to see, so it comes up with the tap.
         final shown = widget.scenes[_sceneIndex].image;
+        _previousImage = shown;
         _sceneIndex += 1;
         _showText = widget.scenes[_sceneIndex].image == shown;
+        widget.onScene?.call(widget.scenes[_sceneIndex]);
         return;
       }
       if (widget.fadeOutAtEnd) {
@@ -126,31 +238,92 @@ final class _StoryIntroState extends State<StoryIntro> {
     });
   }
 
+  void _back() {
+    if (_fadingOut || _sceneIndex == 0) {
+      return;
+    }
+    final at = _tappedAt;
+    if (at != null) {
+      BloodSplatLayer.maybeOf(context)?.splat(at, SplatKind.tap);
+    }
+    AudioScope.of(context).play(Sfx.dialogue);
+    setState(() {
+      _previousImage = widget.scenes[_sceneIndex].image;
+      _sceneIndex -= 1;
+      _showText = true;
+      widget.onScene?.call(widget.scenes[_sceneIndex]);
+    });
+  }
+
+  void _tap() {
+    final local = _tappedLocal;
+    if (widget.allowBackNavigation &&
+        local != null &&
+        local.dx < (context.size?.width ?? 0) / 2) {
+      _back();
+      return;
+    }
+    _advance();
+  }
+
+  void _skip() {
+    if (_fadingOut) {
+      return;
+    }
+    setState(() {
+      _skipping = true;
+      _fadingOut = true;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final scene = widget.scenes[_sceneIndex];
     return GestureDetector(
       key: const ValueKey<String>('story-intro'),
       behavior: HitTestBehavior.opaque,
-      onTapUp: (details) => _tappedAt = details.globalPosition,
-      onTap: _advance,
+      onTapUp: (details) {
+        _tappedAt = details.globalPosition;
+        _tappedLocal = details.localPosition;
+      },
+      onTap: _tap,
       child: Semantics(
         label: _showText ? 'Tocca per continuare' : 'Tocca per leggere',
         child: Stack(
           fit: StackFit.expand,
           children: <Widget>[
+            const ColoredBox(color: Color(0xff000000)),
             Image.asset(
               scene.image,
               key: ValueKey<String>('story-image-$_sceneIndex'),
               fit: BoxFit.cover,
               filterQuality: FilterQuality.none,
+              frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                final previous = _previousImage;
+                if (frame != null ||
+                    wasSynchronouslyLoaded ||
+                    previous == null) {
+                  return child;
+                }
+                return Stack(
+                  fit: StackFit.expand,
+                  children: <Widget>[
+                    Image.asset(
+                      previous,
+                      fit: BoxFit.cover,
+                      filterQuality: FilterQuality.none,
+                    ),
+                    child,
+                  ],
+                );
+              },
             ),
             if (_showText)
               Align(
                 alignment: Alignment.bottomCenter,
                 child: StoryTextBox(speaker: scene.speaker, text: scene.text),
               ),
-            if (widget.onExit != null)
+            if (!_fadingOut && (widget.onExit != null || widget.onSkip != null))
               Align(
                 alignment: Alignment.topRight,
                 child: LayoutBuilder(
@@ -162,12 +335,16 @@ final class _StoryIntroState extends State<StoryIntro> {
                     return Padding(
                       padding: EdgeInsets.all(6 * unit),
                       child: MenuButton(
-                        key: const ValueKey<String>('story-exit'),
-                        label: 'ESCI',
+                        key: ValueKey<String>(
+                          widget.onSkip != null ? 'story-skip' : 'story-exit',
+                        ),
+                        label: widget.onSkip != null ? 'SALTA' : 'ESCI',
                         unit: unit,
                         compact: true,
-                        width: 44,
-                        onPressed: widget.onExit,
+                        width: widget.onSkip != null ? 52 : 44,
+                        onPressed: widget.onSkip != null
+                            ? _skip
+                            : widget.onExit,
                       ),
                     );
                   },
@@ -177,7 +354,7 @@ final class _StoryIntroState extends State<StoryIntro> {
               BlackFade(
                 key: const ValueKey<String>('story-fade-out'),
                 toBlack: true,
-                onDone: widget.onFinished,
+                onDone: _skipping ? widget.onSkip : widget.onFinished,
               ),
           ],
         ),
@@ -221,6 +398,11 @@ final class StoryTextBox extends StatelessWidget {
 
   static const double portraitTuck = 4;
 
+  /// Below the box, and below the text inside it, at the 384x216 base
+  /// resolution.
+  static const double bottomMargin = 8;
+  static const double textBottom = 8;
+
   /// Font sizes at the 384x216 base resolution; they grow with the view so
   /// text keeps the same share of the screen on phones and monitors.
   static const double speakerFontSize = 12;
@@ -245,7 +427,9 @@ final class StoryTextBox extends StatelessWidget {
   Widget _layout(double unit) {
     final portrait = this.portrait;
     return Padding(
-      padding: const EdgeInsets.all(10),
+      // Kept off the screen's bottom edge by a share of the screen, not a
+      // fixed few pixels, so on a phone it does not sit against the rim.
+      padding: EdgeInsets.fromLTRB(10, 10, 10, bottomMargin * unit),
       child: Column(
         mainAxisSize: portrait == null ? MainAxisSize.min : MainAxisSize.max,
         mainAxisAlignment: MainAxisAlignment.end,
@@ -279,7 +463,7 @@ final class StoryTextBox extends StatelessWidget {
       child: Container(
         key: const ValueKey<String>('story-text'),
         width: double.infinity,
-        padding: const EdgeInsets.fromLTRB(12, 20, 26, 12),
+        padding: EdgeInsets.fromLTRB(12, 20, 26, textBottom * unit),
         decoration: BoxDecoration(
           color: const Color(0xe0140c0c),
           border: Border.all(color: BloodColors.fresh, width: 2),

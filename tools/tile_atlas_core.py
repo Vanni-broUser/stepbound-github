@@ -15,7 +15,7 @@ import sys
 from PIL import Image, ImageDraw
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from build_street_level import TILE  # noqa: E402
+from street_paint import TILE, rect  # noqa: E402
 
 # How many times the same kind of tile is painted with fresh grit. The
 # renderer picks between them with a hash of the tile's position: enough
@@ -333,23 +333,71 @@ def ground_config(**config) -> dict:
     - `lawn` and `lawnProps`: a prop of `lawnProps` next to `lawn` stands
       on the lawn.
 
-    This is Level.surface in tools/build_street_level.py, which the
+    This is Level.surface in tools/street_paint.py, which the
     reference draw calls, written down as data so the renderer in
     lib/game/render/tile_atlas.dart can repeat it."""
     return dict(config)
 
 
 def ground_of(rows: list[str], config: dict, outside: str):
-    """The floor under every cell, as the renderer works it out."""
-    from build_street_level import Level  # noqa: PLC0415 - the reference
-
-    level = Level(rows)
+    """The floor under every cell, as the renderer works it out: its
+    GroundConfig in lib/game/render/tile_atlas.dart, step by step. With
+    the city's glyphs it is Level.surface of tools/street_paint.py; the
+    floors of a building's rooms go through it too."""
     height, width = len(rows), len(rows[0])
+    walk, road = "=", "."
+    order = walk + road + config["floors"]
 
     def at(x, y):
         if 0 <= x < width and 0 <= y < height:
             return rows[y][x]
         return outside
+
+    def floor_of(glyph):
+        if glyph in config["walks"]:
+            return walk
+        if glyph in config["roads"]:
+            return road
+        if glyph in config["floors"]:
+            return glyph
+        return None
+
+    def along(x, y, dx, dy):
+        nx, ny, away = x + dx, y + dy, 1
+        while 0 <= nx < width and 0 <= ny < height and                 rows[ny][nx] not in config["buildings"]:
+            found = floor_of(rows[ny][nx])
+            if found is not None:
+                return found, away
+            nx, ny, away = nx + dx, ny + dy, away + 1
+        return None, 0
+
+    def surface(x, y):
+        glyph = rows[y][x]
+        own = floor_of(glyph)
+        if own is not None:
+            return own
+        footway = glyph in config["footway"]
+        if not footway and 0 < y < height - 1:
+            above = floor_of(rows[y - 1][x])
+            if above is not None and above == floor_of(rows[y + 1][x]):
+                return above
+        ways = [(-1, 0), (1, 0)] + ([(0, -1), (0, 1)] if footway else [])
+        found = [along(x, y, dx, dy) for dx, dy in ways]
+        nearest = min((away for f, away in found if f is not None),
+                      default=None)
+        near = [f for f, away in found if f is not None and away == nearest]
+        if footway and any(f != road for f in near):
+            near = [f for f in near if f != road]
+        if len(set(near)) == 1:
+            return near[0]
+        votes = {f: 0 for f in order}
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                found_floor = floor_of(at(x + dx, y + dy))
+                if found_floor is not None:
+                    votes[found_floor] += 2 if dy == 0 else 1
+        return max(near or list(order),
+                   key=lambda f: (near.count(f), votes[f], -order.index(f)))
 
     out = []
     for y in range(height):
@@ -358,11 +406,11 @@ def ground_of(rows: list[str], config: dict, outside: str):
             glyph = rows[y][x]
             if glyph in config["buildings"] or glyph in config["keep"]:
                 line.append(glyph)
-            elif glyph in config["lawnProps"] and config["lawn"] in (
-                    at(x - 1, y), at(x + 1, y), at(x, y - 1), at(x, y + 1)):
+            elif glyph in config["lawnProps"] and config["lawn"] and                     config["lawn"] in (at(x - 1, y), at(x + 1, y),
+                                       at(x, y - 1), at(x, y + 1)):
                 line.append(config["lawn"])
             else:
-                line.append(level.surface(x, y))
+                line.append(surface(x, y))
         out.append("".join(line))
     return out
 
@@ -444,6 +492,8 @@ def compose(rows: list[str], place: dict, tiles: list[Image.Image],
     for layer in LAYERS:
         if layer == "objects":
             for obj in place["objects"]:
+                if obj.get("overhead"):
+                    continue
                 sprite = obj["openSprite"] if opened and "openSprite" in obj \
                     else obj["sprite"]
                 if "at" in obj:
@@ -481,4 +531,14 @@ def compose(rows: list[str], place: dict, tiles: list[Image.Image],
                         if tiles_there:
                             draw(tiles_there[v], x + extra["dx"],
                                  y + extra["dy"])
+    # What hangs over everything: a banner strung across a street.
+    for obj in place["objects"]:
+        if obj.get("overhead"):
+            x0, y0 = obj["at"]
+            out.alpha_composite(obj["sprite"], (x0 * TILE, y0 * TILE))
     return out
+
+
+def paint_side_edge(d, px, py, right):
+    """The dark line where a floor meets the darkness outside the room."""
+    rect(d, px + (14 if right else 0), py, 2, TILE, (40, 40, 46))

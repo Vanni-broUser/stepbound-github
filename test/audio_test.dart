@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math';
 
+import 'package:flame/components.dart' show Vector2;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/app.dart';
@@ -8,7 +9,11 @@ import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/game_audio.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/audio/soundscape.dart';
+import 'package:stepbound/game/levels/rome_stage.dart';
+import 'package:stepbound/game/progress.dart';
+import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/save/save_game.dart';
+import 'package:stepbound/ui/zombie_book.dart';
 
 import 'test_world.dart';
 
@@ -40,6 +45,66 @@ void _hunt(WorldState world) =>
         const GridPoint(1, 1);
 
 void main() {
+  test('Rome has its own music, in the station and the streets alike', () {
+    final stage = RomeStage(
+      StepboundGame(world: createGameWorld(), progress: Progress()),
+    );
+    for (final place in gamePlaces) {
+      expect(
+        stage.musicOf(place.id),
+        place.level == LevelId.rome ? Music.rome : isNull,
+        reason: '${place.id}',
+      );
+    }
+  });
+
+  test('the industries and the company play the hold music gone wrong', () {
+    final stage = StepboundGame(
+      world: createGameWorld(),
+      progress: Progress(),
+    ).hometown;
+    const industries = <PlaceId>{
+      PlaceId.industryStreet,
+      PlaceId.companyGround,
+      PlaceId.companyFirst,
+      PlaceId.companySecond,
+    };
+    for (final id in industries) {
+      expect(stage.musicOf(id), Music.weasel, reason: '$id');
+    }
+    expect(stage.musicOf(PlaceId.monumentSquare), isNull);
+  });
+
+  test('once met, Tonino and Marcello bring their music into view', () {
+    final progress = Progress();
+    final game = StepboundGame(world: createGameWorld(), progress: progress)
+      ..onGameResize(Vector2(768, 432));
+    final stage = RomeStage(game);
+    void lookAt(GridPoint tile) =>
+        game.camera.viewfinder.position = Vector2(tile.x * 16.0, tile.y * 16);
+    final far = GridPoint(marcelloTile.x, marcelloTile.y - 60);
+
+    lookAt(marcelloTile);
+    expect(
+      stage.musicOf(PlaceId.piazzaCinquecento),
+      Music.rome,
+      reason: 'strangers still',
+    );
+
+    progress.view(StoryMemory.maranzaMet);
+    expect(stage.musicOf(PlaceId.piazzaCinquecento), Music.maranza);
+    lookAt(far);
+    expect(stage.musicOf(PlaceId.piazzaCinquecento), Music.rome);
+  });
+
+  test('their meeting and its memory play their music', () {
+    expect(
+      memoryScenes[StoryMemory.maranzaMet]!.map((scene) => scene.music),
+      everyElement(Music.maranza),
+    );
+    expect(File('assets/audio/${Music.maranza.file}').existsSync(), isTrue);
+  });
+
   group('Soundscape', () {
     test('plays the street outdoors and the barracks theme indoors', () {
       final soundscape = Soundscape(world: _corridor(), fires: const []);
@@ -63,6 +128,50 @@ void main() {
       expect(
         soundscape.update(Soundscape.dangerHoldSeconds, indoor: false).music,
         Music.street,
+      );
+    });
+
+    test("a place's own music replaces the street's and the indoor one, "
+        'a chase still drowns it, a story scene drowns everything', () {
+      final world = _corridor();
+      final soundscape = Soundscape(world: world, fires: const []);
+      expect(
+        soundscape.update(0.1, indoor: true, theme: Music.sacred).music,
+        Music.sacred,
+      );
+      _hunt(world);
+      expect(
+        soundscape.update(0.1, indoor: true, theme: Music.sacred).music,
+        Music.danger,
+      );
+      final scene = soundscape.update(
+        0.1,
+        indoor: true,
+        theme: Music.sacred,
+        scene: Music.luigi,
+      );
+      expect(scene.music, Music.luigi);
+      expect(scene.musicLevel, 1);
+    });
+
+    test('ground on fire crackles like any fire, louder closer to it', () {
+      final world = _corridor(zombieAt: 30);
+      final soundscape = Soundscape(world: world, fires: const []);
+      expect(soundscape.update(0.1, indoor: false).ambience[Ambience.fire], 0);
+
+      world.map.setTile(const GridPoint(5, 1), const Tile(TileKind.fire));
+      final far = soundscape
+          .update(0.1, indoor: false)
+          .ambience[Ambience.fire]!;
+      expect(far, greaterThan(0));
+      world.map.setTile(const GridPoint(2, 1), const Tile(TileKind.fire));
+      final near = soundscape.update(0.1, indoor: false);
+      expect(near.ambience[Ambience.fire], greaterThan(far));
+      expect(near.musicLevel, lessThan(1), reason: 'it pushes the music back');
+      expect(
+        soundscape.update(0.1, indoor: true).ambience[Ambience.fire],
+        0,
+        reason: 'not heard indoors',
       );
     });
 
@@ -128,6 +237,23 @@ void main() {
       final alert = cues.firstWhere((cue) => cue.sfx == Sfx.zombieAlert);
       expect(alert.volume, lessThan(1));
       expect(cues.first.volume, 1);
+    });
+
+    test('a door creaks; the grappling hook whips, catches and creaks', () {
+      final soundscape = Soundscape(world: _corridor(), fires: const []);
+      Sfx? of({required bool grappled}) => soundscape
+          .soundsFor(<WorldEvent>[
+            TeleportedEvent(
+              entityId: 'player',
+              from: const GridPoint(1, 1),
+              to: const GridPoint(4, 1),
+              grappled: grappled,
+            ),
+          ])
+          .single
+          .sfx;
+      expect(of(grappled: false), Sfx.door);
+      expect(of(grappled: true), Sfx.grapple);
     });
 
     test('a bite on Mario sounds, a zombie out of earshot does not', () {

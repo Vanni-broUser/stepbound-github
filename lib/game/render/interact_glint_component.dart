@@ -12,8 +12,14 @@ import 'package:stepbound/core/core.dart' hide PositionComponent;
 abstract final class Glint {
   static const ui.Color color = ui.Color(0xfffff6d8);
 
-  /// On for a flash every couple of seconds, [time] seconds in.
-  static bool litAt(double time) => (time * 0.6) % 1 < 0.12;
+  /// How long one blink takes, and how much of it the star is on: a
+  /// steady blink every object shares, clear enough to be noticed on a
+  /// backpack's buckle as much as alone on the ground.
+  static const double period = 1;
+  static const double onShare = 0.4;
+
+  /// Whether the star is on, [time] seconds in.
+  static bool litAt(double time) => (time / period) % 1 < onShare;
 
   /// The star with its middle pixel at [x], [y].
   static void paint(ui.Canvas canvas, double x, double y, ui.Paint paint) {

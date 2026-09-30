@@ -13,7 +13,8 @@ unit_tests:
   needs: []
   script:
     - set -o pipefail
-    - dart pub global activate junitreport
+    # Fissato: attivato senza versione prendeva l'ultima del giorno.
+    - dart pub global activate junitreport 2.0.2
     - flutter test --coverage --machine | dart pub global run junitreport:tojunit --output report.xml
     # Soglie per area e totale in tools/coverage_policy.json. Fallisce anche
     # se una libreria con codice non e caricata da nessun test: nel file
@@ -39,7 +40,7 @@ deps_check:
     - flutter pub outdated --no-transitive || true
 
 # Il gioco dipinge ogni posto dalle sue righe ASCII, con i tile e gli
-# oggetti di assets/tiles, che i painter in tools/ generano. Nessun altro job
+# oggetti di assets/levels, che i painter in tools/ generano. Nessun altro job
 # guarda quelle immagini, cosi un painter cambiato senza rilanciare il
 # generatore arriva fino al dispositivo. Qui l'atlas riparte da zero in una
 # directory temporanea e il risultato viene confrontato pixel per pixel con
@@ -52,11 +53,49 @@ levels_check:
   stage: verify
   needs: []
   image: python:3.11.15-slim
-  # Informativo per la prima settimana: prima si misura quanto e stabile,
-  # poi si toglie `allow_failure` e diventa bloccante.
-  allow_failure: true
   cache: []
   before_script:
     - python -m pip install --no-cache-dir --quiet -r tools/requirements.txt
   script:
     - python tools/build_levels.py --check
+
+# Gli sprite dei personaggi, gli oggetti, l'insegna del menu e le icone
+# dell'app sono dipinti dai generatori in tools/ e committati: qui la catena
+# dei generatori riparte in una copia temporanea del repository e ogni
+# immagine che riscrive viene confrontata pixel per pixel con quella
+# committata (tools/build_sprites.py). Stesso ambiente Python di
+# levels_check.
+sprites_check:
+  stage: verify
+  needs: []
+  image: python:3.11.15-slim
+  cache: []
+  before_script:
+    - python -m pip install --no-cache-dir --quiet -r tools/requirements.txt
+  script:
+    - python tools/build_sprites.py --check
+
+# I suoni di assets/audio li cuoce `tools/build_audio.py` dalle sorgenti
+# pubbliche che elenca, con ffmpeg. Qui la cottura riparte in una cartella
+# temporanea e ogni file viene confrontato con quello committato: byte per
+# byte se l'ffmpeg e la build che li ha cotti, altrimenti per inviluppo di
+# loudness, 50 ms per 50 ms (un altro encoder MP3 cambia i byte, non il
+# suono). Le sorgenti (circa 90 MB, da siti altrui) restano in cache fra
+# un job e l'altro; quando una sparisce dalla rete, il job lo dice.
+# Non bloccante finche non ha fatto una settimana verde, come levels_check
+# a suo tempo.
+audio_check:
+  stage: verify
+  needs: []
+  image: python:3.11.15-slim
+  allow_failure: true
+  cache:
+    key: audio-sources
+    paths:
+      - build/audio_src/
+  before_script:
+    - apt-get update -qq
+    - apt-get install -y -qq --no-install-recommends ffmpeg curl ca-certificates > /dev/null
+    - ffmpeg -version | head -1
+  script:
+    - python tools/build_audio.py --check

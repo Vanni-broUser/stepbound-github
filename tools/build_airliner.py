@@ -11,7 +11,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from build_street_level import TILE, rect, shade  # noqa: E402
+from street_paint import TILE, rect, shade  # noqa: E402
 
 VOID = (6, 6, 8)
 
@@ -29,6 +29,7 @@ SEAT = (46, 62, 84)
 SEAT_LIGHT = (72, 94, 122)
 SEAT_DARK = (28, 38, 54)
 HEADREST = (196, 192, 180)
+FOAM = (214, 196, 128)
 TROLLEY = (150, 154, 158)
 TROLLEY_DARK = (76, 80, 86)
 PANEL = (178, 178, 172)
@@ -93,7 +94,8 @@ def cabin_hull(d, room, x, y):
 
 def cabin_break(d, px, py, roof):
     """A break in the hull, daylight and torn skin: the tear in the belly
-    and, at the other end, the tail break."""
+    and, at the other end, the tail break, both in the belly (`roof` is
+    for a break in the roof side of the hull)."""
     rect(d, px, py, TILE, TILE, DAYLIGHT)
     top = py if roof else py + 9
     rect(d, px, top, TILE, 7, shade(DAYLIGHT, -46))
@@ -115,6 +117,33 @@ def cabin_seat(d, room, x, y):
         rect(d, px + 6, py + 1, 8, 2, shade(SEAT, 28))
     if room.at(x, y + 1) != "T":
         rect(d, px + 6, py + 13, 8, 2, SEAT_DARK)
+
+
+def cabin_broken_seat(d, px, py):
+    """A seat torn off its rails and thrown down askew: the back snapped
+    from the cushion, the foam burst out of both, the frame bent under
+    them, bits of panelling all about. Low enough to climb over."""
+    rect(d, px + 1, py + 1, 14, 14, shade(CARPET, -16))
+    # The cushion, knocked a step down and to the right of the back.
+    rect(d, px + 6, py + 7, 9, 7, SEAT_DARK)
+    rect(d, px + 7, py + 8, 7, 5, SEAT)
+    rect(d, px + 7, py + 8, 7, 1, SEAT_LIGHT)
+    rect(d, px + 9, py + 9, 3, 2, FOAM)
+    rect(d, px + 12, py + 11, 1, 1, FOAM)
+    # The back, lying the other way, its headrest split.
+    rect(d, px + 1, py + 2, 6, 9, SEAT_DARK)
+    rect(d, px + 2, py + 3, 4, 7, SEAT)
+    rect(d, px + 2, py + 3, 4, 2, HEADREST)
+    rect(d, px + 3, py + 6, 2, 2, FOAM)
+    # The bent frame showing between them, and a leg sticking up.
+    rect(d, px + 5, py + 11, 3, 1, TROLLEY)
+    rect(d, px + 7, py + 12, 1, 3, TROLLEY)
+    rect(d, px + 12, py + 2, 1, 5, TROLLEY)
+    rect(d, px + 12, py + 2, 2, 1, TROLLEY_DARK)
+    # What else came down with it.
+    rect(d, px + 8, py + 2, 3, 2, PANEL)
+    rect(d, px + 2, py + 12, 3, 2, PANEL_DARK)
+    rect(d, px + 14, py + 5, 1, 1, PANEL)
 
 
 def cabin_trolley(d, px, py):
@@ -172,8 +201,10 @@ MAST_DARK = (72, 74, 80)
 FAR_ROOF = (44, 44, 48)
 FAR_ROOF_ALT = (40, 40, 44)
 DROP = (16, 16, 20)
-SCORCH = (28, 22, 20)
-SCORCH_ASH = (58, 50, 46)
+SCORCH = (44, 38, 36)
+SCORCH_ALT = (41, 35, 33)
+SCORCH_SOOT = (32, 27, 26)
+SCORCH_ASH = (74, 68, 64)
 SCORCH_EMBER = (150, 52, 24)
 DROP_LIGHT = (28, 28, 34)
 HULL = (206, 204, 198)
@@ -209,13 +240,18 @@ def roof_rubble(d, rng, px, py):
     rect(d, px + rng.randrange(11), py + rng.randrange(11), 5, 2, COPING_DARK)
 
 
-def roof_scorch(d, px, py):
-    """Felt burnt down to the boards where the fuel is still alight; the
-    flames themselves are drawn by the game."""
-    rect(d, px, py, TILE, TILE, SCORCH)
-    rect(d, px + 2, py + 3, 5, 2, SCORCH_ASH)
-    rect(d, px + 9, py + 10, 4, 2, SCORCH_ASH)
-    rect(d, px + 11, py + 4, 2, 1, SCORCH_EMBER)
+def roof_scorch(d, px, py, alt=False):
+    """The felt where the fuel is still alight: the same roof, its strips
+    and seams, only blackened by the fire, so the corner reads darker than
+    the rest of the terrace without turning into a hole. The flames
+    themselves are drawn by the game."""
+    rect(d, px, py, TILE, TILE, SCORCH_ALT if alt else SCORCH)
+    rect(d, px, py, TILE, 1, SCORCH_SOOT)
+    rect(d, px + 1, py + 5, 6, 4, SCORCH_SOOT)
+    rect(d, px + 9, py + 9, 5, 5, SCORCH_SOOT)
+    rect(d, px + 3, py + 12, 3, 1, SCORCH_ASH)
+    rect(d, px + 10, py + 3, 2, 1, SCORCH_ASH)
+    rect(d, px + 12, py + 11, 1, 1, SCORCH_EMBER)
 
 
 def roof_blood(d, rng, px, py):
@@ -227,11 +263,12 @@ def roof_blood(d, rng, px, py):
 
 def roof_wall(d, room, x, y):
     """A party wall between two blocks, too high to climb. A wall running
-    east to west shows its face to the camera, so it gets the coping along
-    its top and its shadow below; one running north to south, down the
-    side of the map, shows only the top of it, so it is a single band of
-    slabs with the light on the roof side -- otherwise every tile of it
-    repeats a face nobody could see from here."""
+    east to west shows its face to the camera: brick in courses, the
+    coping along its top and its shadow below. One running north to south,
+    down the side of a roof, is built of the same brick and capped with the
+    same coping, and its courses are laid flat like the face's, never stood
+    on end: the coping runs along the side away from the roof, and the
+    wall throws its shadow on the roof beside it."""
     px, py = x * TILE, y * TILE
     rect(d, px, py, TILE, TILE, BRICK_DARK)
     if room.at(x - 1, y) == "W" or room.at(x + 1, y) == "W":
@@ -240,16 +277,82 @@ def roof_wall(d, room, x, y):
         rect(d, px, py, TILE, 2, COPING)
         rect(d, px, py + TILE - 2, TILE, 2, COPING_SHADOW)
         return
-    stone = shade(COPING, -34)
     roof_side = 1 if room.at(x + 1, y) not in "xW" else -1
-    inner, outer = (px + 12, px) if roof_side > 0 else (px + 1, px + 13)
-    rect(d, px + 1, py, 14, TILE, stone)
-    for sy in range(py, py + TILE, 8):  # the joints between the slabs
-        rect(d, px + 1, sy, 14, 1, shade(stone, -26))
-    rect(d, inner, py, 3, TILE, shade(stone, 26))
-    rect(d, outer, py, 2, TILE, COPING_SHADOW)
+    # the courses, flat, a joint staggered every other one
+    for course, sy in enumerate(range(py + 1, py + TILE, 4)):
+        rect(d, px + 1, sy, 14, 3, BRICK)
+        rect(d, px + (5 if course % 2 else 10), sy, 1, 3, BRICK_DARK)
+    outer = px if roof_side > 0 else px + TILE - 3
+    inner = px + TILE - 1 if roof_side > 0 else px
+    rect(d, outer, py, 3, TILE, COPING)
+    rect(d, outer + (2 if roof_side > 0 else 0), py, 1, TILE, COPING_DARK)
     # and the shadow it lays along the roof beside it
-    rect(d, px + (15 if roof_side > 0 else 0), py, 1, TILE, COPING_SHADOW)
+    rect(d, inner, py, 1, TILE, COPING_SHADOW)
+
+
+def roof_wall_breach(d, room, x, y):
+    """The opening in the next roof's wall, facing the stretch Mario looks
+    over from this side: the wall broken down to a stump of its brick, the
+    coping and the bricks fallen in on the roof, the ends of the wall
+    standing either side -- where a grappling hook would bring him in.
+    In a wall running east to west (its face to the camera, the roof below
+    it) or in one running north to south (the roof on the side of it that
+    is not the drop)."""
+    px, py = x * TILE, y * TILE
+    if room.at(x - 1, y) == "W" or room.at(x + 1, y) == "W":
+        rect(d, px, py, TILE, TILE, DROP)
+        rect(d, px + 2, py + 11, TILE - 4, 3, BRICK_DARK)
+        rect(d, px + 3, py + 12, TILE - 6, 1, BRICK)
+        rect(d, px, py + 14, TILE, 2, TAR_LOW)
+        for sx, sy in ((4, 13), (9, 14)):
+            rect(d, px + sx, py + sy, 3, 2, COPING_DARK)
+        for sx in (0, TILE - 2):  # the broken ends of the wall either side
+            rect(d, px + sx, py, 2, 14, BRICK)
+            rect(d, px + sx, py, 2, 2, COPING)
+            rect(d, px + sx, py + 14, 2, 2, COPING_SHADOW)
+        return
+    roof_side = 1 if room.at(x + 1, y) not in "xW" else -1
+    rect(d, px, py, TILE, TILE, TAR_LOW)
+    drop = px if roof_side > 0 else px + TILE - 5
+    stump = px + 5 if roof_side > 0 else px + TILE - 9
+    rect(d, drop, py, 5, TILE, DROP)
+    rect(d, stump, py, 4, TILE, BRICK_DARK)
+    for sy in range(py + 1, py + TILE, 4):
+        rect(d, stump, sy, 4, 3, BRICK)
+    rubble = px + 10 if roof_side > 0 else px + 1
+    for dx, sy in ((0, 3), (1, 8), (0, 12)):
+        rect(d, rubble + dx, py + sy, 5, 2, COPING_DARK)
+    for sy in (0, TILE - 3):  # the ends of the wall either side
+        rect(d, px + 1, py + sy, 14, 3, BRICK)
+        rect(d, drop if roof_side > 0 else px + TILE - 3, py + sy, 3, 3,
+             COPING)
+
+
+def roof_stairs_across(d, room, x, y):
+    """A stairwell on the next roof going down eastward, across the roof
+    rather than into it: its head, the top step, at the west end, its foot
+    in the dark at the east end, the steps darker the lower they go. A
+    kerb at the head, and a rail along the sides that are not the way in
+    or the way down."""
+    px, py = x * TILE, y * TILE
+    head = room.at(x - 1, y) != "S"
+    foot = room.at(x + 1, y) != "S"
+    top = room.at(x, y - 1) != "S"
+    bottom = room.at(x, y + 1) != "S"
+    depth = 0 if head else (2 if foot else 1)  # which cell of the flight
+    rect(d, px, py, TILE, TILE, DROP)
+    for i, sx in enumerate(range(px + (4 if head else 0), px + TILE, 4)):
+        step = shade(COPING, -30 - 16 * (i + depth * 3))
+        rect(d, sx, py, 3, TILE, step)
+        rect(d, sx + 3, py, 1, TILE, shade(step, -30))
+    if head:
+        rect(d, px, py, 3, TILE, COPING)
+        rect(d, px + 3, py, 1, TILE, COPING_SHADOW)
+    for side, dy in ((top, 0), (bottom, TILE - 2)):
+        if side:
+            rect(d, px, py + dy, TILE, 2, COPING)
+            rect(d, px, py + dy + (1 if dy else 0), TILE, 1,
+                 shade(COPING, -30))
 
 
 def roof_parapet(d, room, x, y, low):
@@ -259,6 +362,10 @@ def roof_parapet(d, room, x, y, low):
     px, py = x * TILE, y * TILE
     top = py + (9 if low else 2)
     rect(d, px, py, TILE, TILE, TAR_LOW)
+    if room.at(x, y - 1) == "W":
+        # A corner: the side wall comes down to it, the front runs on over
+        # the end of it.
+        rect(d, px, py, TILE, top - py, BRICK)
     rect(d, px, top, TILE, py + TILE - top - 2, BRICK)
     for sy in range(top + 1, py + TILE - 2, 4):
         rect(d, px, sy, TILE, 1, BRICK_DARK)
@@ -315,17 +422,44 @@ def roof_drop(d, rng, x, y):
              rng.randint(1, 3), 1, DROP_LIGHT)
 
 
+FAR_DECK = "%;kS"
+
+
 def roof_far(d, rng, room, x, y):
-    """The roof of the next block, across the gap: the same tar, flattened
-    by the distance, with its own coping along the near edge."""
+    """The roof of the next block, across the gap: a paler, older felt than
+    this one's, laid in squares, with its own coping along the near edge."""
     px, py = x * TILE, y * TILE
     rect(d, px, py, TILE, TILE, FAR_ROOF if (x + y) % 2 else FAR_ROOF_ALT)
     for _ in range(3):
         rect(d, px + rng.randrange(15), py + rng.randrange(15), 1, 1,
              shade(FAR_ROOF, rng.randrange(-8, 26)))
-    if room.at(x, y - 1) != "%":
+    if room.at(x, y - 1) not in FAR_DECK:
         rect(d, px, py, TILE, 3, shade(COPING, -54))
         rect(d, px, py, TILE, 1, shade(COPING, -20))
+
+
+def roof_stairs_down(d, room, x, y):
+    """The open stairwell on the next roof: a flight going down into the
+    block, south, the steps darker the deeper they go, a low kerb and a
+    rail round the three sides that are not the way in."""
+    px, py = x * TILE, y * TILE
+    top = room.at(x, y - 1) != "S"
+    left = room.at(x - 1, y) != "S"
+    right = room.at(x + 1, y) != "S"
+    depth = 0 if top else 1  # which of the two rows of the flight
+    rect(d, px, py, TILE, TILE, DROP)
+    for i, sy in enumerate(range(py + (4 if top else 0), py + TILE, 4)):
+        step = shade(COPING, -40 - 18 * (i + depth * 3))
+        rect(d, px, sy, TILE, 3, step)
+        rect(d, px, sy + 3, TILE, 1, shade(step, -30))
+    if top:
+        rect(d, px, py, TILE, 3, COPING)
+        rect(d, px, py + 3, TILE, 1, COPING_SHADOW)
+    for side, dx in ((left, 0), (right, TILE - 2)):
+        if side:
+            rect(d, px + dx, py, 2, TILE, COPING)
+            rect(d, px + dx + (1 if dx else 0), py, 1, TILE,
+                 shade(COPING, -30))
 
 
 def roof_tail(d, room, x, y):

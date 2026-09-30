@@ -3,7 +3,7 @@
 
 Runtime contract (do not change):
 
-* ``assets/sprites/crucified_zombie.png``
+* ``assets/characters/zombies/sprites/crucified.png``
 * RGBA, transparent, 128x40
 * four 32x40 frames: hang_0, hang_1, twitch_0, twitch_1
 
@@ -24,7 +24,7 @@ from PIL import Image, ImageDraw
 FRAME_W = 32
 FRAME_H = 40
 FRAME_NAMES = ("hang_0", "hang_1", "twitch_0", "twitch_1")
-OUTPUT = Path("assets/sprites/crucified_zombie.png")
+OUTPUT = Path("assets/characters/zombies/sprites/crucified.png")
 PREVIEW_DIR = Path("docs/previews")
 TRANSPARENT = (0, 0, 0, 0)
 

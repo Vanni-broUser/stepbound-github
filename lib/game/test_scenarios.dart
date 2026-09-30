@@ -1,6 +1,6 @@
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/progress.dart';
-import 'package:stepbound/game/tutorial/tutorial_director.dart';
+import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/save/save_game.dart';
 
 /// A point of the story to jump straight to while testing. It is not part
@@ -27,7 +27,7 @@ final class TestScenario {
 /// Puts a fresh level in a given state: what has been played, what Mario
 /// carries and where he stands.
 final class ScenarioBuilder {
-  final WorldState world = createTutorialWorld();
+  final WorldState world = createGameWorld();
   final Progress progress = Progress.newGame();
   final Map<String, Map<String, Object?>> _scripts =
       <String, Map<String, Object?>>{};
@@ -39,7 +39,28 @@ final class ScenarioBuilder {
 
   void unlock(HudElement element) => _hud.add(element);
 
+  /// [element] has been handed over or used up: its badge is gone.
+  void putAway(HudElement element) => _hud.remove(element);
+
   void remember(StoryMemory memory) => progress.remember(memory);
+
+  /// [done] as the story leaves them, then [given] handed out after them.
+  void missions({
+    List<Mission> done = const <Mission>[],
+    List<Mission> given = const <Mission>[],
+  }) {
+    for (final mission in done) {
+      progress.missions
+        ..give(mission)
+        ..complete(mission);
+    }
+    given.forEach(progress.missions.give);
+    // Luigi and Don Angelo both met: there are other survivors.
+    if (progress.memories.contains(StoryMemory.luigiTrapped) &&
+        progress.memories.contains(StoryMemory.priestMet)) {
+      progress.missions.complete(Mission.findSurvivors);
+    }
+  }
 
   /// The backpack [id] has been picked up.
   void collect(String id) {
@@ -53,6 +74,17 @@ final class ScenarioBuilder {
     for (final entity in world.entities.values) {
       if (entity.id.startsWith(prefix)) {
         entity.component<HealthComponent>().current = 0;
+      }
+    }
+  }
+
+  /// Every zombie whose id starts with [prefix] is back on its feet, where
+  /// the level put it.
+  void revive(String prefix) {
+    for (final entity in world.entities.values) {
+      if (entity.id.startsWith(prefix)) {
+        final health = entity.component<HealthComponent>();
+        health.current = health.maximum;
       }
     }
   }
@@ -74,6 +106,7 @@ final class ScenarioBuilder {
           ..position = tile
           ..facing = side.opposite;
         _savedAt = campfireNames[fire];
+        progress.lightCampfire(_savedAt!);
         return;
       }
     }
@@ -85,11 +118,26 @@ final class ScenarioBuilder {
   /// there would have rested at.
   void restNearest(GridPoint target) => restAt(nearestFire(target));
 
+  /// The train takes Mario to [level], as the travel map does: his rounds
+  /// and molotovs stay in the level he leaves, the new level's missions
+  /// are handed out, and he is aboard at the map table.
+  void travelTo(LevelId level) {
+    final ammo = world.player.component<AmmoComponent>();
+    ammo
+      ..molotovs = progress.swapMolotovs(level, molotovs: ammo.molotovs)
+      ..rockets = progress.swapRockets(level, rockets: ammo.rockets)
+      ..loaded = progress.travel(level, rounds: ammo.loaded);
+    if (level == LevelId.rome) {
+      remember(StoryMemory.presidentFled);
+    }
+    aboardTrain();
+  }
+
   /// Saved aboard the train, the way the level ends: at the map table.
   void aboardTrain() {
     world.player.component<PositionComponent>()
       ..position = trainMapStandTile
-      ..facing = Direction.south;
+      ..facing = trainArrivalFacing;
     _savedAt = trainPlaceName;
   }
 
@@ -168,11 +216,64 @@ final class ScenarioBuilder {
       slot: slot,
       savedAt: DateTime.now(),
       place: place,
-      world: saveTutorialWorld(world),
-      tutorial: _scripts,
+      world: saveGameWorld(world),
+      story: _scripts,
       progress: progress.toJson(),
       hud: <String>[for (final element in _hud) element.name],
     );
+  }
+}
+
+/// Molfetta played to the end, everything found on the way, the train
+/// about to leave: where the saves after the level start from.
+void _molfettaDone(ScenarioBuilder story) {
+  _luigiFree(story);
+  _afterTheMass(story);
+
+  // A useful end-of-Molfetta save: the ammunition really comes from
+  // backpacks in the level, and the molotov has been found too.
+  <String>[
+    ammoBackpackId,
+    accidentBackpackId,
+    parkingBackpackId,
+    stationBackpackId,
+  ].forEach(story.collect);
+  story
+    ..collect(molotovBackpackId)
+    ..unlock(HudElement.molotov)
+    ..remember(StoryMemory.luigiAtStation)
+    ..missions(done: const <Mission>[Mission.reachLuigi])
+    ..script('station', <String, Object?>{'reunion': true});
+  story.world.player.component<AmmoComponent>()
+    ..loaded = 10
+    ..molotovs = molotovBackpackCount;
+
+  // The key found by Don Angelo's body, used up on the door upstairs: the
+  // way to the bell tower stands open, as the memories up there say.
+  //
+  // Nobody killed on the way: the gate's two zombies stay where they
+  // stood, so the level's count starts from zero.
+  story
+    ..collect(duomoKeyPickupId)
+    ..world.map.setTile(duomoUpperLockedDoorTile, const Tile(TileKind.floor))
+    ..revive(priestZombiePrefix);
+
+  // The secret mission done too: Luigi's golden pistol in hand, and its
+  // memory among the others below.
+  story.progress.secretMissions.add(SecretMission.unarmedToLuigi);
+
+  // Every zombie type of Molfetta met, as the book on the train shows,
+  // but the operators of the call centre: the company is only reached with
+  // the grappling hook, after Rome.
+  levelZombieKinds(
+    LevelId.hometown,
+  ).where((kind) => kind != EntityKind.callCenter).forEach(story.progress.meet);
+
+  // Keep this scenario complete when another Molfetta memory is added.
+  for (final memory in StoryMemory.values) {
+    if (memory.level == LevelId.hometown) {
+      story.remember(memory);
+    }
   }
 }
 
@@ -180,6 +281,53 @@ final class ScenarioBuilder {
 /// Each one builds on the ones before it, and is saved where a player
 /// would have saved on the way: at the fire nearest the place it is
 /// about, or aboard the train once the level is over.
+final TestScenario _molfettaEnd = TestScenario(
+  'Treno, dopo la fine del livello',
+  (story) {
+    _molfettaDone(story);
+    story.aboardTrain();
+  },
+);
+
+/// The save a VANNI_DEPLOY build owns: Molfetta done, and Rome as far as
+/// its story goes for now, aboard the train at Termini. Every memory of
+/// both cities is there to watch again, and Tonino and Marcello have
+/// already asked for something of value: the missions are the last ones.
+/// Test supplies on top of what the travel rules leave him.
+final TestScenario vanniDeployScenario = TestScenario(
+  'Roma, sul treno a Termini (VANNI_DEPLOY)',
+  (story) {
+    _molfettaDone(story);
+    story.travelTo(LevelId.rome);
+    story.world.player.component<AmmoComponent>()
+      ..loaded = 10
+      ..molotovs = molotovBackpackCount;
+    story
+      ..script('rome', <String, Object?>{'welcomed': true})
+      ..script('journey', <String, Object?>{'taught': true})
+      // Tonino and Marcello paid with the ingot from the bank's vault, the
+      // ticket for the Colosseum had for it, and gone from their square.
+      ..script('maranza', <String, Object?>{
+        'met': true,
+        'paid': true,
+        'gone': true,
+      })
+      ..collect(bankIngotBackpackId)
+      ..unlock(HudElement.colosseumTicket)
+      ..missions(
+        done: const <Mission>[Mission.findValuable],
+        given: const <Mission>[Mission.findSupplies, Mission.discoverColosseum],
+      )
+      ..aboardTrain();
+    // Keep this scenario complete when another Rome memory is added.
+    for (final memory in StoryMemory.values) {
+      if (memory.level == LevelId.rome) {
+        story.remember(memory);
+      }
+    }
+  },
+);
+
 final List<TestScenario> testScenarios = <TestScenario>[
   TestScenario('Quartiere nord, armato', (story) {
     _armed(story);
@@ -197,27 +345,21 @@ final List<TestScenario> testScenarios = <TestScenario>[
     _luigiFree(story);
     story.restNearest(stationWestDoor.first);
   }),
-  TestScenario('Treno, dopo la fine del livello', (story) {
-    _luigiFree(story);
-    story
-      ..remember(StoryMemory.luigiAtStation)
-      ..script('station', <String, Object?>{'reunion': true})
-      ..aboardTrain();
-  }),
+  _molfettaEnd,
   TestScenario('Porto, Don Angelo al cancello', (story) {
     _armed(story);
-    story.restNearest(priestTile);
+    story.restAt(harbourRoadCampfireTile);
   }),
   TestScenario("Porto, in cerca dell'incenso", (story) {
     _incenseErrand(story);
-    story.restNearest(churchPortalTile);
+    story.restAt(harbourRoadCampfireTile);
   }),
   TestScenario("Porto, ritorno con l'incenso", (story) {
     _incenseErrand(story);
     story
       ..collect(incenseBackpackId)
       ..unlock(HudElement.incense)
-      ..restNearest(priestTile);
+      ..restAt(harbourRoadCampfireTile);
   }),
   TestScenario('Bar Arcobaleno, con la chiave', (story) {
     _welcomed(story);
@@ -247,6 +389,58 @@ final List<TestScenario> testScenarios = <TestScenario>[
     _luigiFree(story);
     story.restNearest(airlinerTear.first);
   }),
+  TestScenario('Roma, Piazza dei Cinquecento', (story) {
+    _molfettaDone(story);
+    story
+      ..travelTo(LevelId.rome)
+      ..script('rome', <String, Object?>{'welcomed': true})
+      ..missions(given: const <Mission>[Mission.findSupplies])
+      ..script('journey', <String, Object?>{'taught': true})
+      ..restAt(piazzaCampfireTile);
+  }),
+  // Found in Rome and brought home: the hospital's roof, a step from the
+  // gap to the next block.
+  TestScenario('Molfetta, con il rampino', (story) {
+    _hookBroughtHome(story);
+    story.restAt(hospitalRoofCampfireTile);
+  }),
+  TestScenario('Duomo, le torri con il rampino', (story) {
+    _hookBroughtHome(story);
+    story.restNearest(duomoTowerLookoutTile);
+  }),
+  // The launcher found at the bottom of the block east of the hospital's
+  // roof, and the round from the Duomo's other tower with it: back at the
+  // camp on that roof, a few rounds in hand.
+  TestScenario('Lanciarazzi in mano', (story) {
+    _hookBroughtHome(story);
+    story
+      ..collect(rocketLauncherPickupId)
+      ..collect(duomoFarTowerBackpackId)
+      ..unlock(HudElement.rockets);
+    story.world.player.component<AmmoComponent>()
+      ..hasRocketLauncher = true
+      ..rockets = 3;
+    story.restAt(hospitalRoofCampfireTile);
+  }),
+  // Over the gap past the airliner with the hook, down into the palazzo.
+  TestScenario("Palazzo dopo l'aereo, col rampino", (story) {
+    _hookBroughtHome(story);
+    story.restNearest(palazzoRoofStairs);
+  }),
+  // At the camp on the street out of the palazzo, a few steps from the
+  // company's gate: in through it, Chiara behind the glass.
+  TestScenario('Azienda, Chiara al telefono', (story) {
+    _hookBroughtHome(story);
+    story.restAt(industryStreetCampfireTile);
+  }),
+  // At the camp behind the barracks, by the Elettronica's shutter: the
+  // way through the shop, once it is opened from inside on the monument's
+  // square.
+  TestScenario('Elettronica dietro la caserma', (story) {
+    _hookBroughtHome(story);
+    story.restNearest(northDistrictShopDoor);
+  }),
+  vanniDeployScenario,
 ];
 
 /// The mass over: Mario in the robe, Don Angelo dead and the four mutated
@@ -261,6 +455,7 @@ void _afterTheMass(ScenarioBuilder story) {
   story
     ..remember(StoryMemory.priestMass)
     ..remember(StoryMemory.priestMassacre)
+    ..missions(done: const <Mission>[Mission.initiation])
     ..script('duomo', <String, Object?>{'massacre': true});
 }
 
@@ -303,6 +498,10 @@ void _luigiFree(ScenarioBuilder story) {
   story
     ..remember(StoryMemory.luigiTrapped)
     ..remember(StoryMemory.luigiRescued)
+    ..missions(
+      done: const <Mission>[Mission.freeLuigi],
+      given: const <Mission>[Mission.reachLuigi],
+    )
     ..script('mall', <String, Object?>{
       'stepsInside': 10,
       'voice': true,
@@ -321,6 +520,10 @@ void _incenseErrand(ScenarioBuilder story) {
     ..kill(priestZombiePrefix)
     ..remember(StoryMemory.priestMet)
     ..remember(StoryMemory.priestErrand)
+    ..missions(
+      done: const <Mission>[Mission.clearGate],
+      given: const <Mission>[Mission.findIncense],
+    )
     ..script('priest', <String, Object?>{
       'met': true,
       'clearAsked': true,
@@ -329,8 +532,8 @@ void _incenseErrand(ScenarioBuilder story) {
     });
 }
 
-/// The incense delivered: the gate open and the bar's key in hand (the
-/// game hands over the key when the save loads).
+/// The incense delivered: the gate open and the bar's key in hand, as
+/// the game leaves them once the welcome has played.
 void _welcomed(ScenarioBuilder story) {
   _incenseErrand(story);
   final map = story.world.map;
@@ -339,7 +542,12 @@ void _welcomed(ScenarioBuilder story) {
   }
   story
     ..collect(incenseBackpackId)
+    ..unlock(HudElement.barKey)
     ..remember(StoryMemory.priestWelcomed)
+    ..missions(
+      done: const <Mission>[Mission.findIncense],
+      given: const <Mission>[Mission.findRing],
+    )
     ..script('priest', <String, Object?>{'welcome': true});
 }
 
@@ -348,6 +556,8 @@ void _ringFound(ScenarioBuilder story) {
   _welcomed(story);
   story.world.map.setTile(barLockedDoorTile, const Tile(TileKind.floor));
   story
+    // Used up on the storeroom door, as the game does.
+    ..putAway(HudElement.barKey)
     ..collect(episcopalRingPickupId)
     ..unlock(HudElement.episcopalRing);
 }
@@ -356,12 +566,30 @@ void _ringFound(ScenarioBuilder story) {
 void _upstairs(ScenarioBuilder story) {
   _ringFound(story);
   // As the game leaves them once the ring is handed over: the stair
-  // cultist stepped aside, the stair free.
+  // cultist stepped aside, the door behind him free.
   story.world.map
     ..setTile(duomoStairCultistTile, const Tile(TileKind.floor))
-    ..setTile(duomoStairEntryTile, const Tile(TileKind.floor))
     ..setTile(duomoStairCultistMovedTile, const Tile(TileKind.obstacle));
   story
+    ..putAway(HudElement.episcopalRing)
     ..remember(StoryMemory.priestFamily)
+    ..missions(
+      done: const <Mission>[Mission.findRing],
+      given: const <Mission>[Mission.initiation],
+    )
     ..script('duomo', <String, Object?>{'ringDelivered': true});
+}
+
+/// Molfetta done, the grappling hook found in Rome, and the train back
+/// home with it.
+void _hookBroughtHome(ScenarioBuilder story) {
+  _molfettaDone(story);
+  story
+    ..travelTo(LevelId.rome)
+    ..script('rome', <String, Object?>{'welcomed': true})
+    ..script('journey', <String, Object?>{'taught': true})
+    ..collect(grapplingHookPickupId)
+    ..unlock(HudElement.grapplingHook)
+    ..travelTo(LevelId.hometown);
+  story.world.player.component<AmmoComponent>().grapplingHook = true;
 }

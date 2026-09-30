@@ -9,11 +9,21 @@ final class AimLineComponent extends Component {
   AimLineComponent({
     required this.simulation,
     required this.aiming,
+    this.hidden,
+    this.throughEntities,
     this.tileSize = 16,
   }) : super(priority: 30);
 
   final WorldState simulation;
   final ValueListenable<bool> aiming;
+
+  /// True while what is aimed is not the pistol: a molotov draws its own.
+  final bool Function()? hidden;
+
+  /// True while what is aimed goes through whoever stands in its way, on
+  /// to the wall: the rocket launcher. The pistol's line stops in the
+  /// first one, as its round does.
+  final bool Function()? throughEntities;
   final double tileSize;
   final Paint _paint = Paint()
     ..color = PixelPalette.blood
@@ -22,21 +32,20 @@ final class AimLineComponent extends Component {
 
   @override
   void render(Canvas canvas) {
-    if (!aiming.value || !simulation.player.isAlive) {
+    if (!aiming.value ||
+        (hidden?.call() ?? false) ||
+        !simulation.player.isAlive) {
       return;
     }
 
     final playerPosition = simulation.player.component<PositionComponent>();
-    var cursor = playerPosition.position.step(playerPosition.facing);
-    var end = playerPosition.position;
-    while (simulation.map.contains(cursor)) {
-      end = cursor;
-      if (simulation.map.tileAt(cursor).blocksSight ||
-          simulation.entityAt(cursor, excluding: simulation.playerId) != null) {
-        break;
-      }
-      cursor = cursor.step(playerPosition.facing);
-    }
+    // The very path the round will take (see `traceShot`).
+    final (impact: end, hit: _) = traceShot(
+      simulation,
+      playerPosition.position,
+      playerPosition.facing,
+      throughEntities: throughEntities?.call() ?? false,
+    );
 
     final startOffset = Offset(
       playerPosition.position.x * tileSize + tileSize / 2,

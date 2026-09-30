@@ -66,7 +66,7 @@ Controls: W/A/S/D move, E interacts with the faced tile, X waits, and Q quits. T
 
 ## Sprite contract
 
-Runtime character atlases live in `assets/sprites/` as transparent 96×96 PNG files. Each sheet contains a 4×6 grid of 16×24 frames:
+Runtime character atlases live under `assets/characters/` as transparent 96×96 PNG files. Mario, NPCs and zombies each have their own `sprites` and `portraits` folders. Every sheet contains a 4×6 grid of 16×24 frames:
 
 - Rows: south, west, east, north
 - Columns: idle_0, idle_1, walk_0, walk_1, walk_2, walk_3
@@ -91,17 +91,35 @@ flutter build web --release
 flutter build apk --debug
 ```
 
+Every build target also accepts `--dart-define=VANNI_DEPLOY=1`. Such a build
+recreates slot 4 at every launch with Molfetta completed, every Molfetta
+memory, ten rounds and the molotov, and unlocks the ghost, vampire,
+jack-o'-lantern, zombie, Roma and Lazio outfits for wardrobe testing; Roma
+and Lazio have no unlock path in normal games. Slots 1–3 and the normal
+new-game flow remain available. GitLab passes the `VANNI_DEPLOY` CI variable
+to every build job, and GitHub Actions does the same with the repository
+Actions variable.
+
+An error nobody caught ends on an error screen (`lib/ui/crash_guard.dart`)
+with a report the player can share as a text file: build, phone, error,
+the slot's save and the last things the game did (`lib/report/`). CI passes
+`--dart-define=STEPBOUND_COMMIT=<short sha>` so the report names the commit
+it came from; a local build says `build locale`.
+
 GitLab CI runs formatting, static analysis, and tests with Flutter 3.44.2. Signed release builds belong on a protected local runner; signing secrets must never be committed.
 
 ## Architecture
 
-- `lib/core`: pure Dart grid, entities, actions, systems, scheduler, events, serialization, and seeded RNG
-- `lib/game`: Flame presentation, camera, render layers, turn interpolation, and debug tools; input adapters live under `lib/game/input`
+- `lib/core`: pure Dart grid, entities, actions, systems, scheduler, events, serialization, and seeded RNG; each level has its own module under `lib/core/levels` (`hometown/`, `train/`, `rome/`), joined on one grid by `game_world.dart`
+- `lib/game`: Flame presentation, camera, render layers, turn interpolation, and debug tools; input adapters live under `lib/game/input`, and what each level puts on the stage (its people, props and glints) under `lib/game/levels`
 - `lib/input`, `lib/data`: empty, kept for input adapters and a runtime data loader that do not exist yet
 - `lib/save`: persistence adapters
 - `lib/ui`: Flutter interface
 - `assets/balance/default.json`: authoritative balance defaults, compiled into the core by `tools/generate_balance.dart`
-- `assets/sprites`: production sprite atlases and atlas contract
+- `assets/characters`: Mario (including skins), NPC and zombie portraits and sprite atlases
+- `assets/objects`: generic inventory and world objects
+- `assets/levels`: tile atlas and place-specific art grouped by level area
+- `assets/story`: cutscene scenes, maps, UI art and placeholders; every street that runs off a map with no next map ends on the work-in-progress screen (`docs/level_pipeline.md`, "Strade incomplete")
 - `bin/stepbound_runner.dart`: headless ASCII runner
 - `tools/benchmark_world.dart`: deterministic simulation scaling benchmark
 
@@ -126,6 +144,8 @@ A new actor is a deliberate three-step change: the `EntityKind` enum, the
 JSON asset, and the generator's own list of kinds.
 
 See `CONTRIBUTING.md` for the GitLab workflow,
-`docs/target_devices.md` for the physical-device matrix, and
+`docs/target_devices.md` for the physical-device matrix,
+`docs/device_measurements.md` for the figures measured on real phones,
+`docs/save_policy.md` for which save formats a build must still load, and
 `docs/maintainability_and_scalability_backlog.md` for the prioritised technical
 improvement backlog.

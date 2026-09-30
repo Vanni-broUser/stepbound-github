@@ -58,6 +58,18 @@ final class TileMap {
   final int height;
   final List<Tile> _tiles;
 
+  /// Where [setTile] has been, as indices into [tiles], whether or not
+  /// the tile there is any different now. A map built from the level's
+  /// tiles can only differ from it here, so a save (`saveGameWorld`)
+  /// looks at these instead of comparing every cell of the grid.
+  final Set<int> _touched = <int>{};
+
+  Iterable<int> get touched => _touched;
+
+  /// Every tile, row by row: the tile at `x`, `y` is at `y * width + x`.
+  /// For whoever walks the whole map at once, without a [GridPoint] a cell.
+  List<Tile> get tiles => UnmodifiableListView<Tile>(_tiles);
+
   /// Scratch for [shortestNextStep], kept between calls and grown only
   /// once: a search stamps its own number on the tiles it reaches instead
   /// of clearing arrays the size of the map before every query.
@@ -81,7 +93,9 @@ final class TileMap {
     if (!contains(point)) {
       throw RangeError('Point $point is outside the map.');
     }
-    _tiles[_indexOf(point)] = tile;
+    final index = _indexOf(point);
+    _tiles[index] = tile;
+    _touched.add(index);
   }
 
   Iterable<GridPoint> walkableNeighbors(GridPoint point) sync* {
@@ -171,12 +185,16 @@ final class TileMap {
   /// before the search admits defeat, and that happens per zombie, per
   /// tick.
   ///
+  /// [canStep] says whether a step between two walkable neighbours is
+  /// allowed at all: a flight of stairs is climbed only along it.
+  ///
   /// Neighbours are visited in [Direction] order, so of two paths of the
   /// same length the same one comes back every time.
   GridPoint? shortestNextStep({
     required GridPoint start,
     required GridPoint target,
     bool Function(GridPoint point)? isBlocked,
+    bool Function(GridPoint from, GridPoint to)? canStep,
     int? maxDistance,
   }) {
     if (start == target) {
@@ -224,6 +242,10 @@ final class TileMap {
         }
         if (neighbor != targetIndex &&
             (isBlocked?.call(GridPoint(nextX, nextY)) ?? false)) {
+          continue;
+        }
+        if (canStep != null &&
+            !canStep(GridPoint(x, y), GridPoint(nextX, nextY))) {
           continue;
         }
         _reachedBy[neighbor] = search;
