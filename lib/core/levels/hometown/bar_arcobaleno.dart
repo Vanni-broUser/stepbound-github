@@ -1,4 +1,7 @@
 import 'package:stepbound/core/grid/grid_point.dart';
+import 'package:stepbound/core/items/pickup.dart';
+import 'package:stepbound/core/levels/game_world.dart';
+import 'package:stepbound/core/levels/place.dart';
 
 /// Inside the Bar Arcobaleno, off the harbour's alley (the barracks'
 /// style, a room on a dark background):
@@ -43,3 +46,48 @@ const List<GridPoint> barArcobalenoLamps = <GridPoint>[
   GridPoint(9, 8),
   GridPoint(5, 10),
 ];
+
+/// The Bar Arcobaleno: the counter `K`, the tables `T`, the jukebox `J`
+/// and the two pool tables `P` are all waist high, so they stop a step
+/// but not a shot.
+const Legend barLegend = Legend(walls: 'xWwD', obstacles: 'KTJP', debris: ':q');
+
+final Place _bar = place(PlaceId.barArcobaleno);
+final Place _harbour = place(PlaceId.harbour);
+
+/// The service door in the top-right corner of the Bar Arcobaleno. It is
+/// scenery until Don Angelo gives Mario its key; it then becomes the portal
+/// to the storeroom.
+final GridPoint barLockedDoorTile = _bar.tileOf('D');
+
+/// The drunk zombies `U` staggering about the Bar Arcobaleno.
+const String barDrunkZombiePrefix = 'bar-drunk-';
+final List<GridPoint> barDrunkZombieTiles = _bar.tilesOf('U');
+
+/// The first of them, in reading order of the rows.
+const String barDrunkZombieId = '${barDrunkZombiePrefix}0';
+
+/// The door of the Bar Arcobaleno, up the harbour's alley, and its locked
+/// service door into the storeroom, both ways.
+final Map<GridPoint, Portal> barPortals = <GridPoint, Portal>{
+  ...pairedDoors(
+    <GridPoint>[_harbour.tileOf('h')],
+    <GridPoint>[_bar.tileOf('E')],
+    Direction.north,
+  ),
+  ...pairedDoors(
+    <GridPoint>[_bar.tileOf('E')],
+    <GridPoint>[_harbour.tileOf('h')],
+    Direction.south,
+  ),
+  ...pairedDoors(
+    <GridPoint>[barLockedDoorTile],
+    <GridPoint>[barBackroomDoorTile],
+    Direction.north,
+  ),
+  ...pairedDoors(
+    <GridPoint>[barBackroomDoorTile],
+    <GridPoint>[barLockedDoorTile],
+    Direction.south,
+  ),
+};

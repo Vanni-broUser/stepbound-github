@@ -22,10 +22,11 @@ across Pillow or zlib versions, the pixels are. The previews under
 docs/previews are documentation, drawn with whatever font the machine
 has, and are left out of the comparison.
 
-Not in the chain: `clean_portraits.py` (its dark-background rule cuts
-through the outlines of the priest's and the carabiniere's portraits as
-they are today: never run it blindly) and `process_story_images.py`
-(needs the source art, which is not in the repository).
+Not in the chain: the portraits and the story scenes are drawn by hand
+and committed as they are, so no generator makes them. The scenes' sizes
+are checked by `flutter test` (test/story_scenes_test.dart); the portraits
+are touched up, when they are, with `clean_portraits.py` on the files
+named to it, and looked at before they are committed.
 
 Runs in the environment of tools/requirements.txt; it finds the
 repository from its own path, so it runs from anywhere.

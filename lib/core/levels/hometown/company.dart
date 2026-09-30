@@ -1,3 +1,8 @@
+import 'package:stepbound/core/grid/grid_point.dart';
+import 'package:stepbound/core/items/pickup.dart';
+import 'package:stepbound/core/levels/game_world.dart';
+import 'package:stepbound/core/levels/place.dart';
+
 /// Inside the company on the street out of the palazzo, through its gate:
 /// a call centre in a shed, three floors of it. Two open-plan
 /// wings side by side, the one Mario walks into on the west and the one on
@@ -118,3 +123,104 @@ const List<String> companySecondRows = <String>[
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
 ];
 // company-second-rows-end
+
+/// The company past the palazzo: the walls, the partitions and the glass
+/// between the wings are solid; the workstations, their panels and chairs,
+/// what else furnishes an office, the heap across the corridor and Chiara
+/// stop a step but not a shot. What is strewn over the floor crunches
+/// underfoot.
+const Legend companyLegend = Legend(
+  walls: 'xWwIG',
+  obstacles: 'DBh|-RTAKVFprY',
+);
+
+/// How dark the company is between its lamps: the lights left on here and
+/// there over the open plan, enough to see across to the other wing.
+const double companyDarkness = 0.55;
+
+final Place _company = place(PlaceId.companyGround);
+final Place _companyFirst = place(PlaceId.companyFirst);
+final Place _companySecond = place(PlaceId.companySecond);
+
+/// The company's gate, rolled up, seen from inside, west to east (from the
+/// street it is [industryStreetGate]).
+final List<GridPoint> companyGate = _company.tilesOf('E');
+
+/// The company's two flights up, one in each wing, west first: the way
+/// round from one wing to the other is by the floors above.
+final List<GridPoint> companyStairs = _company.tilesOf('U');
+
+/// The company's flights, bottom to top, west before east: on each floor
+/// the flight `U` up in the back wall and where it comes out, the flight
+/// `v` down in the front wall of the floor above. The ground floor's west
+/// flight and the first floor's west one lead up to the second floor, and
+/// down from it the east ones back to the ground floor's east wing.
+final List<(GridPoint, GridPoint)> companyFlights = <(GridPoint, GridPoint)>[
+  for (final (below, above) in <(Place, Place)>[
+    (_company, _companyFirst),
+    (_companyFirst, _companySecond),
+  ])
+    for (final (index, up) in below.tilesOf('U').indexed)
+      (up, above.tilesOf('v')[index]),
+];
+
+/// The backpack with two rounds, against the west wall of the top floor.
+const String companyBackpackId = 'backpack-company';
+final GridPoint companyBackpackTile = _companySecond.tileOf('9');
+
+/// The company's two wings, either side of the glass wall, from the back
+/// wall to the front one: the west one Mario walks into, the east one
+/// behind the glass.
+final GridRect companyWestWing = GridRect(
+  _company.origin.x + 1,
+  _company.origin.y + 1,
+  _glassColumn - 1,
+  _company.origin.y + companyRows.length - 2,
+);
+final GridRect companyEastWing = GridRect(
+  _glassColumn + 1,
+  _company.origin.y + 1,
+  _company.origin.x + _company.width - 2,
+  _company.origin.y + companyRows.length - 2,
+);
+
+/// The column of the glass wall between the wings, on the shared grid.
+final int _glassColumn = _company.tilesOf('G').first.x;
+
+/// Chiara, at her workstation in the east wing, her back to the room.
+final GridPoint chiaraTile = _company.tileOf('Y');
+
+/// The call-centre operators turned, `company-caller-<n>`, floor by floor:
+/// each on the cord of its handset to the desk beside it.
+const String companyCallerPrefix = 'company-caller-';
+
+/// How far the cord of a handset reaches from its desk, in tiles.
+const int companyCordLength = 3;
+
+/// The operators `Q`, floor by floor from the ground up, each with the
+/// desk it is tied to: the workstation next to it.
+final List<(GridPoint, GridPoint)> companyCallers = <(GridPoint, GridPoint)>[
+  for (final floor in <Place>[_company, _companyFirst, _companySecond])
+    for (final tile in floor.tilesOf('Q')) (tile, _deskOf(floor, tile)),
+];
+
+GridPoint _deskOf(Place floor, GridPoint tile) =>
+    <GridPoint>[
+      for (final direction in Direction.values) tile.step(direction),
+    ].firstWhere(
+      (next) => 'DB'.contains(
+        floor.rows[next.y - floor.origin.y][next.x - floor.origin.x],
+      ),
+    );
+
+/// The company's gate, from the street and from inside, and the flights
+/// between its floors (in the back wall of the floor below, onto the
+/// stairs in the front wall of the one above), both ways.
+final Map<GridPoint, Portal> companyPortals = <GridPoint, Portal>{
+  ...pairedDoors(industryStreetGate, companyGate, Direction.north),
+  ...pairedDoors(companyGate, industryStreetGate, Direction.south),
+  for (final (below, above) in companyFlights) ...<GridPoint, Portal>{
+    ...pairedDoors(<GridPoint>[below], <GridPoint>[above], Direction.north),
+    ...pairedDoors(<GridPoint>[above], <GridPoint>[below], Direction.south),
+  },
+};

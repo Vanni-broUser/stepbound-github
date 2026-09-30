@@ -1,4 +1,10 @@
+import 'package:stepbound/core/entities/balance.dart';
+import 'package:stepbound/core/entities/entity.dart';
+import 'package:stepbound/core/entities/entity_factory.dart';
 import 'package:stepbound/core/grid/grid_point.dart';
+import 'package:stepbound/core/items/pickup.dart';
+import 'package:stepbound/core/levels/game_world.dart';
+import 'package:stepbound/core/levels/place.dart';
 
 /// Inside the Duomo on the harbour: a broad basilica, larger than San
 /// Nicola, with three naves. Two rows of great columns `P`, each two tiles
@@ -83,3 +89,114 @@ const List<GridPoint> duomoTorches = <GridPoint>[
   GridPoint(18, 2),
   GridPoint(20, 2),
 ];
+
+/// The nave: the indoor masonry vocabulary, with its furnishings as
+/// waist-high obstacles.
+const Legend duomoLegend = Legend(walls: 'xWwIA', obstacles: 'PTMKFVYG12p');
+
+final Place _duomo = place(PlaceId.duomo);
+final Place _duomoUpper = place(PlaceId.duomoUpper);
+final Place _duomoSecond = place(PlaceId.duomoSecondFloor);
+final Place _duomoTower = place(PlaceId.duomoTower);
+final Place _duomoBells = place(PlaceId.duomoBells);
+
+/// The cultist's robe `R` on the community's floor.
+const String cultistRobePickupId = 'cultist-robe';
+
+/// People and the guarded door upstairs inside the Duomo: the door
+/// [duomoStairEntryTile] is in the back wall, straight behind the cultist
+/// who stands in front of it.
+final GridPoint duomoPriestTile = _duomo.tileOf('p');
+final GridPoint duomoStairCultistTile = _duomo.tileOf('1');
+final GridPoint duomoWelcomingCultistTile = _duomo.tileOf('2');
+final GridPoint duomoStairCultistMovedTile = _duomo.tileOf('3');
+final GridPoint duomoStairEntryTile = _duomo.tileOf('U');
+final GridPoint duomoUpperStairTile = _duomoUpper.tileOf('D');
+final GridPoint duomoUpperLockedDoorTile = _duomoUpper.tileOf('L');
+final GridPoint duomoUpperRobeTile = _duomoUpper.tileOf('R');
+
+/// The way up from the door the key opens to the top of the bell tower:
+/// on each floor the stairs `D` Mario comes up by and the doorway `U` he
+/// goes on up through, and on the roof the hatch he comes out of
+/// ([duomoRoofHatchTile], duomo_tower_roof.dart).
+final GridPoint duomoSecondFloorStairTile = _duomoSecond.tileOf('D');
+final GridPoint duomoSecondFloorUpTile = _duomoSecond.tileOf('U');
+final GridPoint duomoTowerStairTile = _duomoTower.tileOf('D');
+final GridPoint duomoTowerUpTile = _duomoTower.tileOf('U');
+final GridPoint duomoBellsStairTile = _duomoBells.tileOf('D');
+final GridPoint duomoBellsUpTile = _duomoBells.tileOf('U');
+
+/// What the mass leaves behind in the nave, once the community has eaten
+/// of the crucified zombie and turned on Don Angelo: the four mutated
+/// cultists `c` across the aisle between the first two blocks of pews,
+/// his body `d` behind them and, beside it, the backpack `9` with the key
+/// of the upper floor. None of it is there before the mass: the zombies
+/// are raised by the Duomo's script, the body is put where it lies and the
+/// backpack starts inactive.
+final List<GridPoint> duomoCultistSpawns = _duomo.tilesOf('c');
+
+/// The crucified zombie over the altar, on the shared grid: it hangs from
+/// the moment the mass is over, and is scenery, so it has no glyph and no
+/// entity of its own (see [duomoCrucifixSpot]).
+final GridPoint duomoCrucifixTile = GridPoint(
+  _duomo.origin.x + duomoCrucifixSpot.x,
+  _duomo.origin.y + duomoCrucifixSpot.y,
+);
+final GridPoint duomoPriestCorpseTile = _duomo.tileOf('d');
+final GridPoint duomoKeyTile = _duomo.tileOf('9');
+
+/// Their ids, `duomo-cultist-0` to `duomo-cultist-3`.
+const String duomoCultistPrefix = 'duomo-cultist-';
+const String duomoKeyPickupId = 'duomo-key';
+
+/// One of the mutated cultists of the Duomo, raised where the mass left
+/// him: he looks out of the aisle, away from Don Angelo's body -- east at
+/// the east end of the pews, west at the west end.
+Entity createDuomoCultist(String id, GridPoint position) {
+  return EntityFactory(BalanceConfig.standard()).zombie(
+    id: id,
+    kind: EntityKind.cultist,
+    position: position,
+    facing: position.x < duomoPriestCorpseTile.x
+        ? Direction.west
+        : Direction.east,
+  );
+}
+
+/// The Duomo's open portal behind its story-gated churchyard and, inside
+/// it, the guarded door up to the first floor, the locked door on up to
+/// the second, and on up the bell tower's two flights to the hatch out
+/// onto its roof: every door and flight is in the back wall of the floor
+/// it leaves and lands Mario on the step above the stairs in the front
+/// wall of the next; the hatch is in the roof's floor. All both ways.
+final Map<GridPoint, Portal> duomoPortals = <GridPoint, Portal>{
+  ...pairedDoors(
+    <GridPoint>[duomoPortalTile],
+    <GridPoint>[_duomo.tileOf('E')],
+    Direction.north,
+  ),
+  ...pairedDoors(
+    <GridPoint>[_duomo.tileOf('E')],
+    <GridPoint>[duomoPortalTile],
+    Direction.south,
+  ),
+  ...pairedDoors(
+    <GridPoint>[duomoStairEntryTile],
+    <GridPoint>[duomoUpperStairTile],
+    Direction.north,
+  ),
+  ...pairedDoors(
+    <GridPoint>[duomoUpperStairTile],
+    <GridPoint>[duomoStairEntryTile],
+    Direction.south,
+  ),
+  for (final (below, above) in <(GridPoint, GridPoint)>[
+    (duomoUpperLockedDoorTile, duomoSecondFloorStairTile),
+    (duomoSecondFloorUpTile, duomoTowerStairTile),
+    (duomoTowerUpTile, duomoBellsStairTile),
+    (duomoBellsUpTile, duomoRoofHatchTile),
+  ]) ...<GridPoint, Portal>{
+    ...pairedDoors(<GridPoint>[below], <GridPoint>[above], Direction.north),
+    ...pairedDoors(<GridPoint>[above], <GridPoint>[below], Direction.south),
+  },
+};

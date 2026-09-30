@@ -1,3 +1,10 @@
+import 'dart:math' as math;
+
+import 'package:stepbound/core/grid/grid_point.dart';
+import 'package:stepbound/core/items/pickup.dart';
+import 'package:stepbound/core/levels/game_world.dart';
+import 'package:stepbound/core/levels/place.dart';
+
 // The ASCII maps are one row per line, however wide the place is.
 
 /// The three places of the station at the top of the block behind the
@@ -113,3 +120,134 @@ const List<String> stationFarSideRows = <String>[
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
 ];
 // far-platform-rows-end
+
+/// The three places of the station: the side walls `|`, the hijacked
+/// train's cars `m` and `C` and its overturned ones `V` and `H`, the
+/// railcar `M` and the rubble `#` shut the way like walls, the benches
+/// `T`, the ticket windows `K` and the canopy posts `n` can be seen over,
+/// the far-platform signs `l` and `r` hang against the wall, and the gap by
+/// the burning car `?` is on fire.
+const Legend stationLegend = Legend(
+  walls: 'xWwMmCVHP#|lr',
+  obstacles: 'TKn',
+  fire: '?',
+);
+
+final Place _station = place(PlaceId.station);
+final Place _underpass = place(PlaceId.stationUnderpass);
+final Place _farSide = place(PlaceId.stationFarSide);
+final Place _mallNorthStreet = place(PlaceId.mallNorthStreet);
+
+/// The backpack `9` in the ballast between the two wrecks, at the dead end
+/// of the station's tracks: two rounds.
+const String stationBackpackId = 'backpack-station';
+const int stationBackpackAmmo = 2;
+final GridPoint stationBackpackTile = _station.tileOf('9');
+
+/// The wanderers `Z` standing in the dark of the booking hall.
+final List<GridPoint> stationHallZombieTiles = _station.tilesOf('Z');
+
+/// The two wanderers roaming the station's underground corridor.
+const String stationUnderpassZombiePrefix = 'station-underpass-wanderer-';
+final List<GridPoint> stationUnderpassZombieTiles = _underpass.tilesOf('Z');
+
+/// The station's two doorways on the forecourt, west and east: neither
+/// leads where the other does.
+final List<GridPoint> stationWestDoor = _mallNorthStreet.doorRow('(');
+final List<GridPoint> stationEastDoor = _mallNorthStreet.doorRow(')');
+
+/// The far platform, where Luigi is waiting in the cab of the one train
+/// still in one piece: coming up the stairs onto it plays his scene. The
+/// whole platform, so there is no walking past him.
+final GridRect stationPlatform = () {
+  final rows = _farSide.rows;
+  final top = rows.indexWhere((row) => row.contains('='));
+  final bottom = rows.lastIndexWhere((row) => row.contains('='));
+  return GridRect(
+    _farSide.origin.x + 1,
+    _farSide.origin.y + top,
+    _farSide.origin.x + _farSide.width - 2,
+    _farSide.origin.y + bottom,
+  );
+}();
+
+/// The passenger door in the train on the far platform. Its tile starts as
+/// a wall and is made walkable by the game as soon as Luigi is rescued.
+final GridPoint stationTrainDoorTile = _farSide.tileOf('P');
+
+/// The flight `U` down to the underpass, sunk in the booking hall's floor a
+/// few cells in from its front wall so that it shows: got onto from the
+/// north, its head under the green sign, and two steps deep.
+final List<GridPoint> stationHallStairs = _station.tilesOf('U');
+
+/// The last steps of [stationHallStairs]: the door down into the
+/// underpass. The floor below them is shut off from them, as the sides are
+/// (see `WorldState.canStep`): the flight is got onto only from its head.
+final List<GridPoint> stationHallStairsFoot = lastSteps(
+  stationHallStairs,
+  Direction.south,
+);
+
+/// The flight `D` down from the far platform, through its wall and one
+/// step further.
+final List<GridPoint> stationFarStairs = _farSide.tilesOf('D');
+
+/// The last steps of [stationFarStairs]: the door down into the underpass.
+final List<GridPoint> stationFarStairsFoot = lastSteps(
+  stationFarStairs,
+  Direction.south,
+);
+
+/// The station's two flights, each step with the way up it (see
+/// `WorldState.stairs`).
+final Map<GridPoint, Direction> stationStairs = <GridPoint, Direction>{
+  for (final step in stationHallStairs) step: Direction.south,
+  for (final step in stationFarStairs) step: Direction.south,
+};
+
+/// The flames along the overturned car `H` burning at the west end of the
+/// station's tracks, one every two cells from its west end.
+final List<FireSpot> stationWreckFireSpots = () {
+  final car = _station.tilesOf('H');
+  final west = car.map((tile) => tile.x).reduce(math.min);
+  final east = car.map((tile) => tile.x).reduce(math.max);
+  final middle = car.map((tile) => tile.y).reduce(math.min) + 1;
+  return <FireSpot>[
+    for (var x = west; x < east; x += 2)
+      FireSpot(GridPoint(x, middle), FireKind.car),
+  ];
+}();
+
+/// The east end of the fire in the one gap between the station's burning
+/// car and the car still upright, on the platform side: the only way onto
+/// the tracks, and looking at it says what it would take.
+final GridPoint stationTrackFireTile = _station
+    .tilesOf('?')
+    .reduce((a, b) => a.y > b.y || (a.y == b.y && a.x > b.x) ? a : b);
+
+/// The station's two doorways, each into its own corner of the booking
+/// hall, and the two flights of the underpass that join the far end of
+/// that hall to the far platform (every flight climbs into the back wall
+/// of the place it leaves, so Mario lands on the step below it -- south,
+/// but for the flight up onto the far platform, whose wall runs along the
+/// bottom of the map). All both ways.
+final Map<GridPoint, Portal> stationPortals = <GridPoint, Portal>{
+  ...pairedDoors(stationWestDoor, _station.doorRow('E'), Direction.north),
+  ...pairedDoors(_station.doorRow('E'), stationWestDoor, Direction.south),
+  ...pairedDoors(stationEastDoor, _station.doorRow('O'), Direction.north),
+  ...pairedDoors(_station.doorRow('O'), stationEastDoor, Direction.south),
+  // Down the last step of each flight into the underpass, and back up
+  // onto the step above it, facing up the flight.
+  ...pairedDoors(
+    stationHallStairsFoot,
+    _underpass.doorRow('D'),
+    Direction.south,
+  ),
+  ...backOntoFlight(_underpass.doorRow('D'), stationHallStairsFoot),
+  ...backOntoFlight(_underpass.doorRow('U'), stationFarStairsFoot),
+  ...pairedDoors(
+    stationFarStairsFoot,
+    _underpass.doorRow('U'),
+    Direction.south,
+  ),
+};

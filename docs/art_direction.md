@@ -97,12 +97,10 @@ intro frames are PNGs at the virtual 16:9 resolution doubled (768×432); the
 scenes played during the game keep the source frame as it is, `scene_*.jpg`
 at 1376×768.
 
-`tools/process_story_images.py` puts them in place from the folder the
-source art is generated into, named source by source, so which frame a
-scene comes from is written down rather than remembered. A scene whose
-source is not on the machine running the script gets a painted stand-in of
-the moment instead, captioned `arte provvisoria` on the frame itself: the
-story always has something to show, and running the script where the art
-is overwrites it. The four frames of the Duomo massacre
-(`scene_priest_worship`, `scene_cultists_feast`, `scene_cultists_mutation`
-and `scene_priest_seized`) are stand-ins at the moment.
+They are drawn by hand and dropped in as they are: nothing in `tools/`
+makes or remakes them, so nothing checks their pixels. What is checked,
+by `test/story_scenes_test.dart` on every run of `flutter test`, is that
+each one has the size the screens draw it at (the intro frames 768×432,
+the scenes 768 tall and 1376 wide, a pixel either way). A new scene goes
+in `assets/story/scenes` at that size, and the test says so if it does
+not.

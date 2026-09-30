@@ -35,10 +35,20 @@ e `deploy`, per la pubblicazione su Google Play (`deploy_play`), TestFlight
   leggono l'un l'altro, in una copia temporanea del repository e confronta
   pixel per pixel ogni immagine riscritta con quella committata. Le anteprime
   di `docs/previews` non contano: sono documentazione, disegnata col font che
-  la macchina ha. `clean_portraits.py` e `process_story_images.py` non fanno
-  parte della catena (il primo taglierebbe i contorni di alcuni ritratti,
-  il secondo vuole l'arte sorgente). Stessa immagine Python e stesso
-  `tools/requirements.txt` di `levels_check`.
+  la macchina ha. I ritratti e le scene della storia non sono generati:
+  sono disegnati a mano e committati come sono, per cui la catena non li
+  tocca (`test/story_scenes_test.dart`, in `unit_tests`, controlla che
+  ogni scena abbia la misura a cui le schermate la disegnano). Stessa
+  immagine Python e stesso `tools/requirements.txt` di `levels_check`.
+- `audio_check`: rifa la cottura dei suoni di `assets/audio` con
+  `python tools/build_audio.py --check` e confronta ogni file con quello
+  committato: byte per byte se l'ffmpeg del job e la build che li ha cotti
+  (`FFMPEG_VERSION` nello script), altrimenti per inviluppo di loudness,
+  50 ms per 50 ms entro un decibel, perche un altro encoder MP3 cambia i
+  byte ma non il suono. Le sorgenti pubbliche (circa 90 MB) restano nella
+  cache `audio-sources` fra un job e l'altro; se una sparisce dalla rete
+  il job fallisce dicendo quale. Non bloccante (`allow_failure`) finche
+  non ha fatto una settimana verde, come fu per `levels_check`.
   Le righe ASCII di un posto non hanno piu una copia dipinta da tenere
   d'accordo: il gioco le dipinge. Cio che dipende ancora dalle righe -- un
   oggetto dipinto per una certa disposizione, come il vagone o un negozio
@@ -77,7 +87,9 @@ Il repository e specchiato su GitHub, dove vivono le pull request, e
 `.github/workflows/ci.yml` rifa li le stesse verifiche: `analyze` (con
 `generate_balance.dart --check`, formato e analisi), `unit_tests` (test,
 copertura e `check_coverage.dart`, con `lcov.info` come artefatto),
-`levels_check` e `sprites_check`, bloccanti come i loro gemelli.
+`levels_check` e `sprites_check`, bloccanti come i loro gemelli, e
+`audio_check` (con l'ffmpeg di Ubuntu e `actions/cache` per le sorgenti),
+non bloccante come il suo.
 
 In piu c'e `android_debug`, che non ha un equivalente automatico su GitLab:
 costruisce l'APK di debug e lo carica come artefatto scaricabile. Si prende da

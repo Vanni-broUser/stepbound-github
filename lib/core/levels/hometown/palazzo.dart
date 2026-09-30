@@ -1,3 +1,8 @@
+import 'package:stepbound/core/grid/grid_point.dart';
+import 'package:stepbound/core/items/pickup.dart';
+import 'package:stepbound/core/levels/game_world.dart';
+import 'package:stepbound/core/levels/place.dart';
+
 /// The palazzo the roofs past the airliner belong to: the stairwell
 /// going down from them comes out on its top floor. Three floors of flats
 /// over the entrance hall, the stairs `U` up and `D` down in the middle
@@ -128,3 +133,96 @@ const List<String> palazzoThirdFloorRows = <String>[
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
 ];
 // palazzo-third-rows-end
+
+/// The palazzo's stairwell on every floor, from its back wall to its
+/// front wall: the landing, the stairs up and the stairs down, lit
+/// throughout (see `PlaceSpec.litAreas`).
+const GridRect palazzoStairwell = GridRect(20, 1, 25, 18);
+
+/// How dark the palazzo's flats are between their lamps: dim, not black.
+const double palazzoFlatDarkness = 0.72;
+
+/// The palazzo's hall and floors: the walls, the partitions, the
+/// letterboxes on the wall and the door still locked are solid, and what
+/// furnishes a flat stops a step but not a shot. The plaster down off the
+/// ceilings crunches underfoot.
+const Legend palazzoLegend = Legend(
+  walls: 'xWwILM',
+  obstacles: 'SaVThBnAlKOFHQRpr',
+);
+
+final Place _palazzoGround = place(PlaceId.palazzoGroundFloor);
+final Place _palazzoFirst = place(PlaceId.palazzoFirstFloor);
+final Place _palazzoSecond = place(PlaceId.palazzoSecondFloor);
+final Place _palazzoThird = place(PlaceId.palazzoThirdFloor);
+
+/// The palazzo's stairs, bottom to top: on each floor the flight `U` up
+/// in the back wall, and where it comes out, the flight `D` down in the
+/// front wall of the floor above.
+final List<(GridPoint, GridPoint)> palazzoFlights = <(GridPoint, GridPoint)>[
+  (_palazzoGround.tileOf('U'), _palazzoFirst.tileOf('D')),
+  (_palazzoFirst.tileOf('U'), _palazzoSecond.tileOf('D')),
+  (_palazzoSecond.tileOf('U'), _palazzoThird.tileOf('D')),
+];
+
+/// The top of the palazzo's stairwell, on the third floor: up it, the
+/// stairs on the roof past the airliner.
+final GridPoint palazzoRoofStairs = _palazzoThird.tileOf('U');
+
+/// The portone, from the hall (from the street it is
+/// [industryStreetPortone]).
+final GridPoint palazzoPortone = _palazzoGround.tileOf('E');
+
+/// The flat door on the third floor still locked: the flat behind it is
+/// not drawn.
+final GridPoint palazzoLockedDoorTile = _palazzoThird.tileOf('L');
+
+/// The backpack with two rounds, in the second floor's front flat.
+const String palazzoBackpackId = 'backpack-palazzo';
+final GridPoint palazzoBackpackTile = _palazzoSecond.tileOf('9');
+
+/// The key of the third floor, on the first floor's bedroom floor.
+const String palazzoKeyPickupId = 'palazzo-key';
+final GridPoint palazzoKeyTile = _palazzoFirst.tileOf('k');
+
+/// The wanderers `Z` left in the palazzo, top floor first,
+/// `palazzo-wanderer-<n>`.
+const String palazzoZombiePrefix = 'palazzo-wanderer-';
+final List<GridPoint> palazzoZombieTiles = <GridPoint>[
+  for (final floor in <Place>[
+    _palazzoThird,
+    _palazzoSecond,
+    _palazzoFirst,
+    _palazzoGround,
+  ])
+    ...floor.tilesOf('Z'),
+];
+
+/// Down the stairwell on the roof past the airliner into the palazzo's top
+/// floor and back up onto its lowest step but one, the flights between the
+/// floors, and the portone onto the street. All both ways.
+final Map<GridPoint, Portal> palazzoPortals = <GridPoint, Portal>{
+  for (final step in rooftopFarStairsFoot)
+    step: Portal(
+      to: palazzoRoofStairs.step(Direction.south),
+      facing: Direction.south,
+    ),
+  palazzoRoofStairs: Portal(
+    to: rooftopFarStairsFoot.first.step(Direction.west),
+    facing: Direction.west,
+  ),
+  for (final (below, above) in palazzoFlights) ...<GridPoint, Portal>{
+    ...pairedDoors(<GridPoint>[below], <GridPoint>[above], Direction.north),
+    ...pairedDoors(<GridPoint>[above], <GridPoint>[below], Direction.south),
+  },
+  ...pairedDoors(
+    <GridPoint>[palazzoPortone],
+    <GridPoint>[industryStreetPortone],
+    Direction.south,
+  ),
+  ...pairedDoors(
+    <GridPoint>[industryStreetPortone],
+    <GridPoint>[palazzoPortone],
+    Direction.north,
+  ),
+};

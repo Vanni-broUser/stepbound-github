@@ -1,3 +1,7 @@
+import 'package:stepbound/core/grid/grid_point.dart';
+import 'package:stepbound/core/levels/game_world.dart';
+import 'package:stepbound/core/levels/place.dart';
+
 // The ASCII map is one row per line, however wide the place is.
 // ignore_for_file: lines_longer_than_80_chars
 
@@ -48,3 +52,14 @@ const List<String> industryStreetRows = <String>[
   'BBBB=.|.=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
 ];
 // industry-street-rows-end
+
+final Place _industryStreet = place(PlaceId.industryStreet);
+
+/// The palazzo's portone, seen from the street.
+final GridPoint industryStreetPortone = _industryStreet.tileOf('«');
+
+/// The camp on the pavement between the palazzo and the company.
+final GridPoint industryStreetCampfireTile = _industryStreet.tileOf('S');
+
+/// The company's gate, rolled up, seen from the street, west to east.
+final List<GridPoint> industryStreetGate = _industryStreet.tilesOf('Ø');

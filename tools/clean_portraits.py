@@ -1,4 +1,9 @@
-"""Cleans the character portraits of what their generated background left.
+"""Cleans a character portrait of what its generated background left.
+
+Runs only on the portraits named to it, never on the folder: the portraits
+drawn since it was written are finished by hand, and its rules would take
+some of that away (the priest's and the carabiniere's robes, the ghost's
+white). Look at the result before committing it.
 
 Two kinds of leftovers, both drawn in white and light grey:
 
@@ -15,12 +20,20 @@ A few white blocks caught between locks of hair look to any rule like an
 eye or a tooth; they are listed by hand in HAND_FIXES and filled with the
 colour most of their surroundings have.
 
-    python tools/clean_portraits.py            # every character portrait
-    python tools/clean_portraits.py --check    # exit 1 if any still needs it
-    python tools/clean_portraits.py --halloween # only Halloween highlights
+A portrait that arrives on an opaque near-black matte instead of a
+checkerboard is cleared of it with `--dark-matte`, and only then: on a
+portrait with a transparent background the same rule eats every
+near-black pixel it can reach from the edge, outlines and dark clothes
+included.
+
+    python tools/clean_portraits.py PATH...              # clean, in place
+    python tools/clean_portraits.py --check PATH...      # exit 1 if any
+                                                         # still needs it
+    python tools/clean_portraits.py --dark-matte PATH... # matte too
+    python tools/clean_portraits.py --halloween PATH...  # only the
+                                                         # Halloween whites
 """
 
-import glob
 import os
 import sys
 
@@ -228,13 +241,14 @@ def soften_pure_white(im, colour):
     return changed
 
 
-def clean(im, name=""):
+def clean(im, name="", dark_matte=False):
     """Cleans [im] in place; returns how many pixels were changed."""
     px = im.load()
     count = hand_fix(im, HAND_FIXES.get(name, []))
     if name in SOFTEN_PURE_WHITE:
         count += soften_pure_white(im, SOFTEN_PURE_WHITE[name])
-    count += len(border_dark_background(im))
+    if dark_matte:
+        count += len(border_dark_background(im))
     if name in PRESERVE_LIGHT:
         return count
     count += len(border_checker_background(im))
@@ -246,27 +260,24 @@ def clean(im, name=""):
 
 
 def main():
-    check = "--check" in sys.argv
-    halloween_only = "--halloween" in sys.argv
+    flags = {arg for arg in sys.argv[1:] if arg.startswith("--")}
+    paths = [arg for arg in sys.argv[1:] if not arg.startswith("--")]
+    unknown = flags - {"--check", "--halloween", "--dark-matte"}
+    if unknown or not paths:
+        sys.exit(__doc__)
+    check = "--check" in flags
+    halloween_only = "--halloween" in flags
     dirty = []
-    portrait_dirs = [
-        os.path.join("assets", "characters", kind, "portraits")
-        for kind in ("mario", "npcs", "zombies")
-    ]
-    paths = sorted(
-        path
-        for directory in portrait_dirs
-        for path in glob.glob(os.path.join(directory, "*.png"))
-    )
     for path in paths:
         im = Image.open(path).convert("RGBA")
         name = os.path.basename(path)
         if halloween_only and name not in SOFTEN_PURE_WHITE:
+            print(f"{path}: not a Halloween portrait, left alone")
             continue
         cleared = (
             soften_pure_white(im, SOFTEN_PURE_WHITE[name])
             if halloween_only
-            else clean(im, name)
+            else clean(im, name, dark_matte="--dark-matte" in flags)
         )
         if cleared:
             dirty.append(path)

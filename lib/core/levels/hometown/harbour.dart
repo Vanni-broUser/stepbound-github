@@ -1,3 +1,8 @@
+import 'package:stepbound/core/grid/grid_point.dart';
+import 'package:stepbound/core/items/pickup.dart';
+import 'package:stepbound/core/levels/game_world.dart';
+import 'package:stepbound/core/levels/place.dart';
+
 // The ASCII map is one row per line, however wide the place is.
 // ignore_for_file: lines_longer_than_80_chars
 
@@ -104,3 +109,93 @@ const List<String> harbourRows = <String>[
   '~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~BBBBBBBBBBBBBB',
 ];
 // harbour-rows-end
+
+/// The name on the card shown on the way into the harbour.
+const String harbourName = 'Porto e centro storico';
+
+final Place _harbour = place(PlaceId.harbour);
+final Place _north = place(PlaceId.northDistrict);
+
+/// The harbour's backpacks `5`, `6` and `7`: what each holds is in
+/// `hometownContents`.
+const String boatBackpackId = 'backpack-boat';
+const String shipyardBackpackId = 'backpack-shipyard';
+const String oldTownBackpackId = 'backpack-old-town';
+
+/// The two new harbour backpacks, named separately so saves keep tracking
+/// each one even though both hold the same two rounds.
+final GridPoint shipyardBackpackTile = _harbour.tileOf('6');
+final GridPoint oldTownBackpackTile = _harbour.tileOf('7');
+
+/// The two harbour fires, in row order: first on the gated Duomo sagrato,
+/// then at the south-east end of the harbour road.
+final GridPoint duomoCampfireTile = _harbour.tilesOf('S').first;
+final GridPoint harbourRoadCampfireTile = _harbour.tilesOf('S').last;
+
+/// Where Don Angelo waits, on the sagrato just beyond the churchyard gate.
+final GridPoint priestTile = _harbour.tileOf('s');
+
+/// The three wrought-iron gate tiles across the alley. The extended priest
+/// scene turns them into floor, leaving the open leaves drawn at the sides.
+final List<GridPoint> priestGateTiles = _harbour.tilesOf('x');
+final GridRect priestGate = GridRect(
+  priestGateTiles.first.x,
+  priestGateTiles.first.y,
+  priestGateTiles.last.x,
+  priestGateTiles.last.y,
+);
+
+/// The Duomo's open portal is directly north of Don Angelo's original spot.
+/// The gate, not this doorway, keeps Mario out until the incense is delivered.
+final GridPoint duomoPortalTile = GridPoint(priestTile.x, priestTile.y - 2);
+
+/// The two zombies pressed against the gate, west to east: the priest asks
+/// Mario to get rid of them before he will talk.
+final List<GridPoint> priestZombieTiles = _harbour.tilesOf('t');
+
+/// Their ids, `priest-zombie-0` and `priest-zombie-1`.
+const String priestZombiePrefix = 'priest-zombie-';
+
+/// The alley between the seafront road and the churchyard gate: standing
+/// here is standing in front of Don Angelo.
+final GridRect priestGateFront = () {
+  final alley = priestGateTiles;
+  return GridRect(
+    alley.first.x,
+    alley.first.y + 1,
+    alley.last.x,
+    alley.last.y + 2,
+  );
+}();
+
+/// Coming this close to the alley is close enough for Don Angelo to hail
+/// Mario: the alley itself and the whole width of the seafront road in
+/// front of it, sidewalk to sidewalk, so he calls out whichever side of
+/// the road Mario walks down.
+final GridRect priestSceneTrigger = () {
+  final rows = _harbour.rows;
+  final x = priestGateFront.left - _harbour.origin.x;
+  // From the sidewalk under the palazzi, across the lanes, down to the
+  // sidewalk along the promenade.
+  var y = priestGateFront.bottom - _harbour.origin.y + 1;
+  do {
+    y++;
+  } while (rows[y][x] != '=');
+  return GridRect(
+    priestGateFront.left - 2,
+    priestGateFront.top,
+    priestGateFront.right + 2,
+    _harbour.origin.y + y,
+  );
+}();
+
+/// The road leaving the bottom of the north district, which is the one
+/// entering the top of the harbour, both ways.
+final Map<GridPoint, Portal> harbourPortals = () {
+  final northEdge = _north.walkableRow(_north.height - 1);
+  final harbourEdge = _harbour.walkableRow(0);
+  return <GridPoint, Portal>{
+    ...pairedDoors(northEdge, harbourEdge, Direction.south),
+    ...pairedDoors(harbourEdge, northEdge, Direction.north),
+  };
+}();

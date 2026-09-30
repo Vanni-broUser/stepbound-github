@@ -1,3 +1,5 @@
+import 'package:stepbound/core/levels/place.dart';
+
 // The bell tower of the harbour Duomo, climbed in two flights. In both
 // Mario comes up through the stairs `D` in the front wall and climbs a
 // broad flight `s`, four steps deep and three wide, set against the east
@@ -47,3 +49,7 @@ const List<String> duomoBellsRows = <String>[
   'xxxxxxxxxxxxxx',
 ];
 // duomo-bells-rows-end
+
+/// The bell tower, both floors: the arrow slits `o` are in the wall, the
+/// railings `|`, the crates `K` and the bell `O` stand in the room.
+const Legend duomoTowerLegend = Legend(walls: 'xWwIo', obstacles: '|KO');

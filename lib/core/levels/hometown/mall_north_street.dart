@@ -1,3 +1,7 @@
+import 'package:stepbound/core/grid/grid_point.dart';
+import 'package:stepbound/core/levels/game_world.dart';
+import 'package:stepbound/core/levels/place.dart';
+
 // The ASCII map is one row per line, however wide the place is.
 
 /// Reached only through the hypermarket ground floor's new fire exit (see
@@ -103,3 +107,39 @@ const List<String> mallNorthStreetRows = <String>[
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
 ];
 // mall-north-rows-end
+
+final Place _mallNorthStreet = place(PlaceId.mallNorthStreet);
+
+/// The backpack `8` at the old campfire site on the shopping street north
+/// of the mall, and the two rounds inside it.
+const String mallNorthBackpackId = 'backpack-mall-north';
+const int mallNorthBackpackAmmo = 2;
+final GridPoint mallNorthBackpackTile = _mallNorthStreet.tileOf('8');
+
+/// The north-zone campfire, now beside the rubbish in the car park.
+final GridPoint mallNorthCampfireTile = _mallNorthStreet.tileOf('S');
+
+/// Where the hypermarket's fire exit lands: its own doorway, in the back
+/// wall of the hypermarket behind the car park.
+final GridPoint mallNorthStreetEntry = _mallNorthStreet.tileOf('j');
+
+/// The backpack with a molotov in the park behind the hypermarket, and
+/// how many it holds.
+const String molotovBackpackId = 'molotov-backpack';
+const int molotovBackpackCount = 2;
+
+/// On the park's path, a few steps in front of the carabiniere standing
+/// on it (zombies start looking west): to reach the molotov, Mario walks
+/// up to him.
+final GridPoint molotovBackpackTile = (() {
+  final carabiniere = _mallNorthStreet.tileOf('r');
+  return GridPoint(carabiniere.x - 4, carabiniere.y);
+})();
+
+/// The east end of the fuel burning across the middle lane of the
+/// shopping street, west of the campfire behind the hypermarket: the gap in
+/// the pile-up that looks like a way through. Looking at it says what it
+/// would take.
+final GridPoint shoppingStreetFireTile = _mallNorthStreet
+    .tilesOf('?')
+    .reduce((a, b) => a.x > b.x ? a : b);

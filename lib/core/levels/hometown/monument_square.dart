@@ -1,3 +1,8 @@
+import 'package:stepbound/core/grid/grid_point.dart';
+import 'package:stepbound/core/items/pickup.dart';
+import 'package:stepbound/core/levels/game_world.dart';
+import 'package:stepbound/core/levels/place.dart';
+
 // The ASCII map is one row per line, however wide the place is.
 
 /// The square at the bottom of the road south off the street of the
@@ -45,3 +50,41 @@ const List<String> monumentSquareRows = <String>[
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
 ];
 // monument-square-rows-end
+
+final Place _monumentSquare = place(PlaceId.monumentSquare);
+final Place _industryStreet = place(PlaceId.industryStreet);
+
+/// The backpack `µ` on the pavement in front of the Farmacia, on the road
+/// west of the monument's square, and the two rounds inside it.
+const String pharmacyBackpackId = 'backpack-pharmacy';
+const int pharmacyBackpackAmmo = 2;
+final GridPoint pharmacyBackpackTile = _monumentSquare.tileOf('µ');
+
+/// The road south off the street of the company, where it runs off the
+/// bottom of that map, and where it comes into the top of the monument's
+/// square, west to east.
+final List<GridPoint> industryStreetSouthEdge = _industryStreet.walkableRow(
+  _industryStreet.height - 1,
+);
+final List<GridPoint> monumentSquareNorthEdge = _monumentSquare.walkableRow(0);
+
+/// The monument on its island in the middle of the square.
+final List<GridPoint> monumentTiles = _monumentSquare.tilesOf('Ω');
+
+/// The Elettronica's open door `h` on the road east of the square (the way
+/// in from it is [electronicsShopEntrance], electronics_shop.dart).
+final GridPoint monumentSquareShopDoor = _monumentSquare.tileOf('h');
+
+/// The road between the street of the company and the square, both ways.
+final Map<GridPoint, Portal> monumentSquarePortals = <GridPoint, Portal>{
+  ...pairedDoors(
+    industryStreetSouthEdge,
+    monumentSquareNorthEdge,
+    Direction.south,
+  ),
+  ...pairedDoors(
+    monumentSquareNorthEdge,
+    industryStreetSouthEdge,
+    Direction.north,
+  ),
+};
