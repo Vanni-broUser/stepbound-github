@@ -4,7 +4,9 @@ import 'package:stepbound/app.dart';
 import 'package:stepbound/app_services.dart';
 import 'package:stepbound/game/audio/game_audio.dart';
 import 'package:stepbound/game/audio/sound.dart';
+import 'package:stepbound/report/error_report.dart';
 import 'package:stepbound/save/save_game.dart';
+import 'package:stepbound/ui/crash_guard.dart';
 
 /// Sound that only remembers whether it was closed.
 final class _Audio implements GameAudio {
@@ -76,7 +78,8 @@ void main() {
   });
 
   group('the app', () {
-    testWidgets('closes the services it was given to own when it goes', (
+    testWidgets('leaves the services it was handed to whoever made them: '
+        'the guard over it builds it anew on them after an error', (
       tester,
     ) async {
       final audio = _Audio();
@@ -86,10 +89,11 @@ void main() {
       );
       await tester.pumpWidget(StepboundApp(services: services));
       await tester.pump();
-      expect(audio.disposals, 0, reason: 'still running');
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.detached);
+      await tester.pump();
       await tester.pumpWidget(const SizedBox());
-      expect(audio.disposals, 1);
-      expect(services.disposed, isTrue);
+      expect(audio.disposals, 0);
+      expect(services.disposed, isFalse);
     });
 
     testWidgets('leaves alone the sound a test hands it', (tester) async {
@@ -101,8 +105,31 @@ void main() {
       await tester.pumpWidget(const SizedBox());
       expect(audio.disposals, 0);
     });
+  });
 
-    testWidgets('closes its services when the engine lets go of it too', (
+  group('the guard', () {
+    Widget guarded(AppServices services) => CrashGuard(
+      reporter: ErrorReporter(),
+      services: services,
+      share: (_, _) async {},
+      child: StepboundApp(services: services),
+    );
+
+    testWidgets('closes the services it owns when it goes', (tester) async {
+      final audio = _Audio();
+      final services = AppServices.made(
+        saves: MemorySaveRepository(),
+        audio: audio,
+      );
+      await tester.pumpWidget(guarded(services));
+      await tester.pump();
+      expect(audio.disposals, 0, reason: 'still running');
+      await tester.pumpWidget(const SizedBox());
+      expect(audio.disposals, 1);
+      expect(services.disposed, isTrue);
+    });
+
+    testWidgets('closes them when the engine lets go of the app too', (
       tester,
     ) async {
       final audio = _Audio();
@@ -110,7 +137,7 @@ void main() {
         saves: MemorySaveRepository(),
         audio: audio,
       );
-      await tester.pumpWidget(StepboundApp(services: services));
+      await tester.pumpWidget(guarded(services));
       await tester.pump();
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.detached);
       await tester.pump();

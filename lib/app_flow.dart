@@ -6,6 +6,7 @@ import 'package:stepbound/game/audio/game_audio.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/game_session.dart';
 import 'package:stepbound/game/progress.dart';
+import 'package:stepbound/game/put_down_writer.dart';
 import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/game/story/scripts/station_script.dart';
 import 'package:stepbound/report/breadcrumbs.dart';
@@ -85,8 +86,10 @@ final class AppFlowController extends ChangeNotifier {
   bool _loadingFadesIn = false;
   LinkNotice? _linkNotice;
   int _linkNoticeRevision = 0;
-  bool _putDown = false;
-  Future<void>? _puttingDown;
+
+  /// Writes the game down when the app leaves the front, once per time
+  /// away, and never counts a write the player came back during.
+  late final PutDownWriter _putDown = PutDownWriter(suspend);
   bool _disposed = false;
 
   AppPhase get phase => _phase;
@@ -108,7 +111,7 @@ final class AppFlowController extends ChangeNotifier {
   int get linkNoticeRevision => _linkNoticeRevision;
 
   /// Whether the game has been written down since the app left the front.
-  bool get putDown => _putDown;
+  bool get putDown => _putDown.putDown;
 
   /// Whether the game is what is on screen, Mario's opening lines over it
   /// or the controls.
@@ -125,6 +128,7 @@ final class AppFlowController extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _putDown.close();
     super.dispose();
   }
 
@@ -136,7 +140,7 @@ final class AppFlowController extends ChangeNotifier {
     if (_phase != AppPhase.menu) {
       session.resumeClock();
     }
-    _putDown = false;
+    _putDown.cameToFront();
   }
 
   /// The app has left the front, whatever the step (inactive, hidden,
@@ -145,16 +149,14 @@ final class AppFlowController extends ChangeNotifier {
   /// everything since the last fire would go. Once written it is not
   /// written again until the app has been back; while nothing could be
   /// written (no game, or one with nothing to come back to yet) every
-  /// step on the way out tries again.
+  /// step on the way out tries again. A write the player came back
+  /// during, and left again, is of the game as it was the first time:
+  /// it does not count, and the game is written again as it is now (see
+  /// [PutDownWriter]).
   void leftFront() {
     audio.pause();
     session.pauseClock();
-    if (_putDown || _puttingDown != null) {
-      return;
-    }
-    _puttingDown = suspend()
-        .then((written) => _putDown = written)
-        .whenComplete(() => _puttingDown = null);
+    _putDown.leftFront();
   }
 
   /// Writes the game as it is beside the slot's save, to be picked up from

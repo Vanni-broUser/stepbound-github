@@ -50,9 +50,11 @@ final class StepboundApp extends StatefulWidget {
     super.key,
   });
 
-  /// What the app runs on, made by whoever runs it and closed by the app
-  /// when it goes (see [AppServices]). Without one the app makes its own
-  /// around [saves] and [audio], owning only what it had to make itself.
+  /// What the app runs on, made by whoever runs it and closed by them
+  /// too: the `CrashGuard` over the app keeps them through an error, for
+  /// the app it builds anew (see [AppServices]). Without one the app
+  /// makes its own around [saves] and [audio], and closes those when it
+  /// goes, owning only what it had to make itself.
   final AppServices? services;
 
   /// Where the four save slots live; the device storage when null. Read
@@ -89,6 +91,10 @@ final class StepboundApp extends StatefulWidget {
 final class _StepboundAppState extends State<StepboundApp> {
   late final AppServices _services =
       widget.services ?? AppServices(saves: widget.saves, audio: widget.audio);
+
+  /// Whether the services are the app's own to close: only when it made
+  /// them itself; the ones handed in are their maker's.
+  bool get _ownsServices => widget.services == null;
   SaveRepository get _saves => _services.saves;
   GameAudio get _audio => _services.audio;
 
@@ -122,7 +128,7 @@ final class _StepboundAppState extends State<StepboundApp> {
       onStateChange: _onLifecycle,
       // The engine is letting go of the app: the last chance to close what
       // was made for it (the phone's sound), before the process ends.
-      onDetach: () => unawaited(_services.dispose()),
+      onDetach: _closeOwnServices,
     );
     widget.reporter?.context = _reportSections;
     Breadcrumbs.shared.add('app: menù principale');
@@ -287,8 +293,17 @@ final class _StepboundAppState extends State<StepboundApp> {
     _flow
       ..removeListener(_flowChanged)
       ..dispose();
-    unawaited(_services.dispose());
+    _closeOwnServices();
     super.dispose();
+  }
+
+  /// Closes the services the app made itself; the ones handed in stay
+  /// their maker's, so the app the `CrashGuard` builds anew after an
+  /// error runs on live services, not on closed ones.
+  void _closeOwnServices() {
+    if (_ownsServices) {
+      unawaited(_services.dispose());
+    }
   }
 
   /// The game over sting stops with the choice made on its screen.

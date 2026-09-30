@@ -102,7 +102,16 @@ gli script non saprebbero ripartire.
 Il menu mostra e carica quella, segnata "(in sospeso)"; il falò a cui
 tornare resta il salvataggio dello slot (`SaveRepository.load`). La
 scrittura del falò successivo, il ritorno al falò e una nuova partita la
-cancellano.
+cancellano. Se la cancellazione non riesce (o l'app muore fra la scrittura
+del falò e la cancellazione), il falò resta comunque scritto e non conta
+come salvataggio fallito: `read` confronta le date (`savedAt`) e lascia da
+parte una partita sospesa più vecchia del falò, così il menu non propone
+mai uno stato precedente all'ultimo salvataggio.
+
+L'app scrive la partita sospesa una volta per ogni uscita in secondo
+piano. Una scrittura lenta durante la quale il giocatore è tornato in primo
+piano non conta: se l'app è di nuovo in secondo piano quando finisce, la
+partita viene riscritta com'è adesso (`PutDownWriter`).
 
 È un `SaveGame` come gli altri, dello stesso formato: `SaveGame.decode` la
 legge e la migra con le stesse regole, e una danneggiata lascia giocare il
