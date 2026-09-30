@@ -167,6 +167,10 @@ final class GameSession {
       progress: progress,
       world: restoreGameWorld(kept.world),
       storyState: kept.story,
+      // Only what Mario carries for the other cities' errands.
+      unlocked: <HudElement>{
+        for (final name in kept.hud) HudElement.values.byName(name),
+      },
     )..inputLocked = true;
   }
 
