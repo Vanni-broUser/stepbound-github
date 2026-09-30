@@ -205,6 +205,23 @@ final class TilePlaceComponent extends Component {
     for (final target in <ui.Canvas>[canvas, frontCanvas]) {
       _drawObjects(target, loaded, art, grid, opened: opened, overhead: true);
     }
+    // Where a map that is not a rectangle has no place, nothing: the
+    // screen's own black, as past its edge.
+    final offMap = ui.Paint()..blendMode = ui.BlendMode.clear;
+    for (var y = 0; y < grid.height; y++) {
+      for (var x = 0; x < grid.width; x++) {
+        if (grid.glyphAt(x, y) == Legend.offMap) {
+          final cell = ui.Rect.fromLTWH(
+            x * manifest.tileWidth.toDouble(),
+            y * manifest.tileHeight.toDouble(),
+            manifest.tileWidth.toDouble(),
+            manifest.tileHeight.toDouble(),
+          );
+          canvas.drawRect(cell, offMap);
+          frontCanvas.drawRect(cell, offMap);
+        }
+      }
+    }
     Future<ui.Image> image(ui.Picture picture) async {
       final image = await picture.toImage(width, height);
       picture.dispose();
