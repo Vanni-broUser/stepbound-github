@@ -1,3 +1,8 @@
+import 'package:stepbound/core/grid/grid_point.dart';
+import 'package:stepbound/core/items/pickup.dart';
+import 'package:stepbound/core/levels/game_world.dart';
+import 'package:stepbound/core/levels/place.dart';
+
 /// Inside the Elettronica on the road east of the monument's square
 /// (monument_square.dart), the one shop in town still open: an L upside
 /// down. In through the door `E` at the west end of the shop floor, along
@@ -44,3 +49,60 @@ const List<String> electronicsShopRows = <String>[
   'xxxxxxxxxxxxxxxxxxxxxxxx',
 ];
 // electronics-shop-rows-end
+
+/// The Elettronica: its walls, and the back door while it is still
+/// bolted, are solid; the televisions, the white goods, the displays, the
+/// till, the shelving and the boxes stop a step but not a shot.
+const Legend electronicsShopLegend = Legend(
+  walls: 'xWwID',
+  obstacles: 'VFTRSk',
+);
+
+/// How dark the Elettronica is between its lamps: its lights still on over
+/// the shop floor, one flickering in the storeroom.
+const double electronicsShopDarkness = 0.6;
+
+final Place _electronicsShop = place(PlaceId.electronicsShop);
+final Place _north = place(PlaceId.northDistrict);
+
+/// The way in from the shop's open door on the road east of the square
+/// ([monumentSquareShopDoor], monument_square.dart).
+final GridPoint electronicsShopEntrance = _electronicsShop.tileOf('E');
+
+/// The shop's back door, bolted on the inside, and the door of the same
+/// shop by the camp behind the barracks, its shutter down: Mario opens
+/// both from inside, and then they are the way through from one to the
+/// other.
+final GridPoint electronicsShopBackDoor = _electronicsShop.tileOf('D');
+final GridPoint northDistrictShopDoor = _north.tileOf('¦');
+
+/// The wanderers `Z` in the Elettronica, `electronics-wanderer-<n>`.
+const String electronicsShopZombiePrefix = 'electronics-wanderer-';
+final List<GridPoint> electronicsShopZombieTiles = _electronicsShop.tilesOf(
+  'Z',
+);
+
+/// The shop's door on the square and its back door behind the barracks,
+/// both ways.
+final Map<GridPoint, Portal> electronicsShopPortals = <GridPoint, Portal>{
+  ...pairedDoors(
+    <GridPoint>[monumentSquareShopDoor],
+    <GridPoint>[electronicsShopEntrance],
+    Direction.north,
+  ),
+  ...pairedDoors(
+    <GridPoint>[electronicsShopEntrance],
+    <GridPoint>[monumentSquareShopDoor],
+    Direction.south,
+  ),
+  ...pairedDoors(
+    <GridPoint>[electronicsShopBackDoor],
+    <GridPoint>[northDistrictShopDoor],
+    Direction.south,
+  ),
+  ...pairedDoors(
+    <GridPoint>[northDistrictShopDoor],
+    <GridPoint>[electronicsShopBackDoor],
+    Direction.north,
+  ),
+};

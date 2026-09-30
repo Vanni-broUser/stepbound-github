@@ -1,3 +1,7 @@
+import 'package:stepbound/core/grid/grid_point.dart';
+import 'package:stepbound/core/levels/game_world.dart';
+import 'package:stepbound/core/levels/place.dart';
+
 // The ASCII map is one row per line, however wide the place is.
 // ignore_for_file: lines_longer_than_80_chars
 
@@ -76,3 +80,20 @@ const List<String> northDistrictRows = <String>[
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
 ];
 // north-rows-end
+
+final Place _north = place(PlaceId.northDistrict);
+
+/// The back door of the barracks, `e`, seen from the north district.
+final GridPoint northDistrictBackExitTile = _north.tileOf('e');
+
+/// The bin `F` nearest that door: the one fire of the district that is
+/// out, so the way out of the barracks is not into flames.
+final GridPoint extinguishedNorthDistrictBinTile = _north
+    .tilesOf('F')
+    .reduce(
+      (nearest, candidate) =>
+          candidate.manhattanDistanceTo(northDistrictBackExitTile) <
+              nearest.manhattanDistanceTo(northDistrictBackExitTile)
+          ? candidate
+          : nearest,
+    );

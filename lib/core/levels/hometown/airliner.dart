@@ -1,6 +1,9 @@
-// The ASCII maps are one row per line, however wide the place is.
-
 import 'package:stepbound/core/grid/grid_point.dart';
+import 'package:stepbound/core/items/pickup.dart';
+import 'package:stepbound/core/levels/game_world.dart';
+import 'package:stepbound/core/levels/place.dart';
+
+// The ASCII maps are one row per line, however wide the place is.
 
 /// Inside the airliner that came down on the crossroads behind the
 /// hypermarket (see mall_north_street.dart, where its body lies across the
@@ -132,3 +135,115 @@ const List<String> airlinerRoofRows = <String>[
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
 ];
 // airliner-roof-rows-end
+
+/// Inside the crashed airliner the hull is a wall all round; the blocks of
+/// seats `T` and the galley trolleys `K` are waist high, and the buckled
+/// panelling `:` and the broken seats `r` are walked over, noisily.
+const Legend airlinerLegend = Legend(
+  walls: 'xWwI',
+  obstacles: 'TK',
+  debris: ':r',
+);
+
+/// The roofs the tail came down in: the drop `x`, the party walls `W` and
+/// the tail `#` are all walls, while the parapets `^`, the low stretch `>`
+/// Mario measures the gap from, the chimney stacks `T` and `k` and the
+/// aerial masts `n` can be seen over, and the corner on fire `&` burns
+/// from the start. The roof across the gap `%` is walked on like any
+/// other, by whoever gets there.
+const Legend rooftopLegend = Legend(
+  walls: 'xW#',
+  obstacles: 'Tnk^><',
+  fire: '&',
+);
+
+final Place _airlinerCabin = place(PlaceId.airlinerCabin);
+final Place _airlinerRoofs = place(PlaceId.airlinerRoofs);
+final Place _mallNorthStreet = place(PlaceId.mallNorthStreet);
+
+/// The two wanderers `Z` left in the cabin of the crashed airliner.
+const String airlinerZombiePrefix = 'airliner-wanderer-';
+final List<GridPoint> airlinerZombieTiles = _airlinerCabin.tilesOf('Z');
+
+/// The mutilated zombies `M` lying in the cabin of the crashed airliner.
+const String airlinerMutilatedPrefix = 'airliner-mutilated-';
+final List<GridPoint> airlinerMutilatedTiles = _airlinerCabin.tilesOf('M');
+
+/// The row of the aisle down the middle of the cabin: lying on the floor,
+/// each mutilated zombie looks towards it.
+final int airlinerCabinAisleRow =
+    _airlinerCabin.origin.y + airlinerCabinRows.length ~/ 2;
+
+/// The flight bag `9` in the airliner's cabin: enough rounds for the
+/// mutilated zombie lying in the way out, whatever Mario came in with.
+const String airlinerBackpackId = 'backpack-airliner';
+const int airlinerBackpackAmmo = 2;
+final GridPoint airlinerBackpackTile = _airlinerCabin.tileOf('9');
+
+/// The backpack in the south-east corner of the first roof after the
+/// airliner, and the two rounds it holds.
+const String rooftopBackpackId = 'backpack-airliner-roof';
+const int rooftopBackpackAmmo = 2;
+final GridPoint rooftopBackpackTile = _airlinerRoofs.tileOf('9');
+
+/// The zombies on fire `Y` that walked out of the burning corner of the
+/// roofs past the airliner, `rooftop-burning-<n>`.
+const String rooftopBurningZombiePrefix = 'rooftop-burning-';
+final List<GridPoint> rooftopBurningZombieTiles = _airlinerRoofs.tilesOf('Y');
+
+/// The first of them.
+const String rooftopBurningZombieId = '${rooftopBurningZombiePrefix}0';
+
+/// The tear in the belly of the airliner, in the lane the wreck left open
+/// at the crossroads behind the hypermarket: two tiles wide, like the
+/// aisle it opens on.
+final List<GridPoint> airlinerTear = _mallNorthStreet.doorRow('[');
+
+/// The two breaks in the hull, seen from inside: the tear `E` back out
+/// onto the road, and the tail break `O` out onto the roofs.
+final List<GridPoint> airlinerCabinTear = _airlinerCabin.doorRow('E');
+final List<GridPoint> airlinerTailBreak = _airlinerCabin.doorRow('O');
+
+/// Where the tail break lands, in the roofline it came to rest in.
+final List<GridPoint> airlinerRoofBreak = _airlinerRoofs.doorRow('D');
+
+/// The low stretch of parapet at the south edge of the lower terrace,
+/// where the next block stands just across the gap: without the grappling
+/// hook, looking at it is all Mario can do about it.
+final GridPoint rooftopGapTile = _airlinerRoofs.tileOf('>');
+
+/// The next block's wall broken open straight across from
+/// [rooftopGapTile]: the way back with the grappling hook.
+final GridPoint rooftopFarEdgeTile = _airlinerRoofs.tileOf('<');
+
+/// The open stairwell `S` going down eastward into the block across the
+/// gap past the airliner, three steps deep: got onto from its head, the
+/// west end, and down step by step to the last, the door down into the
+/// palazzo's top floor.
+final List<GridPoint> rooftopFarStairs = _airlinerRoofs.tilesOf('S');
+
+/// The last steps of [rooftopFarStairs], at its east end.
+final List<GridPoint> rooftopFarStairsFoot = lastSteps(
+  rooftopFarStairs,
+  Direction.east,
+);
+
+/// The stairwell on the roofs, each step with the way up it (see
+/// `WorldState.stairs`).
+final Map<GridPoint, Direction> rooftopStairs = <GridPoint, Direction>{
+  for (final step in rooftopFarStairs) step: Direction.east,
+};
+
+/// The tear in the belly of the crashed airliner, off the lane it left
+/// open at the crossroads behind the hypermarket, and the break in its
+/// tail at the far end of the cabin, out onto the roofs it stopped in:
+/// both breaks are in a roof, so either way Mario lands below the one he
+/// steps through. Both ways.
+final Map<GridPoint, Portal> airlinerPortals = <GridPoint, Portal>{
+  ...pairedDoors(airlinerTear, airlinerCabinTear, Direction.north),
+  ...pairedDoors(airlinerCabinTear, airlinerTear, Direction.south),
+  // The tail break is in the belly: Mario climbs down out of it south onto
+  // the roofs, and back up into the cabin north.
+  ...pairedDoors(airlinerTailBreak, airlinerRoofBreak, Direction.south),
+  ...pairedDoors(airlinerRoofBreak, airlinerTailBreak, Direction.north),
+};

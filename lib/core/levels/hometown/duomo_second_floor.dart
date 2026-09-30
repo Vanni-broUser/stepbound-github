@@ -1,3 +1,5 @@
+import 'package:stepbound/core/levels/place.dart';
+
 /// The second floor of the harbour Duomo, behind the door the key opens.
 /// West of the partition `I` is Don Angelo's own room: the bookcase `Q`
 /// along the back wall, the kneeler `N` under the crucifix `X` hung on it,
@@ -25,3 +27,11 @@ const List<String> duomoSecondFloorRows = <String>[
   'xxxxxxxxxxxxxxxxxxxxxxxxxx',
 ];
 // duomo-second-rows-end
+
+/// Don Angelo's floor: the crucifix `X` hangs on the wall and the windows
+/// `o` are in it; the bookcase, the kneeler, the wardrobe, the bed, the
+/// desk, its chair and the statues are furniture.
+const Legend duomoSecondFloorLegend = Legend(
+  walls: 'xWwIXo',
+  obstacles: 'QNKBTCS',
+);

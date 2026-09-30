@@ -1,3 +1,8 @@
+import 'package:stepbound/core/grid/grid_point.dart';
+import 'package:stepbound/core/items/pickup.dart';
+import 'package:stepbound/core/levels/game_world.dart';
+import 'package:stepbound/core/levels/place.dart';
+
 /// The street where Mario wakes up, a crossroads under the barracks. Up the
 /// road north, past the backpack, a dead-end street turns east, a zombie
 /// standing on the road a few steps past where it opens and another four
@@ -118,3 +123,67 @@ const List<String> streetLevelRows = <String>[
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
 ];
 // level-rows-end
+
+/// The glyphs of the outdoor places: this street, the north district
+/// (north_district.dart), the harbour (harbour.dart), the street north of
+/// the hypermarket (mall_north_street.dart), the street out of the palazzo
+/// (industry_street.dart) and the monument's square past it
+/// (monument_square.dart): `Ω` the monument and `¦` the Elettronica's door
+/// behind the barracks while its shutter is down are obstacles.
+const Legend outdoorLegend = Legend(
+  walls: 'BHfKMGW#%0_Æ',
+  obstacles: 'CXUvkDFTSOyJQaAnI~RNbpx*i&!^;/+Ω¦',
+  debris: ':q',
+  fire: '?',
+);
+
+final Place _street = place(PlaceId.street);
+
+/// The zombie waiting on the east arm of the crossroads.
+const String tutorialZombieId = 'wanderer-0';
+
+/// The wanderer on the road north, `9`, a few steps past where the
+/// dead-end street opens: it is in the way to the barracks, and the street
+/// is where there is room to draw it and go round it. Its own id, so that
+/// it does not take the tutorial zombie's for being further up the map.
+const String barracksRoadZombieId = 'barracks-road-wanderer';
+
+/// The other `9`, four rows up the road north from [barracksRoadZombieId]
+/// and to the east of it, closer to the barracks and looking south: going
+/// round the first, Mario walks into it.
+const String barracksRoadUpperZombieId = 'barracks-road-upper-wanderer';
+
+/// Both `9`, in reading order: the upper one is the one further up the
+/// road.
+final List<GridPoint> barracksRoadZombieTiles = _street.tilesOf('9');
+
+/// The backpacks `1` to `4` of the outdoor glyphs, on this street and in
+/// the north district: what each holds is in `hometownContents`.
+const String ammoBackpackId = 'backpack-ammo';
+const String parkingBackpackId = 'backpack-parking';
+const String accidentBackpackId = 'backpack-accident';
+const String alleyBackpackId = 'backpack-alley';
+
+/// Walking into the crossroads makes the tutorial zombie notice the player
+/// even if it is not looking that way: from the west zebra crossing to a
+/// few steps down the east arm, between the two sidewalks.
+final GridRect tutorialZombieTrigger = () {
+  final crossing = _street.tilesOf('V').first;
+  return GridRect(crossing.x - 1, crossing.y, crossing.x + 9, crossing.y + 6);
+}();
+
+/// The flagpole planted on the forecourt, where the tricolour flies.
+final GridPoint flagpoleTile = _street.tileOf('I');
+
+/// The forecourt in front of the barracks, from the flagpole west along
+/// the sidewalk and the row of road under it: reaching it makes Mario
+/// speak.
+final GridRect barracksForecourt = GridRect(
+  flagpoleTile.x - 6,
+  flagpoleTile.y,
+  flagpoleTile.x,
+  flagpoleTile.y + 1,
+);
+
+/// Fires burning on the first street.
+final List<FireSpot> streetFireSpots = firesIn(_street);

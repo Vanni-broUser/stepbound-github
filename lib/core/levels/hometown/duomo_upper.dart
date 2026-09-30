@@ -1,3 +1,5 @@
+import 'package:stepbound/core/levels/place.dart';
+
 /// The first floor of the harbour Duomo, where the community lives.
 ///
 /// West of the partition `I` is the dormitory: three rows of four beds
@@ -41,3 +43,7 @@ const List<String> duomoUpperRows = <String>[
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
 ];
 // duomo-upper-rows-end
+
+/// The community's floor: the locked door `L` on up is in the wall, and
+/// what furnishes the dormitory and the refectory is waist high.
+const Legend duomoUpperLegend = Legend(walls: 'xWwIL', obstacles: 'TCBKkFHnA');

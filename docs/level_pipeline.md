@@ -11,6 +11,24 @@ piazza del monumento),
 sulla macchina comune di `tools/tile_atlas_core.py`. I painter della citta
 stanno in `tools/street_*.py` (vedi "Dividere i file troppo grandi").
 
+## Un modulo per edificio
+
+Ogni edificio di Molfetta sta in un file suo sotto `lib/core/levels/hometown/`
+(`palazzo.dart`, `hospital.dart`, `station.dart`, ...): le righe ASCII dei
+suoi posti, la legenda, le tile con un nome (porte, scale, zaini, chi ci
+sta), le scale per `WorldState.stairs` e le sue porte, gia appaiate nei
+due versi, in una mappa `<edificio>Portals`. `hometown.dart` tiene solo
+l'elenco dei posti (`hometownPlaces`, nell'ordine in cui sono disposti
+sulla griglia: i salvataggi registrano le tile per coordinate, quindi
+l'ordine non si tocca), la composizione delle porte e delle scale di tutti
+gli edifici e `hometownContents`, che mette in gioco zombi e zaini
+leggendo le tile dai moduli. Roma (`rome.dart`) e ancora un file solo e
+prendera la stessa strada quando crescera.
+
+Un edificio nuovo: il suo file con righe, legenda, tile e porte; il suo
+`PlaceSpec` in coda a `hometownPlaces`; le sue porte in `_portals()` e le
+sue scale in `hometownStairs`; quel che contiene in `hometownContents`.
+
 ## Niente palazzi larghi una colonna
 
 Le facciate `H` si dividono in palazzi sullo schema dei tetti, a blocchi di
@@ -120,10 +138,10 @@ quattro posti della citta, dove tetti e facciate sono cambiati.
 
 ## Riferimenti
 
-- `docs/maintainability_and_scalability_backlog.md`, voce "What is left of
-  asset generation", per i generatori di sprite, audio e immagini della
-  storia, che restano fuori da qui (`tools/build_sprites.py --check` e
-  `tools/build_audio.py --check`).
+- `docs/ci-pipeline.md`, job `sprites_check` e `audio_check`, per i
+  generatori di sprite e di suoni, che restano fuori da qui
+  (`tools/build_sprites.py --check` e `tools/build_audio.py --check`);
+  ritratti e scene della storia sono disegnati a mano (`docs/art_direction.md`).
 - `docs/ci-pipeline.md` per la struttura dei job.
 
 ## Pavimenti sotto gli oggetti negli interni
@@ -150,7 +168,9 @@ Mario e per gli zombie.
 - `WorldState.stairs` (`lib/core/world.dart`): ogni scalino con la direzione
   in cui si sale; `WorldState.canStep` applica la regola a ogni passo
   (Mario, il percorso degli zombie, gli ubriachi che barcollano).
-- Per Molfetta l'elenco e `hometownStairs` (`hometown.dart`).
+- Per Molfetta l'elenco e `hometownStairs` (`hometown.dart`), messo
+  insieme dalle scale che ogni edificio elenca nel suo modulo
+  (`mallStairs`, `rooftopStairs`, `hospitalStairs`, `stationStairs`).
 - Le scale di una sola cella dentro un muro (ospedale, Duomo, stazioni,
   Termini) non vanno elencate: il muro ai lati fa gia da ringhiera, e il
   test `test/stairs_test.dart` lo controlla.

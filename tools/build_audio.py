@@ -17,16 +17,21 @@ Run from the repository root:
                                            committed one
 
 The bake is reproducible to the byte with the ffmpeg build named in
-FFMPEG_VERSION (verified 2026-09-29: 39 files of 39 identical). Another
-build encodes MP3 a little differently, so `--check` refuses to judge with
-one: it says which ffmpeg it found and stops. That is also why this check
-is not in CI yet: it would need an image with that exact build and the
-sources cached (see docs/maintainability_and_scalability_backlog.md).
+FFMPEG_VERSION (verified 2026-09-30: 40 files of 40 identical), and with
+that build `--check` compares the bytes. Another build encodes MP3 a
+little differently, so with one `--check` decodes each pair and compares
+their loudness envelopes instead, 50 ms by 50 ms, within
+ENVELOPE_TOLERANCE_DB: a loop cut elsewhere, a fade, a filter or a gain
+changed shows up there, encoder noise does not. That is how the
+`audio_check` job (gitlab/verify.yml, and its twin on GitHub) runs it,
+on the ffmpeg of its image, with the downloads cached between runs.
 """
 from __future__ import annotations
 
 import argparse
+import array
 import filecmp
+import math
 import os
 import re
 import subprocess
@@ -42,6 +47,18 @@ OUTPUT = os.path.join("assets", "audio")
 # of that day; another ffmpeg gives files that play the same but are not
 # the same bytes.
 FFMPEG_VERSION = "2023-04-24-git-2aad9765ef-full_build-www.gyan.dev"
+
+# How `--check` judges a bake made with another ffmpeg: both files decoded
+# to mono at ENVELOPE_RATE, the loudness of every ENVELOPE_FRAME samples
+# (50 ms) compared, ignoring frames quieter than ENVELOPE_FLOOR_DB in both.
+# The two builds this was measured on (the one above, and Debian's 7.1)
+# stay within a few tenths of a decibel of each other; a gain moved by one
+# decibel, a fade or a loop point moved by a frame go well past it.
+ENVELOPE_RATE = 8000
+ENVELOPE_FRAME = 400
+ENVELOPE_FLOOR_DB = -50.0
+ENVELOPE_TOLERANCE_DB = 1.0
+DURATION_TOLERANCE = 0.05
 
 INCOMPETECH = "https://incompetech.com/music/royalty-free/mp3-royaltyfree/"
 SOUNDIMAGE = "https://soundimage.org/wp-content/uploads/"
@@ -260,6 +277,35 @@ def ffmpeg_version() -> str:
     return banner.split()[2]
 
 
+def envelope(path: str) -> tuple[list[float], float]:
+    """The loudness of [path] in dBFS, frame by frame, and its length in
+    seconds, decoded to mono at ENVELOPE_RATE."""
+    raw = subprocess.run(
+        ["ffmpeg", "-hide_banner", "-nostats", "-v", "error", "-i", path,
+         "-f", "s16le", "-ac", "1", "-ar", str(ENVELOPE_RATE), "-"],
+        capture_output=True, check=True).stdout
+    samples = array.array("h")
+    samples.frombytes(raw[:len(raw) - len(raw) % 2])
+    frames = []
+    for start in range(0, len(samples) - ENVELOPE_FRAME // 2, ENVELOPE_FRAME):
+        chunk = samples[start:start + ENVELOPE_FRAME]
+        rms = math.sqrt(sum(s * s for s in chunk) / len(chunk)) / 32768
+        frames.append(20 * math.log10(rms) if rms > 0 else -120.0)
+    return frames, len(samples) / ENVELOPE_RATE
+
+
+def envelope_difference(a: str, b: str) -> tuple[float, float]:
+    """How far apart two sounds are: seconds of length, and decibels in
+    the frame where their loudness differs most."""
+    frames_a, length_a = envelope(a)
+    frames_b, length_b = envelope(b)
+    worst = 0.0
+    for x, y in zip(frames_a, frames_b):
+        if max(x, y) > ENVELOPE_FLOOR_DB:
+            worst = max(worst, abs(x - y))
+    return abs(length_a - length_b), worst
+
+
 def out_path(name: str) -> str:
     path = os.path.join(OUTPUT, name)
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -279,14 +325,18 @@ def bake_loop(output, source, start, end, fade, lufs, extra=None,
     path = fetch(source)
     end = end if end is not None else duration(path)
     pre = f"{extra}," if extra else ""
+    # The segment is read twice, once for its body and once for its head,
+    # rather than split: fed both ends of a crossfade from one asplit,
+    # ffmpeg 7 delivers nothing. Same samples either way.
     graph = (
-        f"[0:a]atrim={start}:{end},asetpts=PTS-STARTPTS,{pre}asplit[a][b];"
-        f"[a]atrim={fade},asetpts=PTS-STARTPTS[body];"
-        f"[b]atrim=0:{fade},asetpts=PTS-STARTPTS[head];"
+        f"[0:a]atrim={start}:{end},asetpts=PTS-STARTPTS,{pre}"
+        f"atrim={fade},asetpts=PTS-STARTPTS[body];"
+        f"[1:a]atrim={start}:{end},asetpts=PTS-STARTPTS,{pre}"
+        f"atrim=0:{fade},asetpts=PTS-STARTPTS[head];"
         f"[body][head]acrossfade=d={fade}:c1=tri:c2=tri,"
         f"loudnorm=I={lufs}:TP=-2:LRA=11[out]"
     )
-    ffmpeg("-i", path, "-filter_complex", graph, "-map", "[out]",
+    ffmpeg("-i", path, "-i", path, "-filter_complex", graph, "-map", "[out]",
            *encode_args(stereo), out_path(output))
 
 
@@ -354,17 +404,12 @@ def bake_all() -> list[str]:
 
 
 def check() -> None:
-    """Bakes into a temporary folder and compares every file, byte by
-    byte, with the one committed under assets/audio."""
+    """Bakes into a temporary folder and compares every file with the one
+    committed under assets/audio: byte by byte with the ffmpeg build that
+    baked them, by loudness envelope with any other."""
     global OUTPUT
     found = ffmpeg_version()
-    if found != FFMPEG_VERSION:
-        raise SystemExit(
-            f"ffmpeg {found} found, the sounds were baked with "
-            f"{FFMPEG_VERSION}: another build encodes differently, so this "
-            f"check cannot tell drift from encoder noise. Install that "
-            f"build to check, or bake with `python tools/build_audio.py` "
-            f"and listen.")
+    exact = found == FFMPEG_VERSION
     committed = OUTPUT
     with tempfile.TemporaryDirectory(prefix="stepbound-audio-") as temp:
         OUTPUT = temp
@@ -372,12 +417,21 @@ def check() -> None:
             made = bake_all()
         finally:
             OUTPUT = committed
-        differing = [
-            name for name in made
-            if not os.path.exists(os.path.join(committed, name))
-            or not filecmp.cmp(os.path.join(temp, name),
-                               os.path.join(committed, name), shallow=False)
-        ]
+        differing = []
+        for name in made:
+            fresh, kept = os.path.join(temp, name), os.path.join(committed, name)
+            if not os.path.exists(kept):
+                differing.append(f"{name}: not committed")
+            elif exact:
+                if not filecmp.cmp(fresh, kept, shallow=False):
+                    differing.append(f"{name}: differs from what the bake makes")
+            else:
+                seconds, decibels = envelope_difference(fresh, kept)
+                if seconds > DURATION_TOLERANCE or decibels > ENVELOPE_TOLERANCE_DB:
+                    differing.append(
+                        f"{name}: the bake makes it {seconds:.2f} s off in "
+                        f"length, {decibels:.1f} dB off at the loudest "
+                        f"difference")
     on_disk = sorted(
         os.path.relpath(os.path.join(directory, file), committed)
         .replace(os.sep, "/")
@@ -385,15 +439,17 @@ def check() -> None:
         for file in files if file.endswith(".mp3"))
     left_over = sorted(set(on_disk) - set(made))
     if differing or left_over:
-        lines = [f"{name}: differs from what the bake makes"
-                 for name in differing]
-        lines += [f"{name}: no bake makes it any more" for name in left_over]
+        lines = differing + [f"{name}: no bake makes it any more"
+                             for name in left_over]
         raise SystemExit(
             "assets/audio is not what tools/build_audio.py makes:\n  "
             + "\n  ".join(lines)
             + "\nBake and commit: python tools/build_audio.py")
+    how = ("byte for byte" if exact else
+           "not the build that baked them: by loudness envelope, within "
+           f"{ENVELOPE_TOLERANCE_DB} dB")
     print(f"every sound of {len(made)} is what the bake makes "
-          f"(ffmpeg {found})")
+          f"(ffmpeg {found}, {how})")
 
 
 def main() -> None:
