@@ -93,6 +93,10 @@ enum StoryMemory {
   /// Luigi at the station handing Mario the golden pistol: only when he
   /// got there without one (see [SecretMission.unarmedToLuigi]).
   goldenPistol,
+
+  /// Chiara at her workstation in the company past the palazzo, on the
+  /// phone to someone who is not there any more.
+  chiaraCall,
   presidentFled,
 
   /// Tonino and Marcello at the bottom of Via Cavour, who want something

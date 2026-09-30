@@ -8,13 +8,14 @@
 /// street of
 /// Molfetta like the others, its palazzi along
 /// the north side over the pavement, the roofs of the next block along
-/// the south side. East of the palazzo, a few palazzi on, the long front
-/// of a big company `Æ` with its gate `Ø` shut; between the two, a camp
+/// the south side. East of the palazzo, a few palazzi on, the long low
+/// shed of a big company `Æ`, its gate `Ø` rolled up on the way in
+/// (company.dart) and its loading bays shut; between the two, a camp
 /// on the pavement with its fire `S`. West, a few palazzi on, the street
 /// ends against the corner palazzo and a road goes off it south.
 ///
 /// Glyphs, on top of the outdoor legend in street.dart: `Æ` the
-/// company's front, a wall; `Ø` its gate, shut, an obstacle; `«` the
+/// company's shed, a wall; `Ø` its gate, rolled up, a door; `«` the
 /// palazzo's portone, a door.
 // industry-street-rows-start
 const List<String> industryStreetRows = <String>[

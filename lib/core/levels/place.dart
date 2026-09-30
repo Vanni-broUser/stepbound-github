@@ -50,6 +50,7 @@ enum PlaceId {
   palazzoFirstFloor,
   palazzoGroundFloor,
   industryStreet,
+  companyGround,
 }
 
 /// The levels of the game, one city each. The train Mario and Luigi live

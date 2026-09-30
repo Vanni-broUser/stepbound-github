@@ -72,6 +72,7 @@ void main() {
           "Trova l'anello episcopale",
           'Partecipa alla cerimonia di iniziazione',
           'Usa il rampino per esplorare i terrazzi',
+          'Raggiungi la sopravvissuta',
         ],
       );
       expect(Mission.of(LevelId.rome).map((mission) => mission.text), <String>[
@@ -118,7 +119,7 @@ void main() {
         ..complete(Mission.freeLuigi)
         ..complete(Mission.findSurvivors);
       await pump(tester, statsOf(progress));
-      expect(score(tester), '3 / 8');
+      expect(score(tester), '3 / 9');
       double top(Mission mission) => tester
           .getTopLeft(
             find.byKey(ValueKey<String>('mission-row-${mission.name}')),
@@ -152,7 +153,7 @@ void main() {
         ..give(Mission.freeLuigi)
         ..complete(Mission.findSurvivors);
       await pump(tester, statsOf(progress));
-      expect(score(tester), '1 / 8');
+      expect(score(tester), '1 / 9');
       Finder row(Mission mission) =>
           find.byKey(ValueKey<String>('mission-row-${mission.name}'));
       expect(row(Mission.findSurvivors), findsOneWidget);
@@ -176,7 +177,7 @@ void main() {
       expect(stats.missions, contains(Mission.exploreTerraces));
       expect(stats.openMissions, isNot(contains(Mission.exploreTerraces)));
       await pump(tester, stats);
-      expect(score(tester), '0 / 8');
+      expect(score(tester), '0 / 9');
       final row = find.byKey(
         ValueKey<String>('mission-row-${Mission.exploreTerraces.name}'),
       );
@@ -186,7 +187,7 @@ void main() {
       stats = statsOf(progress);
       expect(stats.openMissions, contains(Mission.exploreTerraces));
       await pump(tester, stats);
-      expect(score(tester), '0 / 8');
+      expect(score(tester), '0 / 9');
       await tester.scrollUntilVisible(
         row,
         50,
@@ -213,7 +214,7 @@ void main() {
         Mission.findIncense,
       ]);
       await pump(tester, stats);
-      expect(score(tester), '2 / 8');
+      expect(score(tester), '2 / 9');
       expect(
         find.byKey(ValueKey<String>('mission-row-${Mission.clearGate.name}')),
         findsOneWidget,
@@ -228,11 +229,11 @@ void main() {
         ..complete(Mission.freeLuigi)
         ..complete(Mission.reachLuigi);
       await pump(tester, statsOf(progress), finale: Mission.reachLuigi);
-      expect(score(tester), '2 / 8', reason: 'not crossed out yet');
+      expect(score(tester), '2 / 9', reason: 'not crossed out yet');
       // A moment to take the screen in, then down the list and the cross.
       await tester.pump(const Duration(milliseconds: 800));
       await tester.pumpAndSettle();
-      expect(score(tester), '3 / 8');
+      expect(score(tester), '3 / 9');
       expect(
         find.text(Mission.reachLuigi.text).hitTestable(),
         findsOneWidget,

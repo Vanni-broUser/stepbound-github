@@ -15,6 +15,10 @@ enum Mission {
   /// Handed out once Mario is back in Molfetta with the grappling hook
   /// found in Rome; done once he has used it across all three gaps.
   exploreTerraces(LevelId.hometown, 'Usa il rampino per esplorare i terrazzi'),
+
+  /// Handed out once Chiara has been seen on the phone behind the glass in
+  /// the company past the palazzo.
+  reachSurvivor(LevelId.hometown, 'Raggiungi la sopravvissuta'),
   findSupplies(LevelId.rome, 'Trova delle provviste in città'),
   findValuable(LevelId.rome, 'Cerca qualcosa di prezioso per avanzare');
 

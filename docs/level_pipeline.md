@@ -5,7 +5,8 @@ di `assets/levels/tiles` generato da `tools/build_tile_atlas.py`, che elenca
 i posti, impacchetta i tile e scrive il manifest. L'arte di ogni posto sta in
 un modulo suo, `tools/tile_atlas_<posto>.py` (citta, Duomo, bar, stazione,
 aereo, caserma, treno, ipermercato, San Nicola, Termini, ospedale, Terme,
-palazzo dopo l'aereo),
+palazzo dopo l'aereo,
+azienda sulla strada del palazzo),
 sulla macchina comune di `tools/tile_atlas_core.py`. I painter della citta
 stanno in `tools/street_*.py` (vedi "Dividere i file troppo grandi").
 
@@ -44,6 +45,9 @@ Cosa fare quando si disegna un posto:
   schermata e rimette Mario dove era prima. Quando l'edificio viene
   disegnato, quelle tile escono dall'elenco e diventano una porta vera
   (`pairedDoors`), come e successo alle scale del palazzo dopo l'aereo.
+  Le scale di una sola cella nel muro di fondo (le due dell'azienda, una
+  per ala, verso il primo piano che ancora non c'e) vanno nello stesso
+  elenco: la cella stessa e la porta.
   Il test `test/work_in_progress_test.dart` controlla che nessuna sia
   anche una porta vera.
 - **Una porta chiusa a chiave davanti a un posto non ancora mappato** (la
