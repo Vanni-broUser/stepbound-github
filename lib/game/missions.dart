@@ -15,7 +15,7 @@ enum Mission {
   /// Handed out once Mario is back in Molfetta with the grappling hook
   /// found in Rome; done once he has used it across all three gaps.
   exploreTerraces(LevelId.hometown, 'Usa il rampino per esplorare i terrazzi'),
-  findSupplies(LevelId.rome, 'Trova delle provviste'),
+  findSupplies(LevelId.rome, 'Trova delle provviste in città'),
   findValuable(LevelId.rome, 'Cerca qualcosa di prezioso per avanzare');
 
   const Mission(this.level, this.text, {this.fromStart = false});
