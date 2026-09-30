@@ -17,7 +17,10 @@ import 'package:stepbound/core/levels/place.dart';
 /// past it; on it the Farmacia, shut and looted like every other shop.
 /// On the east one, the Elettronica `h`: its shutter up, its sign whole,
 /// the one shop in town still open, and its door the way into it
-/// (electronics_shop.dart). Past it the road runs on to the east edge.
+/// (electronics_shop.dart). Past it the road runs on east, to a pile-up
+/// across it from pavement to pavement at the edge of the map, the cars
+/// some ahead of the others and some behind, each touching the next, and
+/// one more `v` past them.
 ///
 /// Glyphs, on top of the outdoor legend in street.dart: `Ω` the monument,
 /// an obstacle; `h` the shop's open door; `µ` a backpack with two rounds
@@ -36,11 +39,11 @@ const List<String> monumentSquareRows = <String>[
   'BBBHHHHHHHHHHHHHH=.-.-.-w-.-.-.-.-.-.=HHHHHHHHHHHHHHHHHHHHHHHHHH',
   'BBBHHHHHHHHHHHfHH=................CC.=HHHHHHHHHHHHHHHHHHHHfHHHHH',
   'BBBHHHHHHHHHHHHHH=...====:========...=HHHHHHHHHHHHHHHHHHHHHHHHHH',
-  'BBB===:=µ=======/=.|.=PAPPPPPPPAP=.|.=========h=============F===',
-  'BBB=....UU.......Z...=PPPPΩΩΩPPP:=...Z......w..>................',
-  'BBB=.-.-.-w-.-.-.Z.|.=PPPPΩΩΩPPPP=.|.Z.-.-.-.-.-.-.-.-.-z-.-.-.-',
-  'BBB=.D.......d...Z...=PPPPΩΩΩPPPP=...Z...d..........CC..........',
-  'BBB===============v|.=PAPnnPnnPAP=.|.=/==========:==============',
+  'BBB===:=µ=======/=.|.=PAPPPPPPPAP=.|.=========h=============FCC=',
+  'BBB=....UU.......Z...=PPPPΩΩΩPPP:=...Z......w..>...........UU..v',
+  'BBB=.-.-.-w-.-.-.Z.|.=PPPPΩΩΩPPPP=.|.Z.-.-.-.-.-.-.-.-.-z-.-XX.v',
+  'BBB=.D.......d...Z...=PPPPΩΩΩPPPP=...Z...d..........CC........CC',
+  'BBB===============v|.=PAPnnPnnPAP=.|.=/==========:===========UU=',
   'BBBBBBBBBBBBBBBBB=v..=============.w.=BBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBBBBBB=...........>.......=BBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBBBBBBBBBBBBBBB=.-.-d-.-.-.-.-.-.-.=BBBBBBBBBBBBBBBBBBBBBBBBBB',

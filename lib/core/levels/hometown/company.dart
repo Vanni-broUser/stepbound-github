@@ -4,7 +4,7 @@ import 'package:stepbound/core/levels/game_world.dart';
 import 'package:stepbound/core/levels/place.dart';
 
 /// Inside the company on the street out of the palazzo, through its gate:
-/// a call centre in a shed, three floors of it. Two open-plan
+/// a call centre in an office block, three floors of it. Two open-plan
 /// wings side by side, the one Mario walks into on the west and the one on
 /// the east behind the glass wall `G` down the middle, both in view from
 /// the gate; across the top, a corridor that should join them, like an
@@ -142,8 +142,8 @@ final Place _company = place(PlaceId.companyGround);
 final Place _companyFirst = place(PlaceId.companyFirst);
 final Place _companySecond = place(PlaceId.companySecond);
 
-/// The company's gate, rolled up, seen from inside, west to east (from the
-/// street it is [industryStreetGate]).
+/// The company's glass doors, broken open, seen from inside, west to east
+/// (from the street it is [industryStreetGate]).
 final List<GridPoint> companyGate = _company.tilesOf('E');
 
 /// The company's two flights up, one in each wing, west first: the way

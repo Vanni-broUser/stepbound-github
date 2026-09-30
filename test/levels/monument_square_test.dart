@@ -36,12 +36,17 @@ void main() {
     }
   });
 
-  test('the west road ends against the palazzi, the east one runs on to '
-      'the edge of the map', () {
+  test('the west road ends against the palazzi, the east one against a '
+      'pile-up before the edge of the map: no way out of the square goes '
+      'nowhere', () {
+    final reachable = world.map.floodFillDistances(
+      monumentSquareShopDoor.step(Direction.south),
+      maxDistance: square.width * square.height,
+    );
     final ends = workInProgressEnds.keys.where(square.bounds.contains);
-    expect(ends, isNotEmpty);
     for (final end in ends) {
-      expect(end.x, square.origin.x + square.width - 1, reason: '$end');
+      expect(end.x, square.bounds.right, reason: '$end');
+      expect(reachable.containsKey(end), isFalse, reason: '$end');
     }
   });
 

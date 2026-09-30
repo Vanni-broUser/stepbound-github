@@ -8741,7 +8741,7 @@
         },
         {
           "layer": "structures",
-          "glyphs": "-./:=>CDFSTUVXZdnrvwz|\u00ab\u00d8\u0254\u258f\u2594",
+          "glyphs": "-./:=>CDFSTUVXZdknrvwz|\u00ab\u00d8\u0254\u258f\u2594",
           "keys": [
             {
               "kind": "neighbour",
