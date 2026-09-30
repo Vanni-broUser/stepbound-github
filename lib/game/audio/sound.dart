@@ -56,6 +56,13 @@ enum Sfx {
   ),
   gunshot(<String>['sfx/gunshot.mp3']),
 
+  /// A rocket leaving the launcher: the thump of the charge and the roar
+  /// of its motor going off down the line.
+  rocket(<String>['sfx/rocket_launch.mp3']),
+
+  /// The rocket bursting against the wall at the end of its line.
+  explosion(<String>['sfx/explosion.mp3']),
+
   /// A bottle shattering and the petrol catching.
   molotov(<String>['sfx/molotov_1.mp3', 'sfx/molotov_2.mp3']),
   dryFire(<String>['sfx/dry_fire.mp3'], volume: 0.8),

@@ -18,9 +18,16 @@ enum PlayerPoseFamily { locomotion, oneHanded, throwable, pickup }
 /// Weapon art shared by all outfits and attached to a pose at runtime.
 /// A weapon drawn as a layer of its own over whichever outfit's pose holds
 /// it: the outfit gives the moveset, the weapon its design. The molotov is
-/// one bottle placed per frame; the pistols are a whole sheet on the pose's
-/// own grid (see tools/generate_protagonist_actions.py).
-enum PlayerWeaponSprite { molotov, pistol, goldenPistol, grapplingHook }
+/// one bottle placed per frame; the pistols and the rocket launcher are
+/// whole sheets on the gun pose's own grid (see
+/// tools/generate_protagonist_actions.py).
+enum PlayerWeaponSprite {
+  molotov,
+  pistol,
+  goldenPistol,
+  grapplingHook,
+  rocketLauncher,
+}
 
 final class CharacterComponent extends PositionComponent with StandsOnFloor {
   CharacterComponent({
@@ -139,6 +146,11 @@ final class CharacterComponent extends PositionComponent with StandsOnFloor {
             assets,
             'assets/objects/pistol_gold_held.png',
           );
+      _weaponSprites[PlayerWeaponSprite.rocketLauncher] =
+          await _loadOptionalImage(
+            assets,
+            'assets/objects/rocket_launcher_held.png',
+          );
       wearOutfit(playerOutfit);
     } else {
       final name = _atlasName(entity.kind);
@@ -204,13 +216,19 @@ final class CharacterComponent extends PositionComponent with StandsOnFloor {
     return loadAssetImage(assetPath);
   }
 
-  void playFire(Direction facing) {
+  /// Fires from the gun pose: the pistol, or the rocket launcher on the
+  /// shoulder when [weapon] is it.
+  void playFire(Direction facing, {PlayerWeaponSprite? weapon}) {
     if (_poseAtlases[PlayerPoseFamily.oneHanded] == null ||
         _action == CharacterAction.death) {
       return;
     }
+    _firesRocket = weapon == PlayerWeaponSprite.rocketLauncher;
     _startAction(CharacterAction.fire, rowFor(facing), fireDuration);
   }
+
+  /// Whether the shot under way is from the rocket launcher.
+  bool _firesRocket = false;
 
   /// Winds up with the outfit-specific throwable pose. What is thrown, the
   /// bottle or the grappling hook, is a shared layer in the hand and
@@ -355,7 +373,7 @@ final class CharacterComponent extends PositionComponent with StandsOnFloor {
           _poseAtlases[PlayerPoseFamily.oneHanded]!,
           _actionRow,
           3 + (progress * 3).floor().clamp(0, 2),
-          weapon: _pistol,
+          weapon: _firesRocket ? PlayerWeaponSprite.rocketLauncher : _pistol,
         );
       case CharacterAction.throwWeapon
           when _poseAtlases[PlayerPoseFamily.throwable] != null:
@@ -512,7 +530,9 @@ final class CharacterComponent extends PositionComponent with StandsOnFloor {
         poseAtlas,
         row,
         breathe,
-        weapon: pose == PlayerPoseFamily.oneHanded ? _pistol : aimingWeapon,
+        weapon:
+            aimingWeapon ??
+            (pose == PlayerPoseFamily.oneHanded ? _pistol : null),
       );
       return;
     }

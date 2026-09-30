@@ -68,8 +68,8 @@ Cosa fare quando si disegna un posto:
 - **Una strada che per ora finisce li**: basta lasciarla aperta fino al
   bordo, calpestabile. La schermata parte da sola.
 - **Una scala, una porta o una botola dentro un posto verso un edificio
-  non ancora mappato** (per esempio le scale del palazzo accanto al tetto
-  dell'ospedale): le
+  non ancora mappato** (come erano le scale del palazzo accanto al tetto
+  dell'ospedale, finche non ne sono stati disegnati i due piani): le
   tile della porta (per una scala, l'ultimo scalino) vanno in
   `workInProgressDoors` (`lib/core/levels/game_world.dart`, per Molfetta
   `hometownWorkInProgressDoors`). Calpestarle apre la stessa

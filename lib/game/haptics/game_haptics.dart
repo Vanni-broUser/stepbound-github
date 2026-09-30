@@ -43,6 +43,9 @@ final class GameplayHaptics {
         case ShotEvent(entityId: final shooter, :final hitEntityId)
             when shooter == playerId && hitEntityId != null:
           sink(HapticCue.hitLanded);
+        case RocketFiredEvent(entityId: final shooter, :final hitEntityIds)
+            when shooter == playerId && hitEntityIds.isNotEmpty:
+          sink(HapticCue.hitLanded);
         case DryFiredEvent(entityId: final shooter) when shooter == playerId:
           sink(HapticCue.emptyMagazine);
         case _:

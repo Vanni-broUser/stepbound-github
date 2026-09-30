@@ -8,7 +8,18 @@ import 'package:stepbound/game/render/character_component.dart';
 import 'package:stepbound/report/breadcrumbs.dart';
 
 /// What a character is asked to play for an event.
-enum CharacterCue { fire, throwWeapon, throwGrapple, hit, bite, death, alert }
+enum CharacterCue {
+  fire,
+
+  /// The gun pose again, the rocket launcher on the shoulder.
+  fireRocket,
+  throwWeapon,
+  throwGrapple,
+  hit,
+  bite,
+  death,
+  alert,
+}
 
 /// The stage the events are played on: what the game lends the presenter,
 /// and no more. Animations are asked for by name, so the presenter needs
@@ -30,6 +41,15 @@ abstract interface class EventStage {
     required GridPoint origin,
     required GridPoint target,
     required void Function() onLanded,
+  });
+
+  /// A rocket flies from [origin] the way [direction] to [impact], where
+  /// it bursts; [onImpact] then.
+  void launchRocket({
+    required GridPoint origin,
+    required GridPoint impact,
+    required Direction direction,
+    required void Function() onImpact,
   });
 
   /// Mario kneels by the fire at [campfire], or sits at the table.
@@ -171,6 +191,23 @@ final class WorldEventPresenter {
           stage.groundCaughtFire(at);
         case ShotEvent(entityId: final shooter) when shooter == playerId:
           stage.play(playerId, CharacterCue.fire);
+        // Its hits come as it passes each one in its way, and the burst
+        // at the end of its line is the sound of it (see
+        // TurnPresentationController).
+        case RocketFiredEvent(
+              entityId: final shooter,
+              :final origin,
+              :final impact,
+              :final direction,
+            )
+            when shooter == playerId:
+          stage.play(playerId, CharacterCue.fireRocket);
+          stage.launchRocket(
+            origin: origin,
+            impact: impact,
+            direction: direction,
+            onImpact: () => audio.play(Sfx.explosion),
+          );
         case DamagedEvent(entityId: final target, sourceEntityId: final source)
             when target == playerId:
           stage.play(source, CharacterCue.bite);

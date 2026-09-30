@@ -12,6 +12,8 @@ so every frame shares the same head, jacket, backpack and proportions:
   pistol_held.png         the pistol alone on the same grid, drawn over any
   pistol_gold_held.png    outfit's gun pose at runtime; the golden one is
                           Luigi's (see SecretMission.unarmedToLuigi)
+  rocket_launcher_held.png  the rocket launcher alone on the same grid,
+                          on the shoulder of any outfit's gun pose
   base_pickup.png         pick_0 bend, pick_1 crouch, pick_2 reach,
                           pick_3 grab, pick_4 rise with the bag, pick_5 stand
   <outfit>_throwable.png  aim_0/aim_1/aim_2 (hold), throw_0 (wind-up),
@@ -113,6 +115,100 @@ def hide_hanging_hands(frame: Image.Image, pal, from_row: int = 15) -> None:
         for x in range(W):
             if is_skin(frame.getpixel((x, y)), pal):
                 frame.putpixel((x, y), pal["jacket_dark"])
+
+
+# --------------------------------------------------------- rocket launcher
+
+OLIVE_DARK = (44, 56, 30, 255)
+OLIVE = (80, 100, 50, 255)
+OLIVE_LIGHT = (124, 146, 82, 255)
+WARHEAD = (196, 52, 40, 255)
+WARHEAD_LIGHT = (240, 120, 84, 255)
+
+
+def launcher_east(gun, lift: int = 0, raised: bool = True) -> None:
+    """The launcher on the shoulder, pointing east: the tube along the
+    raised arm, the warhead out of its muzzle, the grip in the hand."""
+    if raised:
+        y = 12 - lift  # the tube's middle row, just over the arm at 13
+        for x in range(3, 15):
+            put(gun, x, y - 2, OUTLINE)
+            put(gun, x, y - 1, OLIVE_LIGHT)
+            put(gun, x, y, OLIVE)
+            put(gun, x, y + 1, OLIVE_DARK)
+            put(gun, x, y + 2, OUTLINE)
+        for yy in (y - 1, y, y + 1):  # the back end, and the warhead
+            put(gun, 2, yy, OUTLINE)
+            put(gun, 15, yy, WARHEAD)
+        put(gun, 15, y - 1, WARHEAD_LIGHT)
+        put(gun, 15, y - 2, OUTLINE)
+        put(gun, 15, y + 2, OUTLINE)
+        put(gun, 10, y + 3, OLIVE_DARK)
+        put(gun, 10, y + 4, OUTLINE)
+        return
+    # Lowered: the tube slanting down to the ground ahead.
+    for k in range(11):
+        x, yy = 4 + k, 14 + k // 3
+        put(gun, x, yy - 1, OUTLINE)
+        put(gun, x, yy, OLIVE_LIGHT if k % 3 == 0 else OLIVE)
+        put(gun, x, yy + 1, OLIVE_DARK)
+        put(gun, x, yy + 2, OUTLINE)
+    put(gun, 15, 17, WARHEAD_LIGHT)
+    put(gun, 15, 18, WARHEAD)
+
+
+def launcher_south(gun, lift: int = 0, raised: bool = True) -> None:
+    """Seen from the front: the muzzle end-on over the right shoulder,
+    the warhead in the middle of it looking at us, at chest height."""
+    y = 15 - lift
+    if not raised:
+        for x in range(6, 10):  # pointing at the ground, foreshortened
+            put(gun, x, y + 3, OLIVE)
+            put(gun, x, y + 4, OLIVE_DARK)
+        put(gun, 7, y + 5, WARHEAD)
+        put(gun, 8, y + 5, WARHEAD)
+        return
+    for x in range(5, 11):
+        for yy in range(y - 3, y + 2):
+            edge = x in (5, 10) or yy in (y - 3, y + 1)
+            put(gun, x, yy, OUTLINE if edge else OLIVE)
+    put(gun, 6, y - 2, OLIVE_LIGHT)
+    put(gun, 7, y - 2, OLIVE_LIGHT)
+    for x in (7, 8):
+        for yy in (y - 1, y):
+            put(gun, x, yy, WARHEAD)
+    put(gun, 7, y - 1, WARHEAD_LIGHT)
+
+
+def launcher_north(gun, lift: int = 0, raised: bool = True) -> None:
+    """Seen from behind: the back of the tube over the right shoulder,
+    on the screen's right, its exhaust open."""
+    y = 13 - lift if raised else 15
+    for x in range(11, 16):
+        for yy in range(y - 6, y - 1):
+            edge = x in (11, 15) or yy in (y - 6, y - 2)
+            put(gun, x, yy, OUTLINE if edge else OLIVE)
+    put(gun, 12, y - 5, OLIVE_LIGHT)
+    put(gun, 13, y - 5, OLIVE_LIGHT)
+    put(gun, 12, y - 4, OLIVE_DARK)
+    put(gun, 13, y - 4, OLIVE_DARK)
+    put(gun, 13, y - 3, OLIVE_DARK)
+
+
+def launcher_frames(direction: str) -> list[Image.Image]:
+    """The rocket launcher alone, frame by frame, on the gun poses' grid:
+    lowered for aim_0, raised from then on, with the recoil of fire_0."""
+    base_name = "east" if direction == "west" else direction
+    paint = {"east": launcher_east, "south": launcher_south,
+             "north": launcher_north}[base_name]
+    frames = []
+    for index in range(6):
+        gun = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        paint(gun, lift=1 if index == 3 else 0, raised=index != 0)
+        if direction == "west":
+            gun = gun.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+        frames.append(gun)
+    return frames
 
 
 # ------------------------------------------------------------------- gun
@@ -585,6 +681,9 @@ def main() -> None:
         sheet([gun_frames(idle, pal, d, metal)[1] for d in ROWS]).save(
             os.path.join(OBJECTS, f"{name}.png")
         )
+    sheet([launcher_frames(d) for d in ROWS]).save(
+        os.path.join(OBJECTS, "rocket_launcher_held.png")
+    )
     sheet([pickup_frames(idle, pal, d) for d in ROWS]).save(
         os.path.join(SPRITES, "base_pickup.png")
     )
@@ -601,8 +700,8 @@ def main() -> None:
     held_molotov().save(os.path.join(OBJECTS, "molotov_held.png"))
     print(
         "wrote the gun and throwable outfit sheets, base_pickup.png, "
-        "assets/objects/backpack.png, molotov_held.png, pistol_held.png "
-        "and pistol_gold_held.png"
+        "assets/objects/backpack.png, molotov_held.png, pistol_held.png, "
+        "pistol_gold_held.png and rocket_launcher_held.png"
     )
 
 

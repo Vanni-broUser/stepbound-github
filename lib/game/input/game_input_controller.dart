@@ -12,6 +12,10 @@ enum Weapon {
 
   /// Thrown in an arc at a 3x3 square, see [ThrowMolotovAction].
   molotov,
+
+  /// Fired straight through everyone in its way to the wall, see
+  /// [FireRocketAction].
+  rocketLauncher,
 }
 
 /// Turns the keyboard and the touch controls into Mario's actions: a
@@ -69,16 +73,22 @@ final class GameInputController {
   /// him or because nothing was pressed.
   final Breadcrumbs trail;
 
-  /// A shot from the pistol Mario has.
-  ShootAction get _shot =>
-      ShootAction(damage: (goldenPistol?.call() ?? false) ? 2 : 1);
+  /// What pulling the trigger fires: a round from the pistol Mario has,
+  /// or, with the launcher in hand, a rocket.
+  PlayerAction get _fire => switch (weapon.value) {
+    Weapon.rocketLauncher => const FireRocketAction(),
+    Weapon.pistol || Weapon.molotov => ShootAction(
+      damage: (goldenPistol?.call() ?? false) ? 2 : 1,
+    ),
+  };
 
   /// Tiles ahead of Mario a molotov lands when aiming starts.
   static const int throwStart = 3;
 
   final ValueNotifier<bool> aiming = ValueNotifier<bool>(false);
 
-  /// What aiming raises: the pistol, or a molotov once he has some.
+  /// What aiming raises: the pistol, a molotov once he has some, or the
+  /// rocket launcher once it is found and there is a round for it.
   final ValueNotifier<Weapon> weapon = ValueNotifier<Weapon>(Weapon.pistol);
 
   /// The centre of the 3x3 square the molotov in hand would burst over,
@@ -336,17 +346,16 @@ final class GameInputController {
       return;
     }
     _note('spara verso ${_way(_mario.component<PositionComponent>().facing)}');
-    submit(_shot);
+    submit(_fire);
     _clearAim();
   }
 
   /// Whether holding down would raise anything: the pistol once shooting
-  /// is taught, a molotov once one is in hand.
+  /// is taught, a molotov once one is in hand, the launcher with a round
+  /// in it.
   bool get canAim => switch (weapon.value) {
     Weapon.pistol => isUnlocked(HudElement.shoot),
-    Weapon.molotov =>
-      isUnlocked(HudElement.molotov) &&
-          _mario.component<AmmoComponent>().molotovs > 0,
+    Weapon.molotov || Weapon.rocketLauncher => hasWeapon(weapon.value),
   };
 
   /// Raises the pistol, or a molotov with the square it would land on a
@@ -366,14 +375,15 @@ final class GameInputController {
       _note('alza la molotov, bersaglio ${throwTarget.value}');
       return;
     }
-    if (_mario.component<AmmoComponent>().loaded == 0) {
+    if (weapon.value == Weapon.pistol &&
+        _mario.component<AmmoComponent>().loaded == 0) {
       _note('alza la pistola scarica');
-      submit(_shot);
+      submit(_fire);
       return;
     }
     _releaseHeld();
     aiming.value = true;
-    _note('alza la pistola');
+    _note('alza $_inHand');
   }
 
   /// Turns the aimed pistol to [direction] without firing.
@@ -394,7 +404,7 @@ final class GameInputController {
     }
     _mario.component<PositionComponent>().facing = direction;
     _note('spara verso ${_way(direction)}');
-    submit(_shot);
+    submit(_fire);
     _clearAim();
   }
 
@@ -458,22 +468,43 @@ final class GameInputController {
   static String _nameOf(Weapon choice) => switch (choice) {
     Weapon.pistol => 'la pistola',
     Weapon.molotov => 'la molotov',
+    Weapon.rocketLauncher => 'il lanciarazzi',
   };
 
-  /// Whether Mario carries [choice] and could take it in hand.
+  /// Whether Mario carries [choice] and could take it in hand: the pistol
+  /// once found, a molotov while there is one left, the rocket launcher
+  /// once found and while there is a round for it.
   bool hasWeapon(Weapon choice) {
     final ammo = _mario.component<AmmoComponent>();
     return switch (choice) {
       Weapon.pistol => ammo.hasGun,
       Weapon.molotov => isUnlocked(HudElement.molotov) && ammo.molotovs > 0,
+      Weapon.rocketLauncher =>
+        isUnlocked(HudElement.rockets) &&
+            ammo.hasRocketLauncher &&
+            ammo.rockets > 0,
     };
   }
 
-  /// Swaps the pistol for a molotov and back, from the keyboard.
-  void toggleWeapon() => selectWeapon(switch (weapon.value) {
-    Weapon.pistol => Weapon.molotov,
-    Weapon.molotov => Weapon.pistol,
-  });
+  /// The weapons Mario could take in hand now, in the order of [Weapon].
+  Iterable<Weapon> get weaponsCarried => Weapon.values.where(hasWeapon);
+
+  /// Whether there is more than one weapon to choose from: only then does
+  /// the one in hand burn round its badge, and a tap on another pick it.
+  bool get hasWeaponChoice => weaponsCarried.length > 1;
+
+  /// Takes the next weapon Mario has in hand, from the keyboard: the
+  /// pistol, a molotov, the launcher, and round again.
+  void toggleWeapon() {
+    var next = weapon.value;
+    for (var i = 0; i < Weapon.values.length; i++) {
+      next = Weapon.values[(next.index + 1) % Weapon.values.length];
+      if (hasWeapon(next)) {
+        selectWeapon(next);
+        return;
+      }
+    }
+  }
 
   /// Lowers the pistol, or the molotov, without shooting, because the
   /// player asked to: a tap, the finger off the screen.

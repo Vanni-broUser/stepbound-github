@@ -29,6 +29,12 @@ final class BackpacksScript extends StoryScript {
       'Con il rampino puoi raggiungere i tetti vicini che non riuscivi a '
       'raggiungere';
   static const String noRocketLauncher = 'Non hai un lanciarazzi';
+  static const String rocketLauncherFound = 'Hai trovato un lanciarazzi';
+  static const String rocketLauncherLesson =
+      'Il razzo vola dritto fino al muro e colpisce tutti gli zombi che '
+      'trova sulla sua strada, 3 danni a testa';
+  static const String rocketRoundsLesson =
+      'I colpi per il lanciarazzi si trovano negli zaini, come i proiettili';
 
   /// "Non hai un lanciarazzi" only while the player really has none.
   static String rocketsFound(int rounds, {required bool hasLauncher}) {
@@ -64,13 +70,17 @@ final class BackpacksScript extends StoryScript {
   /// Whether [weaponChoiceLesson] has been told.
   bool _weaponChoiceTaught = false;
 
-  /// [weaponChoiceLesson], the first time Mario holds both the pistol and
-  /// a molotov; nothing otherwise.
-  List<StoryLine> _weaponChoice({
-    required bool hasGun,
-    required bool hasMolotov,
-  }) {
-    if (_weaponChoiceTaught || !hasGun || !hasMolotov) {
+  /// [weaponChoiceLesson], the first time Mario has more than one weapon
+  /// to hold (the pistol, a molotov, the launcher with a round for it);
+  /// nothing otherwise.
+  List<StoryLine> _weaponChoice() {
+    final ammo = world.player.component<AmmoComponent>();
+    final weapons = <bool>[
+      ammo.hasGun,
+      ammo.molotovs > 0,
+      ammo.hasRocketLauncher && ammo.rockets > 0,
+    ].where((held) => held).length;
+    if (_weaponChoiceTaught || weapons < 2) {
       return const <StoryLine>[];
     }
     _weaponChoiceTaught = true;
@@ -94,10 +104,26 @@ final class BackpacksScript extends StoryScript {
       :final palazzoKey,
       :final goldIngot,
       :final rockets,
+      :final rocketLauncher,
     )) {
       host.playPickupAnimation();
       // The Duomo's script tells of the robe: it dresses Mario in it.
       if (cultistRobe) {
+        return;
+      }
+      if (rocketLauncher) {
+        say(
+          StoryPrompt(
+            <StoryLine>[
+              const StoryLine(rocketLauncherFound),
+              const StoryLine(rocketLauncherLesson),
+              const StoryLine(rocketRoundsLesson),
+              ..._weaponChoice(),
+            ],
+            delay: StoryDirector.pickupDelay,
+            onShown: () => host.unlock(HudElement.rockets),
+          ),
+        );
         return;
       }
       if (rockets > 0) {
@@ -108,6 +134,7 @@ final class BackpacksScript extends StoryScript {
           StoryPrompt(
             <StoryLine>[
               StoryLine(rocketsFound(rockets, hasLauncher: hasLauncher)),
+              ..._weaponChoice(),
             ],
             delay: StoryDirector.pickupDelay,
             onShown: () => host.unlock(HudElement.rockets),
@@ -184,10 +211,7 @@ final class BackpacksScript extends StoryScript {
                 // The same finger that fires the pistol throws the
                 // bottle: the gesture plays beside the line about it.
                 const StoryLine(molotovLesson, demo: ControlDemo.aim),
-              ..._weaponChoice(
-                hasGun: world.player.component<AmmoComponent>().hasGun,
-                hasMolotov: true,
-              ),
+              ..._weaponChoice(),
             ],
             delay: StoryDirector.pickupDelay,
             onShown: () => host.unlock(HudElement.molotov),
@@ -220,10 +244,7 @@ final class BackpacksScript extends StoryScript {
           const StoryLine(aimLesson, demo: ControlDemo.aim),
           const StoryLine(fireLesson, demo: ControlDemo.aim),
           const StoryLine(cancelLesson, demo: ControlDemo.cancelShot),
-          ..._weaponChoice(
-            hasGun: true,
-            hasMolotov: world.player.component<AmmoComponent>().molotovs > 0,
-          ),
+          ..._weaponChoice(),
         ],
         delay: StoryDirector.pickupDelay,
         onDismissed: () => host.unlock(HudElement.shoot),

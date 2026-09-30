@@ -4,6 +4,7 @@ import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/render/character_component.dart';
 import 'package:stepbound/game/render/grapple_component.dart';
 import 'package:stepbound/game/render/molotov_blast_component.dart';
+import 'package:stepbound/game/render/rocket_component.dart';
 
 final class VisualPosition {
   const VisualPosition(this.x, this.y);
@@ -48,14 +49,21 @@ final class TurnPresentationController {
   double _elapsed = 0;
 
   /// This turn's length: [turnDuration], or longer for a swing across a
-  /// gap with the grappling hook, or for a molotov in the air.
+  /// gap with the grappling hook, or for a molotov or a rocket in the
+  /// air.
   double _duration = 0.13;
   bool _isAnimating = false;
   int _turnCount = 0;
 
-  /// The burst of the molotov in the air, played as soon as it lands:
-  /// before anything Mario asked for meanwhile, which waits for it.
-  MolotovBurstAction? _burst;
+  /// The burst of the molotov in the air, or of the rocket against the
+  /// wall, played as soon as it lands: before anything Mario asked for
+  /// meanwhile, which waits for it.
+  PlayerAction? _burst;
+
+  /// The rocket's hits, each at the second of its flight it passes its
+  /// victim, in the order it meets them: resolved part way through the
+  /// turn being played, so each one falls as the rocket goes by.
+  final List<(double, PlayerAction)> _midTurn = <(double, PlayerAction)>[];
 
   /// Seconds from the throw to the bottle breaking: Mario's swing, then
   /// its flight. Nobody moves until then.
@@ -65,8 +73,9 @@ final class TurnPresentationController {
 
   bool get isAnimating => _isAnimating;
 
-  /// Whether a molotov is in the air: thrown, and not burst yet.
-  bool get holdsMolotov => _burst != null;
+  /// Whether a molotov or a rocket is in the air: thrown or fired, and
+  /// not burst yet.
+  bool get holdsProjectile => _burst != null;
   int get bufferedActionCount => _buffer.length;
   int get turnCount => _turnCount;
   double get progress => _isAnimating ? (_elapsed / _duration).clamp(0, 1) : 1;
@@ -88,9 +97,12 @@ final class TurnPresentationController {
       final untilComplete = _duration - _elapsed;
       if (remaining < untilComplete) {
         _elapsed += remaining;
+        _resolveMidTurn();
         return;
       }
       remaining -= untilComplete;
+      _elapsed = _duration;
+      _resolveMidTurn();
       _finishCurrentTurn();
       if (_burst case final burst?) {
         _burst = null;
@@ -148,6 +160,23 @@ final class TurnPresentationController {
         _duration = molotovHoldSeconds;
         _burst = MolotovBurstAction(target);
       }
+      if (event case RocketFiredEvent(
+        :final origin,
+        :final impact,
+        :final hitEntityIds,
+      )) {
+        _duration = RocketComponent.flightSecondsFor(origin, impact);
+        _burst = RocketBurstAction(impact);
+        for (final victim in hitEntityIds) {
+          final at = world.entities[victim]!
+              .component<PositionComponent>()
+              .position;
+          _midTurn.add((
+            RocketComponent.flightSecondsFor(origin, at),
+            RocketHitAction(victim),
+          ));
+        }
+      }
       if (event case TeleportedEvent(
         grappled: true,
         :final entityId,
@@ -168,9 +197,25 @@ final class TurnPresentationController {
     _isAnimating = true;
   }
 
+  /// Resolves the hits whose moment has come, all of them as one turn
+  /// of events for the presenter, while the flight goes on.
+  void _resolveMidTurn() {
+    if (_midTurn.isEmpty || _midTurn.first.$1 > _elapsed) {
+      return;
+    }
+    final events = <WorldEvent>[];
+    while (_midTurn.isNotEmpty && _midTurn.first.$1 <= _elapsed) {
+      final (_, hit) = _midTurn.removeAt(0);
+      events.addAll(scheduler.advance(world, hit));
+    }
+    _lastEvents = events;
+    _turnCount += 1;
+  }
+
   void _finishCurrentTurn() {
     _elapsed = 0;
     _isAnimating = false;
     _movements.clear();
+    _midTurn.clear();
   }
 }

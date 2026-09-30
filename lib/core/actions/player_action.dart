@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:stepbound/core/entities/components.dart';
+import 'package:stepbound/core/entities/entity.dart';
 import 'package:stepbound/core/grid/grid_point.dart';
 import 'package:stepbound/core/grid/tile.dart';
 import 'package:stepbound/core/grid/tile_map.dart';
@@ -177,6 +178,9 @@ final class InteractAction extends PlayerAction {
       if (pickup.grapplingHook) {
         ammo.grapplingHook = true;
       }
+      if (pickup.rocketLauncher) {
+        ammo.hasRocketLauncher = true;
+      }
       world.emit(
         PickedUpEvent(
           pickupId: pickup.id,
@@ -192,6 +196,7 @@ final class InteractAction extends PlayerAction {
           palazzoKey: pickup.palazzoKey,
           goldIngot: pickup.goldIngot,
           rockets: pickup.rockets,
+          rocketLauncher: pickup.rocketLauncher,
         ),
       );
       return;
@@ -285,25 +290,19 @@ final class ShootAction extends PlayerAction {
     }
 
     ammo.loaded -= 1;
-    var cursor = position.position.step(position.facing);
-    var impact = position.position;
-    String? hitEntityId;
-    while (world.map.contains(cursor)) {
-      impact = cursor;
-      if (world.map.tileAt(cursor).blocksSight) {
-        break;
-      }
-      final target = world.entityAt(cursor, excluding: player.id);
-      if (target != null) {
-        hitEntityId = target.id;
-        world.damage(
-          entityId: target.id,
-          amount: damage,
-          sourceEntityId: player.id,
-        );
-        break;
-      }
-      cursor = cursor.step(position.facing);
+    final (:impact, :hit) = traceShot(
+      world,
+      position.position,
+      position.facing,
+      throughEntities: false,
+    );
+    final target = hit.firstOrNull;
+    if (target != null) {
+      world.damage(
+        entityId: target.id,
+        amount: damage,
+        sourceEntityId: player.id,
+      );
     }
 
     world
@@ -313,7 +312,7 @@ final class ShootAction extends PlayerAction {
           origin: position.position,
           impact: impact,
           direction: position.facing,
-          hitEntityId: hitEntityId,
+          hitEntityId: target?.id,
         ),
       )
       ..emitNoise(
@@ -321,6 +320,127 @@ final class ShootAction extends PlayerAction {
         radius: noiseRadius,
         sourceEntityId: player.id,
       );
+  }
+}
+
+/// Where a straight shot from [origin] the way [direction] ends, and whom
+/// it hits on the way: it flies over the floor, over what is waist high
+/// (a wreck, a desk) and over fire, and stops at the first wall or closed
+/// door, or at the last tile of the map. A pistol round stops in the
+/// first one it hits; a rocket ([throughEntities]) goes on through
+/// everyone to the wall. The aim line draws the same path.
+({GridPoint impact, List<Entity> hit}) traceShot(
+  WorldState world,
+  GridPoint origin,
+  Direction direction, {
+  required bool throughEntities,
+}) {
+  final hit = <Entity>[];
+  var cursor = origin.step(direction);
+  var impact = origin;
+  while (world.map.contains(cursor)) {
+    impact = cursor;
+    if (world.map.tileAt(cursor).blocksSight) {
+      break;
+    }
+    final target = world.entityAt(cursor, excluding: world.playerId);
+    if (target != null) {
+      hit.add(target);
+      if (!throughEntities) {
+        break;
+      }
+    }
+    cursor = cursor.step(direction);
+  }
+  return (impact: impact, hit: hit);
+}
+
+/// A round from the rocket launcher: it flies straight the way Mario
+/// faces and goes through everyone in its path until the first wall;
+/// nothing waist high stops it either. Firing takes no time of its own:
+/// nothing moves while the rocket flies, everyone in its way is hit as it
+/// passes ([RocketHitAction], one each, in order) and its burst against
+/// the wall ([RocketBurstAction]) is what is heard, and what gives the
+/// zombies their turn (see `TurnPresentationController`). Without the
+/// launcher, or with no round left, the trigger only clicks.
+final class FireRocketAction extends PlayerAction {
+  const FireRocketAction();
+
+  @override
+  int get tickCost => 0;
+
+  @override
+  void resolve(WorldState world) {
+    final player = world.player;
+    final ammo = player.component<AmmoComponent>();
+    final position = player.component<PositionComponent>();
+    if (!ammo.hasRocketLauncher || ammo.rockets == 0) {
+      world.emit(DryFiredEvent(entityId: player.id));
+      return;
+    }
+
+    ammo.rockets -= 1;
+    final (:impact, :hit) = traceShot(
+      world,
+      position.position,
+      position.facing,
+      throughEntities: true,
+    );
+    world.emit(
+      RocketFiredEvent(
+        entityId: player.id,
+        origin: position.position,
+        impact: impact,
+        direction: position.facing,
+        hitEntityIds: <String>[for (final victim in hit) victim.id],
+      ),
+    );
+  }
+}
+
+/// The rocket passing over [entityId]: [damage] to it, there and then.
+/// Takes no time: the flight goes on, and nobody else moves.
+final class RocketHitAction extends PlayerAction {
+  const RocketHitAction(this.entityId, {this.damage = 3});
+
+  final String entityId;
+  final int damage;
+
+  @override
+  int get tickCost => 0;
+
+  @override
+  void resolve(WorldState world) {
+    if (world.entities[entityId] == null) {
+      return;
+    }
+    world.damage(
+      entityId: entityId,
+      amount: damage,
+      sourceEntityId: world.playerId,
+    );
+  }
+}
+
+/// The rocket bursting at [at], the end of its line: heard far off, and
+/// then the zombies have their turn, those that heard it turning toward
+/// the noise.
+final class RocketBurstAction extends PlayerAction {
+  const RocketBurstAction(this.at, {this.noiseRadius = 20});
+
+  final GridPoint at;
+  final int noiseRadius;
+
+  @override
+  int get tickCost => 1;
+
+  @override
+  void resolve(WorldState world) {
+    world.emitNoise(
+      origin: at,
+      radius: noiseRadius,
+      sourceEntityId: world.playerId,
+    );
   }
 }
 

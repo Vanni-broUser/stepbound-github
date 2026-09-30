@@ -249,6 +249,51 @@ void main() {
     });
   });
 
+  testWidgets('the launcher found and a round for it: a tap takes it in '
+      'hand and it burns; the last round fired, the pistol is back', (tester) {
+    return tester.runAsync(() async {
+      final game = await pumpReadyGame(tester)
+        ..unlock(HudElement.ammo)
+        ..unlock(HudElement.shoot)
+        ..unlock(HudElement.rockets);
+      final ammo = game.simulation.player.component<AmmoComponent>()
+        ..hasGun = true
+        ..hasRocketLauncher = true
+        ..rockets = 1;
+      game.update(1 / 60);
+      await tester.pump();
+
+      const rockets = ValueKey<String>('hud-rockets');
+      const pistol = ValueKey<String>('touch-ammo');
+      Finder burning(ValueKey<String> key) =>
+          find.ancestor(of: find.byKey(key), matching: find.byType(FireFrame));
+      expect(burning(pistol), findsOneWidget);
+      expect(burning(rockets), findsNothing);
+
+      await tester.tap(find.byKey(rockets));
+      await tester.pump();
+      expect(game.input.weapon.value, Weapon.rocketLauncher);
+      expect(burning(rockets), findsOneWidget);
+      expect(burning(pistol), findsNothing);
+      expect(
+        find.bySemanticsLabel(RegExp('^Lanciarazzi in mano, colpi: 1')),
+        findsOneWidget,
+      );
+
+      game.input
+        ..beginAim()
+        ..shootToward(Direction.east);
+      for (var t = 0.0; t < 1; t += 1 / 30) {
+        game.update(1 / 30);
+      }
+      await tester.pump();
+      expect(ammo.rockets, 0);
+      expect(game.input.weapon.value, Weapon.pistol);
+      expect(burning(rockets), findsNothing);
+      expect(burning(pistol), findsNothing);
+    });
+  });
+
   testWidgets('the bullets sit in the row of carried things, and a tap '
       'tells of them', (tester) {
     return tester.runAsync(() async {

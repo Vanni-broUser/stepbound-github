@@ -79,13 +79,17 @@ void main() {
   });
 
   test('the stairwell by the hospital roof is climbed down southward: its '
-      'first step walked on, its last the door', () {
+      'first step walked on, its last the door into the block', () {
     final head = _topLeft(hospitalNextRoofStairs);
     step(head.step(Direction.north), Direction.south);
     expect(mario(), head);
     expect(workInProgressDoors.contains(head), isFalse);
-    step(head, Direction.south);
-    expect(hospitalNextRoofStairsFoot, contains(mario()));
+    final events = step(head, Direction.south);
+    expect(
+      hospitalNextRoofStairsFoot,
+      contains(events.whereType<MovedEvent>().single.to),
+    );
+    expect(mario(), eastBlockRoofStairs.step(Direction.south));
     // Not from the side of the first step.
     final side = head.step(Direction.west);
     if (!world.stairs.containsKey(side) && world.map.tileAt(side).isWalkable) {

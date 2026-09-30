@@ -194,7 +194,7 @@ void main() {
       );
       expect(presentation.lastEvents.whereType<DamagedEvent>(), isEmpty);
       expect(world.tick, tick, reason: 'the throw takes no turn of its own');
-      expect(presentation.holdsMolotov, isTrue);
+      expect(presentation.holdsProjectile, isTrue);
 
       presentation
         ..submit(const MoveAction(Direction.south))
@@ -210,7 +210,7 @@ void main() {
 
       presentation.update(0.02);
       expect(presentation.turnCount, 2);
-      expect(presentation.holdsMolotov, isFalse);
+      expect(presentation.holdsProjectile, isFalse);
       final burst = presentation.lastEvents;
       expect(burst.whereType<DiedEvent>().single.entityId, 'burnt');
       expect(

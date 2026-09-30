@@ -408,6 +408,20 @@ final List<TestScenario> testScenarios = <TestScenario>[
     _hookBroughtHome(story);
     story.restNearest(duomoTowerLookoutTile);
   }),
+  // The launcher found at the bottom of the block east of the hospital's
+  // roof, and the round from the Duomo's other tower with it: back at the
+  // camp on that roof, a few rounds in hand.
+  TestScenario('Lanciarazzi in mano', (story) {
+    _hookBroughtHome(story);
+    story
+      ..collect(rocketLauncherPickupId)
+      ..collect(duomoFarTowerBackpackId)
+      ..unlock(HudElement.rockets);
+    story.world.player.component<AmmoComponent>()
+      ..hasRocketLauncher = true
+      ..rockets = 3;
+    story.restAt(hospitalRoofCampfireTile);
+  }),
   // Over the gap past the airliner with the hook, down into the palazzo.
   TestScenario("Palazzo dopo l'aereo, col rampino", (story) {
     _hookBroughtHome(story);

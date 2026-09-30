@@ -221,6 +221,27 @@ LAYERED = [
         ("rpg", RPG + "creak3.ogg", None, 0.94, -5,
          "afade=t=out:st=0.15:d=0.2"),
     ]),
+    # The rocket launcher: the charge going off with a thump, and the
+    # round's motor roaring away down the line, fading with the distance.
+    ("sfx/rocket_launch.mp3", -1, [
+        ("pistol", 0.0, 0.59, 0.0, 3,
+         "asetrate=44100*0.55,aresample=44100,bass=g=14:f=80,"
+         "afade=t=out:st=0.45:d=0.5"),
+        ("fireplace", 30.0, 30.9, 0.04, 9,
+         "highpass=f=600,lowpass=f=5000,afade=t=in:d=0.04,"
+         "afade=t=out:st=0.4:d=0.5"),
+    ]),
+    # The round bursting against the wall at the end of its line: a deep
+    # blast, the plaster coming down, the fire of it dying away.
+    ("sfx/explosion.mp3", -1, [
+        ("pistol", 0.0, 0.59, 0.0, 6,
+         "asetrate=44100*0.4,aresample=44100,bass=g=16:f=70"),
+        ("impact", IMPACT + "impactPlate_heavy_000.ogg", None, 0.02, -2,
+         "asetrate=44100*0.7,aresample=44100"),
+        ("fireplace", 18.0, 19.2, 0.1, 12,
+         "bass=g=8:f=90,lowpass=f=2800,afade=t=in:d=0.05,"
+         "afade=t=out:st=0.4:d=0.8"),
+    ]),
     # A bottle shattering, then the petrol catching with a roar.
     ("sfx/molotov_1.mp3", -2, [
         ("impact", IMPACT + "impactGlass_heavy_001.ogg", None, 0.0, 0,
