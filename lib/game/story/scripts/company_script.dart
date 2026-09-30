@@ -2,6 +2,7 @@ import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/story/story_director.dart';
+import 'package:stepbound/l10n/language.dart';
 
 /// The company past the palazzo: walking up the west wing from the gate,
 /// Mario comes to see Chiara through the glass, at a workstation in the
@@ -19,7 +20,7 @@ final class CompanyScript extends StoryScript {
   CompanyScript(super.director);
 
   static const String chiara = 'Chiara Mente';
-  static const String zombie = 'Zombi';
+  static String get zombie => strings.speakerZombie;
   static const String callScene = 'assets/story/scenes/chiara_call.jpg';
   static const String phoneScene =
       'assets/story/scenes/chiara_zombie_phone.jpg';
@@ -36,64 +37,69 @@ final class CompanyScript extends StoryScript {
       'assets/characters/npcs/portraits/chiara.png';
 
   /// Back in the game after the meeting, before Mario can move.
-  static const String sendToStation =
-      'Signora vai alla stazione, lì ci sono altri sopravvissuti';
+  static String get sendToStation => strings.companySendToStation;
 
   /// What she says to him while she is still at her desk.
-  static const StoryLine seeYouThere = StoryLine(
-    'Allora ci vediamo in stazione...',
+  static StoryLine get seeYouThere => StoryLine(
+    strings.companySeeYouThere,
     speaker: chiara,
     portrait: chiaraPortrait,
   );
 
   /// Mario beside her at last, round by the floors above.
-  static const List<CutsceneFrame> meetingFrames = <CutsceneFrame>[
+  static List<CutsceneFrame> get meetingFrames => <CutsceneFrame>[
     CutsceneFrame(
       image: metScene,
       speaker: mario,
-      text: 'Ei ma che ci fai qui?',
+      text: strings.companyMeetingFrames1,
     ),
     CutsceneFrame(
       image: metScene,
       speaker: chiara,
-      text: 'Ho degli straordinari da recuperare',
+      text: strings.companyMeetingFrames2,
     ),
     CutsceneFrame(
       image: apocalypseScene,
       speaker: mario,
-      text: "Signora c'è l'apocalisse zombi qui!",
+      text: strings.companyMeetingFrames3,
     ),
     CutsceneFrame(
       image: contractsScene,
       speaker: chiara,
-      text: 'Ecco perché non chiudevo più nessun contratto',
+      text: strings.companyMeetingFrames4,
     ),
   ];
 
-  static const List<CutsceneFrame> callFrames = <CutsceneFrame>[
+  static List<CutsceneFrame> get callFrames => <CutsceneFrame>[
     CutsceneFrame(
       image: callScene,
       speaker: chiara,
-      text: 'Dai dai speriamo che almeno questo qui risponde',
+      text: strings.companyCallFrames1,
     ),
-    CutsceneFrame(image: phoneScene, speaker: zombie, text: 'Uuh ?'),
+    CutsceneFrame(
+      image: phoneScene,
+      speaker: zombie,
+      text: strings.companyCallFrames2,
+    ),
     CutsceneFrame(
       image: offerScene,
       speaker: chiara,
-      text:
-          'Salve, la chiamo per conto di NonPrende Mobile, vorrei offrirvi '
-          'ad un prezzo veramente vantaggioso la nostra offerta Fibra Morale',
+      text: strings.companyCallFrames3,
     ),
-    CutsceneFrame(image: roarScene, speaker: zombie, text: 'Aaaarggh !'),
+    CutsceneFrame(
+      image: roarScene,
+      speaker: zombie,
+      text: strings.companyCallFrames4,
+    ),
     CutsceneFrame(
       image: roarScene,
       speaker: chiara,
-      text: 'Ma che modi sono questi?! Maleducato!',
+      text: strings.companyCallFrames5,
     ),
     CutsceneFrame(
       image: hangUpScene,
       speaker: chiara,
-      text: "Mamma mia... Al giorno d'oggi sono tutti senza cervello...",
+      text: strings.companyCallFrames6,
     ),
   ];
 
@@ -186,7 +192,7 @@ final class CompanyScript extends StoryScript {
         music: Music.weasel,
         onFinished: () => say(
           StoryPrompt(
-            const <StoryLine>[StoryLine.mario(sendToStation)],
+            <StoryLine>[StoryLine.mario(sendToStation)],
             holdsInput: true,
             onDismissed: () =>
                 progress.missions.complete(Mission.reachSurvivor),
@@ -200,7 +206,7 @@ final class CompanyScript extends StoryScript {
     if (event case LookedOutEvent(
       :final at,
     ) when at == chiaraTile && _met && !_gone) {
-      say(StoryPrompt(const <StoryLine>[seeYouThere]));
+      say(StoryPrompt(<StoryLine>[seeYouThere]));
     }
   }
 

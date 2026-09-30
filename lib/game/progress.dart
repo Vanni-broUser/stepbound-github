@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/missions.dart';
+import 'package:stepbound/l10n/language.dart';
 
 export 'package:stepbound/game/missions.dart';
 
@@ -32,12 +33,13 @@ const List<PlayerOutfit> halloweenOutfits = <PlayerOutfit>[
 
 extension PlayerOutfitAssets on PlayerOutfit {
   String get label => switch (this) {
-    PlayerOutfit.base => 'Base',
-    PlayerOutfit.cultist => 'Occultista',
-    PlayerOutfit.ghost => 'Fantasma',
-    PlayerOutfit.vampire => 'Vampiro',
-    PlayerOutfit.jackOLantern => 'Jack-o’-lantern',
-    PlayerOutfit.zombie => 'Zombi',
+    PlayerOutfit.base => strings.outfitBase,
+    PlayerOutfit.cultist => strings.outfitCultist,
+    PlayerOutfit.ghost => strings.outfitGhost,
+    PlayerOutfit.vampire => strings.outfitVampire,
+    PlayerOutfit.jackOLantern => strings.outfitJackOLantern,
+    PlayerOutfit.zombie => strings.outfitZombie,
+    // The football clubs' own names.
     PlayerOutfit.roma => 'Roma',
     PlayerOutfit.lazio => 'Lazio',
   };
@@ -157,23 +159,22 @@ final class HeldAway {
 enum SecretMission {
   /// Luigi freed and reached at the station without ever picking the
   /// pistol up: he hands over the golden one.
-  unarmedToLuigi(
-    'Se hai il coraggio ricomincia il livello completando la trama di '
-    'Luigi senza raccogliere la pistola',
-    short: 'da Luigi senza la pistola',
-    level: LevelId.hometown,
-  );
+  unarmedToLuigi(level: LevelId.hometown);
 
-  const SecretMission(this.text, {required this.short, required this.level});
+  const SecretMission({required this.level});
 
   /// The city it is done in: its figures list it among their missions.
   final LevelId level;
 
   /// As the secret missions page dares it.
-  final String text;
+  String get text => switch (this) {
+    unarmedToLuigi => strings.secretUnarmedToLuigi,
+  };
 
   /// On one line, among the level's missions when it is done.
-  final String short;
+  String get short => switch (this) {
+    unarmedToLuigi => strings.secretUnarmedToLuigiShort,
+  };
 }
 
 extension StoryMemoryLevel on StoryMemory {

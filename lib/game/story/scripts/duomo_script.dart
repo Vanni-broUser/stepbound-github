@@ -2,36 +2,28 @@ import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/story/story_director.dart';
+import 'package:stepbound/l10n/language.dart';
 
 /// Conversations inside the Duomo. All of them are triggered by facing the
 /// person and using the interaction button, and therefore carry a portrait.
 final class DuomoScript extends StoryScript {
   DuomoScript(super.director);
 
-  static const String cultist = 'Cultista';
+  static String get cultist => strings.speakerCultist;
   static const String cultistPortrait =
       'assets/characters/npcs/portraits/cultist.png';
   static const String initiationImage = 'assets/story/scenes/priest_family.jpg';
-  static const String stairBlockedLine =
-      'Potrai passare da qui solo quando sarai anche tu davvero parte '
-      'della nostra comunità';
-  static const String welcomeLine =
-      'Che bello vedere nuovi fedeli che si uniscono a noi';
-  static const String ringReminderLine =
-      "Non hai ancora recuperato l'anello episcopale?";
-  static const String familyWelcomeLine =
-      'Ottimo giovanotto, sei davvero un prodigio! Benvenuto nella nostra '
-      'grande famiglia';
-  static const String robeLine =
-      'Abbiamo preparato una tunica anche per te, la trovi al piano '
-      'superiore';
-  static const String initiationReminderLine =
-      'Indossa la tunica e preparati per la tua cerimonia di iniziazione';
-  static const String lockedDoorLine =
-      'Questa porta è chiusa. Serve una chiave';
-  static const String robeFoundLine = 'Hai trovato una tunica da occultista';
+  static String get stairBlockedLine => strings.duomoStairBlockedLine;
+  static String get welcomeLine => strings.duomoWelcomeLine;
+  static String get ringReminderLine => strings.duomoRingReminderLine;
+  static String get familyWelcomeLine => strings.duomoFamilyWelcomeLine;
+  static String get robeLine => strings.duomoRobeLine;
+  static String get initiationReminderLine =>
+      strings.duomoInitiationReminderLine;
+  static String get lockedDoorLine => strings.duomoLockedDoorLine;
+  static String get robeFoundLine => strings.duomoRobeFoundLine;
 
-  static const List<CutsceneFrame> initiationScene = <CutsceneFrame>[
+  static List<CutsceneFrame> get initiationScene => <CutsceneFrame>[
     CutsceneFrame(
       image: initiationImage,
       speaker: PriestScript.priest,
@@ -47,14 +39,11 @@ final class DuomoScript extends StoryScript {
   static const String massImage = 'assets/story/scenes/priest_mass.jpg';
   static const String crucifiedImage =
       'assets/story/scenes/crucified_zombie.jpg';
-  static const String massWelcomeLine =
-      'Noi siamo tutti pronti a cominciare giovanotto, accomodati pure!';
-  static const String massSermonLine =
-      "Il Signore ha mandato questa sciagura contro l'uomo, essa però è "
-      'pur sempre opera del Signore ed ha lo scopo di purificare il mondo';
+  static String get massWelcomeLine => strings.duomoMassWelcomeLine;
+  static String get massSermonLine => strings.duomoMassSermonLine;
 
   /// Played when Mario comes back down into the Duomo wearing the robe.
-  static const List<CutsceneFrame> massScene = <CutsceneFrame>[
+  static List<CutsceneFrame> get massScene => <CutsceneFrame>[
     CutsceneFrame(
       image: massImage,
       speaker: PriestScript.priest,
@@ -73,19 +62,15 @@ final class DuomoScript extends StoryScript {
       'assets/story/scenes/cultists_mutation.jpg';
   static const String seizedImage = 'assets/story/scenes/priest_seized.jpg';
 
-  static const String worshipLine =
-      'Lo zombi non va temuto. Lo zombi va venerato. Attraverso la nostra '
-      'preghiera gli zombi ci salveranno';
-  static const String areYouMadLine = 'Cosa fate? Ma siete pazzi?!';
-  static const String superZombieLine =
-      'Basta un loro morso a trasformare un uomo in zombi, voi li state '
-      'direttamente ingerendo... Questo vi sta trasformando in super zombi';
-  static const String letMeGoLine = 'No, lasciatemi andare! Nooo';
+  static String get worshipLine => strings.duomoWorshipLine;
+  static String get areYouMadLine => strings.duomoAreYouMadLine;
+  static String get superZombieLine => strings.duomoSuperZombieLine;
+  static String get letMeGoLine => strings.duomoLetMeGoLine;
 
   /// How the mass ends: the sermon turns into worship, the community eats
   /// of the crucified zombie, Mario works out what that makes of them, and
   /// what they have become takes Don Angelo.
-  static const List<CutsceneFrame> massacreScene = <CutsceneFrame>[
+  static List<CutsceneFrame> get massacreScene => <CutsceneFrame>[
     CutsceneFrame(
       image: sermonImage,
       speaker: PriestScript.priest,
@@ -110,26 +95,21 @@ final class DuomoScript extends StoryScript {
 
   /// The mass and what it turns into, played as one scene: fading back to
   /// the game between the sermon and the feast would cut the moment in two.
-  static const List<CutsceneFrame> massSequence = <CutsceneFrame>[
+  static List<CutsceneFrame> get massSequence => <CutsceneFrame>[
     ...massScene,
     ...massacreScene,
   ];
 
-  static const String keyUsedLine =
-      'Hai usato la Chiave del Duomo per aprire la porta';
+  static String get keyUsedLine => strings.duomoKeyUsedLine;
 
-  static const String outfitChangedLine =
-      'Mario cambia abbigliamento uscito dal duomo';
+  static String get outfitChangedLine => strings.duomoOutfitChangedLine;
 
   /// Said with the robe coming off, and in the same breath where the
   /// clothes are changed: the wardrobe on the train, if Mario has been
   /// aboard already, or somewhere still to come.
-  static const String outfitObtainedLine =
-      "Hai ottenuto l'abbigliamento da occultista.";
-  static const String wardrobeOnTrainLine =
-      'Potrai scegliere quale abbigliamento usare sul treno.';
-  static const String wardrobeLaterLine =
-      'In futuro potrai scegliere quale abbigliamento usare.';
+  static String get outfitObtainedLine => strings.duomoOutfitObtainedLine;
+  static String get wardrobeOnTrainLine => strings.duomoWardrobeOnTrainLine;
+  static String get wardrobeLaterLine => strings.duomoWardrobeLaterLine;
 
   /// Leaves the portal's fade time to lift off the harbour first.
   static const double outfitLessonDelay = 0.8;
@@ -161,7 +141,7 @@ final class DuomoScript extends StoryScript {
     if (event case PickedUpEvent(cultistRobe: true)) {
       say(
         StoryPrompt(
-          const <StoryLine>[StoryLine(robeFoundLine)],
+          <StoryLine>[StoryLine(robeFoundLine)],
           delay: StoryDirector.pickupDelay,
           onDismissed: host.hometown.collectCultistRobe,
         ),
@@ -180,10 +160,10 @@ final class DuomoScript extends StoryScript {
           ? null
           : switch (at) {
               _ when !_ringDelivered && at == duomoStairCultistTile =>
-                const StoryLine.cultist(stairBlockedLine),
+                StoryLine.cultist(stairBlockedLine),
               _ when _ringDelivered && at == duomoStairCultistMovedTile =>
-                const StoryLine.cultist(welcomeLine),
-              _ when at == duomoWelcomingCultistTile => const StoryLine.cultist(
+                StoryLine.cultist(welcomeLine),
+              _ when at == duomoWelcomingCultistTile => StoryLine.cultist(
                 welcomeLine,
               ),
               _ when at == duomoPriestTile => StoryLine.priest(
@@ -207,10 +187,10 @@ final class DuomoScript extends StoryScript {
     if (host.isUnlocked(HudElement.duomoKey)) {
       world.map.setTile(at, const Tile(TileKind.floor));
       host.removeHud(HudElement.duomoKey);
-      say(StoryPrompt(const <StoryLine>[StoryLine(keyUsedLine)]));
+      say(StoryPrompt(<StoryLine>[StoryLine(keyUsedLine)]));
       return;
     }
-    say(StoryPrompt(const <StoryLine>[StoryLine(lockedDoorLine)]));
+    say(StoryPrompt(<StoryLine>[StoryLine(lockedDoorLine)]));
   }
 
   @override
@@ -286,7 +266,7 @@ final class DuomoScript extends StoryScript {
         : wardrobeLaterLine;
     say(
       StoryPrompt(<StoryLine>[
-        const StoryLine(outfitChangedLine),
+        StoryLine(outfitChangedLine),
         StoryLine('$outfitObtainedLine $where'),
       ], delay: outfitLessonDelay),
     );

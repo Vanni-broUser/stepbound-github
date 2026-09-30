@@ -2,6 +2,7 @@ import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/story/story_director.dart';
+import 'package:stepbound/l10n/language.dart';
 
 /// The hypermarket: a few steps in, a voice calls for help and Mario
 /// answers; upstairs, walking up to the shutter where Luigi is stuck plays
@@ -12,57 +13,49 @@ import 'package:stepbound/game/story/story_director.dart';
 final class MallScript extends StoryScript {
   MallScript(super.director);
 
-  static const String mysteryVoice = 'Voce misteriosa';
-  static const String helpCall = "Aiuto! C'è qualcuno?! Aiutooo";
-  static const String someoneAlive = "Ei ma qui c'è qualcuno ancora vivo!";
-  static const String shutterOpened =
-      'Hai disattivato il sistema antifurto: la saracinesca si è alzata';
+  static String get mysteryVoice => strings.speakerMysteryVoice;
+  static String get helpCall => strings.mallHelpCall;
+  static String get someoneAlive => strings.mallSomeoneAlive;
+  static String get shutterOpened => strings.mallShutterOpened;
   static const String luigi = 'Luigi Rovaga';
-  static const String trustLine =
-      'Ragazzo ho deciso di fidarmi di te! Ti parlerò del mio grande piano '
-      'per non schiattare';
-  static const String meetAtStationLine =
-      'Raggiungimi alla stazione, ne parliamo lì!';
+  static String get trustLine => strings.mallTrustLine;
+  static String get meetAtStationLine => strings.mallMeetAtStationLine;
 
   /// Luigi behind the shutter, then the zombies at Mario's back.
-  static const List<CutsceneFrame> luigiScene = <CutsceneFrame>[
+  static List<CutsceneFrame> get luigiScene => <CutsceneFrame>[
     CutsceneFrame(
       image: 'assets/story/scenes/luigi_trapped.jpg',
       speaker: luigi,
-      text:
-          'Mi chiamo Luigi. Sono rimasto bloccato qui per colpa del sistema '
-          'antifurto',
+      text: strings.mallLuigiScene1,
     ),
     CutsceneFrame(
       image: 'assets/story/scenes/luigi_warning.jpg',
       speaker: luigi,
-      text: 'Attenzione! Dietro di te',
+      text: strings.mallLuigiScene2,
     ),
     CutsceneFrame(
       image: 'assets/story/scenes/mall_zombies.jpg',
-      speaker: 'Zombi',
-      text: 'Aaaahhrg!',
+      speaker: strings.speakerZombie,
+      text: strings.mallLuigiScene3,
     ),
   ];
 
   /// Luigi finishing off the horde, then his reunion with Mario.
-  static const List<CutsceneFrame> reunionScene = <CutsceneFrame>[
+  static List<CutsceneFrame> get reunionScene => <CutsceneFrame>[
     CutsceneFrame(
       image: 'assets/story/scenes/luigi_rescue.jpg',
       speaker: luigi,
-      text: "Ce l'hai fatta, ragazzo! Adesso me la vedo io con questi qui",
+      text: strings.mallReunionScene1,
     ),
     CutsceneFrame(
       image: 'assets/story/scenes/mario_luigi_reunion.jpg',
       speaker: 'Mario Rossi',
-      text: "Sono felice di vedere che c'è qualcun altro vivo e vegeto",
+      text: strings.mallReunionScene2,
     ),
     CutsceneFrame(
       image: 'assets/story/scenes/mario_luigi_reunion.jpg',
       speaker: luigi,
-      text:
-          'A chi lo dici! Finalmente qualcuno che non prova a mangiarmi il '
-          'cervello',
+      text: strings.mallReunionScene3,
     ),
   ];
 
@@ -99,7 +92,7 @@ final class MallScript extends StoryScript {
         if (_stepsInside >= stepsBeforeVoice && !_voiceHeard) {
           _voiceHeard = true;
           say(
-            StoryPrompt(const <StoryLine>[
+            StoryPrompt(<StoryLine>[
               StoryLine(helpCall, speaker: mysteryVoice),
               StoryLine.mario(someoneAlive),
             ], delay: StoryDirector.reactionDelay),
@@ -109,7 +102,7 @@ final class MallScript extends StoryScript {
         // The scene follows, so the flag waits for the box to be read:
         // otherwise the pictures would cover the news of the shutter.
         say(
-          StoryPrompt(const <StoryLine>[
+          StoryPrompt(<StoryLine>[
             StoryLine(shutterOpened),
           ], onDismissed: () => _shutterOpen = true),
         );
@@ -198,7 +191,7 @@ final class MallScript extends StoryScript {
   void _startTrustDialogue() {
     say(
       StoryPrompt(
-        const <StoryLine>[
+        <StoryLine>[
           StoryLine.luigi(trustLine),
           StoryLine.luigi(meetAtStationLine),
         ],

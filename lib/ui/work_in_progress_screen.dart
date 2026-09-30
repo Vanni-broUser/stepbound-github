@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
+import 'package:stepbound/l10n/language.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// The work-in-progress screen: the developer at his laptop, and the
@@ -19,12 +20,9 @@ final class WorkInProgressScreen extends StatelessWidget {
   });
 
   static const String image = 'assets/story/placeholders/work_in_progress.jpg';
-  static const String title =
-      'La demo finisce qui,\nil seguito deve ancora essere programmato';
-  static const String missingItems =
-      'I seguenti oggetti non sono ancora stati implementati:\n'
-      'Estintore, Piede di porco';
-  static const String feedback = 'Fammi sapere se il gioco ti piace';
+  static String get title => strings.workInProgressTitle;
+  static String get missingItems => strings.workInProgressMissingItems;
+  static String get feedback => strings.workInProgressFeedback;
 
   /// The Instagram pages to write to, in the order they are shown.
   static const List<String> instagramHandles = <String>[

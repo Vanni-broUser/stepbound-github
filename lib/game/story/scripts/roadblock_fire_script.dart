@@ -1,5 +1,6 @@
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/story/story_director.dart';
+import 'package:stepbound/l10n/language.dart';
 
 /// The pile-up closing the shopping street west of the campfire behind the
 /// hypermarket has a gap with no car in it, and fuel burning right across
@@ -12,9 +13,7 @@ import 'package:stepbound/game/story/story_director.dart';
 final class RoadblockFireScript extends StoryScript {
   RoadblockFireScript(super.director);
 
-  static const String fireLine =
-      "L'incendio blocca completamente la strada, potresti passare con un "
-      'estintore';
+  static String get fireLine => strings.roadblockFireLine;
 
   @override
   String get key => 'roadblockFire';
@@ -28,7 +27,7 @@ final class RoadblockFireScript extends StoryScript {
             event.at != marsalaFireTile)) {
       return;
     }
-    say(StoryPrompt(const <StoryLine>[StoryLine(fireLine)]));
+    say(StoryPrompt(<StoryLine>[StoryLine(fireLine)]));
   }
 
   @override

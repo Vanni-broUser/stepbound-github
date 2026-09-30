@@ -5,6 +5,7 @@ import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/game/zombie_lore.dart';
+import 'package:stepbound/l10n/language.dart';
 import 'package:stepbound/ui/letterbox.dart';
 import 'package:stepbound/ui/main_menu.dart';
 import 'package:stepbound/ui/portrait_image.dart';
@@ -32,7 +33,7 @@ const String _unknownPortrait =
 /// Every card, known or not: first the types the game has, as
 /// [zombieLore] tells them, then the ones still to come, "???" until they
 /// are in the game too.
-final List<ZombieCard> zombieCards = <ZombieCard>[
+List<ZombieCard> get zombieCards => <ZombieCard>[
   for (final MapEntry(key: kind, value: lore) in zombieLore.entries)
     ZombieCard(
       kind: kind,
@@ -40,9 +41,9 @@ final List<ZombieCard> zombieCards = <ZombieCard>[
       portrait: lore.portrait,
       description: lore.description,
     ),
-  const ZombieCard(
+  ZombieCard(
     kind: EntityKind.blind,
-    name: 'Cieco',
+    name: strings.zombieName(EntityKind.blind),
     portrait: _unknownPortrait,
     description: '',
   ),
@@ -56,7 +57,7 @@ final List<ZombieCard> zombieCards = <ZombieCard>[
 ];
 
 /// The pictures and lines of each memory, lived again on Mario's cot.
-final Map<StoryMemory, List<StoryScene>> memoryScenes =
+Map<StoryMemory, List<StoryScene>> get memoryScenes =>
     <StoryMemory, List<StoryScene>>{
       StoryMemory.newsBroadcast: introScenes,
       StoryMemory.presidentFled: romeScenes,
@@ -320,8 +321,7 @@ final class _ZombieBookState extends State<ZombieBook> {
                       ),
                       SizedBox(height: 2 * unit),
                       MenuParagraph(
-                        card?.description ??
-                            'Non hai ancora incontrato questo zombi.',
+                        card?.description ?? strings.zombieBookUnmet,
                         key: const ValueKey<String>('zombie-book-description'),
                         unit: unit,
                       ),
@@ -337,7 +337,7 @@ final class _ZombieBookState extends State<ZombieBook> {
           alignment: Alignment.centerLeft,
           child: MenuButton(
             key: const ValueKey<String>('zombie-book-close'),
-            label: 'CHIUDI',
+            label: strings.close,
             unit: unit,
             compact: true,
             onPressed: widget.onClose,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
+import 'package:stepbound/l10n/language.dart';
 import 'package:stepbound/ui/letterbox.dart';
 import 'package:stepbound/ui/loading_art.dart';
 import 'package:stepbound/ui/main_menu.dart';
@@ -26,16 +27,11 @@ final class ErrorScreen extends StatelessWidget {
   /// While the share sheet is being prepared: the button waits.
   final bool sharing;
 
-  static const String title = 'QUALCOSA È ANDATO STORTO';
-  static const String explanation =
-      'Il gioco si è fermato per un errore. Il rapporto dice quale, con la '
-      'versione del gioco, il telefono, gli ultimi passi della partita e il '
-      'salvataggio dello slot: niente di personale. Mandalo allo '
-      'sviluppatore e poi torna al menù per riprendere dall’ultimo '
-      'salvataggio.';
-  static const String shareLabel = 'CONDIVIDI IL RAPPORTO';
-  static const String sharingLabel = 'UN MOMENTO…';
-  static const String menuLabel = 'TORNA AL MENÙ';
+  static String get title => strings.errorTitle;
+  static String get explanation => strings.errorExplanation;
+  static String get shareLabel => strings.shareReport;
+  static String get sharingLabel => strings.errorSharing;
+  static String get menuLabel => strings.errorBackToMenu;
 
   /// The buttons' width, in virtual pixels.
   static const double buttonWidth = 120;

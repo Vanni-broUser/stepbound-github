@@ -1,5 +1,6 @@
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/story/story_director.dart';
+import 'package:stepbound/l10n/language.dart';
 
 /// A few palazzo doors in the old town's alleys are damaged enough that a
 /// crowbar could force them. Looking at one says so; Mario can come back
@@ -7,9 +8,7 @@ import 'package:stepbound/game/story/story_director.dart';
 final class DamagedDoorScript extends StoryScript {
   DamagedDoorScript(super.director);
 
-  static const String doorLine =
-      "Questa porta è un po' danneggiata, con un piede di porco potresti "
-      'aprirla';
+  static String get doorLine => strings.damagedDoorLine;
 
   @override
   String get key => 'damagedDoor';
@@ -20,7 +19,7 @@ final class DamagedDoorScript extends StoryScript {
         !oldTownDamagedDoorTiles.contains(event.at)) {
       return;
     }
-    say(StoryPrompt(const <StoryLine>[StoryLine(doorLine)]));
+    say(StoryPrompt(<StoryLine>[StoryLine(doorLine)]));
   }
 
   @override

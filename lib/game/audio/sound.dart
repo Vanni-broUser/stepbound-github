@@ -2,6 +2,8 @@
 /// `assets/audio/`. Paths are relative to that folder.
 library;
 
+import 'package:stepbound/l10n/language.dart';
+
 /// Looping music; only one plays at a time and a change crossfades.
 enum Music {
   menu('music/menu.mp3'),
@@ -130,7 +132,9 @@ enum Sfx {
 }
 
 /// A credit line for the in-game credits screen.
-typedef SoundCredit = ({String title, String author, String licence});
+///
+/// A null licence is a piece its author asks only to be credited for.
+typedef SoundCredit = ({String title, String author, String? licence});
 
 /// Every piece of music, as its licence requires it to be credited in the
 /// game itself.
@@ -178,20 +182,19 @@ const List<SoundCredit> musicCredits = <SoundCredit>[
   (
     title: 'Lurking in the Shadows',
     author: 'Eric Matyas (www.soundimage.org)',
-    licence: 'Con attribuzione',
+    licence: null,
   ),
   (
     title: 'Closing In',
     author: 'Eric Matyas (www.soundimage.org)',
-    licence: 'Con attribuzione',
+    licence: null,
   ),
   (
     title: 'Horrible Realization',
     author: 'Eric Matyas (www.soundimage.org)',
-    licence: 'Con attribuzione',
+    licence: null,
   ),
 ];
 
 /// The effects are public domain; they are credited as a courtesy.
-const String effectsCredit =
-    'Effetti sonori: Kenney.nl e OpenGameArt.org (CC0)';
+String get effectsCredit => strings.creditsEffects;
