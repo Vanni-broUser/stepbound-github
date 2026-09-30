@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/story/story_director.dart';
+import 'package:stepbound/report/breadcrumbs.dart';
 
 /// What Mario has in hand when he aims.
 enum Weapon {
@@ -32,7 +33,8 @@ final class GameInputController {
     required this.toggleDebug,
     required this.throwArea,
     this.goldenPistol,
-  });
+    Breadcrumbs? trail,
+  }) : trail = trail ?? Breadcrumbs.shared;
 
   /// How often a direction held down takes another step.
   static const double holdRepeatSeconds = 0.18;
@@ -64,6 +66,12 @@ final class GameInputController {
 
   /// Whether the pistol is the golden one, which hits twice as hard.
   final bool Function()? goldenPistol;
+
+  /// Where what the player asks for is written down, for the error report
+  /// that ends with it (see [Breadcrumbs]): with the game's own events
+  /// there, a report says whether Mario stood still because a script held
+  /// him or because nothing was pressed.
+  final Breadcrumbs trail;
 
   /// What pulling the trigger fires: a round from the pistol Mario has,
   /// or, with the launcher in hand, a rocket.
@@ -107,10 +115,39 @@ final class GameInputController {
 
   Entity get _mario => world.player;
 
+  String? _lastRefused;
+
+  /// Notes what the player asked for. A direction held down is noted once,
+  /// when pressed: its repeats would bury everything else in seconds.
+  void _note(String text) {
+    _lastRefused = null;
+    trail.add('input: $text');
+  }
+
+  /// Notes an input the game did not take, once per run of the same one: a
+  /// player pressing on while a scene holds Mario is the point, not how
+  /// many times.
+  void _refused(String text) {
+    if (_lastRefused == text) {
+      return;
+    }
+    _lastRefused = text;
+    trail.add('input ignorato: $text');
+  }
+
+  String get _inHand => _nameOf(weapon.value);
+
+  static String _way(Direction direction) => switch (direction) {
+    Direction.north => 'nord',
+    Direction.east => 'est',
+    Direction.south => 'sud',
+    Direction.west => 'ovest',
+  };
+
   /// Drops the steps queued and the arrow held, and lowers the pistol.
   void stop() {
     stopWalking();
-    cancelAim();
+    _clearAim();
     _spaceHeld = null;
   }
 
@@ -153,6 +190,7 @@ final class GameInputController {
     } else if (key == LogicalKeyboardKey.keyQ) {
       toggleWeapon();
     } else if (key == LogicalKeyboardKey.keyG) {
+      _note('overlay di debug');
       toggleDebug();
     } else {
       return KeyEventResult.ignored;
@@ -217,12 +255,14 @@ final class GameInputController {
   /// molotov, it moves the square it lands on by a tile.
   void pressDirection(Direction direction) {
     if (!canAct()) {
+      _refused('direzione ${_way(direction)}');
       return;
     }
     if (throwing) {
       final target = throwTarget.value;
       if (target != null) {
         _setThrowTarget(_fitThrow(target.step(direction)) ?? target);
+        _note('bersaglio verso ${_way(direction)}');
       }
       return;
     }
@@ -235,6 +275,7 @@ final class GameInputController {
     }
     _heldDirection = direction;
     _holdElapsed = 0;
+    _note('cammina verso ${_way(direction)}');
     submit(MoveAction(direction));
   }
 
@@ -263,6 +304,7 @@ final class GameInputController {
 
   void pressInteract() {
     if (!canAct()) {
+      _refused('interagisce');
       return;
     }
     if (aiming.value) {
@@ -270,13 +312,19 @@ final class GameInputController {
       return;
     }
     if (isUnlocked(HudElement.interact)) {
+      _note('interagisce');
       submit(const InteractAction());
+    } else {
+      _refused('interagisce, non ancora insegnato');
     }
   }
 
   void pressWait() {
     if (canAct() && !aiming.value) {
+      _note('aspetta');
       submit(const WaitAction());
+    } else {
+      _refused('aspetta');
     }
   }
 
@@ -293,10 +341,13 @@ final class GameInputController {
       throwMolotov();
       return;
     }
-    if (canAct()) {
-      submit(_fire);
-      cancelAim();
+    if (!canAct()) {
+      _refused('spara');
+      return;
     }
+    _note('spara verso ${_way(_mario.component<PositionComponent>().facing)}');
+    submit(_fire);
+    _clearAim();
   }
 
   /// Whether holding down would raise anything: the pistol once shooting
@@ -310,22 +361,29 @@ final class GameInputController {
   /// Raises the pistol, or a molotov with the square it would land on a
   /// few tiles ahead. The pistol with nothing loaded only clicks.
   void beginAim() {
-    if (!canAct() || aiming.value || !canAim) {
+    if (aiming.value) {
+      return;
+    }
+    if (!canAct() || !canAim) {
+      _refused('alza $_inHand');
       return;
     }
     if (weapon.value == Weapon.molotov) {
       _releaseHeld();
       _setThrowTarget(_startingThrow());
       aiming.value = true;
+      _note('alza la molotov, bersaglio ${throwTarget.value}');
       return;
     }
     if (weapon.value == Weapon.pistol &&
         _mario.component<AmmoComponent>().loaded == 0) {
+      _note('alza la pistola scarica');
       submit(_fire);
       return;
     }
     _releaseHeld();
     aiming.value = true;
+    _note('alza $_inHand');
   }
 
   /// Turns the aimed pistol to [direction] without firing.
@@ -337,12 +395,17 @@ final class GameInputController {
 
   /// Turns the aimed pistol to [direction] and fires at once.
   void shootToward(Direction direction) {
-    if (!canAct() || !aiming.value || throwing) {
+    if (!aiming.value || throwing) {
+      return;
+    }
+    if (!canAct()) {
+      _refused('spara verso ${_way(direction)}');
       return;
     }
     _mario.component<PositionComponent>().facing = direction;
+    _note('spara verso ${_way(direction)}');
     submit(_fire);
-    cancelAim();
+    _clearAim();
   }
 
   /// Moves the square the molotov lands on where the stick points:
@@ -376,11 +439,16 @@ final class GameInputController {
   /// last one is gone (see StepboundGame.update).
   void throwMolotov() {
     final target = throwTarget.value;
-    if (!canAct() || !throwing || target == null) {
+    if (!throwing || target == null) {
       return;
     }
+    if (!canAct()) {
+      _refused('lancia la molotov');
+      return;
+    }
+    _note('lancia la molotov a $target');
     submit(ThrowMolotovAction(target));
-    cancelAim();
+    _clearAim();
   }
 
   /// Puts [choice] in Mario's hand, the other weapon away: one at a time.
@@ -388,10 +456,20 @@ final class GameInputController {
   /// molotov while there is one left.
   void selectWeapon(Weapon choice) {
     if (aiming.value || !hasWeapon(choice)) {
+      _refused('in mano ${_nameOf(choice)}');
       return;
     }
-    weapon.value = choice;
+    if (weapon.value != choice) {
+      weapon.value = choice;
+      _note('in mano ${_nameOf(choice)}');
+    }
   }
+
+  static String _nameOf(Weapon choice) => switch (choice) {
+    Weapon.pistol => 'la pistola',
+    Weapon.molotov => 'la molotov',
+    Weapon.rocketLauncher => 'il lanciarazzi',
+  };
 
   /// Whether Mario carries [choice] and could take it in hand: the pistol
   /// once found, a molotov while there is one left, the rocket launcher
@@ -428,8 +506,18 @@ final class GameInputController {
     }
   }
 
-  /// Lowers the pistol, or the molotov, without shooting.
+  /// Lowers the pistol, or the molotov, without shooting, because the
+  /// player asked to: a tap, the finger off the screen.
   void cancelAim() {
+    if (aiming.value) {
+      _note('abbassa $_inHand');
+    }
+    _clearAim();
+  }
+
+  /// Lowers whatever is up, quietly: after a shot, or when the game takes
+  /// the controls away.
+  void _clearAim() {
     aiming.value = false;
     throwTarget.value = null;
   }

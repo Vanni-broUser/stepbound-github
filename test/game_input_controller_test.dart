@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/input/game_input_controller.dart';
 import 'package:stepbound/game/story/story_director.dart';
+import 'package:stepbound/report/breadcrumbs.dart';
 
 import 'test_world.dart';
 
@@ -20,8 +21,12 @@ final class _Harness {
       toggleDebug: () => debugToggles++,
       throwArea: () => null,
       goldenPistol: () => golden,
+      trail: trail,
     );
   }
+
+  final Breadcrumbs trail = Breadcrumbs();
+  List<String> get noted => <String>[for (final e in trail.entries) e.text];
 
   bool golden = false;
 
@@ -200,6 +205,56 @@ void main() {
       expect(h.press(LogicalKeyboardKey.keyD), KeyEventResult.ignored);
       expect(h.press(space), KeyEventResult.ignored);
       expect(h.submitted, isEmpty);
+    });
+  });
+
+  group('trail', () {
+    test('what the player asks for is noted, a held direction once', () {
+      final h = _Harness();
+      h.input
+        ..pressDirection(Direction.east)
+        ..update(repeat * 2.5)
+        ..releaseDirection(Direction.east)
+        ..pressWait()
+        ..pressInteract();
+      expect(h.noted, <String>[
+        'input: cammina verso est',
+        'input: aspetta',
+        'input: interagisce',
+      ]);
+    });
+
+    test('the pistol up, then fired towards a direction', () {
+      final h = _Harness();
+      h.input
+        ..beginAim()
+        ..pressDirection(Direction.north)
+        ..beginAim()
+        ..pressInteract();
+      expect(h.noted, <String>[
+        'input: alza la pistola',
+        'input: spara verso nord',
+        'input: alza la pistola',
+        'input: abbassa la pistola',
+      ]);
+    });
+
+    test('an input the game does not take is noted once per run', () {
+      final h = _Harness()..canAct = false;
+      h.input
+        ..pressInteract()
+        ..pressInteract()
+        ..pressInteract()
+        ..pressWait()
+        ..pressInteract();
+      expect(h.noted, <String>[
+        'input ignorato: interagisce',
+        'input ignorato: aspetta',
+        'input ignorato: interagisce',
+      ]);
+      h.canAct = true;
+      h.input.pressInteract();
+      expect(h.noted.last, 'input: interagisce');
     });
   });
 }
