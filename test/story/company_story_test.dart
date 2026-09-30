@@ -279,7 +279,7 @@ void main() {
       }
       talk();
       expect(host.shown.last.map((line) => line.text), <String>[
-        'Cosa? Non sei mai stato a Roma?!',
+        'Cosa?! Non eri mai stato a Roma?',
         TrainScript.chiaraRomeLines.last.text,
       ]);
       expect(
