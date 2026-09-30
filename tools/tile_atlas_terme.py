@@ -6,7 +6,7 @@ A module of its own, the way docs/level_pipeline.md wants the interiors to
 go: build_tile_atlas.py only lists it. The hall is the baths' frigidarium,
 which Michelangelo made into the church: floors of coloured marble, walls
 washed in ochre over the Roman brick, the eight columns of red granite the
-Romans set up, and the brass meridian let into the floor. What stands
+Romans set up. What stands
 taller than its cell leans out over the row above (`leaning`).
 """
 from __future__ import annotations
@@ -50,8 +50,6 @@ TM_GRANITE_DARK = (104, 42, 38)
 TM_GRANITE_LIGHT = (184, 100, 88)
 TM_CAPITAL = (226, 220, 204)
 TM_CAPITAL_SHADE = (184, 176, 160)
-TM_BRASS = (200, 164, 70)
-TM_BRASS_LIGHT = (236, 206, 120)
 TM_PEW = (98, 66, 40)
 TM_PEW_TOP = (134, 94, 58)
 TM_PEW_DARK = (62, 42, 26)
@@ -85,19 +83,6 @@ def paint_floor(d, rng, px, py, grey, inlay):
         cx, cy = px + rng.randrange(2, 10), py + rng.randrange(2, 12)
         for i in range(6):
             rect(d, cx + i, cy + (i % 3) - 1, 1, 1, (120, 110, 98))
-
-
-def paint_meridian(d, rng, px, py, sign):
-    """The meridian: a strip of brass down the middle of a band of white
-    marble, and every few slabs one of the signs of the zodiac in coloured
-    stone beside it, where the noon sun falls in its month."""
-    paint_floor(d, rng, px, py, False, False)
-    rect(d, px + 4, py, 8, TILE, (232, 228, 216))
-    rect(d, px + 7, py, 2, TILE, TM_BRASS)
-    rect(d, px + 7, py, 1, TILE, TM_BRASS_LIGHT)
-    if sign:
-        rect(d, px + 10, py + 4, 5, 8, (40, 70, 110))
-        rect(d, px + 11, py + 5, 3, 6, TM_GOLD)
 
 
 def paint_edge(d, px, py, right):
@@ -299,11 +284,6 @@ def terme_diocleziano(atlas: Atlas, rng) -> dict:
             [[], atlas.bucket(lambda r=right: tile_of(
                 lambda d: paint_edge(d, 0, 0, r)), 1)],
             [neighbour_key(1 if right else -1, 0, "x")]))
-    # A sign of the zodiac on every third slab of the meridian.
-    rules.append(rule("ground", "m", [atlas.bucket(
-        lambda s=sign: tile_of(lambda d: paint_meridian(d, rng, 0, 0, s)))
-        for sign in (False, True)], [pattern_key(0, 1, 3, 0)]))
-
     rules.append(rule(
         "structures", "I",
         [atlas.bucket(lambda b=below: tile_of(

@@ -247,7 +247,7 @@ void main() {
     });
 
     test('the vestibule opens onto the great hall, all of it within reach, '
-        'the brass meridian running down it between the pews', () {
+        'with nothing let into its floor that reads as a barrier', () {
       final world = createGameWorld();
       final start = terme.tilesOf('E').single.step(Direction.north);
       final reached = from(world, start, terme).keys.toSet();
@@ -257,9 +257,7 @@ void main() {
         }
       }
       expect(terme.tilesOf('O'), hasLength(8), reason: 'the eight columns');
-      final meridian = terme.tilesOf('m');
-      expect(meridian.map((tile) => tile.x).toSet(), hasLength(1));
-      expect(meridian.length, greaterThan(5));
+      expect(terme.tilesOf('m'), isEmpty, reason: 'no meridian');
       expect(workInProgressEnds.keys.where(terme.bounds.contains), isEmpty);
     });
 
