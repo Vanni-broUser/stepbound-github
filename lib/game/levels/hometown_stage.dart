@@ -107,13 +107,18 @@ final class HometownStage extends LevelStage implements HometownActions {
         ),
       ),
       if (!_mallScript.luigiGone)
-        _luigi = NpcComponent(asset: NpcComponent.luigiAsset, tile: luigiTile),
+        _luigi = NpcComponent(
+          asset: NpcComponent.luigiAsset,
+          tile: luigiTile,
+          name: MallScript.luigi,
+        ),
       // The mass is where Don Angelo and his community end: after it none
       // of the three is in the nave any more.
       if (!massacre)
         _priest = NpcComponent(
           asset: NpcComponent.priestAsset,
           tile: _priestInside ? duomoPriestTile : priestTile,
+          name: PriestScript.priest,
         ),
       if (!massacre)
         _stairCultist = NpcComponent(
@@ -121,11 +126,13 @@ final class HometownStage extends LevelStage implements HometownActions {
           tile: _stairCultistMoved
               ? duomoStairCultistMovedTile
               : duomoStairCultistTile,
+          name: DuomoScript.cultist,
         ),
       if (!massacre)
         _welcomingCultist = NpcComponent(
           asset: NpcComponent.cultistAsset,
           tile: duomoWelcomingCultistTile,
+          name: DuomoScript.cultist,
         ),
       // At her workstation in the company, behind the glass, on the phone,
       // until she leaves for the train.
@@ -133,6 +140,7 @@ final class HometownStage extends LevelStage implements HometownActions {
         _chiara = NpcComponent(
           asset: NpcComponent.chiaraAsset,
           tile: chiaraTile,
+          name: CompanyScript.chiara,
           facing: Direction.north,
         ),
       ShutterComponent(bars: luigiBars, map: simulation.map),
@@ -291,6 +299,7 @@ final class HometownStage extends LevelStage implements HometownActions {
       _priest = NpcComponent(
         asset: NpcComponent.priestAsset,
         tile: duomoPriestTile,
+        name: PriestScript.priest,
       ),
     );
   }
@@ -307,6 +316,7 @@ final class HometownStage extends LevelStage implements HometownActions {
       _stairCultist = NpcComponent(
         asset: NpcComponent.cultistAsset,
         tile: duomoStairCultistMovedTile,
+        name: DuomoScript.cultist,
       ),
     );
   }

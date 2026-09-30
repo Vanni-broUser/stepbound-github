@@ -7,13 +7,15 @@ import 'package:stepbound/game/render/depth_sorted_world.dart';
 
 /// Someone alive who is not part of the simulation: Luigi behind his
 /// shutter, Don Angelo behind his gate. They stand on their tile facing
-/// [facing], breathing between their two idle frames, until the story
-/// sends them away through [walkAwayThrough]; then they walk the path
-/// given and remove themselves once they arrive.
+/// [facing], breathing between their two idle frames, and turn to whoever
+/// they speak to (see [turnTowards]), until the story sends them away
+/// through [walkAwayThrough]; then they walk the path given and remove
+/// themselves once they arrive.
 final class NpcComponent extends PositionComponent with StandsOnFloor {
   NpcComponent({
     required this.asset,
     required GridPoint tile,
+    this.name,
     this.facing = Direction.south,
     double tileSize = 16,
   }) : _tileSize = tileSize,
@@ -53,7 +55,13 @@ final class NpcComponent extends PositionComponent with StandsOnFloor {
   /// The sprite sheet this one is drawn from.
   final String asset;
 
-  /// The way they are turned; walking away turns them along the path.
+  /// Who they are, the way the story names them over their lines: a line
+  /// of theirs turns them to whoever they are speaking to. Without one
+  /// they never speak.
+  final String? name;
+
+  /// The way they are turned; speaking turns them to their listener,
+  /// walking away turns them along the path.
   Direction facing;
 
   final double _tileSize;
@@ -69,6 +77,27 @@ final class NpcComponent extends PositionComponent with StandsOnFloor {
   Future<void> onLoad() async {
     await super.onLoad();
     _atlas = await loadAssetImage(asset);
+  }
+
+  /// The tile they stand on (the one they are walking over, on their way
+  /// out).
+  GridPoint get tile => GridPoint(
+    (position.x / _tileSize).floor(),
+    (position.y / _tileSize).ceil() - 1,
+  );
+
+  /// Turns to face [target], the way the player does when he speaks to
+  /// them: along whichever axis it lies further off, and sideways when it
+  /// lies as far along both. Standing on it, they stay as they are.
+  void turnTowards(GridPoint target) {
+    final dx = target.x - tile.x;
+    final dy = target.y - tile.y;
+    if (dx == 0 && dy == 0) {
+      return;
+    }
+    facing = dx.abs() >= dy.abs()
+        ? (dx < 0 ? Direction.west : Direction.east)
+        : (dy < 0 ? Direction.north : Direction.south);
   }
 
   /// Walks in a straight line through [tiles] in order; once the last one
