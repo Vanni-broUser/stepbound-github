@@ -12,19 +12,24 @@ import 'package:stepbound/core/levels/place.dart';
 /// street of
 /// Molfetta like the others, its palazzi along
 /// the north side over the pavement, the roofs of the next block along
-/// the south side. East of the palazzo, a few palazzi on, the long low
-/// shed of a big company `Æ`, its gate `Ø` rolled up on the way in
-/// (company.dart) and its loading bays shut; between the two, a camp
-/// on the pavement with its fire `S`. West, a few palazzi on, the street
+/// the south side. East of the palazzo, a few palazzi on, the office
+/// block of a call centre `Æ`, its front all tinted glass, its way in `Ø`
+/// under a red canopy with its name on it, the glass doors broken open
+/// (company.dart); between the two, a camp
+/// on the pavement with its fire `S`. Past the company, at the east edge of
+/// the map, a pile-up shuts the street from pavement to pavement: cars,
+/// burning `XX` and overturned `UU`, some ahead of the others and some
+/// behind, each touching the next so there is no way between them, and
+/// one more `k` burning past them. West, a few palazzi on, the street
 /// ends against the corner palazzo and a road goes off it south: a
 /// crossroads with its traffic lights `T` at three corners, a zebra
 /// crossing over each road, the stop lines before them, the centre line
 /// bending round the corner, a give-way sign `/` at the mouth of the road
 /// south and the blue plate pointing the way east.
 ///
-/// Glyphs, on top of the outdoor legend in street.dart: `Æ` the
-/// company's shed, a wall; `Ø` its gate, rolled up, a door; `«` the
-/// palazzo's portone, a door.
+/// Glyphs, on top of the outdoor legend in street.dart: `Æ` the call
+/// centre's office block, a wall; `Ø` its glass doors, open, a door; `«`
+/// the palazzo's portone, a door.
 // industry-street-rows-start
 const List<String> industryStreetRows = <String>[
   'BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆBBB',
@@ -34,11 +39,11 @@ const List<String> industryStreetRows = <String>[
   'BBBBHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHfHHHHHHHÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆHHH',
   'BBBBHHHHHHHHHHHfHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆHHH',
   'BBBBHHHHHHHHHHHHHHHHHHHHHHHHHHH«HHHHHHHHHHHHHHHHHHHHÆÆÆÆÆÆÆÆÆÆØØØØÆÆÆÆÆÆÆÆÆÆÆHHH',
-  'BBBBT=/===T=F==========================/====S======================/============',
-  'BBBB=....Z▏.......:........>.......UU...............r..d..............CC........',
-  'BBBB=.ɔ.-Z----------w-----d-----------w-------:--->----------:------------------',
-  'BBBB=....Z....CC.............:...........d..............w.XX....>....w....:.....',
-  'BBBB=VVVT=============nn========d=====:=========T=======================D=======',
+  'BBBBT=/===T=F==========================/====S======================/=========UU=',
+  'BBBB=....Z▏.......:........>.......UU...............r..d..............CC...XX..k',
+  'BBBB=.ɔ.-Z----------w-----d-----------w-------:--->----------:--------------CC-k',
+  'BBBB=....Z....CC.............:...........d..............w.XX....>....w....XX....',
+  'BBBB=VVVT=============nn========d=====:=========T=======================D===CC==',
   'BBBB=.|▔=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBB=.|:=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBBB=.|./BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
