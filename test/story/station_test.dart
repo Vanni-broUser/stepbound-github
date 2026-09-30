@@ -169,7 +169,7 @@ void main() {
         host.dismiss();
         expect(host.zombieBooksOpened, index + 1);
       }
-      expect(trainBookTiles, hasLength(1), reason: 'one cell of books');
+      expect(trainBookTiles, hasLength(3), reason: 'the whole desk');
       // The wardrobe, then the outfits to choose from.
       director.onEvents(<WorldEvent>[
         LookedOutEvent(at: trainWardrobeTiles.first),

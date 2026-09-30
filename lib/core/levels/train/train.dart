@@ -76,9 +76,12 @@ const String trainPlaceName = 'Treno';
 /// Luigi, at home in his corner of the locomotive.
 final GridPoint trainLuigiTile = _train.tileOf('l');
 
-/// The middle of Mario's desk, the abacus and the calculator: there he
-/// reads up on the zombie types met so far.
-final List<GridPoint> trainBookTiles = _train.tilesOf('k');
+/// Mario's desk, west to east: the open books, the abacus and the
+/// calculator, the mug and the candle. From any of the three he reads up
+/// on the zombie types met so far; the glint is on the middle one.
+final List<GridPoint> trainBookTiles = <GridPoint>[
+  for (final glyph in const <String>['K', 'k', 'q']) ..._train.tilesOf(glyph),
+];
 
 /// Mario's wardrobe, a rail with his clothes on it: what to wear.
 final List<GridPoint> trainWardrobeTiles = _train.tilesOf('R');
