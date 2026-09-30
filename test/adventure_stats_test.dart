@@ -69,7 +69,9 @@ void main() {
   });
 
   testWidgets('once in Rome, the arrows go from one city to the other, '
-      'each with its own figures', (tester) async {
+      'each with its own figures, and not round past either end', (
+    tester,
+  ) async {
     final progress = Progress()
       ..steps[LevelId.hometown] = 42
       ..steps[LevelId.rome] = 7
@@ -77,10 +79,26 @@ void main() {
     await pumpStats(tester, progress);
     expect(city(LevelId.rome), findsOneWidget, reason: 'where the train is');
     expect(find.text('7'), findsOneWidget);
-    await tap(tester, 'adventure-stats-next');
+    expect(
+      find.byKey(const ValueKey<String>('adventure-stats-next')),
+      findsNothing,
+      reason: 'Rome is the last city reached',
+    );
+    final cards = tester.getTopLeft(find.byType(StatsCard));
+    await tap(tester, 'adventure-stats-prev');
     expect(city(LevelId.hometown), findsOneWidget);
     expect(find.text('42'), findsOneWidget);
-    await tap(tester, 'adventure-stats-prev');
+    expect(
+      find.byKey(const ValueKey<String>('adventure-stats-prev')),
+      findsNothing,
+      reason: 'nothing comes before the hometown',
+    );
+    expect(
+      tester.getTopLeft(find.byType(StatsCard)),
+      cards,
+      reason: 'the missing arrow leaves its room',
+    );
+    await tap(tester, 'adventure-stats-next');
     expect(city(LevelId.rome), findsOneWidget);
   });
 
@@ -89,7 +107,7 @@ void main() {
   ) async {
     await pumpStats(tester, Progress()..travel(LevelId.rome, rounds: 3));
     await tap(tester, 'adventure-stats-memories');
-    await tap(tester, 'adventure-stats-next');
+    await tap(tester, 'adventure-stats-prev');
     await tap(tester, 'adventure-stats-memories');
     expect(replays, <LevelId>[LevelId.rome, LevelId.hometown]);
   });

@@ -358,7 +358,9 @@ final class StatsCard extends StatelessWidget {
 /// Mario's cot aboard the train: the same figures as at the end of a
 /// level, for any city Mario has been to, its name written in blood above
 /// them. The arrows go from one city to the next, and show only once there
-/// is more than one: Rome is there once the train has taken him there. It
+/// is more than one: Rome is there once the train has taken him there.
+/// They do not go round: none before the first city, none after the last
+/// one reached, only the room it would take, so the cards stay put. It
 /// opens on [level] or, without one, on the city the train stands in.
 /// Under the figures, beside the way out, the memories of the city shown
 /// to live again and, while some are left to do, its secret missions.
@@ -411,7 +413,7 @@ final class _AdventureStatsState extends State<AdventureStats> {
   /// Whether the secret missions are open in place of the figures.
   bool _secrets = false;
 
-  void _turn(int by) => setState(() => _index = (_index + by) % _cities.length);
+  void _turn(int by) => setState(() => _index += by);
 
   @override
   Widget build(BuildContext context) {
@@ -423,14 +425,24 @@ final class _AdventureStatsState extends State<AdventureStats> {
         final unit = constraints.maxHeight.isFinite
             ? constraints.maxHeight / IntegerResolutionViewport.virtualHeight
             : 1.0;
-        Widget arrow(String label, int by) => MenuButton(
-          key: ValueKey<String>('adventure-stats-${by < 0 ? 'prev' : 'next'}'),
-          label: label,
-          unit: unit,
-          compact: true,
-          width: 22,
-          onPressed: () => _turn(by),
-        );
+        const arrowWidth = 22.0;
+        Widget arrow(String label, int by) {
+          final to = _index + by;
+          if (to < 0 || to >= _cities.length) {
+            return SizedBox(width: arrowWidth * unit);
+          }
+          return MenuButton(
+            key: ValueKey<String>(
+              'adventure-stats-${by < 0 ? 'prev' : 'next'}',
+            ),
+            label: label,
+            unit: unit,
+            compact: true,
+            width: arrowWidth,
+            onPressed: () => _turn(by),
+          );
+        }
+
         // The secret missions only of a city played to its end, Molfetta
         // once Luigi has been reached at the station, and only while some
         // are left to do: with none, there is no page to open.
