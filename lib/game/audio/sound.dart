@@ -22,7 +22,12 @@ enum Music {
 
   /// A catchy beat to rap over, all swagger: Tonino and Marcello, in
   /// their scenes and whenever they come into view once they are known.
-  maranza('music/maranza.mp3');
+  maranza('music/maranza.mp3'),
+
+  /// Pizzicato tiptoeing like a cartoon villain, slowed down: the hold
+  /// music of a call centre gone wrong. Molfetta's industries, the company
+  /// and Chiara's scenes.
+  weasel('music/weasel.mp3');
 
   const Music(this.file);
 
@@ -162,6 +167,11 @@ const List<SoundCredit> musicCredits = <SoundCredit>[
   ),
   (
     title: 'Basic Implosion',
+    author: 'Kevin MacLeod (incompetech.com)',
+    licence: 'CC BY 4.0',
+  ),
+  (
+    title: 'Scheming Weasel (slower version)',
     author: 'Kevin MacLeod (incompetech.com)',
     licence: 'CC BY 4.0',
   ),
