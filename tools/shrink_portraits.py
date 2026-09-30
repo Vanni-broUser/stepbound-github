@@ -14,7 +14,11 @@ same, its edge hardened again after the filter; one drawn with soft
 edges (Chiara, the Bruto, the wanderer) keeps them. Exact white,
 which the filter can make out of near-white, is moved into the outfit's
 own light colour where clean_portraits.py says so (the Halloween
-outfits). Saved as an optimised PNG. Already-small files are left alone,
+outfits), and those four then get the cleaning clean_halloween_edges.py
+gives them in the sprite chain (the grey ring the filter leaves outside
+the outline, the specks), until it has nothing left to do: they are that
+script's outputs, and `build_sprites.py --check` holds them to it. Saved
+as an optimised PNG. Already-small files are left alone,
 so it can be run on the whole folder whenever a new portrait comes in at
 full size. The originals stay in the history of the repository.
 
@@ -28,9 +32,12 @@ from __future__ import annotations
 import glob
 import os
 import sys
+from pathlib import Path
 
 from PIL import Image
 
+from clean_halloween_edges import OUTFITS as HALLOWEEN_OUTFITS
+from clean_halloween_edges import clean_image
 from clean_portraits import SOFTEN_PURE_WHITE, soften_pure_white
 
 PORTRAIT_HEIGHT = 1000
@@ -67,6 +74,12 @@ def shrink(path: str) -> str:
     if name in SOFTEN_PURE_WHITE:
         soften_pure_white(small, SOFTEN_PURE_WHITE[name])
     small.save(path, "PNG", optimize=True)
+    if os.path.splitext(name)[0] in HALLOWEEN_OUTFITS:
+        while True:
+            cleaned, changed = clean_image(Path(path), portrait=True)
+            if not changed:
+                break
+            cleaned.save(path, "PNG", optimize=True)
     return (f"{path}: {image.width}x{image.height} -> "
             f"{width}x{PORTRAIT_HEIGHT}, {before // 1024} -> "
             f"{os.path.getsize(path) // 1024} KB")
