@@ -1543,10 +1543,12 @@ def city_place(atlas: Atlas, rng, name: str, marker, storefront_table,
     ride = run_of(rows, CAROUSEL)
     if ride:
         x, y, w, h = ride
-        objects.append(picture(
+        # Its roof and cupola rise over the row north of it: whoever walks
+        # there goes behind them.
+        objects.append({**picture(
             rows, level, f"{name}_carousel",
             lambda d, lv: carousel.paint_carousel(d, x * TILE, y * TILE, w, h),
-            CAROUSEL))
+            CAROUSEL), "rises": True})
     fountain = run_of(rows, "O")
     if fountain:
         x, y, w, _ = fountain

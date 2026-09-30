@@ -7256,13 +7256,14 @@
         },
         {
           "image": "hometown/harbour_carousel.png",
-          "at": [132, 51],
-          "underAt": [133, 55],
+          "at": [133, 51],
+          "underAt": [134, 55],
           "under": [
             "\u00e7\u00e7\u00e7\u00e7\u00e7",
             "\u00e7\u00e7\u00e7\u00e7\u00e7",
             "\u00e7\u00e7\u00e7\u00e7\u00e7"
-          ]
+          ],
+          "rises": true
         },
         {
           "image": "hometown/harbour_moored_boat.png",

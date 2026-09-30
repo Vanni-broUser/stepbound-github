@@ -137,6 +137,16 @@ void main() {
     }
   });
 
+  test("the harbour's carousel rises over the row behind it", () {
+    final art = manifest.places[place(PlaceId.harbour).artId.name]!;
+    final carousel = art.objects.singleWhere(
+      (object) => object.image.contains('carousel'),
+    );
+    expect(carousel.rises, isTrue);
+    expect(carousel.underCorner, isNotNull);
+    expect(art.objects.where((object) => object.rises), <TileObject>[carousel]);
+  });
+
   test('every car of a pile-up is drawn, even stacked lane on lane', () {
     var cars = 0;
     // Only outdoors are these glyphs cars (in the bar `U` is a zombie).

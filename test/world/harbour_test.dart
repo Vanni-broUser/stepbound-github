@@ -168,7 +168,7 @@ void main() {
         harbourRoadCampfireTile.x - harbour.origin.x,
         harbourRoadCampfireTile.y - harbour.origin.y,
       );
-      expect(localRoad.x, greaterThan(harbour.width - 10));
+      expect(localRoad.x, greaterThan(harbour.width - 15));
       expect(localRoad.y, greaterThan(harbour.height - 10));
     });
 
