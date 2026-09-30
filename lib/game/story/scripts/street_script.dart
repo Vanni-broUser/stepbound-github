@@ -2,12 +2,11 @@ import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/story/story_director.dart';
 
 /// The first street: the zombie east of the crossroads is introduced as
-/// soon as the whole of it is on screen and the player has the controls,
-/// wherever Mario is standing and whatever the screen, with the view as it
-/// is: nothing waits for him to walk into the crossroads, where the view
-/// starts following him and the zombie steps closer. Then the wanderers'
-/// pace is explained and Mario decides to get away from it. Its alert is
-/// only a fallback, should it notice him before it is in sight.
+/// soon as Mario, done with the movement hint, reaches the column just
+/// before the west zebra crossing ([tutorialZombieLessonTrigger]), with the
+/// view as it is. Then the wanderers' pace is explained and Mario decides
+/// to get away from it. Its alert is only a fallback, should it notice him
+/// before he gets there.
 final class StreetScript extends StoryScript {
   StreetScript(super.director);
 
@@ -26,7 +25,9 @@ final class StreetScript extends StoryScript {
     final zombie = world.entities[tutorialZombieId];
     if (zombie == null ||
         !zombie.isAlive ||
-        !host.isTileVisible(zombie.component<PositionComponent>().position)) {
+        !tutorialZombieLessonTrigger.contains(
+          world.player.component<PositionComponent>().position,
+        )) {
       return;
     }
     _introduce(zombie);

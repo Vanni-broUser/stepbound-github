@@ -174,6 +174,19 @@ final GridRect tutorialZombieTrigger = () {
   return GridRect(crossing.x - 1, crossing.y, crossing.x + 9, crossing.y + 6);
 }();
 
+/// The column just west of the west zebra crossing, between the sidewalks
+/// of the crossroads' west arm: reaching it, after the movement hint, is
+/// what has the tutorial zombie introduced.
+final GridRect tutorialZombieLessonTrigger = () {
+  final crossing = _street.tilesOf('Z').first;
+  return GridRect(
+    crossing.x - 1,
+    crossing.y - 1,
+    crossing.x - 1,
+    crossing.y + 5,
+  );
+}();
+
 /// The flagpole planted on the forecourt, where the tricolour flies.
 final GridPoint flagpoleTile = _street.tileOf('I');
 

@@ -193,8 +193,8 @@ void main() {
     );
 
     expect(nearbyFires, isEmpty);
-    expect(northDistrictRows[36].substring(69, 71), 'CC');
-    expect(northDistrictRows[37][79], 'F');
+    expect(northDistrictRows[36].substring(99, 101), 'CC');
+    expect(northDistrictRows[37][109], 'F');
     expect(
       hometownFireSpots.map((spot) => spot.tile),
       isNot(contains(extinguishedNorthDistrictBinTile)),
@@ -344,9 +344,9 @@ void main() {
     final world = createGameWorld();
     // The square, in the north district's own tiles.
     final square = GridRect(
-      place(PlaceId.northDistrict).origin.x + 38,
+      place(PlaceId.northDistrict).origin.x + 68,
       place(PlaceId.northDistrict).origin.y + 30,
-      place(PlaceId.northDistrict).origin.x + 58,
+      place(PlaceId.northDistrict).origin.x + 88,
       place(PlaceId.northDistrict).origin.y + 42,
     );
     final hordes = zombiesIn(world, place(PlaceId.northDistrict)).where(

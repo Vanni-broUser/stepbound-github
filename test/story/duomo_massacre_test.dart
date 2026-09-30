@@ -140,6 +140,13 @@ void main() {
     );
   });
 
+  test('the burning lane of the pile-up north of the crossroads, in the '
+      'north district, says the same', () {
+    director.onEvents(<WorldEvent>[LookedOutEvent(at: northDistrictFireTile)]);
+    settle();
+    expect(host.shown.single.single.text, RoadblockFireScript.fireLine);
+  });
+
   test(
     'the fire in the gap by the burning car at the station says the same',
     () {
@@ -428,9 +435,22 @@ void main() {
     expect(lines.last.portrait, isNotNull);
   });
 
-  test('the first zombie is introduced as soon as it is in sight, before '
-      'it notices Mario', () {
+  test('the first zombie is introduced as soon as Mario reaches the column '
+      'before the zebra crossing, not before', () {
+    final mario = world.player.component<PositionComponent>();
     host.visible.add(zombiePosition());
+    director.update(0.1, turnAnimating: false);
+    expect(host.shown, isEmpty, reason: 'in sight is not enough');
+    mario.position = GridPoint(
+      tutorialZombieLessonTrigger.left - 1,
+      tutorialZombieLessonTrigger.top + 3,
+    );
+    director.update(0.1, turnAnimating: false);
+    expect(host.shown, isEmpty, reason: 'one column short');
+    mario.position = GridPoint(
+      tutorialZombieLessonTrigger.left,
+      tutorialZombieLessonTrigger.top + 3,
+    );
     director.update(0.1, turnAnimating: false);
     expect(host.shown, hasLength(1), reason: 'no need to walk up to it');
     expect(host.shown.single.map((line) => line.text), <String>[
@@ -447,9 +467,11 @@ void main() {
   });
 
   test('the first zombie waits for the opening lines to be read', () {
-    host
-      ..visible.add(zombiePosition())
-      ..inPlay = false;
+    world.player.component<PositionComponent>().position = GridPoint(
+      tutorialZombieLessonTrigger.left,
+      tutorialZombieLessonTrigger.top + 3,
+    );
+    host.inPlay = false;
     director.update(0.1, turnAnimating: false);
     expect(host.shown, isEmpty);
     host.inPlay = true;

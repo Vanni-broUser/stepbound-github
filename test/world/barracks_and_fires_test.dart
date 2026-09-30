@@ -84,11 +84,14 @@ void main() {
     // the street out of the palazzo past the airliner, with a bin and
     // two windows on fire, and three more in the pile-up at its east end;
     // and on the monument's square past it, a car, two bins and three
-    // windows, and one more in the pile-up at the end of its east road.
-    expect(count(all, FireKind.car), 21 + stationWreckFireSpots.length);
+    // windows, and one more in the pile-up at the end of its east road;
+    // and three in the north district round the crossroads west of the
+    // hypermarket's road, two of them in the pile-up closing its road north,
+    // with three more windows on fire along the new streets.
+    expect(count(all, FireKind.car), 24 + stationWreckFireSpots.length);
     expect(stationWreckFireSpots, hasLength(2));
     expect(count(all, FireKind.bin), 12);
-    expect(count(all, FireKind.window), 20);
+    expect(count(all, FireKind.window), 23);
     expect(count(all, FireKind.campfire), 6);
     // One camp in the north district, one in the dead end the wrecks
     // leave at the west end of the shopping street behind the mall, two

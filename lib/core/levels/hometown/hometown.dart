@@ -790,6 +790,7 @@ LevelContents hometownContents(EntityFactory factory) {
       duomoTowerLookoutTile,
       hospitalRoofLookoutTile,
       shoppingStreetFireTile,
+      northDistrictFireTile,
       stationTrackFireTile,
       ...oldTownDamagedDoorTiles,
       // Chiara at her desk, to talk to once she has been reached.

@@ -40,8 +40,10 @@ final class DialogueLine {
   /// while the line is up.
   final ControlDemo? demo;
 
-  /// Lets this exceptional line advance when the player tries a rightward
-  /// movement gesture instead of tapping through the tutorial first.
+  /// Lets this exceptional line advance when the player tries the movement
+  /// control instead of tapping through the tutorial first: a rightward
+  /// drag anywhere, or a tap or a drag in any direction on the left half of
+  /// the screen, where the joystick is, or on the gesture's panel.
   final bool advanceOnRightDrag;
 }
 
@@ -105,6 +107,13 @@ final class _GameplayDialogueState extends State<GameplayDialogue> {
   /// Movement accumulated while the opening movement hint is on screen.
   Offset _dragDelta = Offset.zero;
 
+  /// Whether that drag started where the joystick is, or on the panel
+  /// showing it: then any direction counts.
+  bool _dragOnPad = false;
+
+  /// The panel playing the line's gesture, to tell a touch on it.
+  final GlobalKey _demoKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
@@ -147,8 +156,33 @@ final class _GameplayDialogueState extends State<GameplayDialogue> {
     widget.onFinished();
   }
 
-  void _dragStart() {
+  /// On the left half of the screen, where the joystick is, or on the
+  /// panel showing the gesture.
+  bool _onPad(Offset global) {
+    final box = context.findRenderObject();
+    if (box is RenderBox &&
+        box.hasSize &&
+        box.globalToLocal(global).dx < box.size.width / 2) {
+      return true;
+    }
+    final demo = _demoKey.currentContext?.findRenderObject();
+    return demo is RenderBox &&
+        demo.hasSize &&
+        (Offset.zero & demo.size).contains(demo.globalToLocal(global));
+  }
+
+  void _tapDown(TapDownDetails details) {
+    final line = widget.lines[_index];
+    // Like a drag, a touch where the joystick is means to try it: no need
+    // to wait for the line to settle.
+    _press(
+      allowUnsettled: line.advanceOnRightDrag && _onPad(details.globalPosition),
+    );
+  }
+
+  void _dragStart(DragStartDetails details) {
     _dragDelta = Offset.zero;
+    _dragOnPad = _onPad(details.globalPosition);
     _tappedAt = null;
     // Unlike ordinary dialogue input, this is an intentional attempt to use
     // the control the line is teaching, so it need not wait for the guard
@@ -161,12 +195,13 @@ final class _GameplayDialogueState extends State<GameplayDialogue> {
   }
 
   void _dragEnd() {
-    if (_dragDelta.dx > 0) {
+    if (_dragDelta.dx > 0 || (_dragOnPad && _dragDelta != Offset.zero)) {
       _advance(leavesSplat: false);
     } else {
       _pressWasFresh = false;
     }
     _dragDelta = Offset.zero;
+    _dragOnPad = false;
   }
 
   @override
@@ -176,10 +211,10 @@ final class _GameplayDialogueState extends State<GameplayDialogue> {
     return GestureDetector(
       key: const ValueKey<String>('gameplay-dialogue'),
       behavior: HitTestBehavior.opaque,
-      onTapDown: (_) => _press(),
+      onTapDown: _tapDown,
       onTapUp: (details) => _tappedAt = details.globalPosition,
       onTap: _advance,
-      onPanStart: line.advanceOnRightDrag ? (_) => _dragStart() : null,
+      onPanStart: line.advanceOnRightDrag ? _dragStart : null,
       onPanUpdate: line.advanceOnRightDrag ? _dragUpdate : null,
       onPanEnd: line.advanceOnRightDrag ? (_) => _dragEnd() : null,
       onPanCancel: line.advanceOnRightDrag ? _dragEnd : null,
@@ -219,9 +254,12 @@ final class _GameplayDialogueState extends State<GameplayDialogue> {
                   height: height,
                   // Keyed by the gesture: lines that show the same one keep
                   // it playing on without starting over.
-                  child: ControlDemoView(
-                    key: ValueKey<ControlDemo>(demo),
-                    demo: demo,
+                  child: KeyedSubtree(
+                    key: _demoKey,
+                    child: ControlDemoView(
+                      key: ValueKey<ControlDemo>(demo),
+                      demo: demo,
+                    ),
                   ),
                 ),
                 box,
