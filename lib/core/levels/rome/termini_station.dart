@@ -41,8 +41,9 @@ const List<String> terminiOverpassRows = <String>[
 ];
 // termini-overpass-rows-end
 
-/// The far platform, down the one open flight of the overpass `D` in its
-/// front wall. The same station as the platform the train pulls in at,
+/// The far platform, down the one open flight of the overpass: its stairs
+/// `D` climb through its front wall and one cell past it, two cells wide,
+/// as on the platform the train pulls in at. The same station as the platform the train pulls in at,
 /// but the tracks run on well past both ends of the platform `=`, which
 /// stops at a step down onto the ballast `,` and the rails `-`. A train
 /// was left standing on the far track `m`, all along the platform. West,
@@ -71,6 +72,7 @@ const List<String> terminiFarPlatformRows = <String>[
   ';;;;;;;;;;;;;,,;,,,,,,,,,,,,,,,,,,==========TT==================TT=:==,,,,,,,:,,,,,,,,,,,,VVVVVVVVVVVVVV',
   ';;;;;;;;,,,;,,,:,,,,,,,,,,,,,,,,,,=======:============================,,,,,,,,,,,,,,,,,,,,,VVVVVVVVVVVVV',
   'wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwDDwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww',
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxDDxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
 ];
 // termini-far-platform-rows-end

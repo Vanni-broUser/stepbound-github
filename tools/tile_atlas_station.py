@@ -42,6 +42,38 @@ from tile_atlas_core import (  # noqa: E402
     tile_of,
 )
 
+def flight(atlas: Atlas, glyph: str, up: bool = False) -> list:
+    """The rule for a flight of stairs `glyph` got onto southward, a few
+    cells deep, going down (build_station.paint_stairs_flight) or `up`
+    (paint_stairs_flight_up): the key is whether it
+    goes on beside a cell, how many of its cells are above it, and whether
+    it goes on below."""
+    out = []
+    for index in range(32):
+        left, right = bool(index & 1), bool(index & 2)
+        up = 2 if index & 8 and index & 4 else 1 if index & 4 else 0
+        down = bool(index & 16)
+
+        def around(x, y, l=left, r=right, u=up, dn=down):
+            if (x, y) == (-1, 0):
+                return glyph if l else "."
+            if (x, y) == (1, 0):
+                return glyph if r else "."
+            if (x, y) == (0, 1):
+                return glyph if dn else "."
+            if x == 0 and -u <= y < 0:
+                return glyph
+            return "."
+
+        paint = paint_stairs_flight_up if up else station.paint_stairs_flight
+        out.append(atlas.bucket(lambda a=around, p=paint: tile_of(
+            lambda d: p(d, Neighbourhood(glyph, a), 0, 0)), 1))
+    return [rule("structures", glyph, out,
+                 [neighbour_key(-1, 0, glyph), neighbour_key(1, 0, glyph),
+                  neighbour_key(0, -1, glyph), neighbour_key(0, -2, glyph),
+                  neighbour_key(0, 1, glyph)])]
+
+
 def station_underpass(atlas: Atlas, rng) -> dict:
     """The rules that paint PlaceId.stationUnderpass: the corridor under
     the tracks, glazed tile over a dark plinth, lit by strip lights."""
@@ -282,6 +314,40 @@ def paint_stairs_up(d, room, x, y):
             rect(d, px + side, py + 4, 2, 2, station.METAL_LIGHT)
 
 
+def paint_stairs_flight_up(d, room, x, y):
+    """A cell of a flight climbing southward from a platform, a few cells
+    deep, `D` at Termini: its head, the cell with no step above it, is
+    `paint_stairs_up`; each cell further on carries higher steps, lighter
+    the nearer the light they climb to, between handrails that run on along
+    both outer sides, and where the flight ends its top landing and rail.
+    Molfetta's go down (build_station.paint_stairs_flight)."""
+    glyph = room.at(x, y)
+    depth = 0
+    while depth < 2 and room.at(x, y - depth - 1) == glyph:
+        depth += 1
+    if depth == 0:
+        paint_stairs_up(d, room, x, y)
+    else:
+        px, py = x * TILE, y * TILE
+        first = room.at(x - 1, y) != glyph
+        last = room.at(x + 1, y) != glyph
+        rect(d, px, py, TILE, TILE, shade((70, 68, 64), 10 * depth))
+        for i, sy in enumerate(range(py + 1, py + TILE, 3)):
+            tread = shade((118, 114, 106), 16 * (4 + i) + 12 * (depth - 1))
+            rect(d, px, sy, TILE, 1, shade(tread, -46))  # the riser's edge
+            rect(d, px, sy + 1, TILE, 2, tread)
+        for side, there in ((0, first), (TILE - 2, last)):
+            if there:
+                rect(d, px + side, py, 2, TILE, station.METAL_DARK)
+                rect(d, px + side, py, 2, 1, station.METAL_LIGHT)
+    if room.at(x, y + 1) != glyph:  # the landing at the top, and its rail
+        px, py = x * TILE, y * TILE
+        rect(d, px, py + TILE - 3, TILE, 3, (196, 192, 182))
+        rect(d, px, py + TILE - 1, TILE, 1, (120, 116, 108))
+        rect(d, px, py + TILE - 5, TILE, 2, station.METAL_DARK)
+        rect(d, px, py + TILE - 5, TILE, 1, station.METAL_LIGHT)
+
+
 def station_far_side(atlas: Atlas, rng) -> dict:
     """The rules that paint PlaceId.stationFarSide: the far platform, the
     track and the railcar Luigi is holed up in."""
@@ -349,9 +415,7 @@ def station_far_side(atlas: Atlas, rng) -> dict:
         rule("structures", "WlrQ", wall,
              [neighbour_key(0, -1, "WlrQ"), pattern_key(7, 5, 9)]),
         rule("structures", ":", [litter]),
-        rule("structures", "D", ends(station.paint_stairs, "D"),
-             [neighbour_key(-1, 0, "D"), neighbour_key(1, 0, "D")]),
-    ]
+    ] + flight(atlas, "D")
     # Termini paints its rows with these rules too, and has no side walls.
     for right in (False, True):
         edge = atlas.bucket(lambda r=right: tile_of(
@@ -576,9 +640,7 @@ def station_hall(atlas: Atlas, rng) -> dict:
     rules += [
         rule("structures", ":", randomly(station.paint_litter)),
         rule("structures", "b", randomly(paint_blood)),
-        rule("structures", "U", ends(station.paint_stairs, "U"),
-             [neighbour_key(-1, 0, "U"), neighbour_key(1, 0, "U")]),
-    ]
+    ] + flight(atlas, "U")
     tactile_keys = [
         neighbour_key(0, -1, "pOU"),
         neighbour_key(1, 0, "pOU"),

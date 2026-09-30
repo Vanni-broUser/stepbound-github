@@ -151,7 +151,10 @@ void main() {
   test('the stairs survive a save', () {
     final restored = restoreGameWorld(saveGameWorld(world));
     expect(restored.stairs, world.stairs);
-    expect(restored.stairs, hometownStairs);
+    expect(restored.stairs, <GridPoint, Direction>{
+      ...hometownStairs,
+      ...romeStairs,
+    });
   });
 }
 

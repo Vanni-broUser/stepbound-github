@@ -263,6 +263,38 @@ def paint_stairs(d, room, x, y):
             rect(d, px + side, py + 4, 2, 2, METAL_LIGHT)
 
 
+def paint_stairs_flight(d, room, x, y):
+    """A cell of a flight going down southward several cells deep, `U` in
+    the booking hall and `D` on the far platform: its head, the cell with
+    no step above it, is `paint_stairs`; each cell further down carries
+    lower steps, darker the deeper they go, between handrails that run on
+    down both outer sides."""
+    glyph = room.at(x, y)
+    depth = 0
+    while depth < 2 and room.at(x, y - depth - 1) == glyph:
+        depth += 1
+    if depth == 0:
+        paint_stairs(d, room, x, y)
+        return
+    px, py = x * TILE, y * TILE
+    first = room.at(x - 1, y) != glyph
+    last = room.at(x + 1, y) != glyph
+    rect(d, px, py, TILE, TILE, shade((26, 26, 30), -8 * depth))
+    for i, sy in enumerate(range(py + 1, py + TILE, 4)):
+        step = shade((150, 146, 138), -40 - 12 * i - 34 * (depth - 1))
+        rect(d, px, sy, TILE, 3, step)
+        rect(d, px, sy + 3, TILE, 1, (20, 20, 24))
+    for side, there in ((0, first), (TILE - 2, last)):
+        if there:
+            rect(d, px + side, py, 2, TILE, METAL_DARK)
+            rect(d, px + side, py, 2, 1, METAL_LIGHT)
+    if room.at(x, y + 1) != glyph:  # the end of the well, and its rail
+        rect(d, px, py + TILE - 3, TILE, 3, (110, 106, 98))
+        rect(d, px, py + TILE - 3, TILE, 1, (150, 146, 138))
+        rect(d, px, py + TILE - 5, TILE, 2, METAL_DARK)
+        rect(d, px, py + TILE - 5, TILE, 1, METAL_LIGHT)
+
+
 def paint_tactile_path(d, connections, px, py):
     """The yellow tactile guide through the booking hall.
 

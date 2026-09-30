@@ -86,6 +86,30 @@ List<FireSpot> get outdoorFireSpots => <FireSpot>[
   ...romeFireSpots,
 ];
 
+/// The steps of [flight] furthest along [down].
+List<GridPoint> lastSteps(List<GridPoint> flight, Direction down) {
+  int depth(GridPoint step) => step.x * down.dx + step.y * down.dy;
+  final last = flight.map(depth).reduce((a, b) => a > b ? a : b);
+  return <GridPoint>[
+    for (final step in flight)
+      if (depth(step) == last) step,
+  ];
+}
+
+/// From each of the [doors], climbing north, onto the step above the
+/// matching one of the [foot] of a flight got onto southward, facing back
+/// along it: the foot itself is the door the other way.
+Map<GridPoint, Portal> backOntoFlight(
+  List<GridPoint> doors,
+  List<GridPoint> foot,
+) => <GridPoint, Portal>{
+  for (var i = 0; i < doors.length; i++)
+    doors[i]: Portal(
+      to: foot[i].step(Direction.north),
+      facing: Direction.north,
+    ),
+};
+
 /// Doors [from] one place [to] another, tile by tile in order: stepping on
 /// a tile of [from] lands on the tile of [to] one step towards [facing].
 Map<GridPoint, Portal> pairedDoors(

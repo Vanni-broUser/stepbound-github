@@ -50,12 +50,8 @@ import tile_atlas_terme as terme  # noqa: E402
 from tile_atlas_core import (  # noqa: E402
     Atlas,
     LAYERS,
-    Neighbourhood,
     SEED,
     compose,
-    neighbour_key,
-    rule,
-    tile_of,
 )
 from tile_atlas_airliner import (  # noqa: E402
     airliner_cabin,
@@ -87,7 +83,7 @@ from tile_atlas_station import (  # noqa: E402
     TERMINI_RAILCAR_DOOR_TILE,
     TERMINI_RAILCAR_TILES,
     TERMINI_WALL_SIGN_TILES,
-    paint_stairs_up,
+    flight,
     station_far_side,
     station_hall,
     station_railcar_sprite,
@@ -181,16 +177,8 @@ def build() -> tuple[Atlas, dict]:
         # Its stairs go up, not down: the rest of the far side's rules.
         "rules": [spec for spec in far_side["rules"]
                   if not (spec["layer"] == "structures"
-                          and spec["glyphs"] == "D")] + [
-            rule("structures", "D", [
-                atlas.bucket(lambda l=left, r=right: tile_of(
-                    lambda d: paint_stairs_up(d, Neighbourhood(
-                        "D", lambda x, y, l=l, r=r: "D"
-                        if (x == -1 and l) or (x == 1 and r) else "."),
-                        0, 0)), 1)
-                for right in (False, True) for left in (False, True)],
-                [neighbour_key(-1, 0, "D"), neighbour_key(1, 0, "D")]),
-        ],
+                          and spec["glyphs"] == "D")]
+        + flight(atlas, "D", up=True),
         "objects": [{
             "glyph": "M",
             "image": "termini_railcar.png",
