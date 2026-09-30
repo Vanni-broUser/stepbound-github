@@ -164,9 +164,9 @@ final Map<StoryMemory, List<StoryScene>> memoryScenes =
 /// Every story scene seen so far, one after the other, in the order they
 /// were lived: the harbour and the hypermarket can be played in either
 /// order, and half of one before the other, so the memories are replayed
-/// as [Progress.memories] holds them, not as the enum lists them.
+/// as [Progress.livedMemories] holds them, not as the enum lists them.
 List<StoryScene> seenScenes(Progress progress, LevelId level) => <StoryScene>[
-  for (final memory in progress.memories)
+  for (final memory in progress.livedMemories)
     if (memory.level == level) ...memoryScenes[memory]!,
 ];
 

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
+import 'package:stepbound/game/story/scripts/maranza_script.dart';
 import 'package:stepbound/game/zombie_lore.dart';
 import 'package:stepbound/ui/main_menu.dart';
 import 'package:stepbound/ui/portrait_image.dart';
@@ -233,6 +234,27 @@ void main() {
         reason: '$memory has scenes to play again',
       );
     }
+  });
+
+  test('a scene not saved yet is lived again on the cot too, after the '
+      'saved ones', () {
+    // Tonino and Marcello met, and Mario back on the train without resting
+    // at the fire: the train saves only when it leaves.
+    final progress = Progress(
+      memories: const <StoryMemory>[StoryMemory.presidentFled],
+    )..view(StoryMemory.maranzaMet);
+    expect(progress.memories, isNot(contains(StoryMemory.maranzaMet)));
+    expect(seenScenes(progress, LevelId.rome), <StoryScene>[
+      ...romeScenes,
+      ...memoryScenes[StoryMemory.maranzaMet]!,
+    ]);
+
+    progress.confirmPendingMemories();
+    expect(
+      seenScenes(progress, LevelId.rome),
+      hasLength(romeScenes.length + MaranzaScript.meetingScene.length),
+      reason: 'saved, it is played once, where it was',
+    );
   });
 
   test('Rome names the president as President of the Council', () {

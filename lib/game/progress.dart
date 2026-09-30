@@ -339,8 +339,9 @@ final class Progress {
   final Set<StoryMemory> memories;
 
   /// Story sequences completed in this attempt but not yet confirmed by a
-  /// campfire or the train. They drive the current world's progression, but
-  /// deliberately stay out of [memories], memory replay and level stats.
+  /// campfire or the train. They drive the current world's progression and
+  /// can be lived again on the cot (see [livedMemories]), but stay out of
+  /// [memories] and the level stats: a death takes them back.
   final Set<StoryMemory> _pendingMemories = <StoryMemory>{};
 
   /// Story sequences completed in earlier attempts. This device-local,
@@ -525,9 +526,18 @@ final class Progress {
   void view(StoryMemory memory) => _pendingMemories.add(memory);
 
   /// Whether this attempt has reached [memory], either before or after its
-  /// next real save. Use this for gameplay state, never for replay or stats.
+  /// next real save. Use this for gameplay state, never for stats.
   bool hasExperienced(StoryMemory memory) =>
       memories.contains(memory) || _pendingMemories.contains(memory);
+
+  /// The scenes this attempt has reached, in the order they were lived:
+  /// the saved [memories], then the ones still waiting for a save. In Rome
+  /// the cot is on the train, which saves only when it leaves, so a scene
+  /// seen on the way there is not saved yet and still one to live again.
+  Iterable<StoryMemory> get livedMemories => <StoryMemory>{
+    ...memories,
+    ..._pendingMemories,
+  };
 
   /// Whether [memory] has ever been watched on this slot, including an
   /// earlier attempt lost to death. This is only for showing the skip button.
