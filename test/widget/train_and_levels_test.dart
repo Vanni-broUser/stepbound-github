@@ -5,9 +5,12 @@ import 'package:stepbound/app.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/game_audio.dart';
 import 'package:stepbound/game/audio/sound.dart';
+import 'package:stepbound/game/game_session.dart';
+import 'package:stepbound/game/missions.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/game/story/story_director.dart';
+import 'package:stepbound/game/test_scenarios.dart';
 import 'package:stepbound/save/save_game.dart';
 import 'package:stepbound/ui/level_complete.dart';
 import 'package:stepbound/ui/level_map.dart';
@@ -306,6 +309,69 @@ void main() {
       expect(find.textContaining('arrivo in città'), findsOneWidget);
       rome.closeMenu();
       await tester.pump();
+    });
+  });
+
+  testWidgets('the hook picked up in Rome and taken home by train hands out '
+      'the terraces in the corner, and the figures counted them all along', (
+    tester,
+  ) {
+    return tester.runAsync(() async {
+      final session = GameSession(
+        saves: MemorySaveRepository(),
+        audio: SilentAudio(),
+        onLevelCompleted: (_, {required saved}) {},
+        onTravelMapRequested: (_) {},
+      );
+      Future<StepboundGame> play(StepboundGame game) async {
+        await tester.pumpWidget(
+          GameWidget<StepboundGame>(game: game, key: UniqueKey()),
+        );
+        final state = tester.state<GameWidgetState<StepboundGame>>(
+          find.byType(GameWidget<StepboundGame>),
+        );
+        await state.loaderFuture;
+        await game.ready();
+        game.update(1 / 60);
+        return game;
+      }
+
+      const terraces = Mission.exploreTerraces;
+      final rome = await play(session.gameFrom(vanniDeployScenario.save(1)));
+      int counted(StepboundGame game) => LevelStats.of(
+        game.simulation,
+        game.progress,
+        LevelId.hometown,
+      ).missions.where((mission) => mission == terraces).length;
+      expect(counted(rome), 1, reason: 'counted before it is handed out');
+      expect(rome.progress.missions.isOpen(terraces), isFalse);
+
+      final mario = rome.simulation.player.component<PositionComponent>()
+        ..position = grapplingHookTile.step(Direction.west)
+        ..facing = Direction.east;
+      const TurnScheduler().advance(rome.simulation, const InteractAction());
+      expect(
+        rome.simulation.player.component<AmmoComponent>().grapplingHook,
+        isTrue,
+      );
+      rome.update(1 / 60);
+      expect(
+        rome.progress.missions.isOpen(terraces),
+        isFalse,
+        reason: 'not in Rome',
+      );
+      expect(mario.position, grapplingHookTile.step(Direction.west));
+
+      final home = await play(
+        session.startLevel(LevelId.hometown, rome.snapshot(place: 'Terme')),
+      );
+      expect(home.progress.missions.isOpen(terraces), isTrue);
+      expect(
+        home.missions.value,
+        contains((mission: terraces, done: false)),
+        reason: 'in the corner as soon as the train is home',
+      );
+      expect(counted(home), 1);
     });
   });
 
