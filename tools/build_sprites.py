@@ -51,6 +51,7 @@ GENERATORS = (
     "generate_action_sprites.py",
     "generate_carabiniere.py",
     "generate_special_zombies.py",
+    "generate_chiara.py",
     "generate_crucified_zombie.py",
     "generate_protagonist_actions.py",
     "generate_halloween_skins.py",

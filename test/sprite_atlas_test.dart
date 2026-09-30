@@ -41,6 +41,7 @@ void main() {
       'zombies/sprites/burning',
       'zombies/sprites/drunk',
       'zombies/sprites/cultist',
+      'npcs/sprites/chiara',
       'npcs/sprites/maranza_roma',
       'npcs/sprites/maranza_lazio',
     ];
@@ -123,6 +124,7 @@ void main() {
 
   test('new portraits match the story portrait contract', () async {
     for (final name in <String>[
+      'assets/characters/npcs/portraits/chiara.png',
       'assets/characters/npcs/portraits/maranza_roma.png',
       'assets/characters/npcs/portraits/maranza_lazio.png',
       'assets/characters/mario/portraits/roma.png',
