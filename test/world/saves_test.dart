@@ -76,6 +76,27 @@ void main() {
       expect(restored.map.width, world.map.width);
     });
 
+    test('only the tiles set since the map was built are looked at, and one '
+        'set back to the level is no change', () {
+      final world = createGameWorld();
+      final shutter = GridPoint(luigiBars.left, luigiBars.top);
+      final was = world.map.tileAt(shutter);
+      world.map.setTile(shutter, const Tile(TileKind.floor));
+      expect(saveGameWorld(world)['mapChanges'], hasLength(1));
+      world.map.setTile(shutter, was);
+      expect(saveGameWorld(world)['mapChanges'], isEmpty);
+      expect(
+        world.map.touched,
+        hasLength(1),
+        reason: 'set twice, the cell is still one to look at',
+      );
+      // A restored world only has the saved changes to look at.
+      world.map.setTile(shutter, const Tile(TileKind.floor));
+      final restored = restoreGameWorld(throughStorage(saveGameWorld(world)));
+      expect(restored.map.touched, hasLength(1));
+      expect(saveGameWorld(restored)['mapChanges'], hasLength(1));
+    });
+
     test('an older save gains backpacks added by the current level', () {
       final world = createGameWorld();
       world.pickups[ammoBackpackId]!

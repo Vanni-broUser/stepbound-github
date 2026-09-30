@@ -360,6 +360,40 @@ void main() {
     });
   });
 
+  group('reading a slot again', () {
+    test('the same string is not decoded and checked twice', () async {
+      var checks = 0;
+      final saves = MemorySaveRepository(check: (_) => checks++);
+      await saves.save(save());
+      expect(checks, 0, reason: 'a save written here is known to be good');
+      expect(await saves.read(1), isA<LoadedSave>());
+      expect(await saves.load(1), isNotNull);
+      expect(checks, 0);
+      await saves.save(save(place: 'Il porto'));
+      expect(checks, 0, reason: 'the save it replaces was written here too');
+      expect((await saves.load(1))!.place, 'Il porto');
+      expect(checks, 0);
+    });
+
+    test('a string that changed under the key is read afresh', () async {
+      var checks = 0;
+      final saves = MemorySaveRepository(check: (_) => checks++);
+      final key = StoredSaveRepository.slotKey(1);
+      saves.values[key] = jsonEncode(save(place: 'Il porto').toJson());
+      expect((await saves.read(1)).game!.place, 'Il porto');
+      expect(checks, 1);
+      await saves.read(1);
+      expect(checks, 1, reason: 'the same string reads the same');
+      saves.values[key] = jsonEncode(save(place: 'La stazione').toJson());
+      expect((await saves.read(1)).game!.place, 'La stazione');
+      expect(checks, 2);
+      saves.values[key] = '{';
+      expect(await saves.read(1), isA<DamagedSave>());
+      saves.values.remove(key);
+      expect(await saves.read(1), isA<EmptySave>());
+    });
+  });
+
   group('the backup', () {
     test('a damaged save falls back on the good one it replaced', () async {
       final saves = MemorySaveRepository();

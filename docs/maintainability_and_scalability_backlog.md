@@ -125,10 +125,20 @@ that does not answer.
   with it, so a big new district wants an area of its own.
 - The simulation grid is still whole: 3493×62 at `57dadda`, 216,566
   `Tile` objects (not bytes: about 6 MB with the pathfinder's scratch
-  arrays), 88% of them the wall between places. Split it per level only
-  if the benchmark or the save size ask for it: a save only stores the
-  tiles that differ, and the whole world of a save stays under the 64 KB
-  `test/world/saves_test.dart` allows.
+  arrays), 88% of them the wall between places; 289,664 tiles since Rome
+  and the palazzo (2026-09-30). Split it per level only if the benchmark
+  or the save size ask for it: a save only stores the tiles that differ
+  (and only looks at the tiles set since the map was built, not at every
+  cell), and the whole world of a save, about 106 KB with 206 entities,
+  stays under what `test/world/saves_test.dart` allows.
+- Reading a slot rebuilds the world to check the save loads
+  (`checkRestorable`): 30–70 ms per save on a desktop JIT, twice per slot
+  when a game is put down beside the fire, so the first `all()` of the
+  menu costs 200–500 ms on the UI thread. The repository keeps what each
+  key last read as (`StoredSaveRepository._lastRead`), so every later
+  read of the same string, and a campfire's look at the save it replaces,
+  cost nothing; the first read of a session still does. Only a phone
+  says whether that first read is felt.
 
 ### P3 — Release-only differences
 

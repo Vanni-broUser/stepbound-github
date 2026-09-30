@@ -234,8 +234,10 @@ WorldState createGameWorld({int seed = 20260920}) {
 /// differ from the level's (the lifted shutter): the level rebuilds the
 /// rest. The dark gaps between places made a full map most of a save.
 ///
-/// The map is compared tile by tile against the level's, by index: the
-/// grid is over a hundred thousand cells, and this runs at every campfire.
+/// Only the tiles set since the map was built (`TileMap.touched`) are
+/// compared against the level's: the grid is near three hundred thousand
+/// cells, and this runs every few seconds while the game can be put down
+/// (see `PutDownCopy`), not only at campfires.
 Map<String, Object?> saveGameWorld(WorldState world) {
   final map = world.map;
   if (map.width != _levelMap.width || map.height != _levelMap.height) {
@@ -246,7 +248,7 @@ Map<String, Object?> saveGameWorld(WorldState world) {
   return <String, Object?>{
     ...world.toJson(includeMap: false),
     'mapChanges': <Object?>[
-      for (var index = 0; index < tiles.length; index++)
+      for (final index in map.touched.toList()..sort())
         if (tiles[index].kind != level[index].kind)
           <String, Object?>{
             'x': index % map.width,

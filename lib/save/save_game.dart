@@ -326,6 +326,15 @@ abstract base class StoredSaveRepository implements SaveRepository {
   /// Asked whether a save that reads well can really be played.
   final SaveCheck? check;
 
+  /// What each key last read as, with the string it was read from. The
+  /// storage is read every time, but the same string reads the same, and
+  /// checking a save rebuilds the world: a slot the menu has shown, or a
+  /// save written here, is not decoded and checked again when the menu
+  /// opens once more, a game is loaded, or a campfire looks at the save
+  /// it replaces.
+  final Map<String, (String, SaveRead)> _lastRead =
+      <String, (String, SaveRead)>{};
+
   static String slotKey(int slot) => 'stepbound.save.$slot';
   static String backupKey(int slot) => 'stepbound.save.$slot.previous';
   static String suspendedKey(int slot) => 'stepbound.save.$slot.suspended';
@@ -404,8 +413,11 @@ abstract base class StoredSaveRepository implements SaveRepository {
       // the one save there is to fall back on.
       if (encoded != null && current is LoadedSave) {
         await writeValue(backupKey(game.slot), encoded);
+        _lastRead[backupKey(game.slot)] = (encoded, current);
       }
-      await writeValue(slotKey(game.slot), jsonEncode(game.toJson()));
+      final written = jsonEncode(game.toJson());
+      await writeValue(slotKey(game.slot), written);
+      _lastRead[slotKey(game.slot)] = (written, LoadedSave(game));
     } on Object catch (error) {
       throw SaveWriteException(game.slot, error);
     }
@@ -425,7 +437,9 @@ abstract base class StoredSaveRepository implements SaveRepository {
   @override
   Future<void> suspend(SaveGame game) async {
     try {
-      await writeValue(suspendedKey(game.slot), jsonEncode(game.toJson()));
+      final written = jsonEncode(game.toJson());
+      await writeValue(suspendedKey(game.slot), written);
+      _lastRead[suspendedKey(game.slot)] = (written, LoadedSave(game));
     } on Object catch (error) {
       throw SaveWriteException(game.slot, error);
     }
@@ -522,7 +536,15 @@ abstract base class StoredSaveRepository implements SaveRepository {
     } on Object catch (error) {
       return (null, DamagedSave('unreadable: $error'));
     }
-    return (encoded, SaveGame.decode(encoded, check: check));
+    if (encoded == null) {
+      return (null, const EmptySave());
+    }
+    if (_lastRead[key] case (final last, final read) when last == encoded) {
+      return (encoded, read);
+    }
+    final read = SaveGame.decode(encoded, check: check);
+    _lastRead[key] = (encoded, read);
+    return (encoded, read);
   }
 }
 
