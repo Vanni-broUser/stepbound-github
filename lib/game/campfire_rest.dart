@@ -6,6 +6,7 @@ import 'package:stepbound/game/cover_controller.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/character_component.dart';
 import 'package:stepbound/game/story/story_director.dart';
+import 'package:stepbound/l10n/language.dart';
 import 'package:stepbound/report/breadcrumbs.dart';
 
 /// Mario's rest at a campfire, or his bite at the table aboard: he kneels
@@ -23,12 +24,9 @@ final class CampfireRest {
     Breadcrumbs? trail,
   }) : trail = trail ?? Breadcrumbs.shared;
 
-  static const String savedLine = 'Salvataggio completato';
-  static const String saveFailedLine =
-      'Salvataggio non riuscito. Riposati di nuovo accanto al fuoco per '
-      'riprovare';
-  static const String mealSaveFailedLine =
-      'Salvataggio non riuscito. Torna al tavolo per riprovare';
+  static String get savedLine => strings.saved;
+  static String get saveFailedLine => strings.campfireSaveFailed;
+  static String get mealSaveFailedLine => strings.mealSaveFailed;
 
   /// The fires lit are remembered here.
   final Progress progress;
@@ -95,7 +93,7 @@ final class CampfireRest {
     }
     if (saved) {
       covers.showPrompt(<StoryLine>[
-        const StoryLine(savedLine),
+        StoryLine(savedLine),
       ], onDismissed: () => _campfire = null);
       return;
     }

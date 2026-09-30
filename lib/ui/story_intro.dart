@@ -3,13 +3,17 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
+import 'package:stepbound/l10n/language.dart';
 import 'package:stepbound/ui/audio_scope.dart';
 import 'package:stepbound/ui/black_fade.dart';
 import 'package:stepbound/ui/blood_decor.dart';
 import 'package:stepbound/ui/blood_splat.dart';
 import 'package:stepbound/ui/main_menu.dart';
 
-/// One full-screen frame of the intro story with its dialogue line.
+/// One full-screen frame of the intro story with its dialogue line. Equal
+/// to another with the same picture, words and music: the scenes are made
+/// again in the language of the moment every time they are asked for.
+@immutable
 final class StoryScene {
   const StoryScene({
     required this.image,
@@ -25,117 +29,115 @@ final class StoryScene {
   /// The music the scene was lived with, when it had its own: played again
   /// when it is remembered.
   final Music? music;
+
+  @override
+  bool operator ==(Object other) =>
+      other is StoryScene &&
+      other.image == image &&
+      other.speaker == speaker &&
+      other.text == text &&
+      other.music == music;
+
+  @override
+  int get hashCode => Object.hash(image, speaker, text, music);
 }
 
-const List<StoryScene> introScenes = <StoryScene>[
+List<StoryScene> get introScenes => <StoryScene>[
   StoryScene(
     image: 'assets/story/scenes/news.png',
-    speaker: 'Telecronista',
-    text:
-        'Attenzione, interrompiamo le comunicazioni per una edizione '
-        'straordinaria del telegiornale',
+    speaker: strings.speakerNewsreader,
+    text: strings.introNewsFlash,
   ),
   StoryScene(
     image: 'assets/story/scenes/blackout.png',
-    speaker: 'Telecronista',
-    text: '... Che succede? ... Ragazzi, la luce?',
+    speaker: strings.speakerNewsreader,
+    text: strings.introBlackout,
   ),
   StoryScene(
     image: 'assets/story/scenes/attack.png',
-    speaker: 'Telecronista',
-    text: 'Aaaaahhh!',
+    speaker: strings.speakerNewsreader,
+    text: strings.introScream,
   ),
 ];
 
 /// Played after the title card: the night the outbreak spread.
-const List<StoryScene> outbreakScenes = <StoryScene>[
+List<StoryScene> get outbreakScenes => <StoryScene>[
   StoryScene(
     image: 'assets/story/scenes/outbreak.jpg',
-    text:
-        'Quella notte migliaia di persone in ogni dove si trasformarono in '
-        'zombi, creature non morte prive di una coscienza propria, '
-        'interessate solo a divorare altri esseri umani',
+    text: strings.outbreakNight,
   ),
   StoryScene(
     image: 'assets/story/scenes/plane_help.jpg',
-    speaker: 'Hostess',
-    text: 'Aiuto, comandante! Aiuto!',
+    speaker: strings.speakerHostess,
+    text: strings.outbreakPlaneHelp,
   ),
   StoryScene(
     image: 'assets/story/scenes/plane_captain.jpg',
-    speaker: 'Hostess',
-    text: 'Comandante?',
+    speaker: strings.speakerHostess,
+    text: strings.outbreakPlaneCaptain,
   ),
   StoryScene(
     image: 'assets/story/scenes/collapse.jpg',
-    text:
-        "Quella notte l'intera civiltà umana crollò per colpa di "
-        'questa malvagia e misteriosa minaccia',
+    text: strings.outbreakCollapse,
   ),
 ];
 
 /// Played when the train sets off for Rome, before the city loads: the
 /// army cannot hold Rome and the President keeps his troops for himself.
 /// Rome's own music plays under it, then and when it is remembered.
-const List<StoryScene> romeScenes = <StoryScene>[
+List<StoryScene> get romeScenes => <StoryScene>[
   StoryScene(
     image: 'assets/story/scenes/rome_vittoriano.jpg',
-    speaker: 'Generale',
-    text: 'Signor presidente, abbiamo bisogno di rinforzi!',
+    speaker: strings.speakerGeneral,
+    text: strings.romeGeneralReinforcements,
     music: Music.rome,
   ),
   StoryScene(
     image: 'assets/story/scenes/rome_president_call.jpg',
-    speaker: 'Presidente del consiglio',
-    text: 'Non è possibile, tutte le nostre forze sono già occupate',
+    speaker: strings.speakerPrimeMinister,
+    text: strings.romePresidentNoForces,
     music: Music.rome,
   ),
   StoryScene(
     image: 'assets/story/scenes/rome_president_call.jpg',
-    speaker: 'Generale',
-    text:
-        'Signore qui siamo nella merda, ci sono centinaia e centinaia di '
-        'questi zombi bastardi',
+    speaker: strings.speakerGeneral,
+    text: strings.romeGeneralHundreds,
     music: Music.rome,
   ),
   StoryScene(
     image: 'assets/story/scenes/rome_president_call.jpg',
-    speaker: 'Presidente del consiglio',
-    text: 'Generale non posso fare altrimenti, dovete vedervela da soli',
+    speaker: strings.speakerPrimeMinister,
+    text: strings.romePresidentAlone,
     music: Music.rome,
   ),
   StoryScene(
     image: 'assets/story/scenes/rome_secretary.jpg',
-    speaker: 'Segretaria',
-    text: 'Signor presidente siete sicuro di quello che state facendo?',
+    speaker: strings.speakerSecretary,
+    text: strings.romeSecretaryDoubt,
     music: Music.rome,
   ),
   StoryScene(
     image: 'assets/story/scenes/rome_secretary.jpg',
-    speaker: 'Presidente del consiglio',
-    text:
-        'Non preoccuparti Petunia, quei rinforzi servono per proteggere il '
-        'mio bunker',
+    speaker: strings.speakerPrimeMinister,
+    text: strings.romePresidentBunker,
     music: Music.rome,
   ),
   StoryScene(
     image: 'assets/story/scenes/rome_departure.jpg',
-    speaker: 'Segretaria',
-    text:
-        'Ma... ma signor presidente quelle persone lì fuori stanno '
-        'morendo...',
+    speaker: strings.speakerSecretary,
+    text: strings.romeSecretaryDying,
     music: Music.rome,
   ),
   StoryScene(
     image: 'assets/story/scenes/rome_departure.jpg',
-    speaker: 'Presidente del consiglio',
-    text: 'Petunia non essere petulante oppure non ti ci porto nel bunker',
+    speaker: strings.speakerPrimeMinister,
+    text: strings.romePresidentPetulant,
     music: Music.rome,
   ),
   StoryScene(
     image: 'assets/story/scenes/rome_president_attacked.jpg',
-    speaker: 'Presidente del consiglio',
-    text: 'Oddio aiuto! Petunia, aiutooo!',
+    speaker: strings.speakerPrimeMinister,
+    text: strings.romePresidentAttacked,
     music: Music.rome,
   ),
 ];
@@ -150,7 +152,7 @@ const List<StoryScene> romeScenes = <StoryScene>[
 final class StoryIntro extends StatefulWidget {
   const StoryIntro({
     required this.onFinished,
-    this.scenes = introScenes,
+    this.scenes,
     this.fadeOutAtEnd = false,
     this.onExit,
     this.onSkip,
@@ -159,7 +161,8 @@ final class StoryIntro extends StatefulWidget {
     super.key,
   });
 
-  final List<StoryScene> scenes;
+  /// The intro story's own when null.
+  final List<StoryScene>? scenes;
   final VoidCallback onFinished;
   final bool fadeOutAtEnd;
   final VoidCallback? onExit;
@@ -174,6 +177,12 @@ final class StoryIntro extends StatefulWidget {
 }
 
 final class _StoryIntroState extends State<StoryIntro> {
+  /// The intro story taken once, so its words stay as they were when it
+  /// started.
+  late final List<StoryScene> _intro = introScenes;
+
+  List<StoryScene> get _scenes => widget.scenes ?? _intro;
+
   int _sceneIndex = 0;
   bool _showText = false;
   bool _fadingOut = false;
@@ -191,16 +200,14 @@ final class _StoryIntroState extends State<StoryIntro> {
   @override
   void initState() {
     super.initState();
-    widget.onScene?.call(widget.scenes.first);
+    widget.onScene?.call(_scenes.first);
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Decoding every picture up front lets each page come up at once.
-    for (final image in <String>{
-      for (final scene in widget.scenes) scene.image,
-    }) {
+    for (final image in <String>{for (final scene in _scenes) scene.image}) {
       unawaited(precacheImage(AssetImage(image), context));
     }
   }
@@ -219,15 +226,15 @@ final class _StoryIntroState extends State<StoryIntro> {
         _showText = true;
         return;
       }
-      if (_sceneIndex + 1 < widget.scenes.length) {
+      if (_sceneIndex + 1 < _scenes.length) {
         // A new picture is worth a look on its own before its line covers
         // it; when the next line is spoken over the same one there is
         // nothing new to see, so it comes up with the tap.
-        final shown = widget.scenes[_sceneIndex].image;
+        final shown = _scenes[_sceneIndex].image;
         _previousImage = shown;
         _sceneIndex += 1;
-        _showText = widget.scenes[_sceneIndex].image == shown;
-        widget.onScene?.call(widget.scenes[_sceneIndex]);
+        _showText = _scenes[_sceneIndex].image == shown;
+        widget.onScene?.call(_scenes[_sceneIndex]);
         return;
       }
       if (widget.fadeOutAtEnd) {
@@ -248,10 +255,10 @@ final class _StoryIntroState extends State<StoryIntro> {
     }
     AudioScope.of(context).play(Sfx.dialogue);
     setState(() {
-      _previousImage = widget.scenes[_sceneIndex].image;
+      _previousImage = _scenes[_sceneIndex].image;
       _sceneIndex -= 1;
       _showText = true;
-      widget.onScene?.call(widget.scenes[_sceneIndex]);
+      widget.onScene?.call(_scenes[_sceneIndex]);
     });
   }
 
@@ -278,7 +285,7 @@ final class _StoryIntroState extends State<StoryIntro> {
 
   @override
   Widget build(BuildContext context) {
-    final scene = widget.scenes[_sceneIndex];
+    final scene = _scenes[_sceneIndex];
     return GestureDetector(
       key: const ValueKey<String>('story-intro'),
       behavior: HitTestBehavior.opaque,
@@ -288,7 +295,7 @@ final class _StoryIntroState extends State<StoryIntro> {
       },
       onTap: _tap,
       child: Semantics(
-        label: _showText ? 'Tocca per continuare' : 'Tocca per leggere',
+        label: _showText ? strings.tapToContinue : strings.tapToRead,
         child: Stack(
           fit: StackFit.expand,
           children: <Widget>[
@@ -338,7 +345,9 @@ final class _StoryIntroState extends State<StoryIntro> {
                         key: ValueKey<String>(
                           widget.onSkip != null ? 'story-skip' : 'story-exit',
                         ),
-                        label: widget.onSkip != null ? 'SALTA' : 'ESCI',
+                        label: widget.onSkip != null
+                            ? strings.skip
+                            : strings.statsExit,
                         unit: unit,
                         compact: true,
                         width: widget.onSkip != null ? 52 : 44,

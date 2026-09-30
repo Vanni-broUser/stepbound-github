@@ -1,4 +1,5 @@
 import 'package:stepbound/game/story/story_director.dart';
+import 'package:stepbound/l10n/language.dart';
 
 /// The first journey from the Europe map, to Rome or back home: once the
 /// train has arrived, before Mario can move, what he takes with him from
@@ -7,15 +8,9 @@ import 'package:stepbound/game/story/story_director.dart';
 final class JourneyScript extends StoryScript {
   JourneyScript(super.director);
 
-  static const List<StoryLine> carryLines = <StoryLine>[
-    StoryLine(
-      'Le munizioni e gli oggetti consumabili, come i proiettili o le '
-      "molotov, non possono essere portati tra un livello e l'altro",
-    ),
-    StoryLine(
-      'Gli oggetti non consumabili invece, come la pistola o il rampino, '
-      'possono essere portati tra i vari livelli',
-    ),
+  static List<StoryLine> get carryLines => <StoryLine>[
+    StoryLine(strings.journeyCarryLines1),
+    StoryLine(strings.journeyCarryLines2),
   ];
 
   bool _taught = false;

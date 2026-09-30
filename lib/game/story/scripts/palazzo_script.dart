@@ -1,5 +1,6 @@
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/story/story_director.dart';
+import 'package:stepbound/l10n/language.dart';
 
 /// The flat door on the palazzo's third floor still locked. Without the
 /// key found on the first floor it only says so; with it, the door opens
@@ -8,10 +9,8 @@ import 'package:stepbound/game/story/story_director.dart';
 final class PalazzoScript extends StoryScript {
   PalazzoScript(super.director);
 
-  static const String lockedDoorLine =
-      'Questa porta è chiusa a chiave. Qualcuno dei vicini avrà la chiave';
-  static const String keyUsedLine =
-      'Hai usato la Chiave del terzo piano per aprire la porta';
+  static String get lockedDoorLine => strings.palazzoLockedDoorLine;
+  static String get keyUsedLine => strings.palazzoKeyUsedLine;
 
   @override
   String get key => 'palazzo';
@@ -27,10 +26,10 @@ final class PalazzoScript extends StoryScript {
       if (host.isUnlocked(HudElement.palazzoKey)) {
         world.map.setTile(at, const Tile(TileKind.floor));
         host.removeHud(HudElement.palazzoKey);
-        say(StoryPrompt(const <StoryLine>[StoryLine(keyUsedLine)]));
+        say(StoryPrompt(<StoryLine>[StoryLine(keyUsedLine)]));
         return;
       }
-      say(StoryPrompt(const <StoryLine>[StoryLine(lockedDoorLine)]));
+      say(StoryPrompt(<StoryLine>[StoryLine(lockedDoorLine)]));
     }
   }
 
