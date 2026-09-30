@@ -65,6 +65,7 @@ final class PauseMenu extends StatefulWidget {
     required this.onMainMenu,
     required this.onClose,
     required this.onWearOutfit,
+    this.onShareReport,
     this.restartsFromStory = true,
     this.wardrobe = false,
     super.key,
@@ -73,6 +74,13 @@ final class PauseMenu extends StatefulWidget {
   /// Opened from the wardrobe aboard: only the page of outfits, and its
   /// back button goes straight back to the game.
   final bool wardrobe;
+
+  /// Shares a report of the game as it is, trail and all, for the bugs
+  /// that throw nothing; the button is not there when the app cannot
+  /// share.
+  final VoidCallback? onShareReport;
+
+  static const String shareLabel = 'CONDIVIDI IL RAPPORTO';
 
   final Progress progress;
 
@@ -199,6 +207,14 @@ final class _PauseMenuState extends State<PauseMenu> {
         compact: true,
         onPressed: () => _open(_PausePage.quit),
       ),
+      if (widget.onShareReport case final share?)
+        MenuButton(
+          key: const ValueKey<String>('pause-share'),
+          label: PauseMenu.shareLabel,
+          unit: unit,
+          compact: true,
+          onPressed: share,
+        ),
     ],
   );
 

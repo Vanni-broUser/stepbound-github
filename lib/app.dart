@@ -170,19 +170,43 @@ final class _StepboundAppState extends State<StepboundApp> {
   /// the one of an error: the same text, the failure in the error's place.
   Future<void> _shareSaveFailure() async {
     final failure = _flow.session.lastSaveFailure;
-    final share = widget.share;
-    if (failure == null || share == null) {
+    if (failure == null) {
       return;
     }
     Breadcrumbs.shared.add('app: rapporto del salvataggio condiviso');
+    await _shareReport(
+      ErrorReport(
+        error: failure.error,
+        stack: failure.stack,
+        source: 'salvataggio: ${failure.place}',
+        at: failure.at,
+      ),
+    );
+  }
+
+  /// The report a player asks for from the pause menu, with no error in
+  /// it: the trail is the point, for the bugs that throw nothing, a script
+  /// that never lets go of Mario or a button that does not answer.
+  Future<void> _shareTrail() async {
+    Breadcrumbs.shared.add('app: rapporto chiesto dal menù pausa');
+    await _shareReport(
+      ErrorReport(
+        error: 'nessun errore: rapporto chiesto dal giocatore',
+        source: 'menù pausa',
+        at: DateTime.now(),
+      ),
+    );
+  }
+
+  /// Renders [report] like the one of an error and hands it to the share
+  /// sheet; nothing if the app cannot share.
+  Future<void> _shareReport(ErrorReport report) async {
+    final share = widget.share;
+    if (share == null) {
+      return;
+    }
     final reporter = (widget.reporter ?? ErrorReporter())
       ..context ??= _reportSections;
-    final report = ErrorReport(
-      error: failure.error,
-      stack: failure.stack,
-      source: 'salvataggio: ${failure.place}',
-      at: failure.at,
-    );
     try {
       await share(reporter.fileNameFor(report), await reporter.render(report));
     } on Object catch (error) {
@@ -358,6 +382,9 @@ final class _StepboundAppState extends State<StepboundApp> {
       onMainMenu: _flow.backToMenu,
       onClose: game.closeMenu,
       onWearOutfit: game.wearOutfit,
+      onShareReport: widget.share == null
+          ? null
+          : () => unawaited(_shareTrail()),
     ),
     LevelEndCover() => const ColoredBox(
       key: ValueKey<String>('level-end-black'),

@@ -387,4 +387,45 @@ void main() {
     await pumpMenu(tester, resumePoint: null);
     expect(await costOf(tester, 'pause-quit'), contains('mai stata salvata'));
   });
+
+  testWidgets('with a way to share, a report can be asked for from here', (
+    tester,
+  ) async {
+    var shared = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PauseMenu(
+          progress: Progress(),
+          resumePoint: null,
+          onResumeFromCamp: () {},
+          onRestartLevel: () {},
+          onMainMenu: () {},
+          onClose: () {},
+          onWearOutfit: (_) {},
+          onShareReport: () => shared++,
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey<String>('pause-share')));
+    await tester.pump();
+    expect(shared, 1);
+    expect(find.text(PauseMenu.shareLabel), findsOneWidget);
+  });
+
+  testWidgets('without one, the report is not offered', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PauseMenu(
+          progress: Progress(),
+          resumePoint: null,
+          onResumeFromCamp: () {},
+          onRestartLevel: () {},
+          onMainMenu: () {},
+          onClose: () {},
+          onWearOutfit: (_) {},
+        ),
+      ),
+    );
+    expect(find.byKey(const ValueKey<String>('pause-share')), findsNothing);
+  });
 }

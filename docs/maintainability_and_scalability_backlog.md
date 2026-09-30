@@ -68,11 +68,16 @@ report can stop it from being written: whatever fails says so in its
 place. Release stack traces stay readable as long as `--obfuscate` is not
 used.
 
+Since 2026-09-30 the trail also holds what the player asked for
+(`input: cammina verso est`, `input: alza la pistola`, and `input
+ignorato: interagisce` once per run when the game did not take it), a
+held direction noted once, and the pause menu has a "Condividi il
+rapporto" entry that sends the same report with no error in it: for the
+bugs that throw nothing, a script that never lets go of Mario or a button
+that does not answer.
+
 **Left for later (second stage, if the demo grows).**
 
-- A "Condividi il rapporto" entry in the pause menu, for the bugs that
-  throw nothing: a script that never lets go of Mario is only in the
-  trail, and today the trail can only be sent from the error screen.
 - An opt-in switch, off by default, "Invia i rapporti automaticamente",
   posting the same file to a small endpoint. A Cloudflare Worker with R2
   or D1 costs nothing and has no server to keep patched; the runner
@@ -81,9 +86,6 @@ used.
   promises no data leaves the phone), the Play data-safety form, a size
   limit and a rate limit on the endpoint, no device identifier in the
   payload.
-- The report says nothing about what the player was doing with their
-  fingers: if touch input turns out to matter, the trail can take the
-  input controller's actions too.
 
 ## P2 — What is left of loading the places by area
 

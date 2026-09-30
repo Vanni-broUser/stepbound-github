@@ -325,4 +325,31 @@ void main() {
       expect((await saves.load(1))!.place, 'Dietro la caserma');
     });
   });
+
+  testWidgets('from the pause menu a report is shared with no error in it, '
+      'the trail and the input in it', (tester) {
+    return tester.runAsync(() async {
+      final shared = <String>[];
+      final game = await pumpReadyGame(
+        tester,
+        share: (name, text) async => shared.add(text),
+      );
+      game.unlock(HudElement.interact);
+      game.input
+        ..pressDirection(Direction.east)
+        ..releaseDirection(Direction.east);
+      game.openMenu();
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey<String>('pause-share')));
+      await untilShared(tester, shared);
+      expect(shared, hasLength(1));
+      expect(shared.single, contains('== Errore (menù pausa) =='));
+      expect(shared.single, contains('nessun errore'));
+      expect(shared.single, contains('nessuno stack trace'));
+      expect(shared.single, contains('slot: 1'));
+      expect(shared.single, contains('fase: playing'));
+      expect(shared.single, contains('input: cammina verso est'));
+      expect(shared.single, contains('app: rapporto chiesto dal menù pausa'));
+    });
+  });
 }
