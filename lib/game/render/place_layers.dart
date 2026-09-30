@@ -25,6 +25,7 @@ final class PlaceLayers {
     required this.playerFeet,
     this.showOpened,
     this.onKeptChanged,
+    this.beacons,
   });
 
   /// Every place of the game.
@@ -40,6 +41,10 @@ final class PlaceLayers {
   /// pictures are composed: for whatever else the game puts in the world
   /// place by place (its fires, its backpacks).
   final void Function(Set<Place> kept)? onKeptChanged;
+
+  /// The tiles a light blinks over indoors, now (see
+  /// [LightingComponent.beacons]).
+  final Iterable<GridPoint> Function()? beacons;
 
   final Map<Place, _Layers> _loaded = <Place, _Layers>{};
   AreaId? _area;
@@ -170,6 +175,7 @@ final class PlaceLayers {
                 for (final lit in place.litAreas) pixelRect(lit),
               ],
               playerPosition: playerFeet,
+              beacons: beacons ?? () => const <GridPoint>[],
             )
           : null,
     );

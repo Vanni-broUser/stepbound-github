@@ -185,6 +185,11 @@ final class StepboundGame extends FlameGame
     playerFeet: () => _characters[playerId]!.position,
     showOpened: (place) => _stages.any((stage) => stage.showsOpened(place.id)),
     onKeptChanged: _syncProps,
+    beacons: () => <GridPoint>[
+      for (final id in beaconPickupIds)
+        if (simulation.pickups[id] case final pickup? when pickup.active)
+          pickup.position,
+    ],
   );
 
   /// What stands in each place kept loaded, besides its picture: its

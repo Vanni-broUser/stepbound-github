@@ -125,6 +125,47 @@ void main() {
     });
   });
 
+  testWidgets('a beacon blinks over its tile for as long as it is there, '
+      'composed or live', (tester) async {
+    await tester.runAsync(() async {
+      // A dark corner of the room, far from every lamp.
+      var beacons = <GridPoint>[const GridPoint(12, 7)];
+      LightingComponent withBeacon() => LightingComponent(
+        area: _room,
+        lights: _lights,
+        playerPosition: () => Vector2(10, 150),
+        darkness: 0.8,
+        beacons: () => beacons,
+      );
+      final live = withBeacon();
+      final baked = withBeacon();
+      await baked.onLoad();
+      for (final lighting in <LightingComponent>[live, baked]) {
+        int red(Uint8List pixels) =>
+            pixels[((7 * 16 + 8) * 256 + 12 * 16 + 8) * 4];
+        beacons = <GridPoint>[const GridPoint(12, 7)];
+        final on = red(await _pixels(lighting));
+        lighting.update(0.45);
+        final between = red(await _pixels(lighting));
+        beacons = <GridPoint>[];
+        final gone = red(await _pixels(lighting));
+        expect(on, greaterThan(between), reason: 'it blinks');
+        expect(between, greaterThan(gone), reason: 'faint between blinks');
+        expect(gone, lessThan(0x30), reason: 'the backpack was taken');
+      }
+      baked.onRemove();
+    });
+  });
+
+  test("a light blinks over the grappling hook's backpack, in the dark of "
+      'the Baths', () {
+    final hook = createGameWorld().pickups[grapplingHookPickupId]!;
+    expect(beaconPickupIds, contains(grapplingHookPickupId));
+    final baths = place(PlaceId.termeDiocleziano);
+    expect(baths.bounds.contains(hook.position), isTrue);
+    expect(baths.indoor && !baths.lit, isTrue);
+  });
+
   test('the palazzo lights its stairwell whole, and its flats only dim', () {
     for (final id in <PlaceId>[
       PlaceId.palazzoThirdFloor,
