@@ -169,11 +169,8 @@ final class _AmmoBadge extends StatelessWidget {
       builder: (context, loaded, _) => ValueListenableBuilder<bool>(
         valueListenable: game.hasGun,
         builder: (context, hasGun, _) => ListenableBuilder(
-          // The flames also follow whether there is a second weapon.
-          listenable: Listenable.merge(<Listenable>[
-            game.input.weapon,
-            game.molotovs,
-          ]),
+          // The flames also follow whether there is another weapon.
+          listenable: game.weaponsCarried,
           builder: (context, _) {
             final isEmpty = loaded == 0;
             final golden = game.progress.hasGoldenPistol;
@@ -183,7 +180,7 @@ final class _AmmoBadge extends StatelessWidget {
             final inHand =
                 hasGun &&
                 game.input.weapon.value == Weapon.pistol &&
-                game.input.hasWeapon(Weapon.molotov);
+                game.input.hasWeaponChoice;
             final box = Container(
               key: const ValueKey<String>('touch-ammo'),
               width: _badgeSize,
@@ -439,13 +436,11 @@ final class _MolotovBadge extends StatelessWidget {
     return ValueListenableBuilder<int>(
       valueListenable: game.molotovs,
       builder: (context, count, _) => ListenableBuilder(
-        listenable: Listenable.merge(<Listenable>[
-          game.input.weapon,
-          game.hasGun,
-        ]),
+        listenable: game.weaponsCarried,
         builder: (context, _) {
           final inHand =
-              game.input.weapon.value == Weapon.molotov && game.hasGun.value;
+              game.input.weapon.value == Weapon.molotov &&
+              game.input.hasWeaponChoice;
           final box = Container(
             key: const ValueKey<String>('hud-molotov'),
             width: _badgeSize,
@@ -509,8 +504,10 @@ final class _MolotovBadge extends StatelessWidget {
 
 /// The rocket launcher and its rounds, like the pistol before it is found:
 /// until Mario has the launcher itself the badge is greyed out and deaf to
-/// taps, and only the count of rounds found keeps up. The launcher does
-/// not fire yet, so there is nothing a tap could do.
+/// taps, and only the count of rounds found keeps up. With the launcher
+/// and another weapon too, a tap takes the launcher in hand and the one
+/// in hand burns round its rim; with the launcher alone, a tap tells how
+/// many rounds there are.
 final class _RocketBadge extends StatelessWidget {
   const _RocketBadge({required this.game});
 
@@ -521,63 +518,91 @@ final class _RocketBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<int>(
       valueListenable: game.rockets,
-      builder: (context, count, _) => ValueListenableBuilder<bool>(
-        valueListenable: game.hasRocketLauncher,
-        builder: (context, hasLauncher, _) {
-          Widget frame = BloodOverlay(
-            painter: const BloodPainter(
-              band: 3,
-              cornerRadius: 8,
-              drips: <BloodDrip>[BloodDrip(0.26, 10, 3), BloodDrip(0.72, 8, 3)],
+      builder: (context, count, _) => ListenableBuilder(
+        listenable: game.weaponsCarried,
+        builder: (context, _) {
+          final hasLauncher = game.hasRocketLauncher.value;
+          final inHand =
+              hasLauncher &&
+              game.input.weapon.value == Weapon.rocketLauncher &&
+              game.input.hasWeaponChoice;
+          final box = Container(
+            key: const ValueKey<String>('hud-rockets'),
+            width: _badgeSize,
+            height: _badgeSize,
+            decoration: _frame(
+              rim: inHand
+                  ? inHandBorder
+                  : !hasLauncher
+                  ? BloodColors.dried
+                  : count == 0
+                  ? BloodColors.bright
+                  : BloodColors.fresh,
             ),
-            child: Container(
-              key: const ValueKey<String>('hud-rockets'),
-              width: _badgeSize,
-              height: _badgeSize,
-              decoration: _frame(
-                rim: hasLauncher ? BloodColors.fresh : BloodColors.dried,
-              ),
-              child: Align(
-                alignment: const Alignment(0.2, -0.3),
-                child: _Mirrored(
-                  Image.asset(
-                    'assets/objects/rocket_launcher.png',
-                    width: 34,
-                    height: 34,
-                    fit: BoxFit.contain,
-                    filterQuality: FilterQuality.none,
-                  ),
+            child: Align(
+              alignment: const Alignment(0.2, -0.3),
+              child: _Mirrored(
+                Image.asset(
+                  'assets/objects/rocket_launcher.png',
+                  width: 34,
+                  height: 34,
+                  fit: BoxFit.contain,
+                  filterQuality: FilterQuality.none,
                 ),
               ),
             ),
           );
+          var frame = inHand
+              ? FireFrame(child: box)
+              : BloodOverlay(
+                  painter: const BloodPainter(
+                    band: 3,
+                    cornerRadius: 8,
+                    drips: <BloodDrip>[
+                      BloodDrip(0.26, 10, 3),
+                      BloodDrip(0.72, 8, 3),
+                    ],
+                  ),
+                  child: box,
+                );
           if (!hasLauncher) {
             frame = ColorFiltered(colorFilter: _greyed, child: frame);
           }
           return Semantics(
             button: true,
             enabled: hasLauncher,
-            label: hasLauncher
-                ? 'Lanciarazzi, colpi: $count'
-                : 'Lanciarazzi da trovare, colpi: $count',
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: spill),
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: <Widget>[
-                  frame,
-                  Positioned(
-                    left: -spill,
-                    bottom: -spill,
-                    child: Opacity(
-                      opacity: hasLauncher ? 1 : 0.6,
-                      child: _BloodCount(
-                        key: const ValueKey<String>('hud-rockets-count'),
-                        text: '×$count',
+            selected: inHand,
+            label: !hasLauncher
+                ? 'Lanciarazzi da trovare, colpi: $count'
+                : inHand
+                ? 'Lanciarazzi in mano, colpi: $count'
+                : 'Lanciarazzi, colpi: $count, tocca per prenderlo',
+            child: GestureDetector(
+              onTap: hasLauncher
+                  ? () {
+                      AudioScope.of(context).play(Sfx.uiClick);
+                      game.tapWeapon(Weapon.rocketLauncher);
+                    }
+                  : null,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: spill),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: <Widget>[
+                    frame,
+                    Positioned(
+                      left: -spill,
+                      bottom: -spill,
+                      child: Opacity(
+                        opacity: hasLauncher ? 1 : 0.6,
+                        child: _BloodCount(
+                          key: const ValueKey<String>('hud-rockets-count'),
+                          text: '×$count',
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           );

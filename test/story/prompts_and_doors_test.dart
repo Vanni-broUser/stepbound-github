@@ -49,25 +49,22 @@ void main() {
     expect(mario.facing, Direction.west);
   });
 
-  test('the last step of the stairs down into a building with no map yet '
-      'shows the work-in-progress screen, and Mario is back on the step '
-      'before it, facing back up', () {
-    for (final door in <GridPoint>[hospitalNextRoofStairsFoot.first]) {
-      host.workInProgressShown = 0;
-      final way = world.stairs[door]!;
-      final start = door.step(way.opposite);
-      final mario = world.player.component<PositionComponent>()
-        ..position = start
-        ..facing = way;
+  test('the last step of the stairs down from the roof east of the hospital '
+      'is a real door now: into the block, and no work-in-progress screen', () {
+    final door = hospitalNextRoofStairsFoot.first;
+    host.workInProgressShown = 0;
+    final way = world.stairs[door]!;
+    final start = door.step(way.opposite);
+    final mario = world.player.component<PositionComponent>()
+      ..position = start
+      ..facing = way;
 
-      final events = const TurnScheduler().advance(world, MoveAction(way));
-      expect(mario.position, door);
-      director.onEvents(events);
+    final events = const TurnScheduler().advance(world, MoveAction(way));
+    director.onEvents(events);
 
-      expect(host.workInProgressShown, 1, reason: '$door');
-      expect(mario.position, start);
-      expect(mario.facing, way.opposite);
-    }
+    expect(host.workInProgressShown, 0);
+    expect(placeAt(mario.position)?.id, PlaceId.eastBlockTopFloor);
+    expect(mario.position, eastBlockRoofStairs.step(Direction.south));
   });
 
   test('the locked bar door explains that it needs a key', () {

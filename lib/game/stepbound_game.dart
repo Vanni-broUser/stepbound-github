@@ -40,6 +40,7 @@ import 'package:stepbound/game/render/offscreen_culled.dart';
 import 'package:stepbound/game/render/pickup_component.dart';
 import 'package:stepbound/game/render/pixel_palette.dart';
 import 'package:stepbound/game/render/place_layers.dart';
+import 'package:stepbound/game/render/rocket_component.dart';
 import 'package:stepbound/game/render/screen_fade_component.dart';
 import 'package:stepbound/game/render/throw_preview_component.dart';
 import 'package:stepbound/game/render/tile_place_component.dart';
@@ -228,6 +229,16 @@ final class StepboundGame extends FlameGame
   /// Whether Mario has the rocket launcher itself: until then its badge
   /// waits dimmed, as the pistol's does.
   late final ValueNotifier<bool> hasRocketLauncher;
+
+  /// Goes off whenever which weapons Mario could take in hand may have
+  /// changed, or which one he holds: the weapons' badges follow it.
+  late final Listenable weaponsCarried = Listenable.merge(<Listenable>[
+    input.weapon,
+    hasGun,
+    molotovs,
+    rockets,
+    hasRocketLauncher,
+  ]);
 
   /// Touch controls unlocked so far by the tutorial (walking is always
   /// available).
@@ -449,6 +460,7 @@ final class StepboundGame extends FlameGame
         simulation: simulation,
         aiming: input.aiming,
         hidden: () => input.throwing,
+        throughEntities: () => input.weapon.value == Weapon.rocketLauncher,
       ),
       ThrowPreviewComponent(simulation: simulation, target: input.throwTarget),
     ]);
@@ -616,16 +628,12 @@ final class StepboundGame extends FlameGame
     if (hasRocketLauncher.value != ammo.hasRocketLauncher) {
       hasRocketLauncher.value = ammo.hasRocketLauncher;
     }
-    // The last one thrown (or the level left behind): the pistol is back.
-    // Molotovs and no pistol yet: the molotov is the one weapon in hand.
-    if (!input.aiming.value) {
-      if (ammo.molotovs == 0 && input.weapon.value == Weapon.molotov) {
-        input.weapon.value = Weapon.pistol;
-      } else if (!ammo.hasGun &&
-          input.weapon.value == Weapon.pistol &&
-          input.hasWeapon(Weapon.molotov)) {
-        input.weapon.value = Weapon.molotov;
-      }
+    // What is in hand and gone (the last molotov thrown, the last rocket
+    // fired, the level left behind): the first weapon he has is back, the
+    // pistol first of all. Molotovs and no pistol yet: the molotov is the
+    // one weapon in hand.
+    if (!input.aiming.value && !input.hasWeapon(input.weapon.value)) {
+      input.weapon.value = input.weaponsCarried.firstOrNull ?? Weapon.pistol;
     }
   }
 
@@ -651,6 +659,8 @@ final class StepboundGame extends FlameGame
     switch (cue) {
       case CharacterCue.fire:
         character.playFire(facing);
+      case CharacterCue.fireRocket:
+        character.playFire(facing, weapon: PlayerWeaponSprite.rocketLauncher);
       case CharacterCue.throwWeapon:
         character.playThrow(facing);
       case CharacterCue.throwGrapple:
@@ -689,6 +699,21 @@ final class StepboundGame extends FlameGame
       burns: (tile) =>
           simulation.map.contains(tile) &&
           simulation.map.tileAt(tile).isWalkable,
+    ),
+  );
+
+  @override
+  void launchRocket({
+    required GridPoint origin,
+    required GridPoint impact,
+    required Direction direction,
+    required void Function() onImpact,
+  }) => addToWorld(
+    RocketComponent(
+      origin: origin,
+      impact: impact,
+      direction: direction,
+      onImpact: onImpact,
     ),
   );
 
@@ -923,8 +948,9 @@ final class StepboundGame extends FlameGame
         !_levelCompleted &&
         !_camp.resting &&
         !_transitions.inTransit &&
-        // A bottle in the air: spent, and its burst not played yet.
-        !presentation.holdsMolotov &&
+        // A bottle or a rocket in the air: spent, and its burst not
+        // played yet.
+        !presentation.holdsProjectile &&
         !story.holdsInput &&
         !_stages.any((stage) => stage.holdsMario) &&
         (scene == null || scene is PauseCover);
@@ -1067,7 +1093,7 @@ final class StepboundGame extends FlameGame
   /// one in hand; with only this one there is nothing to choose, and a
   /// small system text box tells how many rounds or bottles are left.
   void tapWeapon(Weapon weapon) {
-    if (input.hasWeapon(Weapon.pistol) && input.hasWeapon(Weapon.molotov)) {
+    if (input.hasWeaponChoice) {
       input.selectWeapon(weapon);
       return;
     }
@@ -1075,6 +1101,7 @@ final class StepboundGame extends FlameGame
     inspectInventory(switch (weapon) {
       Weapon.pistol => '${ammo.loaded} proiettili',
       Weapon.molotov => '${ammo.molotovs} molotov',
+      Weapon.rocketLauncher => '${ammo.rockets} colpi per lanciarazzi',
     });
   }
 
@@ -1143,8 +1170,12 @@ final class StepboundGame extends FlameGame
             : input.throwing
             ? PlayerPoseFamily.throwable
             : PlayerPoseFamily.oneHanded
-        ..aimingWeapon = entry.key == playerId && input.throwing
+        ..aimingWeapon = entry.key != playerId || !input.aiming.value
+            ? null
+            : input.throwing
             ? PlayerWeaponSprite.molotov
+            : input.weapon.value == Weapon.rocketLauncher
+            ? PlayerWeaponSprite.rocketLauncher
             : null
         ..goldenPistol = entry.key == playerId && progress.hasGoldenPistol;
     }

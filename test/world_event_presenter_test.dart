@@ -43,6 +43,17 @@ final class _Stage implements EventStage {
   }
 
   @override
+  void launchRocket({
+    required GridPoint origin,
+    required GridPoint impact,
+    required Direction direction,
+    required void Function() onImpact,
+  }) {
+    log.add('rocket:$origin>$impact');
+    onImpact();
+  }
+
+  @override
   void restAt(GridPoint campfire) => log.add('rest:$campfire');
 
   @override
@@ -243,6 +254,24 @@ void main() {
     stage.runPending();
     expect(stage.log, <String>['player:throwWeapon', 'molotov:(1, 1)>(4, 1)']);
     expect(audio.played, contains(Sfx.molotov));
+  });
+
+  test('a rocket flies from Mario’s shoulder down its line, and is heard '
+      'going off and bursting at the end of it', () {
+    presenter.present(1, const <WorldEvent>[
+      RocketFiredEvent(
+        entityId: 'player',
+        origin: GridPoint(1, 1),
+        impact: GridPoint(6, 1),
+        direction: Direction.east,
+        hitEntityIds: <String>['zombie'],
+      ),
+    ]);
+    expect(stage.log, <String>['player:fireRocket', 'rocket:(1, 1)>(6, 1)']);
+    expect(audio.played, contains(Sfx.rocket));
+    expect(audio.played, contains(Sfx.explosion));
+    expect(haptics, contains(HapticCue.hitLanded));
+    expect(stage.pending, isEmpty);
   });
 
   test('the burst’s hits and deaths show as its turn is played', () {

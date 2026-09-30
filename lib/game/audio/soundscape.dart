@@ -192,6 +192,8 @@ final class Soundscape {
           if (hitEntityId != null) {
             add(Sfx.hitFlesh, tile: impact);
           }
+        case RocketFiredEvent():
+          add(Sfx.rocket);
         case DryFiredEvent():
           add(Sfx.dryFire);
         case PickedUpEvent(:final gun):

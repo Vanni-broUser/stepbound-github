@@ -61,6 +61,8 @@ enum PlaceId {
   companySecond,
   monumentSquare,
   electronicsShop,
+  eastBlockTopFloor,
+  eastBlockLowerFloor,
 }
 
 /// The levels of the game, one city each. The train Mario and Luigi live
