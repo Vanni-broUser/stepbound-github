@@ -30,6 +30,7 @@ from PIL import Image, ImageDraw
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import street_airliner as plane  # noqa: E402
 import street_buildings as buildings  # noqa: E402
+import street_carousel as carousel  # noqa: E402
 import street_ground as floors  # noqa: E402
 import street_paint as brushes  # noqa: E402
 import street_props as props  # noqa: E402
@@ -63,6 +64,8 @@ STOP_NORTH, STOP_WEST = "▔", "▏"
 BEND_EAST = "ɔ"
 # The monument on the square south of the street of the company.
 MONUMENT = "Ω"
+# The children's carousel on the quay at the end of the harbour road.
+CAROUSEL = "ç"
 BUILDINGS = "BHfKMGW#%0]\"\u00a7\u00c6\u00a3"
 FACADE = "Hf"
 # A front and the doors set in it at street level: the floor over a door
@@ -1537,6 +1540,13 @@ def city_place(atlas: Atlas, rng, name: str, marker, storefront_table,
             rows, level, f"{name}_monument",
             lambda d, lv: props.paint_monument(image_of(d), rng, x * TILE,
                                                y * TILE), MONUMENT))
+    ride = run_of(rows, CAROUSEL)
+    if ride:
+        x, y, w, h = ride
+        objects.append(picture(
+            rows, level, f"{name}_carousel",
+            lambda d, lv: carousel.paint_carousel(d, x * TILE, y * TILE, w, h),
+            CAROUSEL))
     fountain = run_of(rows, "O")
     if fountain:
         x, y, w, _ = fountain

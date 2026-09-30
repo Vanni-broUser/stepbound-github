@@ -172,6 +172,30 @@ void main() {
       expect(localRoad.y, greaterThan(harbour.height - 10));
     });
 
+    test("the harbour road stops short of the quay, where the children's "
+        'carousel stands and the last fire burns beside it', () {
+      final world = createGameWorld();
+      final carousel = harbour.tilesOf('ç');
+      expect(carousel, hasLength(15), reason: 'five cells by three');
+      for (final tile in carousel) {
+        expect(world.map.tileAt(tile).kind, TileKind.obstacle);
+      }
+      final fire = harbourRoadCampfireTile;
+      final nearest = carousel
+          .map((tile) => (tile.x - fire.x).abs() + (tile.y - fire.y).abs())
+          .reduce((a, b) => a < b ? a : b);
+      expect(nearest, lessThanOrEqualTo(2), reason: 'the fire is beside it');
+      final column = carousel.first.x - harbour.origin.x;
+      final top = carousel.first.y - harbour.origin.y;
+      for (var y = top - 1; y < harbourRows.length; y++) {
+        expect(
+          harbourRows[y][column],
+          isNot('.'),
+          reason: 'no tarmac between the end of the road and the quay',
+        );
+      }
+    });
+
     test('the seafront road runs on west past the Duomo until the shipyard '
         'closes it, the way in round the side', () {
       final duomo = harbourRows.indexWhere((row) => row.contains('W'));

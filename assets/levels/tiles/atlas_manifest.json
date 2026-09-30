@@ -6213,7 +6213,7 @@
         },
         {
           "layer": "structures",
-          "glyphs": "!&(*,-.567:=ACDFNPRSTUVXZbcdhilnostvwxz|~",
+          "glyphs": "!&(*,-.567:=ACDFNPRSTUVXZbcdhilnostvwxz|~\u00e7",
           "keys": [
             {
               "kind": "neighbour",
@@ -7252,6 +7252,16 @@
             "iii",
             "iii",
             "iii"
+          ]
+        },
+        {
+          "image": "hometown/harbour_carousel.png",
+          "at": [132, 51],
+          "underAt": [133, 55],
+          "under": [
+            "\u00e7\u00e7\u00e7\u00e7\u00e7",
+            "\u00e7\u00e7\u00e7\u00e7\u00e7",
+            "\u00e7\u00e7\u00e7\u00e7\u00e7"
           ]
         },
         {
