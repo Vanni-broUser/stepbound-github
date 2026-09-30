@@ -288,13 +288,15 @@ void main() {
     );
   });
 
-  test('the memories of Luigi set free, of Don Angelo and of Rome keep '
-      'their music, the rest play with the story', () {
+  test('the memories of Luigi set free, of Don Angelo, of Chiara and of '
+      'Rome keep their music, the rest play with the story', () {
     Music? musicOf(StoryMemory memory) =>
         memoryScenes[memory]!.map((scene) => scene.music).toSet().single;
     expect(musicOf(StoryMemory.luigiRescued), Music.luigi);
     expect(musicOf(StoryMemory.luigiAtStation), Music.luigi);
     expect(musicOf(StoryMemory.presidentFled), Music.rome);
+    expect(musicOf(StoryMemory.chiaraCall), Music.weasel);
+    expect(musicOf(StoryMemory.chiaraMet), Music.weasel);
     for (final memory in <StoryMemory>[
       StoryMemory.priestMet,
       StoryMemory.priestErrand,

@@ -1,4 +1,5 @@
 import 'package:stepbound/core/core.dart';
+import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/story/story_director.dart';
 
@@ -167,6 +168,7 @@ final class CompanyScript extends StoryScript {
         ..playCutscene(
           callFrames,
           memories: const <StoryMemory>{StoryMemory.chiaraCall},
+          music: Music.weasel,
           onFinished: () => progress.missions.give(Mission.reachSurvivor),
         );
     }
@@ -181,6 +183,7 @@ final class CompanyScript extends StoryScript {
       ..playCutscene(
         meetingFrames,
         memories: const <StoryMemory>{StoryMemory.chiaraMet},
+        music: Music.weasel,
         onFinished: () => say(
           StoryPrompt(
             const <StoryLine>[StoryLine.mario(sendToStation)],

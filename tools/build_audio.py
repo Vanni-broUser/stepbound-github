@@ -86,6 +86,9 @@ SOURCES = {
     "basic_implosion": (INCOMPETECH + "Basic%20Implosion.mp3",
                         "Basic Implosion",
                         "Kevin MacLeod (incompetech.com)", "CC BY 4.0"),
+    "scheming_weasel": (INCOMPETECH + "Scheming%20Weasel%20slower.mp3",
+                        "Scheming Weasel (slower version)",
+                        "Kevin MacLeod (incompetech.com)", "CC BY 4.0"),
     "lurking": (SOUNDIMAGE + "2014/03/Lurking-in-the-Shadows.mp3",
                 "Lurking in the Shadows", "Eric Matyas (soundimage.org)",
                 "Free with attribution"),
@@ -144,6 +147,11 @@ MUSIC = [
     # piece repeats itself 40 bars (101.05 s) on, so the beat at 152.55 s
     # lands on the one at 51.5 s: the loop is cut there, with a short
     # crossfade that keeps the kicks sharp.
+    # Pizzicato strings tiptoeing like a cartoon villain, slowed down:
+    # the hold music of a call centre gone wrong, for Molfetta's industries,
+    # the company and Chiara. The piece opens and ends on silence, so the
+    # loop runs from its first note to its last with a short crossfade.
+    ("music/weasel.mp3", "scheming_weasel", 0.45, 106.75, 0.3, -21),
     ("music/maranza.mp3", "basic_implosion", 51.5, 153.05, 0.5, -20),
 ]
 
