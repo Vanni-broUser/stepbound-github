@@ -30,7 +30,8 @@ Future<void> bootstrap() async {
   }
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
   // In the browser, where the game is only tested, it starts silent. The
-  // app owns these from here and closes them when the engine lets go.
+  // guard over the app owns these from here, through any error, and
+  // closes them when the engine lets go.
   final services = AppServices.device(silent: kIsWeb);
   final saves = services.saves;
   if (vanniDeployEnabled) {
@@ -48,7 +49,7 @@ Future<void> bootstrap() async {
   runApp(
     CrashGuard(
       reporter: reporter,
-      audio: services.audio,
+      services: services,
       share: shareReportFile,
       child: StepboundApp(
         services: services,

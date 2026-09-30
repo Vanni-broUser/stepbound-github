@@ -97,6 +97,67 @@ void main() {
       expect(text, contains('== Ultimi passi ==\n12:30:05.007  app: menù'));
     });
 
+    test('asks the app what it knows the moment the error is recorded, '
+        'not when the report is written', () async {
+      var asked = 0;
+      Future<List<ReportSection>> ask() async => <ReportSection>[
+        ReportSection('Partita', 'slot: 2, chiesto ${++asked}'),
+      ];
+      reporter
+        ..context = ask
+        ..record(StateError('boom'), null, source: 'test');
+      expect(asked, 1, reason: 'asked at once, while the app is there');
+      // The error screen has taken the app's place by now.
+      reporter.context = null;
+      final text = await reporter.render(reporter.report!);
+      expect(text, contains('== Partita ==\nslot: 2, chiesto 1\n'));
+      expect(asked, 1);
+    });
+
+    test('a report that is not the error’s asks the app now', () async {
+      Future<List<ReportSection>> atTheError() async => <ReportSection>[
+        const ReportSection('Partita', 'al momento dell’errore'),
+      ];
+      Future<List<ReportSection>> now() async => <ReportSection>[
+        const ReportSection('Partita', 'adesso'),
+      ];
+      reporter
+        ..context = atTheError
+        ..record(StateError('boom'), null, source: 'test')
+        ..context = now;
+      final text = await reporter.render(
+        ErrorReport(error: 'salvataggio', at: noon, source: 'test'),
+      );
+      expect(text, contains('== Partita ==\nadesso\n'));
+      final error = await reporter.render(reporter.report!);
+      expect(error, contains('== Partita ==\nal momento dell’errore\n'));
+    });
+
+    test('an app that fails to answer at the error is a section that says '
+        'so', () async {
+      Future<List<ReportSection>> noApp() => throw StateError('no app');
+      reporter
+        ..context = noApp
+        ..record(StateError('boom'), null, source: 'test');
+      final text = await reporter.render(reporter.report!);
+      expect(
+        text,
+        contains('== Partita ==\nnon disponibile: Bad state: no app'),
+      );
+    });
+
+    test('with no app at the error, the report asks the one there is when '
+        'it is written', () async {
+      Future<List<ReportSection>> later() async => <ReportSection>[
+        const ReportSection('Partita', 'arrivata dopo'),
+      ];
+      reporter
+        ..record(StateError('boom'), null, source: 'test')
+        ..context = later;
+      final text = await reporter.render(reporter.report!);
+      expect(text, contains('== Partita ==\narrivata dopo\n'));
+    });
+
     test('renders even when the app and the phone fail to answer', () async {
       reporter = ErrorReporter(
         clock: () => noon,

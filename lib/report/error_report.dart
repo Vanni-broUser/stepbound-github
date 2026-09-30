@@ -63,13 +63,19 @@ final class ErrorReporter extends ChangeNotifier {
   final Future<DeviceInfo> Function() _device;
   final Breadcrumbs breadcrumbs;
 
-  /// Set by the app: what it adds to a report.
+  /// Set by the app: what it adds to a report. Asked the moment an error
+  /// is recorded, while the app is still there to answer: the error
+  /// screen takes its place right after, and its answer would be gone
+  /// with it.
   ReportContext? context;
 
   /// How long the phone and the app are given to answer.
   static const Duration patience = Duration(seconds: 5);
 
   ErrorReport? _report;
+
+  /// What the app said at the moment of [report], kept for its rendering.
+  ({ErrorReport report, Future<List<ReportSection>> sections})? _captured;
 
   /// The error being shown, null while the game runs.
   ErrorReport? get report => _report;
@@ -99,13 +105,33 @@ final class ErrorReporter extends ChangeNotifier {
     if (_report != null) {
       return;
     }
-    _report = ErrorReport(
+    final report = ErrorReport(
       error: error,
       stack: stack,
       source: source,
       at: _clock(),
     );
+    _report = report;
+    if (context != null) {
+      _captured = (report: report, sections: _askContext());
+    }
     notifyListeners();
+  }
+
+  /// What the app adds right now; what it throws is a section of its own.
+  /// The future never fails: nobody may be waiting on it when it does.
+  Future<List<ReportSection>> _askContext() async {
+    final ask = context;
+    if (ask == null) {
+      return const <ReportSection>[];
+    }
+    try {
+      return await ask();
+    } on Object catch (error) {
+      return <ReportSection>[
+        ReportSection('Partita', 'non disponibile: $error'),
+      ];
+    }
   }
 
   /// The player goes back to the menu: the next error is a new one.
@@ -125,7 +151,8 @@ final class ErrorReporter extends ChangeNotifier {
         '${two(at.hour)}${two(at.minute)}${two(at.second)}.txt';
   }
 
-  /// The whole report as text: build, phone, error, what the app adds,
+  /// The whole report as text: build, phone, error, what the app added
+  /// when [report] was recorded (or adds now, for a report that was not),
   /// then the trail. Nothing in it can stop it from being written.
   Future<String> render(ErrorReport report) async {
     final device = await _guard(
@@ -137,8 +164,13 @@ final class ErrorReporter extends ChangeNotifier {
         appVersion: DeviceInfo.unknown,
       ),
     );
+    // The error's own report has what the app said when it happened; any
+    // other report (a failed save, the trail asked for) asks the app now.
+    final captured = _captured;
     final sections = await _guard(
-      context ?? () async => const <ReportSection>[],
+      captured != null && identical(captured.report, report)
+          ? () => captured.sections
+          : _askContext,
       (error) => <ReportSection>[
         ReportSection('Partita', 'non disponibile: $error'),
       ],

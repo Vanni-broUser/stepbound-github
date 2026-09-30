@@ -26,7 +26,17 @@ Suggested order: the publication ritual when the first build goes out,
 then the rest. The release key has its copy outside GitLab (2026-09-28),
 and the level-end save is awaited and reported.
 
-## P1 — The publication ritual, for the day of the first public build
+The list is in two parts, so that a review of one need not read the
+other: first the game and the app, then the pipeline (the GitLab jobs,
+the GitHub workflow, the signing of what they build). A finding sits in
+the pipeline part only if the work is in the CI configuration, the
+runners or the keys they sign with; what CI merely runs (analysis,
+tests, coverage floors) belongs to the app. Within each part the
+priorities are as before.
+
+## Part one — The game and the app
+
+### P1 — The publication ritual, for the day of the first public build
 
 Nothing to do before the build itself: the mechanism is ready and its
 switch is off. `publishedSaveFormat` is `null`, `SaveGame.format` moves
@@ -42,7 +52,7 @@ an App Bundle on a Play track and main taking eighteen merges a day, the
 one risk is a build that reaches the public without that commit: tags
 start with it, and every later build that leaves the team gets one.
 
-## P1 — Errors in the field
+### P1 — Errors in the field
 
 Until this branch, an error nobody caught went to a console nobody reads:
 `lib/bootstrap.dart` installed neither `FlutterError.onError` nor
@@ -87,7 +97,7 @@ that does not answer.
   limit and a rate limit on the endpoint, no device identifier in the
   payload.
 
-## P2 — What is left of loading the places by area
+### P2 — What is left of loading the places by area
 
 - An area's places are composed one at a time as Mario walks into it
   (`PlaceLayers`), so a frame carries at most one picture. On a Redmi 9
@@ -120,24 +130,7 @@ that does not answer.
   tiles that differ, and the whole world of a save stays under the 64 KB
   `test/world/saves_test.dart` allows.
 
-## P2 — What is left of release signing
-
-Debug builds now carry `applicationIdSuffix = ".debug"`
-(`android/app/build.gradle.kts`): they install beside the release, so a
-debug key no longer conflicts with the release one. What remains:
-
-- Debug APKs built by CI are still signed with a debug key generated anew
-  in each job's container, so each one conflicts with the last and has to
-  be installed after uninstalling it. A fixed debug keystore, checked in
-  (a debug key is no secret), would let them update each other too.
-- Keep the `versionCode` growing across every build that reaches a phone:
-  GitLab (`CI_PIPELINE_IID`) and GitHub (`run_number`) number their builds
-  differently.
-- iOS: `build_ios_signed` and `deploy_testflight` exist, but the Xcode
-  project has no team and the privacy policy already names iOS. Either
-  configure the signing or say Android only until it is.
-
-## P3 — Release-only differences
+### P3 — Release-only differences
 
 What only a release build shows, to keep in mind while testing:
 
@@ -150,19 +143,7 @@ What only a release build shows, to keep in mind while testing:
 - The key that signs gift links is in the APK (`docs/skin_unlock_links.md`
   says so and accepts it).
 
-## P3 — Streamline CI
-
-Container jobs start from Flutter 3.44.0 and fetch/checkout 3.44.2 for every
-job, which is the largest fixed cost left in the pipeline: cirruslabs has
-published no 3.44.2 image, and GitLab only caches paths inside the project.
-
-- Use an exact prebuilt Flutter image once there is one, or install the SDK
-  under the project directory and cache it by version.
-- The GitHub workflow repeats the GitLab jobs by hand (`docs/ci-pipeline.md`
-  says so): every change to a job is made twice. Keep it in mind before
-  adding jobs.
-
-## P3 — Simulation cost as the world grows
+### P3 — Simulation cost as the world grows
 
 `tools/benchmark_world.dart` measures a turn with the real cast, 500 and
 1,000 entities, and the cost of a single path query. On the real world of
@@ -187,3 +168,48 @@ is the first place to look.
   them too only with a much larger cast: they move, and the scripts
   raise them, wherever Mario is.
 - Cached paths or shared flow fields: not needed at these numbers.
+
+## Part two — The pipeline
+
+### P1 — The pipeline's side of the publication ritual
+
+The ritual itself is in the first part; this is the pipeline's share
+of it. `privacy_policy_pages` (`gitlab/pages.yml`) is manual on `main`
+and refuses a page with placeholders left in it. `deploy_play`
+(`gitlab/deploy-play.yml`) runs on every pipeline of `main`, `when:
+on_success`, to the `alpha` track with the release completed: every
+merge reaches the testers on that track, tagged or not, and nothing in
+the pipeline knows the ritual, since the tag is set by hand. Before the
+track opens beyond the team, tie the deploy to what the ritual
+produces: a rule that deploys only a tagged commit, or a manual gate on
+`deploy_play`, and the release name carrying the tag beside the short
+SHA and the pipeline number it carries now.
+
+### P2 — What is left of release signing
+
+Debug builds now carry `applicationIdSuffix = ".debug"`
+(`android/app/build.gradle.kts`): they install beside the release, so a
+debug key no longer conflicts with the release one. What remains:
+
+- Debug APKs built by CI are still signed with a debug key generated anew
+  in each job's container, so each one conflicts with the last and has to
+  be installed after uninstalling it. A fixed debug keystore, checked in
+  (a debug key is no secret), would let them update each other too.
+- Keep the `versionCode` growing across every build that reaches a phone:
+  GitLab (`CI_PIPELINE_IID`) and GitHub (`run_number`) number their builds
+  differently.
+- iOS: `build_ios_signed` and `deploy_testflight` exist, but the Xcode
+  project has no team and the privacy policy already names iOS. Either
+  configure the signing or say Android only until it is.
+
+### P3 — Streamline CI
+
+Container jobs start from Flutter 3.44.0 and fetch/checkout 3.44.2 for every
+job, which is the largest fixed cost left in the pipeline: cirruslabs has
+published no 3.44.2 image, and GitLab only caches paths inside the project.
+
+- Use an exact prebuilt Flutter image once there is one, or install the SDK
+  under the project directory and cache it by version.
+- The GitHub workflow repeats the GitLab jobs by hand (`docs/ci-pipeline.md`
+  says so): every change to a job is made twice. Keep it in mind before
+  adding jobs.

@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
-import 'package:stepbound/game/audio/game_audio.dart';
+import 'package:stepbound/app_services.dart';
 import 'package:stepbound/game/render/pixel_palette.dart';
 import 'package:stepbound/report/error_report.dart';
 import 'package:stepbound/ui/error_screen.dart';
@@ -14,12 +14,15 @@ typedef ShareReport = Future<void> Function(String fileName, String text);
 /// the app; once it does, the [ErrorScreen] takes its place, with the
 /// sound paused, until the player goes back to the menu: then [child] is
 /// built anew, from the main menu, as a fresh start of the app would be.
+/// What the app runs on, [services], outlives it here: the app under the
+/// error screen goes, and the one built anew runs on the same services,
+/// which the guard closes when the engine lets go of the process.
 final class CrashGuard extends StatefulWidget {
   const CrashGuard({
     required this.reporter,
     required this.child,
     required this.share,
-    this.audio,
+    this.services,
     super.key,
   });
 
@@ -27,8 +30,12 @@ final class CrashGuard extends StatefulWidget {
   final Widget child;
   final ShareReport share;
 
-  /// Paused while the error is on screen, resumed with the menu.
-  final GameAudio? audio;
+  /// What [child] runs on, owned here for as long as the process lives:
+  /// its sound is paused while the error is on screen and resumed with
+  /// the menu, and all of it is closed when the guard goes or the engine
+  /// lets go of the app. The app under the guard must be handed these
+  /// same services, so that it leaves them to the guard to close.
+  final AppServices? services;
 
   @override
   State<CrashGuard> createState() => _CrashGuardState();
@@ -39,10 +46,17 @@ final class _CrashGuardState extends State<CrashGuard> {
   int _generation = 0;
   bool _sharing = false;
 
+  /// The engine letting go of the app: the last chance to close what was
+  /// made for it (the phone's sound), before the process ends.
+  late final AppLifecycleListener _lifecycle;
+
   @override
   void initState() {
     super.initState();
     widget.reporter.addListener(_onReport);
+    _lifecycle = AppLifecycleListener(
+      onDetach: () => unawaited(widget.services?.dispose()),
+    );
   }
 
   @override
@@ -57,6 +71,8 @@ final class _CrashGuardState extends State<CrashGuard> {
   @override
   void dispose() {
     widget.reporter.removeListener(_onReport);
+    _lifecycle.dispose();
+    unawaited(widget.services?.dispose());
     super.dispose();
   }
 
@@ -64,7 +80,7 @@ final class _CrashGuardState extends State<CrashGuard> {
   /// layout: the switch then waits for the frame to end.
   void _onReport() {
     if (widget.reporter.report != null) {
-      widget.audio?.pause();
+      widget.services?.audio.pause();
     }
     if (SchedulerBinding.instance.schedulerPhase ==
         SchedulerPhase.persistentCallbacks) {
@@ -99,7 +115,7 @@ final class _CrashGuardState extends State<CrashGuard> {
 
   void _backToMenu() {
     _generation += 1;
-    widget.audio?.resume();
+    widget.services?.audio.resume();
     widget.reporter.reset();
   }
 
