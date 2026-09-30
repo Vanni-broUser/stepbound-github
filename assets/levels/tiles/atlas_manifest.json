@@ -7190,13 +7190,13 @@
       ],
       "objects": [
         {
-          "image": "hometown/harbour_shop_94_15.png",
-          "at": [94, 15],
+          "image": "hometown/harbour_shop_100_15.png",
+          "at": [100, 15],
           "under": [
-            "HHHHHH",
-            "HHHHHH",
-            "HHHHHH",
-            "HHHHHH"
+            "HHHHH",
+            "HHHHH",
+            "HHHHH",
+            "HHHHH"
           ]
         },
         {

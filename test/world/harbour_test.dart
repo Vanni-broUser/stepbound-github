@@ -168,7 +168,7 @@ void main() {
         harbourRoadCampfireTile.x - harbour.origin.x,
         harbourRoadCampfireTile.y - harbour.origin.y,
       );
-      expect(localRoad.x, greaterThan(harbour.width - 15));
+      expect(harbourRows[localRoad.y].indexOf('ç'), greaterThan(localRoad.x));
       expect(localRoad.y, greaterThan(harbour.height - 10));
     });
 
@@ -280,7 +280,10 @@ void main() {
       );
 
       // The fountain, two cells by two, with room to walk in front of it.
-      final fountain = tilesOf('!');
+      final fountain = <GridPoint>[
+        for (final tile in tilesOf('!'))
+          if (tile.x < duomoX) tile,
+      ];
       expect(fountain, hasLength(4));
       final top = fountain
           .map((tile) => tile.y)
@@ -294,6 +297,83 @@ void main() {
         );
       }
       expect(tilesOf('&'), isNotEmpty, reason: 'the flower beds with it');
+    });
+
+    test('east of the road down to the carousel two old-town alleys leave '
+        'the road and meet again at a fountain, blind alleys off them', () {
+      final world = createGameWorld();
+      final sidewalk = harbourRows[harbourRows.length - 10].lastIndexOf('=');
+      // The alleys open where the road's east sidewalk meets the paving.
+      final mouths = <int>[
+        for (var y = 0; y < harbourRows.length; y++)
+          if (glyph(sidewalk, y) == '=' &&
+              glyph(sidewalk + 1, y) == 'P' &&
+              glyph(sidewalk + 1, y - 1) != 'P')
+            y,
+      ];
+      expect(mouths, hasLength(2), reason: 'two alleys off the road');
+
+      // Walking the paving east of the road, from one mouth the other is
+      // reached without going back onto the road.
+      final start = at(sidewalk + 1, mouths.first);
+      final seen = <GridPoint>{start};
+      final queue = <GridPoint>[start];
+      while (queue.isNotEmpty) {
+        final here = queue.removeLast();
+        for (final direction in Direction.values) {
+          final next = here.step(direction);
+          final local = GridPoint(
+            next.x - harbour.origin.x,
+            next.y - harbour.origin.y,
+          );
+          if (local.x > sidewalk &&
+              local.x < harbour.width &&
+              !seen.contains(next) &&
+              world.map.tileAt(next).isWalkable) {
+            seen.add(next);
+            queue.add(next);
+          }
+        }
+      }
+      expect(seen, contains(at(sidewalk + 1, mouths.last)));
+
+      // The fountain and its flower beds are on the way round.
+      bool beside(String wanted) => seen.any(
+        (tile) => Direction.values.any((direction) {
+          final next = tile.step(direction);
+          return glyph(next.x - harbour.origin.x, next.y - harbour.origin.y) ==
+              wanted;
+        }),
+      );
+      expect(beside('!'), isTrue, reason: 'a fountain on the way');
+      expect(beside('&'), isTrue, reason: 'flower beds by it');
+
+      // Blind alleys, two cells wide: the pair at their end is shut ahead
+      // and on either side, open only back the way it came.
+      bool open(GridPoint tile) => world.map.tileAt(tile).isWalkable;
+      var deadEnds = 0;
+      for (final a in seen) {
+        for (final ahead in Direction.values) {
+          final side = Direction.values.firstWhere(
+            (d) => d.dx == ahead.dy.abs() && d.dy == ahead.dx.abs(),
+          );
+          final b = a.step(side);
+          if (seen.contains(b) &&
+              !open(a.step(ahead)) &&
+              !open(b.step(ahead)) &&
+              !open(a.step(side.opposite)) &&
+              !open(b.step(side)) &&
+              seen.contains(a.step(ahead.opposite)) &&
+              seen.contains(b.step(ahead.opposite))) {
+            deadEnds++;
+          }
+        }
+      }
+      expect(deadEnds, greaterThanOrEqualTo(3));
+      // The east edge of the map stays built over: no way off it.
+      for (var y = 0; y < harbourRows.length; y++) {
+        expect(glyph(harbour.width - 1, y), 'B');
+      }
     });
 
     test('the Duomo stands back from the road: a two-cell alley climbs to '

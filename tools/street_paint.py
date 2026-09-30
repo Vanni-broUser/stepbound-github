@@ -159,9 +159,10 @@ HARBOUR_STOREFRONTS = {
     15: [
         (54, 6, "gelateria"),
         # On the seafront road, each to a whole palazzo: the fishmonger's
-        # between the road up to the square and the alley to the bar, the
-        # fish restaurant between that alley and the corner.
-        (94, 6, "pescheria", OWN_STREAM),
+        # between the road up to the square and the alley to the bar, one
+        # palazzo in from the road, the fish restaurant between that alley
+        # and the corner.
+        (100, 5, "pescheria", OWN_STREAM),
         (124, 6, "ristorante", OWN_STREAM),
     ],
 }
