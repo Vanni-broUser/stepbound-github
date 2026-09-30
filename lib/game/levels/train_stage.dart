@@ -43,6 +43,7 @@ final class TrainStage extends LevelStage {
   NpcComponent _chiaraAboardComponent() => _chiara = NpcComponent(
     asset: NpcComponent.chiaraAsset,
     tile: trainChiaraTile,
+    name: CompanyScript.chiara,
     facing: Direction.west,
   );
 
@@ -52,7 +53,11 @@ final class TrainStage extends LevelStage {
     return <Component>[
       // Nobody gets aboard before Luigi has opened the door, so he can be
       // there all along.
-      NpcComponent(asset: NpcComponent.luigiAsset, tile: trainLuigiTile),
+      NpcComponent(
+        asset: NpcComponent.luigiAsset,
+        tile: trainLuigiTile,
+        name: MallScript.luigi,
+      ),
       if (_chiaraAboard) _chiaraAboardComponent(),
       InteractGlintComponent(
         tile: trainMapPanelTile,

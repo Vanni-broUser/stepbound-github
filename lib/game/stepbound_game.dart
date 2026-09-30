@@ -36,6 +36,7 @@ import 'package:stepbound/game/render/fire_component.dart';
 import 'package:stepbound/game/render/follow_camera.dart';
 import 'package:stepbound/game/render/grapple_component.dart';
 import 'package:stepbound/game/render/molotov_blast_component.dart';
+import 'package:stepbound/game/render/npc_component.dart';
 import 'package:stepbound/game/render/offscreen_culled.dart';
 import 'package:stepbound/game/render/pickup_component.dart';
 import 'package:stepbound/game/render/pixel_palette.dart';
@@ -779,8 +780,35 @@ final class StepboundGame extends FlameGame
   void stopWalking() => input.stopWalking();
 
   @override
-  void showPrompt(List<StoryLine> lines, {void Function()? onDismissed}) =>
-      _covers.showPrompt(lines, onDismissed: onDismissed);
+  void showPrompt(List<StoryLine> lines, {void Function()? onDismissed}) {
+    _turnSpeakersToMario(lines.map((line) => line.speaker));
+    _covers.showPrompt(lines, onDismissed: onDismissed);
+  }
+
+  /// Whoever speaks in the lines about to show turns to Mario, the way
+  /// anyone spoken to would: of the people of the stage with a speaker's
+  /// name, the one nearest him, so that of two cultists only the one at
+  /// his side answers. Mario's own lines, and voices from out of sight,
+  /// turn nobody.
+  void _turnSpeakersToMario(Iterable<String?> speakers) {
+    final mario = simulation.player.component<PositionComponent>().position;
+    for (final speaker in speakers.nonNulls.toSet()) {
+      NpcComponent? nearest;
+      var nearestDistance = 0;
+      for (final npc in world.children.whereType<NpcComponent>()) {
+        if (npc.name != speaker) {
+          continue;
+        }
+        final tile = npc.tile;
+        final distance = (tile.x - mario.x).abs() + (tile.y - mario.y).abs();
+        if (nearest == null || distance < nearestDistance) {
+          nearest = npc;
+          nearestDistance = distance;
+        }
+      }
+      nearest?.turnTowards(mario);
+    }
+  }
 
   /// Called by the dialogue overlay after the last line.
   void dismissPrompt() => _covers.dismissPrompt();
@@ -793,14 +821,17 @@ final class StepboundGame extends FlameGame
     void Function()? onBlack,
     bool stayBlack = false,
     Music? music,
-  }) => _covers.playCutscene(
-    frames,
-    memories: memories,
-    onFinished: onFinished,
-    onBlack: onBlack,
-    stayBlack: stayBlack,
-    music: music,
-  );
+  }) {
+    _turnSpeakersToMario(frames.map((frame) => frame.speaker));
+    _covers.playCutscene(
+      frames,
+      memories: memories,
+      onFinished: onFinished,
+      onBlack: onBlack,
+      stayBlack: stayBlack,
+      music: music,
+    );
+  }
 
   /// Called by the cutscene overlay once its last frame has faded to black.
   void cutsceneBlack() => _covers.cutsceneBlack();
