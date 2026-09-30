@@ -268,7 +268,8 @@ abstract interface class SaveRepository {
   Future<List<SaveRead>> all();
 
   /// What [slot] holds for the menu: the game as it was put down, if it
-  /// was put down since the last campfire, else the campfire's save.
+  /// was put down since the last campfire (by its date: one older than
+  /// the campfire's save is left aside), else the campfire's save.
   /// Never throws: storage that cannot be read makes the slot a damaged
   /// one.
   Future<SaveRead> read(int slot);
@@ -354,9 +355,19 @@ abstract base class StoredSaveRepository implements SaveRepository {
       _readCheckpoint(slot),
     ]);
     final (_, suspended) = reads[0] as (String?, SaveRead);
+    final checkpoint = reads[1] as SaveRead;
     switch (suspended) {
-      case LoadedSave(:final save):
+      case LoadedSave(:final save)
+          when checkpoint.game == null ||
+              !save.savedAt.isBefore(checkpoint.game!.savedAt):
         return LoadedSave(save, suspended: true);
+      case LoadedSave():
+        // A campfire wrote over it and could not drop it (or the app was
+        // killed in between): the fire is the newer of the two.
+        debugPrint(
+          'save: the game put down in slot $slot is older than '
+          'the fire, and is left aside',
+        );
       case DamagedSave(:final reason):
         // The campfire's save is still there to play.
         debugPrint(
@@ -365,7 +376,7 @@ abstract base class StoredSaveRepository implements SaveRepository {
       case EmptySave():
         break;
     }
-    return reads[1] as SaveRead;
+    return checkpoint;
   }
 
   @override
@@ -395,10 +406,19 @@ abstract base class StoredSaveRepository implements SaveRepository {
         await writeValue(backupKey(game.slot), encoded);
       }
       await writeValue(slotKey(game.slot), jsonEncode(game.toJson()));
-      // Whatever was put down before this campfire is older than it.
-      await removeValue(suspendedKey(game.slot));
     } on Object catch (error) {
       throw SaveWriteException(game.slot, error);
+    }
+    // Whatever was put down before this campfire is older than it. The
+    // save is written by now, so failing to drop it is no failed save:
+    // [read] leaves an older game put down aside by its date.
+    try {
+      await removeValue(suspendedKey(game.slot));
+    } on Object catch (error) {
+      debugPrint(
+        'save: could not drop the game put down in slot ${game.slot} '
+        '($error)',
+      );
     }
   }
 

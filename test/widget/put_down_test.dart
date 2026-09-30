@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flame/game.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,8 +12,80 @@ import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/save/save_game.dart';
 import 'app_harness.dart';
 
+/// Storage whose writes wait for the test to let them through, as a slow
+/// disk would keep them.
+final class _SlowRepository extends StoredSaveRepository {
+  final Map<String, String> values = <String, String>{};
+
+  /// Every write waits on this until it is completed.
+  Completer<void> gate = Completer<void>();
+
+  @override
+  Future<String?> readValue(String key) async => values[key];
+
+  @override
+  Future<void> writeValue(String key, String value) async {
+    await gate.future;
+    values[key] = value;
+  }
+
+  @override
+  Future<void> removeValue(String key) async {
+    values.remove(key);
+  }
+}
+
 void main() {
   tapThroughDialogueAtOnce();
+
+  testWidgets('back before a slow write is done and away again, the game '
+      'is written as it was left the second time', (tester) {
+    return tester.runAsync(() async {
+      final saves = _SlowRepository();
+      final game = await pumpReadyGame(tester, saves: saves);
+      final position = game.simulation.player.component<PositionComponent>()
+        ..position = const GridPoint(16, 20);
+      await leaveApp(tester);
+      // The first write is still waiting on the disk.
+      await backToApp(tester);
+      position.position = const GridPoint(16, 21);
+      saves.gate.complete();
+      final key = StoredSaveRepository.suspendedKey(1);
+      for (var i = 0; i < 20 && !saves.values.containsKey(key); i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      }
+      expect(saves.values, contains(key), reason: 'the old write landed');
+      expect(
+        restoreGameWorld(
+          SaveGame.decode(saves.values[key]).game!.world,
+        ).player.component<PositionComponent>().position,
+        const GridPoint(16, 20),
+        reason: 'as the game was when the first write began',
+      );
+      saves.gate = Completer<void>()..complete();
+      await leaveApp(tester);
+      for (var i = 0; i < 50; i++) {
+        final written = SaveGame.decode(saves.values[key]).game!;
+        if (restoreGameWorld(
+              written.world,
+            ).player.component<PositionComponent>().position ==
+            const GridPoint(16, 21)) {
+          break;
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      }
+      final read = await saves.read(1);
+      expect(read, isA<LoadedSave>());
+      expect(
+        restoreGameWorld(
+          (read as LoadedSave).save.world,
+        ).player.component<PositionComponent>().position,
+        const GridPoint(16, 21),
+        reason: 'the second time away wrote the game as it was then',
+      );
+      await backToApp(tester);
+    });
+  });
 
   testWidgets('putting the app down writes the game as it is, beside the '
       'fire', (tester) {

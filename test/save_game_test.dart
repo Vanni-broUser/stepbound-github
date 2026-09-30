@@ -23,13 +23,31 @@ final class _UnreadableRepository extends StoredSaveRepository {
   Future<void> removeValue(String key) async {}
 }
 
+/// Storage that writes but never removes, as a store that has stopped
+/// answering to one call.
+final class _StuckRepository extends StoredSaveRepository {
+  final Map<String, String> values = <String, String>{};
+
+  @override
+  Future<String?> readValue(String key) async => values[key];
+
+  @override
+  Future<void> writeValue(String key, String value) async =>
+      values[key] = value;
+
+  @override
+  Future<void> removeValue(String key) async =>
+      throw StateError('cannot remove');
+}
+
 void main() {
   SaveGame save({
     String place = 'Dietro la caserma',
     Map<String, Object?>? progress,
+    DateTime? savedAt,
   }) => SaveGame(
     slot: 1,
-    savedAt: DateTime(2026),
+    savedAt: savedAt ?? DateTime(2026),
     place: place,
     world: saveGameWorld(createGameWorld()),
     story: const <String, Object?>{},
@@ -422,6 +440,53 @@ void main() {
         await saves.clearSuspended(1);
         expect((await saves.read(1)).game!.place, 'La stazione');
         expect((await saves.read(1) as LoadedSave).suspended, isFalse);
+      },
+    );
+
+    test('older than the fire is left aside: the fire wrote over it', () async {
+      final saves = MemorySaveRepository();
+      await saves.suspend(
+        save(place: 'Via del porto', savedAt: DateTime(2026, 9, 30, 10)),
+      );
+      // As if the fire's save had gone through but not the dropping of
+      // the game put down: written straight, past `save`.
+      saves.values[StoredSaveRepository.slotKey(1)] = jsonEncode(
+        save(place: 'Il porto', savedAt: DateTime(2026, 9, 30, 11)).toJson(),
+      );
+      final read = await saves.read(1);
+      expect(read.game!.place, 'Il porto');
+      expect((read as LoadedSave).suspended, isFalse);
+      expect((await saves.all()).first.game!.place, 'Il porto');
+    });
+
+    test('as old as the fire is still the game put down', () async {
+      final saves = MemorySaveRepository();
+      await saves.save(save(place: 'Il porto'));
+      saves.values[StoredSaveRepository.suspendedKey(1)] = jsonEncode(
+        save(place: 'Via del porto').toJson(),
+      );
+      expect((await saves.read(1)).game!.place, 'Via del porto');
+    });
+
+    test(
+      'that the fire cannot drop is no failed save, and stays aside',
+      () async {
+        final saves = _StuckRepository();
+        await saves.suspend(
+          save(place: 'Via del porto', savedAt: DateTime(2026, 9, 30, 10)),
+        );
+        await saves.save(
+          save(place: 'Il porto', savedAt: DateTime(2026, 9, 30, 11)),
+        );
+        expect(
+          saves.values,
+          contains(StoredSaveRepository.suspendedKey(1)),
+          reason: 'still there',
+        );
+        final read = await saves.read(1);
+        expect(read.game!.place, 'Il porto');
+        expect((read as LoadedSave).suspended, isFalse);
+        expect((await saves.load(1))!.place, 'Il porto');
       },
     );
 

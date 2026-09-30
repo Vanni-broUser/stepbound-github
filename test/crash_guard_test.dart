@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/app.dart';
+import 'package:stepbound/app_services.dart';
 import 'package:stepbound/game/audio/game_audio.dart';
 import 'package:stepbound/report/breadcrumbs.dart';
 import 'package:stepbound/report/device_info.dart';
@@ -38,7 +39,9 @@ void main() {
       CrashGuard(
         reporter: reporter,
         share: share,
-        audio: audio,
+        services: audio == null
+            ? null
+            : AppServices(saves: MemorySaveRepository(), audio: audio),
         child: const MaterialApp(
           home: Text('il gioco', key: ValueKey<String>('the-game')),
         ),
@@ -170,6 +173,54 @@ void main() {
       );
       await tester.pump();
       expect(find.text('Bad state: in build'), findsOneWidget);
+    });
+  });
+
+  group('the guard over the app', () {
+    testWidgets('keeps the services through the error, and the report '
+        'keeps what the app said at the error', (tester) async {
+      final errors = reporter();
+      final audio = SilentAudio();
+      final services = AppServices.made(
+        saves: MemorySaveRepository(),
+        audio: audio,
+      );
+      tester.view.physicalSize = const Size(768, 432);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        CrashGuard(
+          reporter: errors,
+          services: services,
+          share: (_, _) async {},
+          child: StepboundApp(services: services, reporter: errors),
+        ),
+      );
+      await tester.pump();
+      expect(find.byKey(const ValueKey<String>('menu-new-game')), findsOne);
+
+      errors.record(StateError('il mondo è rotto'), null, source: 'test');
+      await tester.pump();
+      expect(find.byKey(const ValueKey<String>('error-screen')), findsOne);
+      expect(services.disposed, isFalse, reason: 'the guard keeps them');
+      expect(audio.paused, isTrue);
+      final text = await errors.render(errors.report!);
+      expect(
+        text,
+        contains('== Partita ==\nslot: 1\nfase: menu\nposto: nessuno\n'),
+        reason: 'asked of the app before the error screen replaced it',
+      );
+      expect(text, contains('== Salvataggio dello slot 1 ==\nvuoto\n'));
+
+      await tester.tap(find.byKey(const ValueKey<String>('error-menu')));
+      await tester.pump();
+      expect(find.byKey(const ValueKey<String>('menu-new-game')), findsOne);
+      expect(services.disposed, isFalse, reason: 'the new app runs on them');
+      expect(audio.paused, isFalse);
+      expect(errors.context, isNotNull, reason: 'the new app tells again');
+
+      await tester.pumpWidget(const SizedBox());
+      expect(services.disposed, isTrue, reason: 'closed with the guard');
     });
   });
 
