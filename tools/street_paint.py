@@ -150,11 +150,20 @@ ROME_PIAZZA_STOREFRONTS = {
 VIA_MARSALA_STOREFRONTS = {
     1: [(4, 6, "pizzataglio"), (40, 7, "souvenirroma")],
 }
+# A shop added after the others says OWN_STREAM as a fourth element: it is
+# painted from its own stream of random numbers, so the place's stream,
+# and every picture drawn after it in the atlas, stays as it was.
+OWN_STREAM = "own"
 HARBOUR_STOREFRONTS = {
     7: [(123, 5, "arcobaleno")],  # up the alley, its door `h` at column 125
     15: [
         (54, 6, "gelateria"),
-        (78, 6, "pescheria"),  # past the alley, with the palazzi east of it
+        # On the seafront road, each to a whole palazzo: the fishmonger's
+        # between the road up to the square and the alley to the bar, one
+        # palazzo in from the road, the fish restaurant between that alley
+        # and the corner.
+        (100, 5, "pescheria", OWN_STREAM),
+        (124, 6, "ristorante", OWN_STREAM),
     ],
 }
 RAINBOW = [(220, 60, 50), (240, 150, 50), (240, 220, 70), (90, 190, 80),

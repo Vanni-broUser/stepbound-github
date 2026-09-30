@@ -137,6 +137,19 @@ void main() {
     }
   });
 
+  test("the harbour's carousel and newsstand rise over the row behind "
+      'them', () {
+    final art = manifest.places[place(PlaceId.harbour).artId.name]!;
+    TileObject named(String name) =>
+        art.objects.singleWhere((object) => object.image.contains(name));
+    final tall = <TileObject>[named('carousel'), named('kiosk')];
+    for (final object in tall) {
+      expect(object.rises, isTrue);
+      expect(object.underCorner, isNotNull);
+    }
+    expect(art.objects.where((object) => object.rises), unorderedEquals(tall));
+  });
+
   test('every car of a pile-up is drawn, even stacked lane on lane', () {
     var cars = 0;
     // Only outdoors are these glyphs cars (in the bar `U` is a zombie).

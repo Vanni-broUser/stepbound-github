@@ -118,6 +118,7 @@ SHOPS = {
     "kebab2": ((122, 112, 92), (88, 78, 62), (36, 92, 58), (250, 226, 120), "KEBAB", (2,)),
     "barsport": ((104, 86, 70), (70, 56, 46), (30, 60, 110), (240, 210, 90), "BAR SPORT", (5,)),
     "pescheria": ((214, 208, 192), (170, 164, 148), (34, 70, 118), (236, 236, 226), "PESCHERIA", (7,)),
+    "ristorante": ((236, 232, 220), (178, 170, 150), (26, 54, 98), (232, 196, 90), "RISTORANTE DI PESCE", ()),
     "gelateria": ((222, 218, 204), (176, 170, 156), (226, 170, 180), (120, 40, 60), "GELATERIA", ()),
     # Letters in rainbow colours (see paint_storefront), all still there.
     "arcobaleno": ((196, 186, 168), (150, 140, 124), (30, 28, 36), RAINBOW[0], "BAR ARCOBALENO", ()),
@@ -139,6 +140,9 @@ SHOPS = {
     "souvenirroma": ((214, 150, 84), (236, 224, 200), (30, 60, 110), (240, 200, 90), "SOUVENIR ROMA", ()),
 }
 # The shops whose palazzo keeps its own Roman floors above the shop front.
+# The shops of the harbour's old town keep the limestone and the green
+# shutters of their palazzo above them, the way a Roman one does.
+OLD_TOWN_SHOPS = ("pescheria", "ristorante")
 ROMAN_SHOPS = ("souvenir", "barroma", "trattoria", "studio", "tabacchi",
                "forno", "ferramenta", "pizzataglio", "souvenirroma")
 
@@ -156,10 +160,10 @@ def paint_shutter(d, x, y, w, h, drop):
     rect(d, x + 3, y + 6, min(w - 6, 10), 1, (190, 60, 150))
 
 
-def paint_torn_awning(d, rng, x, y, w):
+def paint_torn_awning(d, rng, x, y, w, stripe=(180, 40, 36)):
     """Striped café awning, ripped and sagging, rags hanging off it."""
     for i in range(0, w, 4):
-        colour = (180, 40, 36) if (i // 4) % 2 else (226, 218, 196)
+        colour = stripe if (i // 4) % 2 else (226, 218, 196)
         drop = 0 if rng.random() < 0.7 else rng.randint(2, 6)
         rect(d, x + i, y, 4, 5 + drop, colour)
         if rng.random() < 0.25:
@@ -259,6 +263,13 @@ def paint_icon(d, kind, x, y):
         rect(d, x + 2, y + 6, 3, 1, (170, 190, 200))
         rect(d, x + 6, y + 2, 1, 5, (130, 150, 160))
         rect(d, x + 2, y + 3, 1, 1, (30, 30, 34))
+    elif kind == "ristorante":  # a fish on a plate
+        d.ellipse([x, y + 3, x + 7, y + 7], fill=(236, 236, 230))
+        rect(d, x + 1, y + 4, 5, 2, (170, 190, 200))
+        rect(d, x + 6, y + 3, 1, 4, (130, 150, 160))
+        rect(d, x + 2, y + 4, 1, 1, (30, 30, 34))
+        rect(d, x + 3, y, 1, 3, (170, 170, 170))  # the fork over it
+        rect(d, x + 2, y, 3, 1, (170, 170, 170))
     elif kind == "gelateria":  # a cone
         rect(d, x + 2, y, 4, 3, (240, 220, 200))
         rect(d, x + 3, y + 1, 2, 1, (170, 90, 60))
@@ -327,7 +338,7 @@ def paint_storefront(d, rng, px, py0, w, h, kind):
     sign_top = shop_top - 12
     # A Roman palazzo keeps its own floors above the shop: only the shop
     # front is painted, from just over its sign down.
-    roman = kind in ROMAN_SHOPS
+    roman = kind in ROMAN_SHOPS or kind in OLD_TOWN_SHOPS
     if roman:
         rect(d, px, sign_top - 2, w, py0 + h - sign_top + 2, wall)
     else:
@@ -372,14 +383,14 @@ def paint_storefront(d, rng, px, py0, w, h, kind):
         rect(d, door_x, shop_top + 2, door_w, 15, (12, 10, 12))
         rect(d, door_x, shop_top + 2, 3, 15, (70, 50, 36))  # the door, hanging
         rect(d, door_x + 1, shop_top + 8, 1, 2, (180, 160, 90))
-    elif kind in ("trattoria", "studio"):  # the door boarded up too
+    elif kind in ("trattoria", "studio", "ristorante"):  # boarded up too
         rect(d, door_x, shop_top + 2, door_w, 15, (46, 32, 24))
         paint_boarded_door(d, rng, door_x, shop_top + 2, door_w, 15)
     else:
         paint_shutter(d, door_x, shop_top + 2, door_w, 15, 15)
     for wx in (px + 3, door_x + door_w + 1):
         if kind in ("kebab", "kebab2", "bar", "burger", "trattoria",
-                    "studio"):
+                    "studio", "ristorante"):
             paint_boards(d, wx, shop_top + 2, window_w, 12)
         elif kind in ("elettronica", "barsport", "farmacia"):
             paint_smashed_display(d, wx, shop_top + 2, window_w, 12)
@@ -401,6 +412,9 @@ def paint_storefront(d, rng, px, py0, w, h, kind):
         for _ in range(8):  # grime and splashes on the wall
             rect(d, px + rng.randrange(2, w - 6), py0 + rng.randrange(4, h - 6),
                  rng.randint(2, 5), rng.randint(1, 3), rng.choice(((60, 48, 40), BLOOD_DARK)))
+    elif kind == "ristorante":  # blue and white, over the tables that were
+        paint_torn_awning(d, rng, px + 2, shop_top - 3, w - 4,
+                          stripe=(40, 80, 150))
     # scorch marks licking up from the shop
     for _ in range(0 if roman else 3):
         sx = px + rng.randrange(3, w - 6)
