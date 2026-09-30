@@ -15,8 +15,11 @@ import 'package:stepbound/core/core.dart' hide PositionComponent;
 /// expensive thing on screen, so the darkness with its steady lamps is
 /// composed once, into an image the size of the room, and drawn from there
 /// (see [_bake]). Only what changes from frame to frame is still cut live:
-/// the flickering lamps, the torches and the player's halo, each in a
-/// layer no bigger than its own pool.
+/// the flickering lamps, the torches, the player's halo and the beacons,
+/// each in a layer no bigger than its own pool.
+///
+/// A beacon is a small light that blinks over something left to find in
+/// the dark, a backpack, for as long as it is there to be found.
 final class LightingComponent extends Component {
   LightingComponent({
     required this.area,
@@ -24,6 +27,7 @@ final class LightingComponent extends Component {
     required this.playerPosition,
     this.darkness = PlaceSpec.defaultDarkness,
     this.litAreas = const <ui.Rect>[],
+    this.beacons = _noBeacons,
     this.tileSize = 16,
   }) : super(priority: 28);
 
@@ -46,6 +50,12 @@ final class LightingComponent extends Component {
   /// they cost nothing once the darkness is composed.
   final List<ui.Rect> litAreas;
 
+  /// The tiles blinking now, anywhere in the world: those outside [area]
+  /// are left alone.
+  final Iterable<GridPoint> Function() beacons;
+
+  static Iterable<GridPoint> _noBeacons() => const <GridPoint>[];
+
   /// (radius, how much of the darkness it removes) from outer to inner.
   static const List<(double, double)> _lampRings = <(double, double)>[
     (34, 0.3),
@@ -63,6 +73,15 @@ final class LightingComponent extends Component {
     (22, 0.28),
     (13, 0.5),
   ];
+
+  /// A beacon's pool: smaller than a lamp's, but it cuts deep.
+  static const List<(double, double)> _beaconRings = <(double, double)>[
+    (22, 0.3),
+    (12, 0.62),
+  ];
+
+  /// How many times a second a beacon blinks.
+  static const double _beaconRate = 1.4;
 
   /// How high over the feet the player's halo is centred.
   static const double _haloRise = 10;
@@ -226,18 +245,37 @@ final class LightingComponent extends Component {
       return;
     }
     final feet = playerPosition();
-    final halo = ui.Offset(feet.x, feet.y - _haloRise);
+    final beacon = _beaconIntensity;
+    final extras = <_Pool>[
+      (
+        centre: ui.Offset(feet.x, feet.y - _haloRise),
+        rings: _playerRings,
+        intensity: 1,
+      ),
+      for (final tile in beacons())
+        if (area.contains(_tileCentre(tile)))
+          (centre: _tileCentre(tile), rings: _beaconRings, intensity: beacon),
+    ];
     final baked = _baked;
     if (baked == null) {
-      _renderLive(canvas, halo);
+      _renderLive(canvas, extras);
     } else {
-      _renderBaked(canvas, baked, halo);
+      _renderBaked(canvas, baked, extras);
     }
-    _renderWarmth(canvas);
+    _renderWarmth(canvas, extras.skip(1));
   }
 
+  ui.Offset _tileCentre(GridPoint tile) => ui.Offset(
+    tile.x * tileSize + tileSize / 2,
+    tile.y * tileSize + tileSize / 2,
+  );
+
+  /// Full while a beacon is lit, faint between its blinks.
+  double get _beaconIntensity =>
+      math.sin(_time * _beaconRate * 2 * math.pi) > -0.2 ? 1 : 0.25;
+
   /// Everything cut in one layer: until the darkness is composed.
-  void _renderLive(ui.Canvas canvas, ui.Offset halo) {
+  void _renderLive(ui.Canvas canvas, List<_Pool> extras) {
     canvas
       ..saveLayer(area, ui.Paint())
       ..drawRect(area, _dark);
@@ -245,74 +283,102 @@ final class LightingComponent extends Component {
     for (final (index, light) in lights.indexed) {
       _pool(canvas, _centre(light), _rings(light), _intensity(light, index));
     }
-    _pool(canvas, halo, _playerRings, 1);
+    for (final extra in extras) {
+      _pool(canvas, extra.centre, extra.rings, extra.intensity);
+    }
     canvas.restore();
   }
 
   /// The composed darkness, except where a live pool falls: there the
   /// darkness is drawn again into a small layer and the pool cut out of it.
-  void _renderBaked(ui.Canvas canvas, ui.Image baked, ui.Offset halo) {
-    // The player's halo joins whichever live groups it touches, so a halo
-    // over a torch cuts into the same layer as the torch.
-    var haloRect = ui.Rect.fromCircle(
-      center: halo,
-      radius: _playerRings[0].$1 + 1,
-    );
-    final haloLights = <int>[];
-    final apart = <_LiveGroup>[];
-    var merged = true;
-    var pending = _live;
-    while (merged) {
-      merged = false;
-      final rest = <_LiveGroup>[];
-      for (final group in pending) {
-        if (group.rect.overlaps(haloRect)) {
-          haloRect = haloRect.expandToInclude(group.rect);
-          haloLights.addAll(group.lights);
-          merged = true;
-        } else {
-          rest.add(group);
-        }
-      }
-      pending = rest;
-    }
-    apart.addAll(pending);
-    final patches = <(ui.Rect, List<int>, bool)>[
-      for (final group in apart)
-        (group.rect.intersect(area), group.lights, false),
-      (haloRect.intersect(area), haloLights, true),
+  /// The player's halo and the beacons join whichever live groups they
+  /// touch, and one another, so pools that overlap cut into one layer.
+  void _renderBaked(ui.Canvas canvas, ui.Image baked, List<_Pool> extras) {
+    var pending = <({ui.Rect rect, List<int> lights, List<_Pool> extras})>[
+      for (final group in _live)
+        (rect: group.rect, lights: group.lights, extras: const <_Pool>[]),
+      for (final extra in extras)
+        (
+          rect: ui.Rect.fromCircle(
+            center: extra.centre,
+            radius: extra.rings[0].$1 + 1,
+          ),
+          lights: const <int>[],
+          extras: <_Pool>[extra],
+        ),
     ];
+    final patches = <({ui.Rect rect, List<int> lights, List<_Pool> extras})>[];
+    while (pending.isNotEmpty) {
+      var patch = pending.removeLast();
+      var merged = true;
+      while (merged) {
+        merged = false;
+        final rest = <({ui.Rect rect, List<int> lights, List<_Pool> extras})>[];
+        for (final other in pending) {
+          if (other.rect.overlaps(patch.rect)) {
+            patch = (
+              rect: patch.rect.expandToInclude(other.rect),
+              lights: <int>[...patch.lights, ...other.lights],
+              extras: <_Pool>[...patch.extras, ...other.extras],
+            );
+            merged = true;
+          } else {
+            rest.add(other);
+          }
+        }
+        pending = rest;
+      }
+      patches.add((
+        rect: patch.rect.intersect(area),
+        lights: patch.lights,
+        extras: patch.extras,
+      ));
+    }
 
     canvas.save();
-    for (final (rect, _, _) in patches) {
-      if (!rect.isEmpty) {
-        canvas.clipRect(rect, clipOp: ui.ClipOp.difference, doAntiAlias: false);
+    for (final patch in patches) {
+      if (!patch.rect.isEmpty) {
+        canvas.clipRect(
+          patch.rect,
+          clipOp: ui.ClipOp.difference,
+          doAntiAlias: false,
+        );
       }
     }
     canvas
       ..drawImage(baked, area.topLeft, _image)
       ..restore();
 
-    for (final (rect, indices, withHalo) in patches) {
-      if (rect.isEmpty) {
+    for (final patch in patches) {
+      if (patch.rect.isEmpty) {
         continue;
       }
       canvas
-        ..saveLayer(rect, ui.Paint())
-        ..drawImageRect(baked, rect.shift(-area.topLeft), rect, _image);
-      for (final index in indices) {
+        ..saveLayer(patch.rect, ui.Paint())
+        ..drawImageRect(
+          baked,
+          patch.rect.shift(-area.topLeft),
+          patch.rect,
+          _image,
+        );
+      for (final index in patch.lights) {
         final light = lights[index];
         _pool(canvas, _centre(light), _rings(light), _intensity(light, index));
       }
-      if (withHalo) {
-        _pool(canvas, halo, _playerRings, 1);
+      for (final extra in patch.extras) {
+        _pool(canvas, extra.centre, extra.rings, extra.intensity);
       }
       canvas.restore();
     }
   }
 
-  /// A warm tint under each working lamp, an orange one round a torch.
-  void _renderWarmth(ui.Canvas canvas) {
+  /// A warm tint under each working lamp, an orange one round a torch, a
+  /// pale one on each beacon while it is lit.
+  void _renderWarmth(ui.Canvas canvas, Iterable<_Pool> beacons) {
+    for (final beacon in beacons) {
+      _warm.color = ui.Color.fromRGBO(255, 240, 190, 0.12 * beacon.intensity);
+      canvas.drawCircle(beacon.centre, 9, _warm);
+    }
     for (final (index, light) in lights.indexed) {
       final intensity = _intensity(light, index);
       _warm.color = light.torch
@@ -332,3 +398,11 @@ final class _LiveGroup {
   /// Indices into `LightingComponent.lights`.
   final List<int> lights;
 }
+
+/// A pool of light that is not one of the room's lamps: the player's halo
+/// or a beacon.
+typedef _Pool = ({
+  ui.Offset centre,
+  List<(double, double)> rings,
+  double intensity,
+});

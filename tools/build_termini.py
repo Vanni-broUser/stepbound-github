@@ -1278,16 +1278,17 @@ def _brickwork(d, rng, x, y, w, h, base=TERME_BRICK):
              1, rng.choice((TERME_BRICK_DARK, TERME_BRICK_LIGHT, TERME_MORTAR)))
 
 
-def _ruined_top(d, rng, x, y, w, h):
+def _ruined_top(d, rng, x, y, w, h, vaults=True):
     """What is left over the halls: the stumps of the vaults, their brick
-    rings seen end on, grass and saplings rooted in the rubble between."""
+    rings seen end on, grass and saplings rooted in the rubble between.
+    Without `vaults`, only the rubble and the green."""
     rect(d, x, y, w, h, TERME_TOP)
     for _ in range(w * h // 30):
         rect(d, x + rng.randrange(w), y + rng.randrange(h), rng.randint(2, 6),
              rng.randint(1, 2), rng.choice((TERME_BRICK_DARK, TERME_MORTAR,
                                             shade(TERME_TOP, 14))))
     # The vaults, broken off: half-rings of brick standing in rows.
-    for vx in range(x + 10, x + w - 30, 46):
+    for vx in range(x + 10, x + w - 30, 46) if vaults else ():
         r = rng.randint(14, 19)
         cy = y + h - 4
         for dy in range(r):
@@ -1324,13 +1325,23 @@ def _thermal_window(d, cx, base, r):
 
 
 def _arch(d, x, top, w, bottom, fill):
-    """A round-headed opening in the wall, `fill` inside it."""
+    """A round-headed opening in the wall, `fill` inside it: a half circle
+    on straight sides down to `bottom`, and nothing of the circle below
+    its middle, however short the sides."""
     r = w // 2
-    rect(d, x - 2, top + r - 2, w + 4, bottom - top - r + 2,
-         TERME_BRICK_LIGHT)
-    d.ellipse([x - 2, top - 2, x + w + 1, top + w + 1], fill=TERME_BRICK_LIGHT)
+    rect(d, x - 2, top + r, w + 4, bottom - top - r, TERME_BRICK_LIGHT)
+    d.pieslice([x - 2, top - 2, x + w + 1, top + w + 1], 180, 360,
+               fill=TERME_BRICK_LIGHT)
     rect(d, x, top + r, w, bottom - top - r, fill)
-    d.ellipse([x, top, x + w - 1, top + w - 1], fill=fill)
+    d.pieslice([x, top, x + w - 1, top + w - 1], 180, 360, fill=fill)
+
+
+def _bricked_arch(d, x, top, w, bottom):
+    """An arch walled up long ago: newer brick in it, course over course,
+    no way through."""
+    _arch(d, x, top, w, bottom, shade(TERME_BRICK, 16))
+    for cy in range(top + 12, bottom, 4):
+        rect(d, x, cy, w, 1, shade(TERME_BRICK, -6))
 
 
 def paint_terme_diocleziano(d, rng, level):
@@ -1340,7 +1351,7 @@ def paint_terme_diocleziano(d, rng, level):
     station's front, and a wing of them across the end of it. Over the
     top, the stumps of the vaults and the green grown on them; down the
     front, the three great half-moon windows of the halls; at the foot,
-    arches, bricked up long ago or gaping, and in the middle the plain
+    arches, all bricked up long ago, and in the middle the plain
     portal of Santa Maria degli Angeli, the church Michelangelo made of the
     frigidarium. The end of the world has added little to a ruin: soot,
     brick fallen off the wing, the portal barred."""
@@ -1365,13 +1376,11 @@ def paint_terme_diocleziano(d, rng, level):
     WX1 = (max(max(widths[y]) for y in wing) + 1) * TILE if wing else X0
     WB = (wing[-1] + 1) * TILE if wing else B
 
-    # The wing across the end of the road: its broken top, the end wall
-    # of the halls at its foot, its side facing up the road in the shade
-    # and its shadow on the road.
+    # The wing across the end of the road, seen from above all the way
+    # down: its broken top grown green, no wall and no way in, its side
+    # facing up the road in the shade and its shadow on the road.
     if wing:
-        _ruined_top(d, rng, X0, B, WX1 - X0, WB - B - 26)
-        _brickwork(d, rng, X0, WB - 26, WX1 - X0, 26, TERME_BRICK_DARK)
-        _arch(d, X0 + (WX1 - X0) // 2 - 9, WB - 24, 18, WB, TERME_HOLE)
+        _ruined_top(d, rng, X0, B, WX1 - X0, WB - B, vaults=False)
         rect(d, WX1 - 5, B, 5, WB - B, shade(TERME_BRICK_DARK, -18))
         for sy in range(B, WB - 4):
             rect(d, WX1, sy, 4, 1, (30, 26, 28))
@@ -1399,18 +1408,14 @@ def paint_terme_diocleziano(d, rng, level):
         px = X0 + W * i // 3
         rect(d, px - 3, front + 6, 6, B - front - 6, TERME_BRICK_LIGHT)
         rect(d, px + 2, front + 6, 1, B - front - 6, TERME_BRICK_DARK)
-    # The arcade at the foot: arches bricked up long ago, a few gaping,
-    # and the portal of the church in the middle.
+    # The arcade at the foot: arches bricked up long ago, every one, so
+    # the portal of the church in the middle is the only way in.
     cx = door[0] * TILE + TILE // 2 if door else X0 + W // 2
     foot = lunette + 6
-    for i, ax in enumerate(range(X0 + 8, X1 - 22, 34)):
+    for ax in range(X0 + 8, X1 - 22, 34):
         if abs(ax + 10 - cx) < 26:
             continue
-        infill = TERME_HOLE if i % 3 == 1 else shade(TERME_BRICK, 16)
-        _arch(d, ax, foot, 20, B, infill)
-        if infill != TERME_HOLE:
-            for cy in range(foot + 12, B, 4):
-                rect(d, ax, cy, 20, 1, shade(TERME_BRICK, -6))
+        _bricked_arch(d, ax, foot, 20, B)
     # Santa Maria degli Angeli: the plain portal of travertine in the
     # rough brick, its little pediment, and the planks somebody nailed
     # over it torn away, the dark of the church behind: the way in.

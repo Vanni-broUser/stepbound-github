@@ -130,6 +130,11 @@ final GridPoint grapplingHookTile = _onGrid(
 );
 const String grapplingHookPickupId = 'grappling-hook';
 
+/// The backpacks a small light blinks over for as long as they lie there,
+/// so they can be found in the dark: the grappling hook's, in the far end
+/// of the Baths' great hall, which none of its windows reaches.
+const Set<String> beaconPickupIds = <String>{grapplingHookPickupId};
+
 /// The portal of Santa Maria degli Angeli, in the front of the Baths of
 /// Diocletian where the road past Termini ends: the way inside.
 final GridPoint termePortalTile = _piazza.tileOf('¶');
