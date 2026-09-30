@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 
 /// A character's portrait, decoded no bigger than it is drawn.
 ///
-/// The portraits are PNGs of 1048x1501, six megabytes each once decoded,
-/// and the dialogue box, the book and the wardrobe show them at a fraction
-/// of that. Decoded at the height they take on this screen they cost what
-/// they show: about a quarter on a phone, and the seventeen of them fit
-/// in Flutter's image cache together instead of pushing each other out.
+/// The portraits are PNGs of 698x1000 (tools/shrink_portraits.py), nearly
+/// three megabytes each once decoded, and the dialogue box shows them at
+/// two thirds of the screen, the book and the wardrobe at a little under
+/// the whole of it. Decoded at the height they take on this screen they
+/// cost what they show, and the two dozen of them fit in Flutter's image
+/// cache together instead of pushing each other out.
 final class PortraitImage extends StatelessWidget {
   const PortraitImage(
     this.asset, {

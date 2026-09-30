@@ -45,7 +45,11 @@ CHECKER_LIGHT = 180
 CHECKER_MIN = 40
 
 # Portrait file name -> boxes (left, top, right, bottom, inclusive) whose
-# near-white pixels are stray background, not part of the drawing.
+# near-white pixels are stray background, not part of the drawing. In the
+# frame the portraits were drawn in, HAND_FIX_HEIGHT tall: scaled to the
+# file's height when it is applied (tools/shrink_portraits.py brings them
+# down to 1000).
+HAND_FIX_HEIGHT = 1501
 HAND_FIXES = {
     "mutilated.png": [(595, 552, 611, 573)],
     "burning.png": [
@@ -212,7 +216,9 @@ def hand_fix(im, boxes):
     px = im.load()
     w, h = im.size
     count = 0
-    for left, top, right, bottom in boxes:
+    scale = h / HAND_FIX_HEIGHT
+    for box in boxes:
+        left, top, right, bottom = (round(edge * scale) for edge in box)
         around = {}
         for y in range(max(0, top - 6), min(h, bottom + 7)):
             for x in range(max(0, left - 6), min(w, right + 7)):

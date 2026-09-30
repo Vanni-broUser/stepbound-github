@@ -135,25 +135,10 @@ debug key no longer conflicts with the release one. What remains:
   project has no team and the privacy policy already names iOS. Either
   configure the signing or say Android only until it is.
 
-## P3 — Smaller portrait files
-
-The portraits are decoded at the height they are drawn (`PortraitImage`),
-so memory is no longer the question; the files are. They are still PNGs of
-1048×1501, 22 MB over twenty-four files (7 MB under
-`assets/characters/mario/portraits` alone), for pictures never shown
-above about 1000 pixels tall, and every new character brings one of
-0.8 to 1.5 MB: Chiara, the Bruto and the call-centre zombie since
-2026-09-29. Unlike the sprites they are drawn and touched up by hand
-(the Lazio maranza's hair, 2026-09-30), so no check covers them, and
-none can. Resize them only if the download size matters, and mind that
-`tools/clean_portraits.py` works on the full-size files. The scenes
-(JPEG, 1376×768) are fine.
-
 ## P3 — Release-only differences
 
 What only a release build shows, to keep in mind while testing:
 
-- `assert` is compiled out: the two in `lib/` guard nothing in a release.
 - The `INTERNET` permission is only in the debug and profile manifests (for
   hot reload): anything online added later needs it in
   `android/app/src/main`, and the privacy policy with it.
