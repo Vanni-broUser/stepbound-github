@@ -25,11 +25,13 @@ final class RomeStage extends LevelStage {
     NpcComponent(
       asset: NpcComponent.maranzaLazioAsset,
       tile: marcelloTile,
+      name: MaranzaScript.marcello,
       facing: Direction.north,
     ),
     NpcComponent(
       asset: NpcComponent.maranzaRomaAsset,
       tile: toninoTile,
+      name: MaranzaScript.tonino,
       facing: Direction.north,
     ),
   ];
