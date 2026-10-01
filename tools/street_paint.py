@@ -109,12 +109,21 @@ STREET_STOREFRONTS = {
     ],
 }
 NORTH_STOREFRONTS = {
-    27: [(38, 7, "barsport")],
-    30: [
-        (70, 5, "kebab2"),
+    # On the branch from the new crossroads to the road north, the
+    # butcher's, a palazzo to itself.
+    20: [(64, 6, "macelleria")],
+    31: [(68, 7, "barsport")],
+    34: [
+        # On the road west to the hospital, past the side road down from
+        # the crossroads: a shop every so often between the palazzi, the
+        # pizzeria and the kebab shop with pictures of their own.
+        (18, 7, "pizzeria_forno"),
+        (34, 6, "doner"),
+        (45, 5, "alimentari"),
+        (100, 5, "kebab2"),
         # By the camp: the same shop as the one on the monument's square,
-        # its door at column 82.
-        (79, 6, "elettronica_aperta"),
+        # its door at column 112.
+        (109, 6, "elettronica_aperta"),
     ],
 }
 # On the road east of the monument's square, the Elettronica, its door

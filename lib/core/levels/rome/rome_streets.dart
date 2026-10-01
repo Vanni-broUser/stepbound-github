@@ -13,6 +13,9 @@
 /// street runs off the edge of the map, the game goes no further for now.
 library;
 
+import 'package:stepbound/core/items/pickup.dart';
+import 'package:stepbound/core/levels/place.dart';
+
 /// Piazza dei Cinquecento, out of the concourse: the long front of
 /// Termini `]` across the top, its three doorways `{` open, palazzi either
 /// side of it, a souvenir shop in the western ones; the paving `P` in
@@ -120,6 +123,17 @@ const List<String> piazzaCinquecentoRows = <String>[
   '                        BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=..|..v=BBBBBBBBBBBBBBBBBBBBBBBBBB=..|.v.=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
 ];
 // piazza-cinquecento-rows-end
+
+/// Where the camera stops short of the piazza's edges, so it never shows
+/// what is off the map ` ` west of Via Cavour and the square below: in the
+/// west of the piazza in front of Termini, at the roofs under it; from Via
+/// Cavour down, at the square's west end, as if the map began there. Each
+/// zone begins where its edge is still out of view, so the camera slides
+/// to it unseen. test/camera_zones_test.dart holds them to it.
+const List<CameraZone> piazzaCinquecentoCameraZones = <CameraZone>[
+  CameraZone(area: GridRect(0, 0, 55, 16), limits: GridRect(0, 0, 140, 19)),
+  CameraZone(area: GridRect(0, 17, 140, 63), limits: GridRect(24, 0, 140, 63)),
+];
 
 /// Via Marsala, the street behind the station, reached through the breach
 /// `}` in the wall `%` round the tracks: the fronts of its palazzi across

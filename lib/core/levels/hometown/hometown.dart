@@ -68,6 +68,7 @@ const List<PlaceSpec> hometownPlaces = <PlaceSpec>[
     area: AreaId.hometownTown,
     rows: northDistrictRows,
     legend: outdoorLegend,
+    cameraZones: northDistrictCameraZones,
   ),
   PlaceSpec(
     id: PlaceId.harbour,
@@ -790,6 +791,7 @@ LevelContents hometownContents(EntityFactory factory) {
       duomoTowerLookoutTile,
       hospitalRoofLookoutTile,
       shoppingStreetFireTile,
+      northDistrictFireTile,
       stationTrackFireTile,
       ...oldTownDamagedDoorTiles,
       // Chiara at her desk, to talk to once she has been reached.

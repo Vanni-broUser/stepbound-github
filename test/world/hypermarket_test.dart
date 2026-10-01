@@ -241,11 +241,12 @@ void main() {
       final backpack = createGameWorld().pickups[parkingBackpackId]!;
       expect(backpack.ammo, 2);
       expect(backpack.active, isTrue);
+      // On the sidewalk at the car park's west edge: nothing of the car
+      // park west of it, the bays straight east.
       final row = northDistrictRows[backpack.position.y];
-      expect(
-        row[backpack.position.x - place(PlaceId.northDistrict).origin.x - 1],
-        '=',
-      );
+      final x = backpack.position.x - place(PlaceId.northDistrict).origin.x;
+      expect(row.substring(0, x), isNot(contains('L')));
+      expect(row[x + 1], 'L');
     });
   });
 }

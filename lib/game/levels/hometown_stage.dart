@@ -236,6 +236,7 @@ final class HometownStage extends LevelStage implements HometownActions {
               simulation.player.component<AmmoComponent>().grapplingHook,
         ),
       InteractGlintComponent(tile: shoppingStreetFireTile, active: canInteract),
+      InteractGlintComponent(tile: northDistrictFireTile, active: canInteract),
       InteractGlintComponent(tile: stationTrackFireTile, active: canInteract),
       for (final door in oldTownDamagedDoorTiles)
         InteractGlintComponent(tile: door, active: canInteract),
