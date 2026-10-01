@@ -317,8 +317,8 @@ void main() {
       ]);
       expect(
         TrainScript.chiaraRomeLines.last.text,
-        'È la città eterna, ti ritrovi tra le rovine romane senza rendertene '
-        'conto',
+        'È la città eterna, ti ritrovi tra le rovine romane senza nemmeno '
+        'rendertene conto',
       );
     });
 
