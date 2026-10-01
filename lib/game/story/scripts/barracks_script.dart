@@ -1,5 +1,6 @@
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/story/story_director.dart';
+import 'package:stepbound/l10n/language.dart';
 
 /// The carabinieri barracks: on the forecourt Mario hopes he is safe; a few
 /// steps inside, the carabinieri zombies come out of the dark, and the
@@ -9,9 +10,8 @@ import 'package:stepbound/game/story/story_director.dart';
 final class BarracksScript extends StoryScript {
   BarracksScript(super.director);
 
-  static const String barracksReached =
-      "Ecco, ce l'ho fatta! La caserma dei carabinieri";
-  static const String barracksSafe = 'Questo sarà un posto sicuro?';
+  static String get barracksReached => strings.barracksBarracksReached;
+  static String get barracksSafe => strings.barracksBarracksSafe;
 
   /// Steps inside the barracks before the carabinieri come out.
   static const int stepsBeforeCarabinieri = 4;
@@ -58,7 +58,7 @@ final class BarracksScript extends StoryScript {
     }
     _forecourtLinesGiven = true;
     say(
-      StoryPrompt(const <StoryLine>[
+      StoryPrompt(<StoryLine>[
         StoryLine.mario(barracksReached),
         StoryLine.mario(barracksSafe),
       ]),

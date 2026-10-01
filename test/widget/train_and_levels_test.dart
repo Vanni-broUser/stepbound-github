@@ -39,7 +39,7 @@ void main() {
       final story = tester.widget<StoryIntro>(
         find.byKey(const ValueKey<String>('train-memories-story')),
       );
-      expect(story.scenes.length, introScenes.length + outbreakScenes.length);
+      expect(story.scenes!.length, introScenes.length + outbreakScenes.length);
       await tester.tap(find.byKey(const ValueKey<String>('story-exit')));
       await tester.pump();
       expect(

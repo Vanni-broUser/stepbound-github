@@ -57,7 +57,7 @@ nomi, email, indirizzi, posizione, contatti, identificatori pubblicitari o
 del dispositivo; l'indirizzo IP serve solo al limite di richieste del server
 e non viene salvato.
 
-Nel menù di pausa c'è **"INVIO DATI ANONIMI: SÌ/NO"**. Spento:
+Nel menù di pausa c'è **"INVIO DATI ANONIMI: SÌ/NO"** (in inglese "SEND ANONYMOUS DATA"). Spento:
 
 - la coda sul telefono si svuota e l'id viene dimenticato;
 - il server riceve `/v1/forget` con l'id e cancella tutto quello che ha

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
+import 'package:stepbound/l10n/language.dart';
 import 'package:stepbound/ui/letterbox.dart';
 import 'package:stepbound/ui/main_menu.dart';
 
@@ -19,8 +20,8 @@ final class SaveFailedNotice extends StatelessWidget {
   final VoidCallback onShare;
   final VoidCallback onContinue;
 
-  static const String shareLabel = 'CONDIVIDI IL RAPPORTO';
-  static const String continueLabel = 'CONTINUA';
+  static String get shareLabel => strings.shareReport;
+  static String get continueLabel => strings.continueLabel;
 
   @override
   Widget build(BuildContext context) {

@@ -1,5 +1,6 @@
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/story/story_director.dart';
+import 'package:stepbound/l10n/language.dart';
 
 /// Backpacks, wherever they are: the first one seen teaches picking them up
 /// and unlocks interacting (slipping past the first zombie can lead
@@ -8,62 +9,44 @@ import 'package:stepbound/game/story/story_director.dart';
 final class BackpacksScript extends StoryScript {
   BackpacksScript(super.director);
 
-  static const String backpackLesson =
-      'Raccogli gli zaini in giro per trovare nuovo equipaggiamento';
-  static const String interactLesson =
-      'Tocca la parte destra dello schermo per interagire con gli oggetti '
-      'vicini';
-  static const String noGun = 'Non hai una pistola';
-  static const String gunFound = 'Hai trovato una pistola';
-  static const String incenseFound = "Hai trovato dell'incenso";
-  static const String ringFound = 'Hai trovato un anello episcopale';
-  static const String duomoKeyFound =
-      'Hai trovato la Chiave del Duomo vicino il cadavere di Don Angelo';
-  static const String grapplingHookFound = 'Hai trovato un rampino';
-  static const String palazzoKeyFound = 'Hai trovato la Chiave del terzo piano';
-  static const String goldIngotFound = "Hai trovato un lingotto d'oro";
-  static const String goldIngotThought =
-      'Questo andrà bene per quei due maranza. Non penso di poterne fare '
-      "qualcos'altro";
-  static const String grapplingHookLesson =
-      'Con il rampino puoi raggiungere i tetti vicini che non riuscivi a '
-      'raggiungere';
-  static const String noRocketLauncher = 'Non hai un lanciarazzi';
-  static const String rocketLauncherFound = 'Hai trovato un lanciarazzi';
-  static const String rocketLauncherLesson =
-      'Il razzo vola dritto fino al muro e colpisce tutti gli zombi che '
-      'trova sulla sua strada, 3 danni a testa';
-  static const String rocketRoundsLesson =
-      'I colpi per il lanciarazzi si trovano negli zaini, come i proiettili';
+  static String get backpackLesson => strings.backpacksBackpackLesson;
+  static String get interactLesson => strings.backpacksInteractLesson;
+  static String get noGun => strings.backpacksNoGun;
+  static String get gunFound => strings.backpacksGunFound;
+  static String get incenseFound => strings.backpacksIncenseFound;
+  static String get ringFound => strings.backpacksRingFound;
+  static String get duomoKeyFound => strings.backpacksDuomoKeyFound;
+  static String get grapplingHookFound => strings.backpacksGrapplingHookFound;
+  static String get palazzoKeyFound => strings.backpacksPalazzoKeyFound;
+  static String get goldIngotFound => strings.backpacksGoldIngotFound;
+  static String get goldIngotThought => strings.backpacksGoldIngotThought;
+  static String get grapplingHookLesson => strings.backpacksGrapplingHookLesson;
+  static String get noRocketLauncher => strings.backpacksNoRocketLauncher;
+  static String get rocketLauncherFound => strings.backpacksRocketLauncherFound;
+  static String get rocketLauncherLesson =>
+      strings.backpacksRocketLauncherLesson;
+  static String get rocketRoundsLesson => strings.backpacksRocketRoundsLesson;
 
   /// "Non hai un lanciarazzi" only while the player really has none.
   static String rocketsFound(int rounds, {required bool hasLauncher}) {
-    final found = rounds == 1
-        ? 'Hai trovato 1 colpo per lanciarazzi'
-        : 'Hai trovato $rounds colpi per lanciarazzi';
+    final found = strings.backpacksRocketsFound(rounds);
     return hasLauncher ? found : '$found. $noRocketLauncher';
   }
 
-  static String molotovFound(int count) => 'Hai trovato $count molotov';
-  static const String molotovLesson = 'Le molotov fanno danno ad area';
+  static String molotovFound(int count) =>
+      strings.backpacksMolotovsFound(count);
+  static String get molotovLesson => strings.backpacksMolotovLesson;
 
   /// Told once, the first time Mario has more than one weapon to hold.
-  static const String weaponChoiceLesson =
-      "Puoi impugnare un'arma per volta, tocca l'arma che vuoi impugnare tra "
-      "gli oggetti dell'inventario. Le fiamme indicheranno l'arma attiva";
-  static const String aimLesson =
-      'Tieni premuto sulla parte destra dello schermo per iniziare a mirare';
-  static const String fireLesson =
-      'Mentre tieni premuto trascina verso una direzione, appena alzi il '
-      'dito parte il colpo';
-  static const String cancelLesson =
-      'Puoi annullare il colpo di pistola senza consumare proiettili alzando '
-      'il dito mentre sei nel punto centrale';
+  static String get weaponChoiceLesson => strings.backpacksWeaponChoiceLesson;
+  static String get aimLesson => strings.backpacksAimLesson;
+  static String get fireLesson => strings.backpacksFireLesson;
+  static String get cancelLesson => strings.backpacksCancelLesson;
 
   /// "Non hai una pistola" only while the player really has none.
   static String ammoFound(int rounds, {required bool hasGun}) => hasGun
-      ? 'Hai trovato $rounds proiettili'
-      : 'Hai trovato $rounds proiettili. $noGun';
+      ? strings.backpacksBulletsFound(rounds)
+      : '${strings.backpacksBulletsFound(rounds)}. $noGun';
 
   bool _lessonGiven = false;
 
@@ -84,7 +67,7 @@ final class BackpacksScript extends StoryScript {
       return const <StoryLine>[];
     }
     _weaponChoiceTaught = true;
-    return const <StoryLine>[StoryLine(weaponChoiceLesson)];
+    return <StoryLine>[StoryLine(weaponChoiceLesson)];
   }
 
   @override
@@ -115,9 +98,9 @@ final class BackpacksScript extends StoryScript {
         say(
           StoryPrompt(
             <StoryLine>[
-              const StoryLine(rocketLauncherFound),
-              const StoryLine(rocketLauncherLesson),
-              const StoryLine(rocketRoundsLesson),
+              StoryLine(rocketLauncherFound),
+              StoryLine(rocketLauncherLesson),
+              StoryLine(rocketRoundsLesson),
               ..._weaponChoice(),
             ],
             delay: StoryDirector.pickupDelay,
@@ -145,7 +128,7 @@ final class BackpacksScript extends StoryScript {
       if (grapplingHook) {
         say(
           StoryPrompt(
-            const <StoryLine>[
+            <StoryLine>[
               StoryLine(grapplingHookFound),
               StoryLine(grapplingHookLesson),
             ],
@@ -160,7 +143,7 @@ final class BackpacksScript extends StoryScript {
         // taken it to them (see MaranzaScript).
         say(
           StoryPrompt(
-            const <StoryLine>[
+            <StoryLine>[
               StoryLine(goldIngotFound),
               StoryLine.mario(goldIngotThought),
             ],
@@ -173,7 +156,7 @@ final class BackpacksScript extends StoryScript {
       if (palazzoKey) {
         say(
           StoryPrompt(
-            const <StoryLine>[StoryLine(palazzoKeyFound)],
+            <StoryLine>[StoryLine(palazzoKeyFound)],
             delay: StoryDirector.pickupDelay,
             onShown: () => host.unlock(HudElement.palazzoKey),
           ),
@@ -184,7 +167,7 @@ final class BackpacksScript extends StoryScript {
         // Whose it was is the news, as much as the key itself.
         say(
           StoryPrompt(
-            const <StoryLine>[StoryLine(duomoKeyFound)],
+            <StoryLine>[StoryLine(duomoKeyFound)],
             delay: StoryDirector.pickupDelay,
             onShown: () => host.unlock(HudElement.duomoKey),
           ),
@@ -195,7 +178,7 @@ final class BackpacksScript extends StoryScript {
         // Like the incense: the news and the badge are one moment.
         say(
           StoryPrompt(
-            const <StoryLine>[StoryLine(ringFound)],
+            <StoryLine>[StoryLine(ringFound)],
             delay: StoryDirector.pickupDelay,
             onShown: () => host.unlock(HudElement.episcopalRing),
           ),
@@ -210,7 +193,7 @@ final class BackpacksScript extends StoryScript {
               if (!host.isUnlocked(HudElement.molotov))
                 // The same finger that fires the pistol throws the
                 // bottle: the gesture plays beside the line about it.
-                const StoryLine(molotovLesson, demo: ControlDemo.aim),
+                StoryLine(molotovLesson, demo: ControlDemo.aim),
               ..._weaponChoice(),
             ],
             delay: StoryDirector.pickupDelay,
@@ -232,7 +215,7 @@ final class BackpacksScript extends StoryScript {
       // The censer goes up in the corner as soon as the box is read, so
       // the news and the icon appearing are one moment.
       return StoryPrompt(
-        const <StoryLine>[StoryLine(incenseFound)],
+        <StoryLine>[StoryLine(incenseFound)],
         delay: StoryDirector.pickupDelay,
         onShown: () => host.unlock(HudElement.incense),
       );
@@ -240,10 +223,10 @@ final class BackpacksScript extends StoryScript {
     if (gun) {
       return StoryPrompt(
         <StoryLine>[
-          const StoryLine(gunFound),
-          const StoryLine(aimLesson, demo: ControlDemo.aim),
-          const StoryLine(fireLesson, demo: ControlDemo.aim),
-          const StoryLine(cancelLesson, demo: ControlDemo.cancelShot),
+          StoryLine(gunFound),
+          StoryLine(aimLesson, demo: ControlDemo.aim),
+          StoryLine(fireLesson, demo: ControlDemo.aim),
+          StoryLine(cancelLesson, demo: ControlDemo.cancelShot),
           ..._weaponChoice(),
         ],
         delay: StoryDirector.pickupDelay,
@@ -272,7 +255,7 @@ final class BackpacksScript extends StoryScript {
     _lessonGiven = true;
     say(
       StoryPrompt(
-        const <StoryLine>[
+        <StoryLine>[
           StoryLine(backpackLesson),
           StoryLine(interactLesson, demo: ControlDemo.interact),
         ],

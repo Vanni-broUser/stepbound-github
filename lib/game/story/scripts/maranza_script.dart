@@ -2,6 +2,7 @@ import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/story/story_director.dart';
+import 'package:stepbound/l10n/language.dart';
 
 /// Rome, at the bottom of Via Cavour: Tonino and Marcello stand across the
 /// way onto Piazza di Santa Maria Maggiore. Walking down the last stretch
@@ -31,91 +32,85 @@ final class MaranzaScript extends StoryScript {
   static const String ticketScene =
       'assets/story/scenes/rome_maranza_ticket.jpg';
 
-  static const List<CutsceneFrame> meetingScene = <CutsceneFrame>[
+  static List<CutsceneFrame> get meetingScene => <CutsceneFrame>[
     CutsceneFrame(
       image: meetScene,
       speaker: tonino,
-      text: 'Aò frà, tu non sei morto vero?',
+      text: strings.maranzaMeetingScene1,
     ),
     CutsceneFrame(
       image: meetScene,
       speaker: marcello,
-      text: 'Che vuoi passà da qua? Questa è zona nostra',
+      text: strings.maranzaMeetingScene2,
     ),
     CutsceneFrame(
       image: marioScene,
       speaker: 'Mario Rossi',
-      text: 'Cosa volete?',
+      text: strings.maranzaMeetingScene3,
     ),
     CutsceneFrame(
       image: marioScene,
       speaker: tonino,
-      text: 'Daje frà, lo sai... Qualcosa di prezioso, di valore!',
+      text: strings.maranzaMeetingScene4,
     ),
     CutsceneFrame(
       image: marioScene,
       speaker: 'Mario Rossi',
-      text: "Ma cosa ve ne fate? Siamo nel pieno dell'apocalisse zombi!",
+      text: strings.maranzaMeetingScene5,
     ),
     CutsceneFrame(
       image: laughScene,
       speaker: marcello,
-      text:
-          'Frà, fino a quando ci saranno almeno due persone sulla Terra, '
-          'servirà sempre avere roba di valore',
+      text: strings.maranzaMeetingScene6,
     ),
   ];
 
   /// The gold ingot handed over, and what they give Mario for it.
-  static const List<CutsceneFrame> paidScene = <CutsceneFrame>[
+  static List<CutsceneFrame> get paidScene => <CutsceneFrame>[
     CutsceneFrame(
       image: ingotScene,
       speaker: tonino,
-      text:
-          'Grande frà, questo era proprio che intendevo con qualcosa di '
-          'prezioso!',
+      text: strings.maranzaPaidScene1,
     ),
     CutsceneFrame(
       image: ticketScene,
       speaker: marcello,
-      text:
-          'Ci stai simpatico frà, tieni questo è un biglietto per il '
-          'Colosseo',
+      text: strings.maranzaPaidScene2,
     ),
     CutsceneFrame(
       image: ticketScene,
       speaker: 'Mario Rossi',
-      text: 'Il Colosseo? Ci fanno ancora le gite turistiche?',
+      text: strings.maranzaPaidScene3,
     ),
     CutsceneFrame(
       image: ticketScene,
       speaker: marcello,
-      text: 'Gite turistiche!? Hehehe niente del genere frà, lo scoprirai...',
+      text: strings.maranzaPaidScene4,
     ),
   ];
 
   /// What each of them says to Mario talking to them once they have the
   /// ingot.
-  static const StoryLine toninoAfter = StoryLine(
-    'Ora dobbiamo trovare qualcosa da fare con questo lingotto adesso',
+  static StoryLine get toninoAfter => StoryLine(
+    strings.maranzaToninoAfter,
     speaker: tonino,
     portrait: toninoPortrait,
   );
-  static const StoryLine marcelloAfter = StoryLine(
-    'Ci vediamo al Colosseo frà',
+  static StoryLine get marcelloAfter => StoryLine(
+    strings.maranzaMarcelloAfter,
     speaker: marcello,
     portrait: marcelloPortrait,
   );
 
   /// What they say to Mario coming at them again, one after the other.
-  static const List<StoryLine> warnings = <StoryLine>[
+  static List<StoryLine> get warnings => <StoryLine>[
     StoryLine(
-      'Fratè, meglio che torni con qualcosa di valore per noi',
+      strings.maranzaWarnings1,
       speaker: tonino,
       portrait: toninoPortrait,
     ),
     StoryLine(
-      'Se torni senza qualcosa per noi ti becchi una sberla',
+      strings.maranzaWarnings2,
       speaker: marcello,
       portrait: marcelloPortrait,
     ),
@@ -147,9 +142,9 @@ final class MaranzaScript extends StoryScript {
       return;
     }
     if (event.at == toninoTile) {
-      say(StoryPrompt(const <StoryLine>[toninoAfter]));
+      say(StoryPrompt(<StoryLine>[toninoAfter]));
     } else if (event.at == marcelloTile) {
-      say(StoryPrompt(const <StoryLine>[marcelloAfter]));
+      say(StoryPrompt(<StoryLine>[marcelloAfter]));
     }
   }
 

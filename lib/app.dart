@@ -14,6 +14,7 @@ import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/game/render/pixel_palette.dart';
 import 'package:stepbound/game/stepbound_game.dart';
+import 'package:stepbound/l10n/language.dart';
 import 'package:stepbound/report/breadcrumbs.dart';
 import 'package:stepbound/report/error_report.dart';
 import 'package:stepbound/report/telemetry.dart';
@@ -372,7 +373,7 @@ final class _StepboundAppState extends State<StepboundApp> {
     ),
     PlaceCardCover(:final name, :final image) => LocationCard(
       key: ObjectKey(cover),
-      name: name,
+      name: strings.place(name),
       image: image,
       onBlack: game.placeCardBlack,
       onFinished: game.dismissPlaceCard,
@@ -451,21 +452,27 @@ final class _StepboundAppState extends State<StepboundApp> {
     ),
   };
 
+  /// Built again when the language changes (from the main menu), so every
+  /// word on screen changes with it.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Stepbound',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: PixelPalette.screenBlack,
-      ),
-      // Browsers only start sound after a tap: the first one lets it play.
-      home: Listener(
-        onPointerDown: (_) => _audio.unlock(),
-        child: AudioScope(
-          audio: _audio,
-          child: BloodSplatLayer(child: _surface()),
+    return ValueListenableBuilder<Language>(
+      valueListenable: Language.current,
+      builder: (context, _, _) => MaterialApp(
+        title: 'Stepbound',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: PixelPalette.screenBlack,
+        ),
+        // Browsers only start sound after a tap: the first one lets it
+        // play.
+        home: Listener(
+          onPointerDown: (_) => _audio.unlock(),
+          child: AudioScope(
+            audio: _audio,
+            child: BloodSplatLayer(child: _surface()),
+          ),
         ),
       ),
     );
@@ -564,12 +571,12 @@ final class _StepboundAppState extends State<StepboundApp> {
   Widget _levelLoadingCover(StepboundGame game, Size picture) {
     final progress = game.progress;
     final (image, caption) = switch (progress.level) {
-      LevelId.rome => (LevelMap.romeImage, 'Roma'),
+      LevelId.rome => (LevelMap.romeImage, strings.levelRome),
       LevelId.hometown when progress.hometownCompleted => (
         LevelMap.hometownImage,
-        'Città natale',
+        strings.levelHometown,
       ),
-      LevelId.hometown => (LoadingArt.image, 'Caricamento della partita'),
+      LevelId.hometown => (LoadingArt.image, strings.loadingGame),
     };
     return LoadingCover(
       key: ObjectKey(game),
@@ -635,7 +642,7 @@ final class _StepboundAppState extends State<StepboundApp> {
             artSize: picture,
             // A new game comes out of the story's fade to black.
             fadeIn: true,
-            caption: 'Caricamento del tutorial',
+            caption: strings.loadingTutorial,
           )
         else
           _levelLoadingCover(game, picture),
@@ -735,7 +742,7 @@ final class _GameOverOverlayState extends State<_GameOverOverlay> {
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
                   // Grows with the view, like the dialogue text.
-                  BloodyTitle('GAME OVER', fontSize: 34 * unit),
+                  BloodyTitle(strings.gameOver, fontSize: 34 * unit),
                   SizedBox(height: 4 * unit),
                   ...(_confirmingRestart ? _confirm(unit) : _choices(unit)),
                 ],
@@ -752,7 +759,7 @@ final class _GameOverOverlayState extends State<_GameOverOverlay> {
       key: const ValueKey<String>('restart-button'),
       label: switch (widget.resumePoint) {
         final point? => '${point.resumeLabel} ($_secondsLeft)',
-        null => 'RICOMINCIA IL LIVELLO ($_secondsLeft)',
+        null => '${strings.restartLevel} ($_secondsLeft)',
       },
       onPressed: () => _tapped(_takeCountdownChoice),
     ),
@@ -760,7 +767,7 @@ final class _GameOverOverlayState extends State<_GameOverOverlay> {
       SizedBox(height: 6 * unit),
       _secondary(
         key: const ValueKey<String>('game-over-restart'),
-        label: 'RICOMINCIA IL LIVELLO',
+        label: strings.restartLevel,
         onPressed: () =>
             _tapped(() => setState(() => _confirmingRestart = true)),
       ),
@@ -768,7 +775,7 @@ final class _GameOverOverlayState extends State<_GameOverOverlay> {
     SizedBox(height: 6 * unit),
     _secondary(
       key: const ValueKey<String>('menu-button'),
-      label: 'MENÙ PRINCIPALE',
+      label: strings.gameOverMainMenu,
       onPressed: () => _tapped(widget.onMenu),
     ),
   ];
@@ -778,13 +785,7 @@ final class _GameOverOverlayState extends State<_GameOverOverlay> {
       unit: unit,
       width: MenuButton.fullWidth,
       child: MenuParagraph(
-        widget.restartsFromStory
-            ? 'Ricominciare il livello? ${widget.resumePoint!.savedHere} '
-                  'va perso: si riparte dalla prima scena della storia. Le '
-                  'altre città restano come sono.'
-            : 'Ricominciare il livello? ${widget.resumePoint!.savedHere} '
-                  'va perso: si riparte dall’arrivo in città. Le altre '
-                  'città restano come sono.',
+        widget.resumePoint!.restartCost(fromStory: widget.restartsFromStory),
         key: const ValueKey<String>('game-over-cost'),
         unit: unit,
         center: true,
@@ -793,7 +794,7 @@ final class _GameOverOverlayState extends State<_GameOverOverlay> {
     SizedBox(height: 5 * unit),
     MenuButton(
       key: const ValueKey<String>('game-over-restart-confirm'),
-      label: 'SÌ, RICOMINCIA',
+      label: strings.yesRestart,
       unit: unit,
       compact: true,
       warning: true,
@@ -802,7 +803,7 @@ final class _GameOverOverlayState extends State<_GameOverOverlay> {
     SizedBox(height: 3 * unit),
     MenuButton(
       key: const ValueKey<String>('game-over-restart-cancel'),
-      label: 'NO',
+      label: strings.no,
       unit: unit,
       compact: true,
       onPressed: () => setState(() => _confirmingRestart = false),

@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
+import 'package:stepbound/l10n/language.dart';
 import 'package:stepbound/ui/letterbox.dart';
 import 'package:stepbound/ui/main_menu.dart';
 import 'package:stepbound/ui/portrait_image.dart';
@@ -17,40 +18,39 @@ const int outfitSlots = 12;
 /// name it.
 enum ResumePoint {
   /// Resting at a campfire.
-  campfire(
-    resumeLabel: 'RIPRENDI DAL FALÒ',
-    confirmLabel: 'SÌ, TORNA AL FALÒ',
-    goBack: 'Tornare all’ultimo falò?',
-    since: 'dall’ultimo falò',
-    savedHere: 'Il falò dove hai salvato',
-  ),
+  campfire,
 
   /// Aboard the train, at the end of the level.
-  train(
-    resumeLabel: 'RIPRENDI DAL TRENO',
-    confirmLabel: 'SÌ, TORNA AL TRENO',
-    goBack: 'Tornare al treno?',
-    since: 'dal treno',
-    savedHere: 'Il salvataggio sul treno',
-  );
+  train;
 
-  const ResumePoint({
-    required this.resumeLabel,
-    required this.confirmLabel,
-    required this.goBack,
-    required this.since,
-    required this.savedHere,
-  });
+  String get resumeLabel => switch (this) {
+    campfire => strings.resumeCampfire,
+    train => strings.resumeTrain,
+  };
 
-  final String resumeLabel;
-  final String confirmLabel;
-  final String goBack;
+  String get confirmLabel => switch (this) {
+    campfire => strings.resumeCampfireConfirm,
+    train => strings.resumeTrainConfirm,
+  };
 
-  /// Ends "what you have done ...".
-  final String since;
+  /// What going back to it costs, said plainly.
+  String get cost => switch (this) {
+    campfire => strings.resumeCampfireCost,
+    train => strings.resumeTrainCost,
+  };
 
-  /// Starts "... is lost".
-  final String savedHere;
+  /// Why leaving for the main menu costs what has been done since.
+  String get quitCost => switch (this) {
+    campfire => strings.quitSinceCampfireCost,
+    train => strings.quitSinceTrainCost,
+  };
+
+  /// What restarting the level from the first story scene (Molfetta),
+  /// or else from the arrival in town, loses of this save.
+  String restartCost({required bool fromStory}) => switch (this) {
+    campfire => strings.gameOverRestartCampfireCost(fromStory: fromStory),
+    train => strings.gameOverRestartTrainCost(fromStory: fromStory),
+  };
 }
 
 /// Opened by the button in the corner, over the game: change Mario's clothes,
@@ -82,7 +82,7 @@ final class PauseMenu extends StatefulWidget {
   /// share.
   final VoidCallback? onShareReport;
 
-  static const String shareLabel = 'CONDIVIDI IL RAPPORTO';
+  static String get shareLabel => strings.shareReport;
 
   /// Whether the app sends error reports and anonymous gameplay data on
   /// its own (see `Telemetry`); with [onSendData], the switch that turns
@@ -91,7 +91,7 @@ final class PauseMenu extends StatefulWidget {
   final ValueChanged<bool>? onSendData;
 
   static String sendDataLabel({required bool on}) =>
-      'INVIO DATI ANONIMI: ${on ? 'SÌ' : 'NO'}';
+      strings.pauseSendData(on: on);
 
   final Progress progress;
 
@@ -136,25 +136,11 @@ final class _PauseMenuState extends State<PauseMenu> {
 
   /// What the player is about to lose, said plainly.
   String get _cost => switch (_page) {
-    _PausePage.resume =>
-      '${widget.resumePoint?.goBack} Quello che hai fatto da lì in '
-          'poi va perso.',
+    _PausePage.resume => widget.resumePoint?.cost ?? '',
     _PausePage.restart when !widget.restartsFromStory =>
-      'Ricominciare il livello? Si riparte dall’arrivo in città: quello '
-          'che hai trovato e fatto qui si azzera, le altre città restano '
-          'come le hai lasciate, e lo slot viene salvato all’inizio del '
-          'livello.',
-    _PausePage.restart =>
-      'Ricominciare il livello? Si riparte dalla prima scena della storia: '
-          'quello che hai trovato e fatto a Molfetta si azzera, le altre '
-          'città ti aspettano sul treno come le hai lasciate. Restano le '
-          'ore di gioco.',
-    _PausePage.quit when widget.resumePoint != null =>
-      'Uscire al menù principale? Quello che hai fatto '
-          '${widget.resumePoint?.since} va perso.',
-    _PausePage.quit =>
-      'Uscire al menù principale? Questa partita non è mai stata '
-          'salvata: esci e la perdi tutta.',
+      strings.pauseRestartFromArrivalCost,
+    _PausePage.restart => strings.pauseRestartFromStoryCost,
+    _PausePage.quit => widget.resumePoint?.quitCost ?? strings.quitUnsavedCost,
     _PausePage.home || _PausePage.outfits => '',
   };
 
@@ -199,7 +185,7 @@ final class _PauseMenuState extends State<PauseMenu> {
     // Apart from the three: going back to the game costs nothing.
     trailing: MenuButton(
       key: const ValueKey<String>('pause-close'),
-      label: 'TORNA AL GIOCO',
+      label: strings.pauseBackToGame,
       unit: unit,
       compact: true,
       onPressed: widget.onClose,
@@ -215,14 +201,14 @@ final class _PauseMenuState extends State<PauseMenu> {
         ),
       MenuButton(
         key: const ValueKey<String>('pause-restart'),
-        label: 'RICOMINCIA IL LIVELLO',
+        label: strings.restartLevel,
         unit: unit,
         compact: true,
         onPressed: () => _open(_PausePage.restart),
       ),
       MenuButton(
         key: const ValueKey<String>('pause-quit'),
-        label: 'VAI AL MENÙ PRINCIPALE',
+        label: strings.pauseToMainMenu,
         unit: unit,
         compact: true,
         onPressed: () => _open(_PausePage.quit),
@@ -252,8 +238,8 @@ final class _PauseMenuState extends State<PauseMenu> {
         widget.resumePoint?.confirmLabel ?? '',
         widget.onResumeFromCamp,
       ),
-      _PausePage.restart => ('SÌ, RICOMINCIA', widget.onRestartLevel),
-      _PausePage.quit => ('SÌ, ESCI', widget.onMainMenu),
+      _PausePage.restart => (strings.yesRestart, widget.onRestartLevel),
+      _PausePage.quit => (strings.pauseYesQuit, widget.onMainMenu),
       _PausePage.home || _PausePage.outfits => ('', widget.onClose),
     };
     return MenuColumn(
@@ -279,7 +265,7 @@ final class _PauseMenuState extends State<PauseMenu> {
         ),
         MenuButton(
           key: const ValueKey<String>('pause-back'),
-          label: 'NO',
+          label: strings.no,
           unit: unit,
           compact: true,
           onPressed: () => _open(_PausePage.home),
@@ -308,10 +294,10 @@ final class _PauseMenuState extends State<PauseMenu> {
     final unlocked = _unlocked(outfit);
     final active = widget.progress.activeOutfit == outfit;
     final buttonLabel = active
-        ? 'GIÀ IN USO'
+        ? strings.outfitWorn
         : unlocked
-        ? 'INDOSSA'
-        : 'NON DISPONIBILE';
+        ? strings.outfitWear
+        : strings.outfitLocked;
     return Column(
       key: const ValueKey<String>('pause-outfit-page'),
       children: <Widget>[
@@ -409,7 +395,7 @@ final class _PauseMenuState extends State<PauseMenu> {
           alignment: Alignment.centerLeft,
           child: MenuButton(
             key: const ValueKey<String>('pause-outfit-back'),
-            label: 'INDIETRO',
+            label: strings.back,
             unit: unit,
             compact: true,
             onPressed: widget.onClose,

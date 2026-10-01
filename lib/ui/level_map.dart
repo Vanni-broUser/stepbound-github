@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
+import 'package:stepbound/l10n/language.dart';
 import 'package:stepbound/ui/blood_decor.dart';
 import 'package:stepbound/ui/main_menu.dart';
 
@@ -78,7 +79,7 @@ final class _LevelMapState extends State<LevelMap> {
               unit,
               _molfetta,
               const ValueKey<String>('level-city-hometown'),
-              'MOLFETTA',
+              strings.mapMolfetta,
               () => setState(() => _selected = LevelDestination.hometown),
             ),
             _marker(
@@ -86,7 +87,7 @@ final class _LevelMapState extends State<LevelMap> {
               unit,
               _rome,
               const ValueKey<String>('level-city-rome'),
-              'ROMA',
+              strings.levelRome.toUpperCase(),
               () => setState(() => _selected = LevelDestination.rome),
             ),
             _marker(
@@ -94,7 +95,7 @@ final class _LevelMapState extends State<LevelMap> {
               unit,
               _northCape,
               const ValueKey<String>('level-city-north-cape'),
-              'CAPO NORD',
+              strings.levelNorthCape.toUpperCase(),
               () => setState(() => _selected = LevelDestination.northCape),
             ),
             Positioned(
@@ -102,7 +103,7 @@ final class _LevelMapState extends State<LevelMap> {
               top: 7 * unit,
               child: IgnorePointer(
                 child: Text(
-                  'SCEGLI LA DESTINAZIONE',
+                  strings.mapChooseDestination,
                   style: TextStyle(
                     color: const Color(0xfff2e3c7),
                     fontFamily: 'monospace',
@@ -188,9 +189,9 @@ final class _LevelMapState extends State<LevelMap> {
       LevelDestination.northCape => LevelMap.northCapeImage,
     };
     final name = switch (destination) {
-      LevelDestination.hometown => 'Città natale',
-      LevelDestination.rome => 'Roma',
-      LevelDestination.northCape => 'Capo Nord',
+      LevelDestination.hometown => strings.levelHometown,
+      LevelDestination.rome => strings.levelRome,
+      LevelDestination.northCape => strings.levelNorthCape,
     };
     return MenuPanel(
       key: const ValueKey<String>('level-card'),
@@ -225,7 +226,7 @@ final class _LevelMapState extends State<LevelMap> {
             SizedBox(height: 4 * unit),
             MenuButton(
               key: const ValueKey<String>('level-start'),
-              label: 'INIZIA LIVELLO',
+              label: strings.mapStartLevel,
               unit: unit,
               compact: true,
               width: 102,

@@ -1,5 +1,6 @@
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/story/story_director.dart';
+import 'package:stepbound/l10n/language.dart';
 
 /// The north district: the first camp in sight teaches resting (with the
 /// interact button, if the player never picked up a backpack). The first
@@ -8,8 +9,7 @@ import 'package:stepbound/game/story/story_director.dart';
 final class NorthDistrictScript extends StoryScript {
   NorthDistrictScript(super.director);
 
-  static const String campLesson =
-      'Interagisci con i falò per salvare il gioco';
+  static String get campLesson => strings.northDistrictCampLesson;
 
   bool _campLessonGiven = false;
 
@@ -31,9 +31,9 @@ final class NorthDistrictScript extends StoryScript {
     say(
       StoryPrompt(
         <StoryLine>[
-          const StoryLine(campLesson),
+          StoryLine(campLesson),
           if (needsInteract)
-            const StoryLine(
+            StoryLine(
               BackpacksScript.interactLesson,
               demo: ControlDemo.interact,
             ),

@@ -1,5 +1,6 @@
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/story/story_director.dart';
+import 'package:stepbound/l10n/language.dart';
 
 /// The locked service door in the Bar Arcobaleno. Before Don Angelo gives
 /// Mario its key it explains what is missing; afterwards one interaction
@@ -7,9 +8,8 @@ import 'package:stepbound/game/story/story_director.dart';
 final class BarScript extends StoryScript {
   BarScript(super.director);
 
-  static const String lockedDoorLine =
-      'Questa porta è chiusa. Serve una chiave';
-  static const String keyUsedLine = 'Hai usato la chiave per aprire la porta';
+  static String get lockedDoorLine => strings.barLockedDoorLine;
+  static String get keyUsedLine => strings.barKeyUsedLine;
 
   @override
   String get key => 'bar';
@@ -23,10 +23,10 @@ final class BarScript extends StoryScript {
       if (host.isUnlocked(HudElement.barKey)) {
         world.map.setTile(at, const Tile(TileKind.floor));
         host.removeHud(HudElement.barKey);
-        say(StoryPrompt(const <StoryLine>[StoryLine(keyUsedLine)]));
+        say(StoryPrompt(<StoryLine>[StoryLine(keyUsedLine)]));
         return;
       }
-      say(StoryPrompt(const <StoryLine>[StoryLine(lockedDoorLine)]));
+      say(StoryPrompt(<StoryLine>[StoryLine(lockedDoorLine)]));
     }
   }
 

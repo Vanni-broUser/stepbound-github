@@ -48,6 +48,7 @@ import 'package:stepbound/game/render/tile_place_component.dart';
 import 'package:stepbound/game/render/torch_component.dart';
 import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/game/world_event_presenter.dart';
+import 'package:stepbound/l10n/language.dart';
 
 export 'package:stepbound/game/game_cover.dart';
 export 'package:stepbound/game/game_snapshot.dart';
@@ -943,9 +944,9 @@ final class StepboundGame extends FlameGame
     _camp.restAt(campfire);
   }
 
-  static const String savedLine = CampfireRest.savedLine;
-  static const String saveFailedLine = CampfireRest.saveFailedLine;
-  static const String mealSaveFailedLine = CampfireRest.mealSaveFailedLine;
+  static String get savedLine => CampfireRest.savedLine;
+  static String get saveFailedLine => CampfireRest.saveFailedLine;
+  static String get mealSaveFailedLine => CampfireRest.mealSaveFailedLine;
 
   /// Called by the notice of a failed save once the player goes on.
   void dismissSaveFailed() => _covers.dismissSaveFailed();
@@ -1131,9 +1132,9 @@ final class StepboundGame extends FlameGame
     }
     final ammo = simulation.player.component<AmmoComponent>();
     inspectInventory(switch (weapon) {
-      Weapon.pistol => '${ammo.loaded} proiettili',
-      Weapon.molotov => '${ammo.molotovs} molotov',
-      Weapon.rocketLauncher => '${ammo.rockets} colpi per lanciarazzi',
+      Weapon.pistol => strings.bulletsLeft(ammo.loaded),
+      Weapon.molotov => strings.molotovsLeft(ammo.molotovs),
+      Weapon.rocketLauncher => strings.rocketsLeft(ammo.rockets),
     });
   }
 

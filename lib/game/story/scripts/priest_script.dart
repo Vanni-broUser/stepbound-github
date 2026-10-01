@@ -2,6 +2,7 @@ import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/story/story_director.dart';
+import 'package:stepbound/l10n/language.dart';
 
 /// The Duomo on the harbour: walking up the alley to the churchyard gate
 /// gets Mario hailed by Don Angelo, who wants the two zombies at his gate
@@ -26,79 +27,61 @@ final class PriestScript extends StoryScript {
   static const String barKeySceneImage =
       'assets/story/scenes/priest_bar_key.jpg';
 
-  static const String clearThemOut =
-      'Sbarazzati di questi zombi così potremmo parlare meglio';
-  static const String incenseLine =
-      "Portami dell'incenso, mi serve per le mie cerimonie";
-  static const String whereLine = "Dove lo trovo dell'incenso?!";
-  static const String everyTwoStreetsLine =
-      'Suvvia giovanotto, siamo in Italia! Nei centri storici trovi una '
-      'chiesa ogni due strade';
-  static const String welcomeLine =
-      'Ottimo giovanotto, ben fatto! Benvenuto nella nostra chiesa';
-  static const String notCommunityYetLine =
-      'Ora puoi entrare qui ma non sei ancora davvero parte della nostra '
-      'comunità';
-  static const String moreWorkLine =
-      'Ah... Immagino che vi aspettate che faccia altro per voi';
-  static const String useYourSkillsLine =
-      'Giovanotto sembri così bravo a muoverti nella città desolata, '
-      'sarebbe un peccato non sfruttare queste tue capacità';
-  static const String barKeyLine =
-      'Usa questa chiave per aprire una porta nel bar Arcobaleno sul porto, '
-      'lì troverai il mio anello episcopale';
+  static String get clearThemOut => strings.priestClearThemOut;
+  static String get incenseLine => strings.priestIncenseLine;
+  static String get whereLine => strings.priestWhereLine;
+  static String get everyTwoStreetsLine => strings.priestEveryTwoStreetsLine;
+  static String get welcomeLine => strings.priestWelcomeLine;
+  static String get notCommunityYetLine => strings.priestNotCommunityYetLine;
+  static String get moreWorkLine => strings.priestMoreWorkLine;
+  static String get useYourSkillsLine => strings.priestUseYourSkillsLine;
+  static String get barKeyLine => strings.priestBarKeyLine;
 
   /// Don Angelo calls out from behind his gate, Mario answers.
-  static const List<CutsceneFrame> meetingScene = <CutsceneFrame>[
+  static List<CutsceneFrame> get meetingScene => <CutsceneFrame>[
     CutsceneFrame(
       image: gateScene,
       speaker: priest,
-      text:
-          'Ohh che piacere vedere qualcuno ancora in vita passeggiare per il '
-          'nostro porto',
+      text: strings.priestMeetingScene1,
     ),
     CutsceneFrame(
       image: seafrontScene,
       speaker: 'Mario Rossi',
-      text: 'Siete vivi?! Qui alla chiesa vi siete salvati?',
+      text: strings.priestMeetingScene2,
     ),
     CutsceneFrame(
       image: gateScene,
       speaker: priest,
-      text:
-          'Giovanotto la chiesa è sempre il primo posto in cui cercare la '
-          'salvezza',
+      text: strings.priestMeetingScene3,
     ),
   ];
 
   /// Mario at the gate with the zombies gone, and the priest's price.
-  static const List<CutsceneFrame> dealScene = <CutsceneFrame>[
+  static List<CutsceneFrame> get dealScene => <CutsceneFrame>[
     CutsceneFrame(
       image: dealSceneImage,
       speaker: 'Mario Rossi',
-      text: 'Ci siamo padre, apra il cancello',
+      text: strings.priestDealScene1,
     ),
     CutsceneFrame(
       image: dealSceneImage,
       speaker: priest,
-      text: 'Prima dovrai fare qualcosa per noi',
+      text: strings.priestDealScene2,
     ),
     CutsceneFrame(
       image: dealSceneImage,
       speaker: 'Mario Rossi',
-      text: 'Cosa?! Ma è pericoloso qui fuori padre...',
+      text: strings.priestDealScene3,
     ),
     CutsceneFrame(
       image: dealSceneImage,
       speaker: priest,
-      text:
-          'Giovanotto pensi che se facessi entrare chiunque nella mia chiesa '
-          'ora sarei ancora sopravvissuto?',
+      text: strings.priestDealScene4,
     ),
   ];
 
   /// Don Angelo receives Mario once he returns with the incense.
-  static const List<CutsceneFrame> welcomeScene = <CutsceneFrame>[
+  static List<CutsceneFrame> get welcomeScene => <CutsceneFrame>[
     CutsceneFrame(image: welcomeSceneImage, speaker: priest, text: welcomeLine),
     CutsceneFrame(
       image: communitySceneImage,
@@ -235,7 +218,7 @@ final class PriestScript extends StoryScript {
   void _askToClearTheGate() {
     say(
       StoryPrompt(
-        const <StoryLine>[StoryLine.priest(clearThemOut)],
+        <StoryLine>[StoryLine.priest(clearThemOut)],
         onDismissed: () {
           _clearAsked = true;
           progress.missions.give(Mission.clearGate);
@@ -251,7 +234,7 @@ final class PriestScript extends StoryScript {
   void _askForIncense() {
     say(
       StoryPrompt(
-        const <StoryLine>[
+        <StoryLine>[
           StoryLine.priest(incenseLine),
           StoryLine.mario(whereLine),
           StoryLine.priest(everyTwoStreetsLine),
