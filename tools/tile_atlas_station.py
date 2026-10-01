@@ -420,7 +420,10 @@ def station_far_side(atlas: Atlas, rng) -> dict:
     for right in (False, True):
         edge = atlas.bucket(lambda r=right: tile_of(
             lambda d: paint_side_edge(d, 0, 0, r)), 1)
-        rules.append(rule("foreground", "-,M=TnD:P",
+        # Not on the train, nor on the track it stands on: the dark line is
+        # the floor's, where it meets the darkness, and the train is drawn
+        # whole to its last cell.
+        rules.append(rule("foreground", "=TnD:P",
                           [[], edge], [neighbour_key(1 if right else -1,
                                                      0, "x")]))
     rules += side_walls(atlas)

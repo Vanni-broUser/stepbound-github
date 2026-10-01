@@ -402,7 +402,9 @@ def paint_railcar(d, rng, area, wrecked, door_x=None, open_door=False,
     away."""
     px, py, w, h = area
     body, cab = py + 9, 22 if with_cab else 0
-    rect(d, px, py + h - 5, w, 5, (30, 30, 34))  # its shadow on the ballast
+    # Its shadow on the ballast, see-through: the stones show under it, no
+    # black band between the train and the platform.
+    rect(d, px, py + h - 5, w, 5, (20, 20, 24, 120))
     rect(d, px, py, w, 10, shade(LIVERY_GREEN, -38))  # the roof
     rect(d, px, py, w, 2, shade(LIVERY_GREEN, -14))
     for vx in range(px + cab + 8, px + w - 12, 38):  # the roof vents

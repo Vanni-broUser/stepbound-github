@@ -21102,7 +21102,7 @@
         },
         {
           "layer": "foreground",
-          "glyphs": "-,M=TnD:P",
+          "glyphs": "=TnD:P",
           "keys": [
             {
               "kind": "neighbour",
@@ -21115,7 +21115,7 @@
         },
         {
           "layer": "foreground",
-          "glyphs": "-,M=TnD:P",
+          "glyphs": "=TnD:P",
           "keys": [
             {
               "kind": "neighbour",
@@ -26094,7 +26094,7 @@
         },
         {
           "layer": "foreground",
-          "glyphs": "-,M=TnD:P",
+          "glyphs": "=TnD:P",
           "keys": [
             {
               "kind": "neighbour",
@@ -26107,7 +26107,7 @@
         },
         {
           "layer": "foreground",
-          "glyphs": "-,M=TnD:P",
+          "glyphs": "=TnD:P",
           "keys": [
             {
               "kind": "neighbour",
