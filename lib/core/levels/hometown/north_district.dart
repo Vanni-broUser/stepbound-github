@@ -27,7 +27,8 @@ import 'package:stepbound/core/levels/place.dart';
 /// of the monument's square, its shutter down over the door `¦` (an
 /// obstacle) until Mario opens it from inside (electronics_shop.dart).
 /// By the fountain, `♪` is the Caparezza wanderer (see
-/// [caparezzaZombieId]).
+/// [caparezzaZombieId]). Up the side road, a few steps short of the
+/// burning pile-up, a second camp ([northDistrictBlazeCampTile]).
 ///
 /// Off the map, ` `: above the road north two rows past the pile-up, and
 /// above the hospital's front and the palazzi west of the side road; the
@@ -47,16 +48,16 @@ const List<String> northDistrictRows = <String>[
   '                                    BBBBBBBBBBBBBB=..|..=BBBBBBBBBMMMMMMMMMMMmmmMMMMMMMMMMMMBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   '                                    BBBBBBBBBBBBBBkXX?XXvBBBBBBBBB==========================BBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   '                                    BBBBBBBBBBBBBBkCC?CCvBBBBBBBBB=LLLLLLLLL:LLLLLyLLLLLLLL=BBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  '                                    BBBBBBBBBBBBBB=..|..=BBBBBBBBB=LCCLLLLLLLLLLLLLLLLLLLyL=BBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  '                                    BBBBBBBBBBBBBB=d.|>.=BBBBBBBBB=LLLLLLLLLLLzLLLLLLLLLLLL=BBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  '                                    BBBBBBBBBBBBBB=.UU.:=BBBBBBBBB=LLLLLyLLLLLLLLLLLLXXLLLv=BBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  '                                    BBBBBBBBBBBBBB=.d|..=BBBBBBBBB=LCCLLLLLLLLLLLLLLLLLLLyL=BBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  '                                    BBBBBBBBBBBBBB=..|>.=BBBBBBBBB=LLLLLLLLLLLzLLLLLLLLLLLL=BBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  '                                    BBBBBBBBBBBBBB=SUU.:=BBBBBBBBB=LLLLLyLLLLLLLLLLLLXXLLLv=BBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   '                                    BBBBBBBBBBBBBB=.>|D.=BBBBBBBBB4LLLLLLLLLLLLLLLLLLLLLLLv=BBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBGGGGGGGGGGGGGGGGBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=:.|>d=BBBBBBBBB==========================BBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  'BBGGGGGGGGGGGGGGGGBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=.wUU.=BBBBBBBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBGGGGGGGGGGGGGGGGBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=..UU.=BBBBBBBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBGGGGGGGGGGGGGGGGBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=d.|.>=BBBBBBBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBGGGGGGGGGGGGGGGGBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBGGGGGGGGGGGGGGGGBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=>:|XX=HHHHHHHHHHHHHHHHHH=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  'BBGGGGGGGGGGGGGGGGBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=..|..=HHHHHfHHHHHHHHHHHH=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  'BBGGGGGGGGGGGGGGGGBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=.w|..=HHHHHfHHHHHHHHHHHH=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBGGGGGGGGGGGGGGGGBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBTVVVVVTHHHHHHHHHHHHHHHHHH=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBGGGGGGGGGGGGGGGGBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=..CC.====================..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBGGGGGGGGGGGGGGGGBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=.>UU..Z>.d..UU.........Z...|.v=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
@@ -143,3 +144,11 @@ const List<CameraZone> northDistrictCameraZones = <CameraZone>[
   CameraZone(area: GridRect(50, 0, 56, 21), limits: GridRect(0, 8, 119, 63)),
   CameraZone(area: GridRect(57, 0, 119, 16), limits: GridRect(57, 0, 119, 63)),
 ];
+
+/// The second camp of the north district, `S` on the side road north of
+/// the crossroads, a few steps short of the burning pile-up: sheltered
+/// behind the overturned car, by the pavement. Its own name in the save
+/// slots (the other is the camp behind the barracks).
+final GridPoint northDistrictBlazeCampTile = _north
+    .tilesOf('S')
+    .reduce((a, b) => a.y < b.y ? a : b);
