@@ -14520,7 +14520,7 @@
         },
         {
           "layer": "structures",
-          "glyphs": "$-.4:=>?ACDFJLOPQSTUVXYZadekmnqrvwyz|\u00a6\u266a",
+          "glyphs": " $-.4:=>?ACDFJLOPQSTUVXYZadekmnqrvwyz|\u00a6\u266a",
           "keys": [
             {
               "kind": "neighbour",

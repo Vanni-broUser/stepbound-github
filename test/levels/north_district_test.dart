@@ -1,5 +1,9 @@
+import 'dart:math' as math;
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/core/core.dart';
+import 'package:stepbound/game/render/follow_camera.dart';
+import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 
 void main() {
   final north = place(PlaceId.northDistrict);
@@ -147,6 +151,48 @@ void main() {
     expect(lights, hasLength(4));
     for (final tile in <GridPoint>[...zebras]) {
       expect(world.map.tileAt(tile).isWalkable, isTrue);
+    }
+  });
+
+  test('the cells cut off the map are never in view, wherever Mario stands '
+      'and whatever the screen', () {
+    // The view: as much ground as 384 by 216 pixels, 4:3 to 2.4:1, centred
+    // a little above Mario's feet and kept inside the place's rectangle
+    // (see FollowCamera); the widest and the tallest together, to be safe.
+    const area =
+        IntegerResolutionViewport.virtualWidth *
+        IntegerResolutionViewport.virtualHeight;
+    const widest = IntegerResolutionViewport.maxAspect;
+    const tallest = IntegerResolutionViewport.minAspect;
+    final halfWidth = math.sqrt(area / widest) * widest / 2;
+    final halfHeight = math.sqrt(area / tallest) / 2;
+    const tile = levelTileSize;
+    final left = north.origin.x * tile;
+    final top = north.origin.y * tile;
+    final right = left + north.width * tile;
+    final bottom = top + north.height * tile;
+    final offMap = north.tilesOf(Legend.offMap).toSet();
+    expect(offMap, isNotEmpty);
+    for (final stand in reached.keys) {
+      final x = (stand.x * tile + tile / 2).clamp(
+        left + halfWidth,
+        right - halfWidth,
+      );
+      final y = (stand.y * tile + tile - FollowCamera.bodyHeight).clamp(
+        top + halfHeight,
+        bottom - halfHeight,
+      );
+      final x0 = ((x - halfWidth) / tile).floor();
+      final x1 = ((x + halfWidth) / tile).ceil() - 1;
+      final y0 = ((y - halfHeight) / tile).floor();
+      final y1 = ((y + halfHeight) / tile).ceil() - 1;
+      for (final cut in offMap) {
+        expect(
+          cut.x < x0 || cut.x > x1 || cut.y < y0 || cut.y > y1,
+          isTrue,
+          reason: '${local(cut)} in view from ${local(stand)}',
+        );
+      }
     }
   });
 }
