@@ -20,6 +20,10 @@ void main() {
     GridPoint atTheGate() =>
         GridPoint(priestGateFront.left + 1, priestGateFront.bottom);
 
+    /// Down the seafront road, out of earshot of the gate.
+    GridPoint awayFromTheGate() =>
+        GridPoint(priestSceneTrigger.right + 1, priestSceneTrigger.bottom);
+
     void killTheZombiesAtTheGate() {
       for (var i = 0; i < priestZombieTiles.length; i++) {
         world.entities['$priestZombiePrefix$i']!
@@ -258,7 +262,7 @@ void main() {
         reason: 'standing still does not reopen the same box',
       );
 
-      walkTo(onTheSeafront());
+      walkTo(awayFromTheGate());
       settle();
       walkTo(atTheGate());
       settle();
@@ -310,6 +314,41 @@ void main() {
         Mission.findIncense,
       ], reason: 'each counted once');
       expect(progress.missions.open, contains(Mission.findRing));
+    });
+
+    test('every scene plays where the first one did: with the incense in '
+        'hand, the price and the welcome follow on the seafront without a '
+        'step', () {
+      collectIncense();
+      meetThePriest();
+      killTheZombiesAtTheGate();
+      // The road clear too: on it, any zombie close by keeps him quiet.
+      for (final zombie in world.entities.values) {
+        if (zombie.kind != EntityKind.player &&
+            zombie.component<PositionComponent>().position.manhattanDistanceTo(
+                  onTheSeafront(),
+                ) <
+                PriestScript.safeDistance) {
+          zombie.component<HealthComponent>().current = 0;
+        }
+      }
+      settle();
+      expect(host.cutscenes.last, PriestScript.dealScene);
+      host.onCutsceneFinished!();
+      settle();
+      host.dismiss();
+      expect(progress.missions.isDone(Mission.findIncense), isTrue);
+
+      host.missionsSettling = true;
+      settle();
+      expect(host.cutscenes, hasLength(2), reason: 'the corner comes first');
+      host.missionsSettling = false;
+      settle();
+      expect(host.cutscenes.last, PriestScript.welcomeScene);
+      expect(
+        world.player.component<PositionComponent>().position,
+        onTheSeafront(),
+      );
     });
 
     test('a save after the welcome does not play it again', () {

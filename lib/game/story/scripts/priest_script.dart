@@ -4,13 +4,15 @@ import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/l10n/language.dart';
 
-/// The Duomo on the harbour: walking up the alley to the churchyard gate
-/// gets Mario hailed by Don Angelo, who wants the two zombies at his gate
-/// gone before he will talk. Once they are dead, or far enough away for
-/// Mario to stand at the gate unbothered, the priest names his price: a
-/// censer's worth of incense. Bringing it back to a clear gate earns Mario
-/// his welcome inside; coming back while zombies crowd the entrance makes
-/// Don Angelo repeat his warning.
+/// The Duomo on the harbour: coming up to the churchyard alley, on the
+/// seafront road in front of it or in the alley itself, gets Mario hailed
+/// by Don Angelo, who wants the two zombies at his gate gone before he
+/// will talk. Once they are dead, or far enough away for Mario to stand
+/// there unbothered, the priest names his price: a censer's worth of
+/// incense. Bringing it back to a clear gate earns Mario his welcome
+/// inside; coming back while zombies crowd the entrance makes Don Angelo
+/// repeat his warning. Every one of his scenes plays in the same place,
+/// [priestSceneTrigger]: the next one follows where Mario stands.
 final class PriestScript extends StoryScript {
   PriestScript(super.director);
 
@@ -120,11 +122,11 @@ final class PriestScript extends StoryScript {
   @override
   String get key => 'priest';
 
-  /// Walking up to the gate plays the priest's first scene, and he asks for
-  /// the zombies to be dealt with. Standing at the gate with them gone
-  /// plays the second, and he names his price. Once Mario has the incense,
-  /// returning to a clear gate plays the welcome; at a blocked gate Don
-  /// Angelo repeats his original warning once per visit.
+  /// Coming up to the gate plays the priest's first scene, and he asks for
+  /// the zombies to be dealt with. Standing there with them gone plays the
+  /// second, and he names his price. Once Mario has the incense, a clear
+  /// gate plays the welcome; at a blocked gate Don Angelo repeats his
+  /// original warning once per visit.
   @override
   void update({required bool turnAnimating}) {
     if (turnAnimating || host.isPromptVisible) {
@@ -163,7 +165,7 @@ final class PriestScript extends StoryScript {
         !host.isUnlocked(HudElement.incense)) {
       return;
     }
-    if (!priestGateFront.contains(position)) {
+    if (!priestSceneTrigger.contains(position)) {
       _blockedAtGate = false;
       return;
     }
@@ -189,11 +191,11 @@ final class PriestScript extends StoryScript {
     }
   }
 
-  /// True when Mario stands in the alley in front of the gate and neither
+  /// True when Mario stands where Don Angelo can talk to him and neither
   /// of the priest's zombies is dead set on him: they are dead, or far
   /// enough away to have lost him.
   bool _gateIsClear(GridPoint position) {
-    if (!priestGateFront.contains(position)) {
+    if (!priestSceneTrigger.contains(position)) {
       return false;
     }
     for (final zombie in world.entities.values) {
