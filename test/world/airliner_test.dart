@@ -488,9 +488,10 @@ void main() {
         backpack.position.x,
         greaterThan((roofs.bounds.left + roofs.bounds.right) ~/ 2),
       );
+      // Down to the parapet over the gap: the roof across it is not this.
       expect(
         backpack.position.y,
-        greaterThan((roofs.bounds.top + roofs.bounds.bottom) ~/ 2),
+        greaterThan((roofs.bounds.top + rooftopGapTile.y) ~/ 2),
       );
 
       final reached = from(

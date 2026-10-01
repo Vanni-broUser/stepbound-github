@@ -93,7 +93,9 @@ const List<GridPoint> airlinerCabinLamps = <GridPoint>[
 /// far side, flat and walkable, built like this one -- walled `W` round
 /// it and with its parapet `^` along the front -- with its own chimney
 /// stacks `k`, gravel `;` and the open stairwell `S` going down into that
-/// block, eastward: its head at the west end, its foot at the east. Its
+/// block, eastward, halfway down its east wall: its head at the west end,
+/// its foot at the east, against the wall. The roof is as deep as a block
+/// is, ten cells from its wall to its parapet. Its
 /// wall is broken open `<` straight across from `>`: where the grappling
 /// hook brings Mario in, and where it takes him back from. Only the hook,
 /// found in Rome, gets him over there. The block below is the palazzo
@@ -137,10 +139,15 @@ const List<String> airlinerRoofRows = <String>[
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
   'xWWWWWWWWWWWWWW<WWWWWWWWWWWWWx',
   'xW%%%%%%%%%%%%%%%%%%%%%%%%%%Wx',
-  'xW%%%k%%%%%%%%%%%%%%%SSS%%%%Wx',
-  'xW%%%%%%%%%;%%%%%%%%%SSS%k%%Wx',
-  'xW%%;%%%%%%%%%%%%%%%%%%;%%%%Wx',
-  'xW%%%%%%%%%%%%%%%%%%%%%%%%%%Wx',
+  'xW%%%k%%%%%%%%%%%%%%%%%%%%%%Wx',
+  'xW%%%%%%%%%;%%%%%%%%%%%%k%%%Wx',
+  'xW%%;%%%%%%%%%%%%%%%%%%%%%%%Wx',
+  'xW%%%%%%%%%%%%%%%%%%%%%%%SSSWx',
+  'xW%%%%%%%%%%%%;%%%%%%%%%%SSSWx',
+  'xW%%%%%%k%%%%%%%%%%%%%%%%%%%Wx',
+  'xW%%%%%%%%%%%%%%%%%%%;%%%%%%Wx',
+  'xW%%%;%%%%%%%%%%%%%%%%%%%k%%Wx',
+  'xW%%%%%%%%%%%%%%%%%;%%%%%%%%Wx',
   'x^^^^^^^^^^^^^^^^^^^^^^^^^^^^x',
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
 ];
