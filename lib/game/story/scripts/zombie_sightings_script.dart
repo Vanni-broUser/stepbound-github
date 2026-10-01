@@ -32,11 +32,9 @@ final class ZombieSightingsScript extends StoryScript {
   void onEvent(WorldEvent event) {
     // Stepping onto a portal moves Mario first and then takes him through:
     // the step that counts is the next one.
-    if (event case TeleportedEvent(:final entityId)
-        when entityId == world.playerId) {
+    if (event is TeleportedEvent && event.entityId == world.playerId) {
       _justArrived = true;
-    } else if (event case MovedEvent(:final entityId)
-        when entityId == world.playerId) {
+    } else if (event is MovedEvent && event.entityId == world.playerId) {
       _justArrived = false;
     }
   }
