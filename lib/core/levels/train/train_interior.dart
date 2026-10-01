@@ -15,7 +15,8 @@
 /// far); more
 /// books and notes `f` all round, and beside the cot his weapons table
 /// `a`, with the shotgun, the pistol and the boxes of rounds: whenever he
-/// comes back to it with fewer than five rounds, he loads up to five.
+/// comes back to it with fewer than three rounds, he loads up to three,
+/// and an empty rocket launcher gets one rocket.
 /// Along the wall past it his two suitcases `Y`, one lying flat and one
 /// standing, and his wardrobe `R`, a bare rail with his clothes hung on
 /// it: there he chooses what to wear. Luigi below, his cot `b` among bin
@@ -35,7 +36,8 @@
 /// between the last seats, Chiara's corner once she is aboard: her camp
 /// bed `b` like Luigi's, her suitcases `O` open on the floor, her washing
 /// hung out to dry on a line strung from one seat to the other `~`, her
-/// clothes `c` and empty cans `o` about, and where she stands `j`.
+/// clothes `c` and empty cans `o` about, and where she stands `j`. Until
+/// she comes aboard none of it is there: the corner is bare floor.
 // train-interior-rows-start
 const List<String> trainInteriorRows = <String>[
   'xWWWWWWWWWWWWWWWWWWWWIIIWWWWWWWWWWWWWWWWWWWWIIIWWWWWWWWWWWWWWWWWWWWWWWxxxxxxx',

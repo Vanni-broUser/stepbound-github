@@ -6,6 +6,7 @@ import 'package:stepbound/game/input/game_input_controller.dart';
 import 'package:stepbound/game/input/hud_icons.dart';
 import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/game/story/story_director.dart';
+import 'package:stepbound/l10n/language.dart';
 import 'package:stepbound/ui/audio_scope.dart';
 import 'package:stepbound/ui/blood_decor.dart';
 import 'package:stepbound/ui/fire_frame.dart';
@@ -27,22 +28,22 @@ Widget? _badge(HudElement element, {required StepboundGame game}) =>
       HudElement.incense => _QuestItemBadge(
         key: const ValueKey<String>('hud-incense'),
         game: game,
-        label: 'Incenso per Don Angelo',
-        name: 'Incenso',
+        label: strings.itemIncenseLabel,
+        name: strings.itemIncense,
         drips: const <BloodDrip>[BloodDrip(0.3, 13, 4), BloodDrip(0.74, 8, 3)],
         icon: const CustomPaint(size: Size(26, 30), painter: CenserIcon()),
       ),
       HudElement.barKey => _QuestItemBadge(
         key: const ValueKey<String>('hud-bar-key'),
         game: game,
-        label: 'Chiave del Bar Arcobaleno',
+        label: strings.itemBarKey,
         drips: const <BloodDrip>[BloodDrip(0.24, 8, 3), BloodDrip(0.68, 12, 4)],
         icon: const CustomPaint(size: Size(28, 28), painter: KeyIcon()),
       ),
       HudElement.episcopalRing => _QuestItemBadge(
         key: const ValueKey<String>('hud-episcopal-ring'),
         game: game,
-        label: 'Anello episcopale',
+        label: strings.itemEpiscopalRing,
         drips: const <BloodDrip>[BloodDrip(0.34, 10, 3), BloodDrip(0.78, 7, 3)],
         icon: Image.asset(
           'assets/objects/episcopal_ring.png',
@@ -57,21 +58,21 @@ Widget? _badge(HudElement element, {required StepboundGame game}) =>
       HudElement.duomoKey => _QuestItemBadge(
         key: const ValueKey<String>('hud-duomo-key'),
         game: game,
-        label: 'Chiave del Duomo',
+        label: strings.itemDuomoKey,
         drips: const <BloodDrip>[BloodDrip(0.28, 11, 4), BloodDrip(0.7, 9, 3)],
         icon: const CustomPaint(size: Size(28, 28), painter: ChurchKeyIcon()),
       ),
       HudElement.palazzoKey => _QuestItemBadge(
         key: const ValueKey<String>('hud-palazzo-key'),
         game: game,
-        label: 'Chiave del terzo piano',
+        label: strings.itemPalazzoKey,
         drips: const <BloodDrip>[BloodDrip(0.3, 10, 3), BloodDrip(0.72, 8, 3)],
         icon: const CustomPaint(size: Size(28, 28), painter: KeyIcon()),
       ),
       HudElement.grapplingHook => _QuestItemBadge(
         key: const ValueKey<String>('hud-grappling-hook'),
         game: game,
-        label: 'Rampino',
+        label: strings.itemGrapplingHook,
         drips: const <BloodDrip>[BloodDrip(0.3, 9, 3), BloodDrip(0.76, 12, 4)],
         icon: Image.asset(
           'assets/objects/grappling_hook.png',
@@ -86,7 +87,7 @@ Widget? _badge(HudElement element, {required StepboundGame game}) =>
       HudElement.goldIngot => _QuestItemBadge(
         key: const ValueKey<String>('hud-gold-ingot'),
         game: game,
-        label: "Lingotto d'oro",
+        label: strings.itemGoldIngot,
         drips: const <BloodDrip>[BloodDrip(0.32, 9, 3), BloodDrip(0.74, 11, 4)],
         icon: Image.asset(
           'assets/objects/gold_ingot.png',
@@ -101,7 +102,7 @@ Widget? _badge(HudElement element, {required StepboundGame game}) =>
       HudElement.colosseumTicket => _QuestItemBadge(
         key: const ValueKey<String>('hud-colosseum-ticket'),
         game: game,
-        label: 'Biglietto del Colosseo',
+        label: strings.itemColosseumTicket,
         drips: const <BloodDrip>[BloodDrip(0.26, 10, 3), BloodDrip(0.7, 8, 4)],
         icon: Image.asset(
           'assets/objects/colosseum_ticket.png',
@@ -174,7 +175,7 @@ final class _AmmoBadge extends StatelessWidget {
           builder: (context, _) {
             final isEmpty = loaded == 0;
             final golden = game.progress.hasGoldenPistol;
-            final pistol = golden ? "Pistola d'oro" : 'Pistola';
+            final pistol = golden ? strings.goldenPistol : strings.pistol;
             // Flames only when there is a choice: the pistol alone is simply
             // the pistol.
             final inHand =
@@ -227,10 +228,10 @@ final class _AmmoBadge extends StatelessWidget {
               enabled: hasGun,
               selected: inHand,
               label: !hasGun
-                  ? '$pistol da trovare, proiettili: $loaded'
+                  ? strings.pistolMissing(pistol, loaded)
                   : inHand
-                  ? '$pistol in mano, proiettili: $loaded'
-                  : '$pistol, proiettili: $loaded, tocca per prenderla',
+                  ? strings.pistolInHand(pistol, loaded)
+                  : strings.pistolToTake(pistol, loaded),
               child: GestureDetector(
                 onTap: hasGun
                     ? () {
@@ -470,8 +471,8 @@ final class _MolotovBadge extends StatelessWidget {
             button: true,
             selected: inHand,
             label: inHand
-                ? 'Molotov in mano: $count'
-                : 'Molotov: $count, tocca per prenderne una',
+                ? strings.molotovInHand(count)
+                : strings.molotovToTake(count),
             child: GestureDetector(
               onTap: () {
                 AudioScope.of(context).play(Sfx.uiClick);
@@ -573,10 +574,10 @@ final class _RocketBadge extends StatelessWidget {
             enabled: hasLauncher,
             selected: inHand,
             label: !hasLauncher
-                ? 'Lanciarazzi da trovare, colpi: $count'
+                ? strings.launcherMissing(count)
                 : inHand
-                ? 'Lanciarazzi in mano, colpi: $count'
-                : 'Lanciarazzi, colpi: $count, tocca per prenderlo',
+                ? strings.launcherInHand(count)
+                : strings.launcherToTake(count),
             child: GestureDetector(
               onTap: hasLauncher
                   ? () {

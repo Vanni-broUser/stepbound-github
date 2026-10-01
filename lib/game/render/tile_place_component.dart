@@ -25,6 +25,7 @@ final class TilePlaceComponent extends Component {
     required this.place,
     this.offset = ui.Offset.zero,
     this.useOpen,
+    this.shutRows,
   }) : super(priority: 0);
 
   /// Cleared by the game while the place is out of the camera's view, so
@@ -36,6 +37,11 @@ final class TilePlaceComponent extends Component {
 
   /// Whether the story has opened what this place can open.
   final bool Function()? useOpen;
+
+  /// The rows the place is drawn from while shut, when they are not its
+  /// own: what the story has yet to bring is missing from them, and
+  /// opening it draws the place's own rows.
+  final List<String>? shutRows;
 
   ui.Image? _shut;
   ui.Image? _open;
@@ -71,7 +77,8 @@ final class TilePlaceComponent extends Component {
       );
     }
     final shut = await _drawn(loaded, art, opened: false);
-    final open = art.objects.any((object) => object.whenOpen != null)
+    final open =
+        shutRows != null || art.objects.any((object) => object.whenOpen != null)
         ? await _drawn(loaded, art, opened: true)
         : null;
     _shut = shut.$1;
@@ -162,7 +169,7 @@ final class TilePlaceComponent extends Component {
     required bool opened,
   }) async {
     final manifest = loaded.manifest;
-    final grid = art.gridFor(place.rows);
+    final grid = art.gridFor(opened ? place.rows : shutRows ?? place.rows);
     final width = grid.width * manifest.tileWidth;
     final height = grid.height * manifest.tileHeight;
     final behind = await _cellsBehindObjects(loaded, art, grid, opened);

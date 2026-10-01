@@ -34,4 +34,8 @@ abstract class LevelStage {
 
   /// Whether the story has opened what [place] draws shut.
   bool showsOpened(PlaceId place) => false;
+
+  /// The rows [place] is drawn from until [showsOpened], when the story
+  /// has yet to bring something into it; null draws its own rows always.
+  List<String>? shutRows(PlaceId place) => null;
 }

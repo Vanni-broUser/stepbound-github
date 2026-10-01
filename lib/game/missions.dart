@@ -1,42 +1,51 @@
 import 'package:stepbound/core/core.dart';
+import 'package:stepbound/l10n/language.dart';
 
 /// What Mario has been asked to do, level by level: listed in the corner
 /// of the screen while they are open, crossed out in blood once done, and
 /// counted among the level's figures.
 enum Mission {
-  findSurvivors(LevelId.hometown, 'Trova altri sopravvissuti', fromStart: true),
-  freeLuigi(LevelId.hometown, 'Trova un modo per liberare Luigi'),
-  reachLuigi(LevelId.hometown, 'Raggiungi Luigi alla stazione'),
-  clearGate(LevelId.hometown, 'Spara o allontana gli zombi dal cancello'),
-  findIncense(LevelId.hometown, "Trova dell'incenso"),
-  findRing(LevelId.hometown, "Trova l'anello episcopale"),
-  initiation(LevelId.hometown, 'Partecipa alla cerimonia di iniziazione'),
+  findSurvivors(LevelId.hometown, fromStart: true),
+  freeLuigi(LevelId.hometown),
+  reachLuigi(LevelId.hometown),
+  clearGate(LevelId.hometown),
+  findIncense(LevelId.hometown),
+  findRing(LevelId.hometown),
+  initiation(LevelId.hometown),
 
   /// Handed out once Mario is back in Molfetta with the grappling hook
   /// found in Rome; done once he has used it across all three gaps.
-  exploreTerraces(LevelId.hometown, 'Usa il rampino per esplorare i terrazzi'),
+  exploreTerraces(LevelId.hometown),
 
   /// Handed out once Chiara has been seen on the phone behind the glass in
   /// the company past the palazzo.
-  reachSurvivor(
-    LevelId.hometown,
-    "Raggiungi Chiara dall'altra parte degli uffici",
-  ),
-  findSupplies(LevelId.rome, 'Trova delle provviste in città'),
-  findValuable(
-    LevelId.rome,
-    'Cerca qualcosa di prezioso per Tonino e Marcello',
-  ),
+  reachSurvivor(LevelId.hometown),
+  findSupplies(LevelId.rome),
+  findValuable(LevelId.rome),
 
   /// Handed out with the ticket Tonino and Marcello give Mario for the
   /// ingot.
-  discoverColosseum(LevelId.rome, 'Scopri cosa succede al Colosseo');
+  discoverColosseum(LevelId.rome);
 
-  const Mission(this.level, this.text, {this.fromStart = false});
+  const Mission(this.level, {this.fromStart = false});
 
   /// The city the mission belongs to.
   final LevelId level;
-  final String text;
+
+  String get text => switch (this) {
+    findSurvivors => strings.missionFindSurvivors,
+    freeLuigi => strings.missionFreeLuigi,
+    reachLuigi => strings.missionReachLuigi,
+    clearGate => strings.missionClearGate,
+    findIncense => strings.missionFindIncense,
+    findRing => strings.missionFindRing,
+    initiation => strings.missionInitiation,
+    exploreTerraces => strings.missionExploreTerraces,
+    reachSurvivor => strings.missionReachSurvivor,
+    findSupplies => strings.missionFindSupplies,
+    findValuable => strings.missionFindValuable,
+    discoverColosseum => strings.missionDiscoverColosseum,
+  };
 
   /// Open as soon as Mario is in [level], before anyone asks anything.
   final bool fromStart;

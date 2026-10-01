@@ -1,5 +1,6 @@
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/story/story_director.dart';
+import 'package:stepbound/l10n/language.dart';
 
 /// The first street: the zombie east of the crossroads is introduced as
 /// soon as Mario, done with the movement hint, reaches the column just
@@ -10,7 +11,7 @@ import 'package:stepbound/game/story/story_director.dart';
 final class StreetScript extends StoryScript {
   StreetScript(super.director);
 
-  static const String zombieSpotted = 'Merda uno zombi! Meglio svignarsela';
+  static String get zombieSpotted => strings.streetZombieSpotted;
 
   bool _zombieLessonGiven = false;
 
@@ -46,7 +47,7 @@ final class StreetScript extends StoryScript {
     _zombieLessonGiven = true;
     director.introduceZombie(
       zombie,
-      then: const <StoryLine>[StoryLine.mario(zombieSpotted)],
+      then: <StoryLine>[StoryLine.mario(zombieSpotted)],
     );
   }
 

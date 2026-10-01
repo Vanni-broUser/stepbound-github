@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:stepbound/app.dart';
 import 'package:stepbound/app_services.dart';
+import 'package:stepbound/l10n/language_setting.dart';
 import 'package:stepbound/report/error_report.dart';
 import 'package:stepbound/report/share_report.dart';
 import 'package:stepbound/save/vanni_deploy.dart';
@@ -33,6 +34,10 @@ Future<void> bootstrap() async {
   // guard over the app owns these from here, through any error, and
   // closes them when the engine lets go.
   final services = AppServices.device(silent: kIsWeb);
+  // The words of the game in the language picked last, or the phone's.
+  await LanguageSetting().load(
+    WidgetsBinding.instance.platformDispatcher.locale,
+  );
   final saves = services.saves;
   if (vanniDeployEnabled) {
     try {

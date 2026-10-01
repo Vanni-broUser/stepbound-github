@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
+import 'package:stepbound/l10n/language.dart';
 import 'package:stepbound/save/save_game.dart';
 import 'package:stepbound/ui/audio_scope.dart';
 import 'package:stepbound/ui/blood_decor.dart';
@@ -31,9 +32,7 @@ final class MainMenu extends StatefulWidget {
   static const String background = 'assets/story/ui/menu_background.jpg';
 
   /// The classic line at the foot of the first screen.
-  static const String disclaimer =
-      'Ogni riferimento a persone esistenti o a fatti realmente accaduti è '
-      'puramente casuale';
+  static String get disclaimer => strings.menuDisclaimer;
 
   final SaveRepository saves;
 
@@ -101,6 +100,10 @@ final class _MainMenuState extends State<MainMenu> {
     setState(() => audio.muted = !audio.muted);
   }
 
+  /// Every word on the screen changes at once: the app rebuilds with the
+  /// language (see `StepboundApp`), this menu included.
+  void _nextLanguage() => Language.current.value = Language.current.value.next;
+
   void _pickNewGameSlot(int slot) {
     final slots = _slots;
     if (slots == null) {
@@ -111,12 +114,6 @@ final class _MainMenuState extends State<MainMenu> {
       return;
     }
     widget.onNewGame(slot);
-  }
-
-  static String _date(DateTime time) {
-    String two(int value) => value.toString().padLeft(2, '0');
-    return '${two(time.day)}/${two(time.month)}/${time.year} '
-        '${two(time.hour)}:${two(time.minute)}';
   }
 
   /// Hours and minutes played, as the slot shows them.
@@ -130,13 +127,13 @@ final class _MainMenuState extends State<MainMenu> {
   /// as the backup it is; one holding the game as it was put down, since
   /// its last campfire, says that too.
   String _slotLabel(int slot, SaveRead read) => switch (read) {
-    EmptySave() => 'SLOT $slot\nvuoto',
-    DamagedSave() => 'SLOT $slot\ndanneggiato, non si può caricare',
+    EmptySave() => 'SLOT $slot\n${strings.menuSlotEmpty}',
+    DamagedSave() => 'SLOT $slot\n${strings.menuSlotDamaged}',
     LoadedSave(:final save, :final fromBackup, :final suspended) =>
-      'SLOT $slot  ${_date(save.savedAt)}'
-          '${fromBackup ? '  (riserva)' : ''}'
-          '${suspended ? '  (in sospeso)' : ''}\n'
-          '${save.place}  ·  ${_played(save.played)}',
+      'SLOT $slot  ${strings.date(save.savedAt)}'
+          '${fromBackup ? '  ${strings.menuSlotBackup}' : ''}'
+          '${suspended ? '  ${strings.menuSlotSuspended}' : ''}\n'
+          '${strings.place(save.place)}  ·  ${_played(save.played)}',
   };
 
   @override
@@ -206,13 +203,13 @@ final class _MainMenuState extends State<MainMenu> {
       _MenuPage.home => <Widget>[
         MenuButton(
           key: const ValueKey<String>('menu-new-game'),
-          label: 'NUOVA PARTITA',
+          label: strings.menuNewGame,
           unit: unit,
           onPressed: () => _open(_MenuPage.newGame),
         ),
         MenuButton(
           key: const ValueKey<String>('menu-load'),
-          label: 'CARICA PARTITA',
+          label: strings.menuLoadGame,
           unit: unit,
           onPressed: hasSaves ? () => _open(_MenuPage.load) : null,
         ),
@@ -221,30 +218,44 @@ final class _MainMenuState extends State<MainMenu> {
           children: <Widget>[
             MenuButton(
               key: const ValueKey<String>('menu-audio'),
-              label: AudioScope.of(context).muted ? 'AUDIO: NO' : 'AUDIO: SÌ',
+              label: AudioScope.of(context).muted
+                  ? strings.menuAudioOff
+                  : strings.menuAudioOn,
               unit: unit,
               compact: true,
-              width: MenuButton.halfWidth,
+              width: MenuButton.sideWidth,
               onPressed: _toggleAudio,
             ),
             SizedBox(width: MenuButton.pairGap * unit),
             MenuButton(
-              key: const ValueKey<String>('menu-credits'),
-              label: 'CREDITI',
+              key: const ValueKey<String>('menu-language'),
+              label: Language.current.value.code.toUpperCase(),
+              semanticsLabel:
+                  '${strings.menuLanguage}: '
+                  '${Language.current.value.nativeName}',
               unit: unit,
               compact: true,
-              width: MenuButton.halfWidth,
+              width: MenuButton.languageWidth,
+              onPressed: _nextLanguage,
+            ),
+            SizedBox(width: MenuButton.pairGap * unit),
+            MenuButton(
+              key: const ValueKey<String>('menu-credits'),
+              label: strings.menuCredits,
+              unit: unit,
+              compact: true,
+              width: MenuButton.sideWidth,
               onPressed: () => _open(_MenuPage.credits),
             ),
           ],
         ),
       ],
       _MenuPage.credits => <Widget>[
-        MenuHeading(text: 'CREDITI', unit: unit),
+        MenuHeading(text: strings.menuCredits, unit: unit),
         _Credits(unit: unit),
         MenuButton(
           key: const ValueKey<String>('menu-back'),
-          label: 'INDIETRO',
+          label: strings.back,
           unit: unit,
           compact: true,
           onPressed: () => _open(_MenuPage.home),
@@ -253,8 +264,8 @@ final class _MainMenuState extends State<MainMenu> {
       _MenuPage.newGame || _MenuPage.load => <Widget>[
         MenuHeading(
           text: _page == _MenuPage.newGame
-              ? 'SCEGLI DOVE SALVARE'
-              : 'SCEGLI UN SALVATAGGIO',
+              ? strings.menuChooseNewSlot
+              : strings.menuChooseSave,
           unit: unit,
         ),
         // Two by two, so all four slots fit on a phone in landscape.
@@ -269,7 +280,7 @@ final class _MainMenuState extends State<MainMenu> {
         ),
         MenuButton(
           key: const ValueKey<String>('menu-back'),
-          label: 'INDIETRO',
+          label: strings.back,
           unit: unit,
           compact: true,
           onPressed: () => _open(_MenuPage.home),
@@ -292,7 +303,7 @@ final class _MainMenuState extends State<MainMenu> {
     if (_confirming == slot) {
       return MenuButton(
         key: ValueKey<String>('menu-slot-$slot-confirm'),
-        label: 'SOVRASCRIVERE LO SLOT $slot?\nTOCCA ANCORA PER CONFERMARE',
+        label: strings.menuOverwrite(slot),
         unit: unit,
         compact: true,
         warning: true,
@@ -371,9 +382,9 @@ final class _LinkNoticePanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final content = switch (notice) {
       SkinGiftNotice(:final outfit) => <Widget>[
-        BloodyTitle('REGALO', fontSize: 15 * unit),
+        BloodyTitle(strings.menuGift, fontSize: 15 * unit),
         Text(
-          'Skin ${outfit.label}',
+          strings.menuSkin(outfit.label),
           key: const ValueKey<String>('skin-gift-name'),
           textAlign: TextAlign.center,
           style: menuTextStyle(unit, 9).copyWith(fontWeight: FontWeight.bold),
@@ -387,8 +398,8 @@ final class _LinkNoticePanel extends StatelessWidget {
         ),
       ],
       InvalidLinkNotice() => <Widget>[
-        BloodyTitle('LINK SCADUTO', fontSize: 15 * unit),
-        BloodyTitle('O NON VALIDO', fontSize: 15 * unit),
+        BloodyTitle(strings.menuLinkExpired, fontSize: 15 * unit),
+        BloodyTitle(strings.menuLinkInvalid, fontSize: 15 * unit),
       ],
     };
     return ColoredBox(
@@ -408,7 +419,7 @@ final class _LinkNoticePanel extends StatelessWidget {
               SizedBox(height: 5 * unit),
               MenuButton(
                 key: const ValueKey<String>('skin-link-close'),
-                label: 'OK',
+                label: strings.ok,
                 unit: unit,
                 compact: true,
                 width: MenuButton.halfWidth,
@@ -462,7 +473,7 @@ final class GiftTag extends StatelessWidget {
             ],
           ),
           child: Text(
-            'REGALO',
+            strings.menuGift,
             style: TextStyle(
               color: BloodColors.fresh,
               fontFamily: 'monospace',
@@ -522,10 +533,14 @@ final class MenuButton extends StatelessWidget {
     this.compact = false,
     this.warning = false,
     this.width,
+    this.semanticsLabel,
     super.key,
   });
 
   final String label;
+
+  /// What a screen reader says for it, when [label] is too short to.
+  final String? semanticsLabel;
   final double unit;
   final VoidCallback? onPressed;
   final bool compact;
@@ -541,6 +556,11 @@ final class MenuButton extends StatelessWidget {
   static const double halfWidth = 84;
   static const double pairGap = 4;
 
+  /// The row under the main buttons: the audio and the credits either
+  /// side of the narrow language switch, edges lined up with theirs.
+  static const double languageWidth = 30;
+  static const double sideWidth = (fullWidth - languageWidth) / 2 - pairGap;
+
   @override
   Widget build(BuildContext context) {
     final enabled = onPressed != null;
@@ -548,7 +568,7 @@ final class MenuButton extends StatelessWidget {
     return Semantics(
       button: true,
       enabled: enabled,
-      label: label,
+      label: semanticsLabel ?? label,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: onPressed == null
@@ -623,10 +643,14 @@ final class _Credits extends StatelessWidget {
       padding: EdgeInsets.symmetric(vertical: 3 * unit),
       child: Column(
         children: <Widget>[
-          Text('MUSICA', style: style.copyWith(fontWeight: FontWeight.bold)),
+          Text(
+            strings.creditsMusic,
+            style: style.copyWith(fontWeight: FontWeight.bold),
+          ),
           for (final credit in musicCredits)
             Text(
-              '"${credit.title}" - ${credit.author} - ${credit.licence}',
+              '"${credit.title}" - ${credit.author} - '
+              '${credit.licence ?? strings.creditsAttribution}',
               textAlign: TextAlign.center,
               style: style,
             ),

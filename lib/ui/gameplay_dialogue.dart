@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/story/story_director.dart';
+import 'package:stepbound/l10n/language.dart';
 import 'package:stepbound/ui/audio_scope.dart';
 import 'package:stepbound/ui/blood_splat.dart';
 import 'package:stepbound/ui/control_demo.dart';
@@ -47,14 +48,10 @@ final class DialogueLine {
   final bool advanceOnRightDrag;
 }
 
-const List<DialogueLine> tutorialOpening = <DialogueLine>[
-  DialogueLine(
-    text:
-        'La città è nel caos più totale! Devo cercare di '
-        'mettermi in salvo in qualche modo',
-  ),
+List<DialogueLine> get tutorialOpening => <DialogueLine>[
+  DialogueLine(text: strings.tutorialChaos),
   DialogueLine.tutorial(
-    'Trascina il dito sulla parte sinistra dello schermo per muoverti',
+    strings.tutorialMove,
     demo: ControlDemo.move,
     advanceOnRightDrag: true,
   ),
@@ -63,11 +60,7 @@ const List<DialogueLine> tutorialOpening = <DialogueLine>[
 /// Plays [lines] over the game, one per tap, with the speaker's portrait
 /// standing on the dialogue box. Calls [onFinished] after the last line.
 final class GameplayDialogue extends StatefulWidget {
-  const GameplayDialogue({
-    required this.onFinished,
-    this.lines = tutorialOpening,
-    super.key,
-  });
+  const GameplayDialogue({required this.onFinished, this.lines, super.key});
 
   static const Duration defaultSettleTime = Duration(milliseconds: 500);
 
@@ -82,7 +75,8 @@ final class GameplayDialogue extends StatefulWidget {
   static const double demoTop = 0.16;
   static const double demoHeight = 0.48;
 
-  final List<DialogueLine> lines;
+  /// The tutorial's opening lines when null.
+  final List<DialogueLine>? lines;
   final VoidCallback onFinished;
 
   @override
@@ -90,6 +84,12 @@ final class GameplayDialogue extends StatefulWidget {
 }
 
 final class _GameplayDialogueState extends State<GameplayDialogue> {
+  /// The tutorial's opening taken once, so its words stay as they were
+  /// when it started.
+  late final List<DialogueLine> _opening = tutorialOpening;
+
+  List<DialogueLine> get _lines => widget.lines ?? _opening;
+
   int _index = 0;
 
   /// False until the line on screen has been there long enough to be read.
@@ -148,7 +148,7 @@ final class _GameplayDialogueState extends State<GameplayDialogue> {
       BloodSplatLayer.maybeOf(context)?.splat(at, SplatKind.tap);
     }
     AudioScope.of(context).play(Sfx.dialogue);
-    if (_index + 1 < widget.lines.length) {
+    if (_index + 1 < _lines.length) {
       _settle();
       setState(() => _index += 1);
       return;
@@ -206,7 +206,7 @@ final class _GameplayDialogueState extends State<GameplayDialogue> {
 
   @override
   Widget build(BuildContext context) {
-    final line = widget.lines[_index];
+    final line = _lines[_index];
     final portrait = line.portrait;
     return GestureDetector(
       key: const ValueKey<String>('gameplay-dialogue'),
@@ -219,7 +219,7 @@ final class _GameplayDialogueState extends State<GameplayDialogue> {
       onPanEnd: line.advanceOnRightDrag ? (_) => _dragEnd() : null,
       onPanCancel: line.advanceOnRightDrag ? _dragEnd : null,
       child: Semantics(
-        label: 'Tocca per continuare',
+        label: strings.tapToContinue,
         child: LayoutBuilder(
           builder: (context, constraints) {
             final demo = line.demo;

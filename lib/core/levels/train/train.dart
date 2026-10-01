@@ -80,6 +80,44 @@ final GridPoint trainLuigiTile = _train.tileOf('l');
 /// has come to the train: until then an empty spot on the floor.
 final GridPoint trainChiaraTile = _train.tileOf('j');
 
+/// What Chiara keeps in her corner of the second coach, with its glyph:
+/// her camp bed, her open suitcases, her washing on its line, her clothes
+/// and her empty cans. She brings them with her, so until she is aboard
+/// the corner is bare floor (see [trainRowsBeforeChiara]).
+final Map<GridPoint, String> trainChiaraThings = () {
+  final local = GridPoint(
+    trainChiaraTile.x - _train.origin.x,
+    trainChiaraTile.y - _train.origin.y,
+  );
+  // The second coach, from wall to wall either side of her.
+  final row = _train.rows[local.y];
+  final west = row.lastIndexOf('W', local.x);
+  final east = row.indexOf('W', local.x);
+  return <GridPoint, String>{
+    for (final (tile, glyph) in _train.glyphs)
+      if (tile.x - _train.origin.x > west &&
+          tile.x - _train.origin.x < east &&
+          _chiaraGlyphs.contains(glyph))
+        tile: glyph,
+  };
+}();
+
+const String _chiaraGlyphs = 'bO~co';
+
+/// The train as it is drawn before Chiara comes aboard: her corner of the
+/// second coach empty.
+final List<String> trainRowsBeforeChiara = <String>[
+  for (var y = 0; y < _train.height; y++)
+    String.fromCharCodes(<int>[
+      for (var x = 0; x < _train.width; x++)
+        trainChiaraThings.containsKey(
+              GridPoint(_train.origin.x + x, _train.origin.y + y),
+            )
+            ? '.'.codeUnitAt(0)
+            : _train.rows[y].codeUnitAt(x),
+    ]),
+];
+
 /// Mario's desk, west to east: the open books, the abacus and the
 /// calculator, the mug and the candle. From any of the three he reads up
 /// on the zombie types met so far; the glint is on the middle one.
@@ -95,7 +133,8 @@ final List<GridPoint> trainWardrobeTiles = _train.tilesOf('R');
 final List<GridPoint> trainCotTiles = _train.tilesOf('B');
 
 /// Mario's ammunition crate by his cot: interacting with it brings his
-/// rounds up to [trainAmmoRefill], whenever he has fewer.
+/// rounds up to [trainAmmoRefill], whenever he has fewer, and gives him a
+/// rocket when the launcher is his and has none left.
 final List<GridPoint> trainAmmoTiles = _train.tilesOf('a');
 
 /// The narrow table against the wall above the map table, laid with cured
@@ -104,7 +143,7 @@ final List<GridPoint> trainAmmoTiles = _train.tilesOf('a');
 final List<GridPoint> trainFoodTiles = _train.tilesOf('G');
 
 /// How many rounds the crate in the locomotive loads Mario up to.
-const int trainAmmoRefill = 5;
+const int trainAmmoRefill = 3;
 
 /// The table laid with food aboard saves like a campfire, and saves as the
 /// train.

@@ -1,6 +1,7 @@
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/story/story_director.dart';
+import 'package:stepbound/l10n/language.dart';
 
 /// The start of the Rome level. As soon as the city has loaded, before
 /// Mario can move, Luigi says why they stop here, and the supplies are the
@@ -9,13 +10,9 @@ import 'package:stepbound/game/story/story_director.dart';
 final class RomeScript extends StoryScript {
   RomeScript(super.director);
 
-  static const List<StoryLine> arrivalLines = <StoryLine>[
-    StoryLine.luigi('Come si suol dire: tutte le strade passano a Roma'),
-    StoryLine.luigi(
-      'Facciamo una piccola fermata qui, io cerco un po’ di carburante in '
-      'giro e tu vai a trovare delle provviste, ce ne serviranno parecchie '
-      'per arrivare alla nostra meta',
-    ),
+  static List<StoryLine> get arrivalLines => <StoryLine>[
+    StoryLine.luigi(strings.romeArrivalLines1),
+    StoryLine.luigi(strings.romeArrivalLines2),
   ];
 
   /// Leaves the loading picture time to fade off the game first.

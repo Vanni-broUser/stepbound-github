@@ -1,3 +1,4 @@
+import 'package:meta/meta.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/levels/hometown_stage.dart';
@@ -72,7 +73,7 @@ final class StoryLine {
       demo = null;
 
   /// A member of Don Angelo's community inside the Duomo.
-  const StoryLine.cultist(this.text)
+  StoryLine.cultist(this.text)
     : speaker = DuomoScript.cultist,
       portrait = DuomoScript.cultistPortrait,
       demo = null;
@@ -108,13 +109,26 @@ enum ControlDemo {
 }
 
 /// One full-screen picture of a story scene played during the game: the
-/// picture first, then [text] on a tap, then the next picture.
+/// picture first, then [text] on a tap, then the next picture. Equal to
+/// another with the same picture and words: the scenes are made again in
+/// the language of the moment every time they are asked for.
+@immutable
 final class CutsceneFrame {
   const CutsceneFrame({required this.image, required this.text, this.speaker});
 
   final String image;
   final String? speaker;
   final String text;
+
+  @override
+  bool operator ==(Object other) =>
+      other is CutsceneFrame &&
+      other.image == image &&
+      other.speaker == speaker &&
+      other.text == text;
+
+  @override
+  int get hashCode => Object.hash(image, speaker, text);
 }
 
 /// What the tutorial hands over: interacting and shooting (the right half

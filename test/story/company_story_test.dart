@@ -253,6 +253,39 @@ void main() {
       expect(world.map.tileAt(train.tilesOf('~').first).isWalkable, isFalse);
     });
 
+    test('her things come aboard with her: until then the train is drawn '
+        'with her corner bare', () {
+      final train = place(PlaceId.trainInterior);
+      expect(trainChiaraThings.values.toSet(), <String>{
+        '~',
+        'O',
+        'o',
+        'b',
+        'c',
+      });
+      for (final tile in trainChiaraThings.keys) {
+        expect(tile.manhattanDistanceTo(trainChiaraTile), lessThanOrEqualTo(8));
+      }
+      // Luigi's cot, suitcases and mess in the locomotive stay.
+      expect(
+        train
+            .tilesOf('b')
+            .where((tile) => !trainChiaraThings.containsKey(tile)),
+        isNotEmpty,
+      );
+      expect(trainRowsBeforeChiara, hasLength(train.height));
+      for (final (tile, glyph) in train.glyphs) {
+        final drawn =
+            trainRowsBeforeChiara[tile.y - train.origin.y][tile.x -
+                train.origin.x];
+        expect(
+          drawn,
+          trainChiaraThings.containsKey(tile) ? '.' : glyph,
+          reason: '$tile',
+        );
+      }
+    });
+
     test('aboard, she talks about the journey in Molfetta and about Rome '
         'in Rome; before she has come aboard, nobody answers there', () {
       void talk() {
