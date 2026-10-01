@@ -71,7 +71,7 @@ final class ItalianStrings implements Strings {
   @override
   String get menuSlotBackup => '(riserva)';
   @override
-  String get menuSlotSuspended => '(in sospeso)';
+  String get menuSlotSuspended => '[ IN SOSPESO ]';
   @override
   String get menuGift => 'REGALO';
   @override

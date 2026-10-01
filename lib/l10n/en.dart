@@ -71,7 +71,7 @@ final class EnglishStrings implements Strings {
   @override
   String get menuSlotBackup => '(backup)';
   @override
-  String get menuSlotSuspended => '(suspended)';
+  String get menuSlotSuspended => '[ SUSPENDED ]';
   @override
   String get menuGift => 'GIFT';
   @override
