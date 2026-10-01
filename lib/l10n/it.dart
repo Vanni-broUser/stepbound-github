@@ -691,7 +691,7 @@ final class ItalianStrings implements Strings {
       'Frà, fino a quando ci saranno almeno due persone sulla Terra, servirà sempre avere roba di valore';
   @override
   String get maranzaPaidScene1 =>
-      'Grande frà, questo era proprio che intendevo con qualcosa di prezioso!';
+      'Grande frà, questo era proprio quello che intendevo con qualcosa di prezioso!';
   @override
   String get maranzaPaidScene2 =>
       'Ci stai simpatico frà, tieni questo è un biglietto per il Colosseo';
@@ -819,7 +819,8 @@ final class ItalianStrings implements Strings {
   String get trainChiaraRomeLines1 => 'Cosa?! Non eri mai stato a Roma?';
   @override
   String get trainChiaraRomeLines2 =>
-      'È la città eterna, ti ritrovi tra le rovine romane senza rendertene conto';
+      'È la città eterna, ti ritrovi tra le rovine romane senza nemmeno '
+      'rendertene conto';
   @override
   String get trainCotLine =>
       "Ripensa all'avventura: statistiche, missioni e ricordi";
