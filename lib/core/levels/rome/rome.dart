@@ -678,18 +678,22 @@ final GridPoint toninoTile = _onGrid(
   const GridPoint(79, _cavourEnd),
 );
 
-/// The last stretch of Via Cavour, the two of them in full view at the
-/// bottom of it: walking into it plays the meeting.
-final GridRect maranzaSceneTrigger = _rectOnGrid(
+/// Where Tonino and Marcello have their say, every time in the same
+/// place: the last stretch of Via Cavour, the two of them in full view at
+/// the bottom of it, and the whole square past them. Walking into it plays
+/// the meeting; once they have met Mario, the gold ingot is handed over
+/// there and then, and without it a step in here gets him sent back up
+/// the street.
+bool onMaranzaTurf(GridPoint tile) =>
+    _maranzaStreet.contains(tile) || _maranzaSquare.contains(tile);
+
+final GridRect _maranzaStreet = _rectOnGrid(
   PlaceId.piazzaCinquecento,
   const GridRect(75, _cavourEnd - 5, 82, _cavourEnd - 1),
 );
-
-/// Two steps from them and on, the whole square included: once they have
-/// had their say, stepping in here gets Mario sent back up the street.
-final GridRect maranzaTurf = _rectOnGrid(
+final GridRect _maranzaSquare = _rectOnGrid(
   PlaceId.piazzaCinquecento,
-  GridRect(0, _cavourEnd - 2, _piazza.width - 1, _piazza.height - 1),
+  GridRect(0, _cavourEnd, _piazza.width - 1, _piazza.height - 1),
 );
 
 GridRect _rectOnGrid(PlaceId id, GridRect rect) {

@@ -5,15 +5,17 @@ import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/l10n/language.dart';
 
 /// Rome, at the bottom of Via Cavour: Tonino and Marcello stand across the
-/// way onto Piazza di Santa Maria Maggiore. Walking down the last stretch
-/// of the street plays their meeting with Mario, and they want something
-/// of value to let him by. From then on every step towards them gets one
-/// of their warnings, in turn, and Mario walked back up the street; the
-/// controls come back once he is.
+/// way onto Piazza di Santa Maria Maggiore. Everything with them plays in
+/// the same place, [onMaranzaTurf]. Walking into it plays their meeting
+/// with Mario, and they want something of value to let him by. From then
+/// on every step in it gets one of their warnings, in turn, and Mario
+/// walked back up the street; the controls come back once he is.
 ///
-/// Coming at them with the gold ingot from the bank's vault plays its
-/// handing over instead, and the ticket for the Colosseum they give him
-/// for it: the mission is done, and they let him by. They stay where they
+/// With the gold ingot from the bank's vault their handing over plays
+/// instead, where Mario stands, and the ticket for the Colosseum they give
+/// him for it: they let him by. Had he the ingot already when they asked
+/// for it, the mission is crossed out as it is handed out, and the handing
+/// over follows once the corner has shown it. They stay where they
 /// are, a line each for him if he talks to them, until he has left the
 /// square: back on it, they have gone.
 final class MaranzaScript extends StoryScript {
@@ -123,6 +125,14 @@ final class MaranzaScript extends StoryScript {
   /// back: a single step towards them gets a single one.
   bool _warning = false;
 
+  /// Their last word said, the meeting or a warning: the tile Mario is
+  /// left on once it is over gets no other, only a step off it does.
+  bool _leftAlone = false;
+  GridPoint? _leftOn;
+
+  /// The meeting is playing: nothing else until they have had their say.
+  bool _meeting = false;
+
   /// The ingot handed over: they let Mario by.
   bool _paid = false;
 
@@ -160,27 +170,53 @@ final class MaranzaScript extends StoryScript {
         progress.level != LevelId.rome) {
       return;
     }
+    final onTurf = onMaranzaTurf(position);
+    if (_leftAlone) {
+      // Mario has been walked back, or the meeting is over: where he
+      // stands now is where they left him.
+      _leftAlone = false;
+      _leftOn = onTurf ? position : null;
+    }
+    if (!onTurf) {
+      _leftOn = null;
+    }
     if (!_metPlayed) {
-      if (maranzaSceneTrigger.contains(position)) {
+      if (onTurf) {
         _metPlayed = true;
+        _meeting = true;
+        // Where the meeting finds him is where it leaves him.
+        _leftOn = position;
         host
           ..stopWalking()
           ..playCutscene(
             meetingScene,
             memories: const <StoryMemory>{StoryMemory.maranzaMet},
             music: Music.maranza,
-            onFinished: () => progress.missions.give(Mission.findValuable),
+            onFinished: _askForSomethingValuable,
           );
       }
       return;
     }
-    if (_paid || !maranzaTurf.contains(position)) {
+    // A scene straight after a mission done waits for the corner to have
+    // crossed it out: the ingot already in hand.
+    if (_paid || _meeting || !onTurf || host.missionsSettling) {
       return;
     }
     if (host.isUnlocked(HudElement.goldIngot)) {
       _handOver();
-    } else {
+    } else if (position != _leftOn) {
       _warn();
+    }
+  }
+
+  /// The meeting is over: the mission is to find them something of value,
+  /// found already if Mario has the ingot on him.
+  void _askForSomethingValuable() {
+    _meeting = false;
+    _leftAlone = true;
+    progress.missions.give(Mission.findValuable);
+    if (host.isUnlocked(HudElement.goldIngot)) {
+      progress.missions.complete(Mission.findValuable);
     }
   }
 
@@ -219,6 +255,7 @@ final class MaranzaScript extends StoryScript {
         holdsInput: true,
         onDismissed: () {
           _warning = false;
+          _leftAlone = true;
           host.walkPlayer(Direction.north);
         },
       ),

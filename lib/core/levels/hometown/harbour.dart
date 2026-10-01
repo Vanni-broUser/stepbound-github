@@ -191,7 +191,8 @@ final GridRect priestGateFront = () {
 /// Coming this close to the alley is close enough for Don Angelo to hail
 /// Mario: the alley itself and the whole width of the seafront road in
 /// front of it, sidewalk to sidewalk, so he calls out whichever side of
-/// the road Mario walks down.
+/// the road Mario walks down. Every scene of his plays here, the price,
+/// the welcome and the warning alike.
 final GridRect priestSceneTrigger = () {
   final rows = _harbour.rows;
   final x = priestGateFront.left - _harbour.origin.x;

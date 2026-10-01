@@ -66,7 +66,7 @@ void main() {
       host.onCutsceneFinished!();
 
       settle();
-      expect(host.shown, isEmpty, reason: 'three rows away they let him be');
+      expect(host.shown, isEmpty, reason: 'where the meeting left him');
 
       standAt(upTheStreet(2));
       settle();
@@ -98,6 +98,7 @@ void main() {
       standAt(upTheStreet(4));
       settle();
       host.onCutsceneFinished!();
+      settle();
       standAt(upTheStreet(2));
       settle();
       host.dismiss();
@@ -205,6 +206,49 @@ void main() {
         progress: Progress(),
       )..restore(director.toJson());
       expect(restored.scripts.whereType<MaranzaScript>().first.gone, isTrue);
+    });
+
+    test('the ingot in hand when they ask for it: the mission is crossed '
+        'out at once, and the handing over follows where Mario stands', () {
+      host.unlocked.add(HudElement.goldIngot);
+      standAt(upTheStreet(5));
+      settle();
+      expect(host.cutscenes.single, MaranzaScript.meetingScene);
+      host.onCutsceneFinished!();
+      expect(progress.missions.isDone(Mission.findValuable), isTrue);
+
+      host.missionsSettling = true;
+      settle();
+      expect(host.cutscenes, hasLength(1), reason: 'the corner comes first');
+
+      host.missionsSettling = false;
+      settle();
+      expect(host.cutscenes.last, MaranzaScript.paidScene);
+      expect(host.shown, isEmpty, reason: 'no warning, with the ingot');
+      expect(host.walked, isEmpty, reason: 'not a step needed');
+      host.onCutsceneFinished!();
+      expect(progress.missions.isOpen(Mission.discoverColosseum), isTrue);
+    });
+
+    test('the meeting, the warnings and the handing over all play in the '
+        'same place, from the first row of it', () {
+      standAt(upTheStreet(5));
+      settle();
+      host.onCutsceneFinished!();
+      settle();
+      expect(host.shown, isEmpty, reason: 'left where the meeting ended');
+
+      standAt(upTheStreet(5).step(Direction.east));
+      settle();
+      expect(host.shown.single.single.text, MaranzaScript.warnings[0].text);
+      host.dismiss();
+      standAt(upTheStreet(6));
+      settle();
+
+      host.unlocked.add(HudElement.goldIngot);
+      standAt(upTheStreet(5));
+      settle();
+      expect(host.cutscenes.last, MaranzaScript.paidScene);
     });
 
     test('without the ingot they are not paid, whatever else Mario has', () {
