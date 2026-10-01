@@ -223,16 +223,14 @@ def paint_glass_door(d, px, py):
 def paint_vault_doorway(d, px, py, lower):
     """The vault's doorway, two cells tall, the way through the steel wall:
     the vault's own floor plate runs out through it, darker than the wall
-    either side, so it reads as the gap it is, with the brass sill the door
-    shut against across it. Over the upper cell the shadow of the wall's
-    cut end, under the lower one the holes the bolts went into."""
+    either side, so it reads as the gap it is. Over the upper cell the
+    shadow of the wall's cut end, under the lower one the holes the bolts
+    went into."""
     rect(d, px, py, TILE, TILE, BK_STEEL_DARK)
     for i in range(0, TILE, 4):
         for j in range(0, TILE, 4):
             off = 2 if (j // 4) % 2 else 0
             rect(d, px + (i + off) % TILE, py + j + 1, 2, 1, BK_STEEL)
-    rect(d, px + 6, py, 4, TILE, BK_BRASS_DARK)
-    rect(d, px + 7, py, 2, TILE, BK_BRASS)
     if lower:
         for bx in (px + 2, px + 12):
             rect(d, bx, py + 13, 2, 2, BK_BLACK)
