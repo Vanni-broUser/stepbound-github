@@ -263,16 +263,18 @@ def paint_unlocked_door(d, px, py):
 
 # ------------------------------------------------- doors in the side walls
 #
-# A door in a wall that runs north to south is part of that wall: the wall
-# runs on through its cell, its two edges unbroken as the jambs, and the
-# door is cut into the wall's core between them -- the leaf in line with
-# the wall (shut), stood back upright against a jamb (open), or gone, the
-# sill bare. The palazzo's door painters above are for the walls that run
-# east to west; palazzo_floor picks these whenever the cell above the door
-# is a wall, and draws that wall running on down into the door's cell.
+# A door in a wall that runs north to south stands in that wall's line:
+# the wall runs right up to the door's cell without showing its end face,
+# stops, and starts again below it, and between the two the door stands
+# on its stone sill where the wall's core would be -- the leaf in line with
+# the wall (shut), stood back upright on its west side (open), sagging off
+# a hinge (down), or gone, the sill bare. The palazzo's door painters above
+# are for the walls that run east to west; palazzo_floor picks these
+# whenever the cell above the door is a wall, and draws that wall running
+# on down to the door's cell.
 
-# The side wall's top, edge to edge, as paint_partition draws it: the
-# dark rim, the light edge, and the dark core between the two edges.
+# How far in from either side of its cell the side wall's core starts (see
+# paint_partition): where the door's leaf stands.
 SIDE_EDGE = 3
 
 
@@ -280,13 +282,17 @@ def paint_side_door(d, px, py, wall, wall_light, leaf, leaf_light, leaf_dark,
                     metal, sill, sill_edge, state, blood=False, bolt=None):
     """A door in a side wall, in the colours of the palazzo it is in: the
     stone `sill` across the wall's thickness, `sill_edge` its joints.
-    `state` is "shut", "open", "down" (fallen against the jamb) or "gone"
-    (the bare frame); `blood` drags a smear over the sill, `bolt` (a
-    colour) bars a shut leaf across."""
-    # The wall running on through the cell: its two edges are the jambs.
-    rect(d, px, py, TILE, TILE, wall)
-    rect(d, px + 1, py, 2, TILE, wall_light)
-    rect(d, px + TILE - 3, py, 2, TILE, wall_light)
+    `state` is "shut", "open", "down" (sagging off a hinge) or "gone" (the
+    bare sill); `blood` drags a smear over the sill, `bolt` (a colour) bars
+    a shut leaf across. `wall_light` is the side walls' light edge, which
+    stops short of the door with the rest of the wall."""
+    # The wall stops above the door and starts again below it: across the
+    # whole of its thickness lies the stone sill, in slabs, the shadow of
+    # the wall's end along its top.
+    rect(d, px, py, TILE, TILE, sill)
+    rect(d, px, py + 8, TILE, 1, sill_edge)
+    rect(d, px, py, TILE, 2, shade(sill, -40))
+    rect(d, px + 1, py, TILE - 2, 1, wall)  # the wall's end, above
     core_x, core_w = px + SIDE_EDGE, TILE - 2 * SIDE_EDGE
     if state == "shut":
         # The leaf in the wall's line, filling its core: framed, panelled
@@ -303,20 +309,14 @@ def paint_side_door(d, px, py, wall, wall_light, leaf, leaf_light, leaf_dark,
             rect(d, core_x + 2, py + 11, 5, 1, BLOOD)
             rect(d, core_x + 3, py + 11, 1, 4, BLOOD_DARK)
         return
-    # The opening: the sill across the wall's thickness, in slabs, the
-    # wall's shadow along its top.
-    rect(d, core_x, py, core_w, TILE, sill)
-    rect(d, core_x, py + 8, core_w, 1, sill_edge)
-    rect(d, core_x, py, core_w, 2, shade(sill, -40))
-    rect(d, core_x, py, 1, TILE, shade(sill, -24))
     if state == "open":
-        # Stood back upright against the west jamb: its edge down the
-        # wall's line, the handle on its face.
+        # Stood back upright on its west side: its edge down the wall's
+        # line, the handle on its face.
         rect(d, core_x, py + 1, 3, TILE - 2, leaf_dark)
         rect(d, core_x + 1, py + 2, 1, TILE - 4, leaf_light)
         rect(d, core_x + 2, py + 8, 1, 2, metal)
     elif state == "down":
-        # Off its upper hinge, sagging against the jamb into the opening.
+        # Off its upper hinge, sagging across into the opening.
         rect(d, core_x, py + 3, 3, TILE - 4, leaf_dark)
         rect(d, core_x + 1, py + 4, 1, TILE - 6, leaf_light)
         rect(d, core_x + 3, py + TILE - 5, 2, 4, leaf_dark)
