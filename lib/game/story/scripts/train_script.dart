@@ -7,7 +7,7 @@ import 'package:stepbound/l10n/language.dart';
 /// the cot itself (the figures of the adventure city by city, their
 /// missions and their memories to live again) and the ammunition crate
 /// beside it, which loads Mario up to [trainAmmoRefill] rounds whenever he
-/// has fewer.
+/// has fewer, and gives him a rocket when his launcher has none.
 /// Each says a line first, so Mario always knows what he is using. None of
 /// it is used up, so each can be come back to.
 final class TrainScript extends StoryScript {
@@ -28,6 +28,8 @@ final class TrainScript extends StoryScript {
   static String get ammoRefilled => strings.trainAmmoRefilled(trainAmmoRefill);
 
   static String get ammoFull => strings.trainAmmoFull(trainAmmoRefill);
+
+  static String get rocketRefilled => strings.trainRocketRefilled;
 
   /// Chiara in her corner of the second coach, once she is aboard: where
   /// the train is taking them, and in Rome what she makes of it.
@@ -106,17 +108,29 @@ final class TrainScript extends StoryScript {
     }
   }
 
-  /// With five rounds or more there is nothing to take, and a line says
-  /// so.
+  /// With [trainAmmoRefill] rounds or more, and a rocket in the launcher
+  /// if he has one, there is nothing to take, and a line says so.
   void _refill() {
     final ammo = world.player.component<AmmoComponent>();
-    if (ammo.loaded >= trainAmmoRefill) {
+    final rounds = ammo.loaded < trainAmmoRefill;
+    final rocket = ammo.hasRocketLauncher && ammo.rockets == 0;
+    if (!rounds && !rocket) {
       say(StoryPrompt(<StoryLine>[StoryLine(ammoFull)]));
       return;
     }
-    ammo.loaded = trainAmmoRefill;
-    host.unlock(HudElement.ammo);
-    say(StoryPrompt(<StoryLine>[StoryLine(ammoRefilled)]));
+    if (rounds) {
+      ammo.loaded = trainAmmoRefill;
+      host.unlock(HudElement.ammo);
+    }
+    if (rocket) {
+      ammo.rockets = 1;
+    }
+    say(
+      StoryPrompt(<StoryLine>[
+        if (rounds) StoryLine(ammoRefilled),
+        if (rocket) StoryLine(rocketRefilled),
+      ]),
+    );
   }
 
   @override

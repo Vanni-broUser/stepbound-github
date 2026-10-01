@@ -192,10 +192,11 @@ void main() {
       expect(host.adventureStatsOpened, 1);
     });
 
-    test('the ammunition crate loads Mario up to five rounds, as often as '
-        'he has fewer, and says there is nothing to take when he has five '
+    test('the ammunition crate loads Mario up to three rounds, as often as '
+        'he has fewer, and says there is nothing to take when he has three '
         'or more', () {
-      final ammo = world.player.component<AmmoComponent>()..loaded = 2;
+      expect(trainAmmoRefill, 3);
+      final ammo = world.player.component<AmmoComponent>()..loaded = 1;
       director.onEvents(<WorldEvent>[LookedOutEvent(at: trainAmmoTiles.first)]);
       settle();
       expect(ammo.loaded, trainAmmoRefill);
@@ -203,7 +204,7 @@ void main() {
       expect(
         TrainScript.ammoRefilled,
         'Munizioni ricaricate. Torna qui in qualsiasi momento se hai meno '
-        'di 5 proiettili per ricaricare',
+        'di 3 proiettili per ricaricare',
       );
       expect(host.unlocked, contains(HudElement.ammo));
       host.dismiss();
@@ -214,7 +215,7 @@ void main() {
       expect(host.shown.last.single.text, TrainScript.ammoFull);
       expect(
         TrainScript.ammoFull,
-        'Hai già abbastanza munizioni. Torna qui quando avrai meno di 5 '
+        'Hai già abbastanza munizioni. Torna qui quando avrai meno di 3 '
         'proiettili per ricaricare',
       );
       host.dismiss();
@@ -222,7 +223,7 @@ void main() {
       ammo.loaded = 7;
       director.onEvents(<WorldEvent>[LookedOutEvent(at: trainAmmoTiles.first)]);
       settle();
-      expect(ammo.loaded, 7, reason: 'more than five are never taken away');
+      expect(ammo.loaded, 7, reason: 'more than three are never taken away');
       expect(host.shown.last.single.text, TrainScript.ammoFull);
       host.dismiss();
 
@@ -231,6 +232,52 @@ void main() {
       settle();
       expect(ammo.loaded, trainAmmoRefill, reason: 'as often as needed');
       expect(host.shown.last.single.text, TrainScript.ammoRefilled);
+    });
+
+    test('with the rocket launcher empty the crate gives one rocket, even '
+        'when the rounds are full, and never more than one', () {
+      final ammo = world.player.component<AmmoComponent>()
+        ..loaded = trainAmmoRefill
+        ..hasRocketLauncher = true
+        ..rockets = 0;
+      director.onEvents(<WorldEvent>[LookedOutEvent(at: trainAmmoTiles.first)]);
+      settle();
+      expect(ammo.rockets, 1);
+      expect(ammo.loaded, trainAmmoRefill);
+      expect(host.shown.last.single.text, TrainScript.rocketRefilled);
+      expect(
+        TrainScript.rocketRefilled,
+        'Hai preso un razzo per il lanciarazzi. Torna qui quando lo avrai '
+        'finito',
+      );
+      host.dismiss();
+
+      director.onEvents(<WorldEvent>[LookedOutEvent(at: trainAmmoTiles.first)]);
+      settle();
+      expect(ammo.rockets, 1, reason: 'one rocket, only when there is none');
+      expect(host.shown.last.single.text, TrainScript.ammoFull);
+      host.dismiss();
+
+      ammo
+        ..loaded = 0
+        ..rockets = 0;
+      director.onEvents(<WorldEvent>[LookedOutEvent(at: trainAmmoTiles.first)]);
+      settle();
+      expect(ammo.loaded, trainAmmoRefill);
+      expect(ammo.rockets, 1);
+      expect(host.shown.last.map((line) => line.text), <String>[
+        TrainScript.ammoRefilled,
+        TrainScript.rocketRefilled,
+      ]);
+      host.dismiss();
+
+      ammo
+        ..hasRocketLauncher = false
+        ..rockets = 0;
+      director.onEvents(<WorldEvent>[LookedOutEvent(at: trainAmmoTiles.first)]);
+      settle();
+      expect(ammo.rockets, 0, reason: 'no rockets without the launcher');
+      expect(host.shown.last.single.text, TrainScript.ammoFull);
     });
 
     test('the meeting cannot happen before Luigi has been rescued', () {

@@ -812,6 +812,9 @@ final class ItalianStrings implements Strings {
   String trainAmmoFull(int rounds) =>
       'Hai già abbastanza munizioni. Torna qui quando avrai meno di $rounds proiettili per ricaricare';
   @override
+  String get trainRocketRefilled =>
+      'Hai preso un razzo per il lanciarazzi. Torna qui quando lo avrai finito';
+  @override
   String trainAmmoRefilled(int rounds) =>
       'Munizioni ricaricate. Torna qui in qualsiasi momento se hai meno di $rounds proiettili per ricaricare';
 }

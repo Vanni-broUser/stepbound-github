@@ -336,4 +336,5 @@ abstract interface class Strings {
   String get trainZombieNotes;
   String trainAmmoFull(int rounds);
   String trainAmmoRefilled(int rounds);
+  String get trainRocketRefilled;
 }

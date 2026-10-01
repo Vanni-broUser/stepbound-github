@@ -832,6 +832,9 @@ final class EnglishStrings implements Strings {
   String trainAmmoFull(int rounds) =>
       'You already have enough ammunition. Come back here when you have fewer than $rounds bullets to reload';
   @override
+  String get trainRocketRefilled =>
+      'You took a rocket for the launcher. Come back here when you have used it';
+  @override
   String trainAmmoRefilled(int rounds) =>
       'Ammunition refilled. Come back here any time you have fewer than $rounds bullets to reload';
 }
