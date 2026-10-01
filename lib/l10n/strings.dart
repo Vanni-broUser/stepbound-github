@@ -217,6 +217,7 @@ abstract interface class Strings {
   String get backpacksFireLesson;
   String get backpacksGoldIngotFound;
   String get backpacksGoldIngotThought;
+  String get backpacksGoldIngotPuzzled;
   String get backpacksGrapplingHookFound;
   String get backpacksGrapplingHookLesson;
   String get backpacksGunFound;

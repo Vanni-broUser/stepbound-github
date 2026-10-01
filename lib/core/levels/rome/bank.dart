@@ -45,7 +45,8 @@ const List<String> bankOfficesRows = <String>[
 /// The floor under them: a granite hall with the safe-deposit boxes along
 /// its back, and east of it the vault, its round steel door swung wide
 /// open, its shelves stripped, banknotes all over its floor, and in the
-/// middle of it a backpack with a gold ingot left in it.
+/// middle of it a backpack with a gold ingot left in it. A lamp hangs
+/// either side of the vault's doorway, and nothing stands in front of it.
 // bank-vault-rows-start
 const List<String> bankVaultRows = <String>[
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxx',
@@ -54,8 +55,8 @@ const List<String> bankVaultRows = <String>[
   'xBB*==:==:===QLL,z,,LL,,z,Lx',
   'xBB=========oQ,,,*,z,,,,,,,x',
   'x==TT====b==oQL,z,,,,,,,z,Lx',
-  'x==h=========O,,,,,z,,,,b*,x',
-  'x=====c======OL,,,,9,,,,,zLx',
+  'x==h=========O*,,,,z,,,,b*,x',
+  'x=====c=====*O,,,,,9,,,,,zLx',
   'x=*======:===Q,,z,,,,,+z,,,x',
   'x==b=====*===QL,,,c,,,,,,,Lx',
   'xr==p======p=QLL,,z,,LL,z,Lx',

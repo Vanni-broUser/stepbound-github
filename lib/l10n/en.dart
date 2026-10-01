@@ -526,6 +526,9 @@ final class EnglishStrings implements Strings {
   String get backpacksGoldIngotThought =>
       "This will do for those two thugs. I can't think of anything else to do with it";
   @override
+  String get backpacksGoldIngotPuzzled =>
+      'Wow, a gold ingot... but what am I going to do with it?';
+  @override
   String get backpacksGrapplingHookFound => 'You found a grappling hook';
   @override
   String get backpacksGrapplingHookLesson =>
