@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/widgets.dart';
@@ -31,6 +32,52 @@ final class BloodDrip {
   final List<double> falling;
 }
 
+/// The drips of a button's rim, different from one button to the next
+/// but always the same for the same [name]: one in each side band, where
+/// the label never reaches, and sometimes a second in one of them, of
+/// lengths and widths that vary, now and then one letting a drop go.
+/// [unit] is the size of a virtual pixel.
+List<BloodDrip> rimDrips(String name, double unit) {
+  final random = math.Random(stableSeed(name));
+  // The side bands: off the rounded corners, clear of a centred label.
+  const bandFrom = 0.05;
+  const bandWidth = 0.13;
+  double anywhere(double from, double width) =>
+      from + width * random.nextDouble();
+  final left = <double>[anywhere(bandFrom, bandWidth)];
+  final right = <double>[anywhere(1 - bandFrom - bandWidth, bandWidth)];
+  if (random.nextBool()) {
+    // A second drip: the band it falls in is split between the two.
+    final side = random.nextBool() ? left : right;
+    final from = side == left ? bandFrom : 1 - bandFrom - bandWidth;
+    side
+      ..clear()
+      ..add(anywhere(from, bandWidth * 0.35))
+      ..add(anywhere(from + bandWidth * 0.65, bandWidth * 0.35));
+  }
+  return <BloodDrip>[
+    for (final x in <double>[...left, ...right])
+      BloodDrip(
+        x,
+        (5 + random.nextDouble() * 6) * unit,
+        (2.2 + random.nextDouble() * 1.0) * unit,
+        falling: random.nextInt(5) == 0
+            ? <double>[(0.7 + random.nextDouble() * 0.4) * unit]
+            : const <double>[],
+      ),
+  ];
+}
+
+/// The same number for the same [text] on every run and every platform
+/// (FNV-1a), unlike [String.hashCode].
+int stableSeed(String text) {
+  var hash = 0x811c9dc5;
+  for (final unit in text.codeUnits) {
+    hash = ((hash ^ unit) * 0x01000193) & 0xffffffff;
+  }
+  return hash;
+}
+
 /// A loose teardrop. [x] and [y] are fractions of the painted area (they can
 /// fall outside 0..1 to spill past the edges), [radius] is in logical pixels.
 final class BloodDrop {
@@ -51,9 +98,14 @@ final class BloodPainter extends CustomPainter {
     this.drops = const <BloodDrop>[],
     this.cornerRadius = 0,
     this.color = BloodColors.fresh,
+    this.bandVariant = 0,
   });
 
   final double band;
+
+  /// Which of a few shapes the band's lower edge takes: how many bumps,
+  /// and whether the first one is deep or shallow. 0 is the original.
+  final int bandVariant;
   final List<BloodDrip> drips;
   final List<BloodDrop> drops;
   final double cornerRadius;
@@ -129,10 +181,10 @@ final class BloodPainter extends CustomPainter {
       ..moveTo(0, 0)
       ..lineTo(size.width, 0)
       ..lineTo(size.width, band * 0.8);
-    const bumps = 7;
+    final bumps = 7 - bandVariant % 3;
     final step = size.width / bumps;
     for (var i = bumps; i > 0; i--) {
-      final depth = band * (i.isEven ? 1.25 : 0.7);
+      final depth = band * ((i + bandVariant ~/ 3).isEven ? 1.25 : 0.7);
       path.quadraticBezierTo(
         step * (i - 0.5),
         depth,
@@ -186,7 +238,8 @@ final class BloodPainter extends CustomPainter {
       oldDelegate.drips != drips ||
       oldDelegate.drops != drops ||
       oldDelegate.cornerRadius != cornerRadius ||
-      oldDelegate.color != color;
+      oldDelegate.color != color ||
+      oldDelegate.bandVariant != bandVariant;
 }
 
 /// Overlays [painter] on [child] without intercepting taps.

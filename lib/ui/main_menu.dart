@@ -546,6 +546,10 @@ final class MenuButton extends StatelessWidget {
   static const double halfWidth = 84;
   static const double pairGap = 4;
 
+  /// What the blood on the rim is drawn from: the key when there is one,
+  /// so a switch keeps its stains when its label changes, else the label.
+  String get _bloodName => key?.toString() ?? label;
+
   @override
   Widget build(BuildContext context) {
     final enabled = onPressed != null;
@@ -568,10 +572,8 @@ final class MenuButton extends StatelessWidget {
             painter: BloodPainter(
               band: 2.5 * unit,
               cornerRadius: 4 * unit,
-              drips: <BloodDrip>[
-                BloodDrip(0.12, 7 * unit, 2.6 * unit),
-                BloodDrip(0.83, 10 * unit, 3 * unit),
-              ],
+              drips: rimDrips(_bloodName, unit),
+              bandVariant: stableSeed(_bloodName) % 6,
               color: rim,
             ),
             child: Container(
