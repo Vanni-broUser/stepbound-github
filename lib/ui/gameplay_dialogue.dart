@@ -172,7 +172,7 @@ final class _GameplayDialogueState extends State<GameplayDialogue> {
   }
 
   void _tapDown(TapDownDetails details) {
-    final line = widget.lines[_index];
+    final line = _lines[_index];
     // Like a drag, a touch where the joystick is means to try it: no need
     // to wait for the line to settle.
     _press(
