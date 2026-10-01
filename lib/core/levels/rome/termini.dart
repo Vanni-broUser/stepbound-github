@@ -5,15 +5,11 @@ import 'package:stepbound/core/grid/grid_point.dart';
 /// Roma Termini, where the train from Molfetta pulls in: the first place
 /// of the Rome level. It is painted with the rules of Molfetta's far
 /// platform (station.dart) and laid out like it: the train fills the whole
-/// track but for a cell of ballast out of reach at each edge of the map, so
-/// the only way on is the platform, and there is no walking round either
-/// end of it. Glyphs: `x`
+/// track from one edge of the map to the other, so the only way on is the
+/// platform, and there is no walking round either end of it. Glyphs: `x`
 /// darkness, `W` the walls, `M` the train, `P` its passenger door, `=` the
 /// platform, `T` a bench, `n` a canopy post, `:` litter, `|` the side
-/// walls of the platform, `_` the ballast the track runs on past both ends
-/// of the train, out of reach (a wall). The walls go on above the back
-/// wall and round the foot of the stairs, so nothing of the darkness shows
-/// in the view.
+/// walls of the platform.
 ///
 /// Rome's name is up twice, on the blue boards of every Italian station:
 /// `Q`, ROMA TERMINI high on the back wall above the train, and `o`, ROMA
@@ -26,20 +22,20 @@ import 'package:stepbound/core/grid/grid_point.dart';
 /// station wander the platform (see `terminiZombieSpots`).
 // termini-rows-start
 const List<String> terminiRows = <String>[
-  'WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW',
-  'WWWWWWWWWWWWWWWWWQQQQQQQQQQWWWWWWWWWWWWWWWWW',
-  'WWWWWWWWWWWWWWWWWQQQQQQQQQQWWWWWWWWWWWWWWWWW',
-  '_MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM_',
-  '_MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM_',
-  '_MMMMPMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM_',
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  'xWWWWWWWWWWWWWWWWQQQQQQQQQQWWWWWWWWWWWWWWWWx',
+  'xWWWWWWWWWWWWWWWWQQQQQQQQQQWWWWWWWWWWWWWWWWx',
+  'xMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMx',
+  'xMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMx',
+  'xMMMMPMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMx',
   '|=========ooo==============================|',
   '|==nn======T=========nn=====T=========nn===|',
   '|=:===========================:============|',
   '|========T=======nn=============T==========|',
   '|====:=====================:===============|',
   '|WWWWWWWWWWWWWWWWWWWDDWWWWWWWWWWWWWWWWWWWWW|',
-  'WWWWWWWWWWWWWWWWWWWWDDWWWWWWWWWWWWWWWWWWWWWW',
-  'WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW',
+  'xxxxxxxxxxxxxxxxxxxxDDxxxxxxxxxxxxxxxxxxxxxx',
+  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
 ];
 // termini-rows-end
 

@@ -66,8 +66,8 @@ void main() {
         );
         expect(
           platform.rows[step.y - platform.origin.y].replaceAll('D', ''),
-          matches(RegExp(r'^(x+|W+)$')),
-          reason: 'and the last one past it, in the dark or in the wall',
+          matches(RegExp(r'^x+$')),
+          reason: 'and the last one past it, in the dark',
         );
       }
       for (final step in flight) {

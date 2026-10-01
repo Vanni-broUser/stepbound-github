@@ -16,7 +16,7 @@ export 'package:stepbound/core/levels/rome/termini_station.dart';
 /// its train's door `P` is open from the start: the train is Mario's own.
 /// The name board high on the wall `Q` is wall, the one on its posts at
 /// the platform's edge `o` can be seen over.
-const Legend terminiLegend = Legend(walls: 'xWMQ|_', obstacles: 'Tno');
+const Legend terminiLegend = Legend(walls: 'xWMQ|', obstacles: 'Tno');
 
 /// The overpass: the choked flights `#`, the barred ones `H`, the
 /// timetables `Q` and the pillars `I` are wall; the ticket machines `K`
