@@ -49,8 +49,8 @@ const List<String> northDistrictRows = <String>[
   '                                    BBBBBBBBBBBBBBkXX?XXvBBBBBBBBB==========================BBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   '                                    BBBBBBBBBBBBBBkCC?CCvBBBBBBBBB=LLLLLLLLL:LLLLLyLLLLLLLL=BBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   '                                    BBBBBBBBBBBBBB=.d|..=BBBBBBBBB=LCCLLLLLLLLLLLLLLLLLLLyL=BBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  '                                    BBBBBBBBBBBBBB=..|>.=BBBBBBBBB=LLLLLLLLLLLzLLLLLLLLLLLL=BBBBBBBBBBBBBBBBBBBBBBBBBBBB',
-  '                                    BBBBBBBBBBBBBB=SUU.:=BBBBBBBBB=LLLLLyLLLLLLLLLLLLXXLLLv=BBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  '                                    BBBBBBBBBBBBBB=..|>.SBBBBBBBBB=LLLLLLLLLLLzLLLLLLLLLLLL=BBBBBBBBBBBBBBBBBBBBBBBBBBBB',
+  '                                    BBBBBBBBBBBBBB=.UU.:=BBBBBBBBB=LLLLLyLLLLLLLLLLLLXXLLLv=BBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   '                                    BBBBBBBBBBBBBB=.>|D.=BBBBBBBBB4LLLLLLLLLLLLLLLLLLLLLLLv=BBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBGGGGGGGGGGGGGGGGBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=:.|>d=BBBBBBBBB==========================BBBBBBBBBBBBBBBBBBBBBBBBBBBB',
   'BBGGGGGGGGGGGGGGGGBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=..UU.=BBBBBBBBBBBBBBBBBB=..|..=BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB',
@@ -146,8 +146,8 @@ const List<CameraZone> northDistrictCameraZones = <CameraZone>[
 ];
 
 /// The second camp of the north district, `S` on the side road north of
-/// the crossroads, a few steps short of the burning pile-up: sheltered
-/// behind the overturned car, by the pavement. Its own name in the save
+/// the crossroads, a few steps short of the burning pile-up: on the east
+/// pavement, against the palazzi. Its own name in the save
 /// slots (the other is the camp behind the barracks).
 final GridPoint northDistrictBlazeCampTile = _north
     .tilesOf('S')
