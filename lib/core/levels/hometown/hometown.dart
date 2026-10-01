@@ -425,7 +425,8 @@ Iterable<Place> get _streets => <Place>[
 const String indoorZombiePrefix = 'indoor-wanderer-';
 
 /// Camps in places that still have one each, and what a save there is
-/// called. The harbour has two explicitly named fires below.
+/// called. The harbour has two explicitly named fires below, and the north
+/// district a second one, by the burning pile-up north of the crossroads.
 const Map<PlaceId, String> _campNames = <PlaceId, String>{
   PlaceId.northDistrict: 'Dietro la caserma',
   PlaceId.mallNorthStreet: 'Zona nord',
@@ -436,8 +437,11 @@ const Map<PlaceId, String> _campNames = <PlaceId, String>{
 final Map<GridPoint, String> hometownCampfireNames = <GridPoint, String>{
   for (final place in _streets)
     for (final (point, glyph) in place.glyphs)
-      if (glyph == 'S' && _campNames.containsKey(place.id))
+      if (glyph == 'S' &&
+          _campNames.containsKey(place.id) &&
+          point != northDistrictBlazeCampTile)
         point: _campNames[place.id]!,
+  northDistrictBlazeCampTile: 'Davanti all’incendio',
   duomoCampfireTile: 'Sagrato del Duomo',
   harbourRoadCampfireTile: 'Fine del porto',
   hospitalRoofCampfireTile: 'Tetto dell’ospedale',

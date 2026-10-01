@@ -149,4 +149,35 @@ void main() {
       expect(world.map.tileAt(tile).isWalkable, isTrue);
     }
   });
+
+  test('a few steps short of the burning pile-up, a camp of its own, '
+      'reached from the crossroads, where resting saves', () {
+    final camp = northDistrictBlazeCampTile;
+    expect(world.campfires, contains(camp));
+    expect(campfireNames[camp], 'Davanti all’incendio');
+    expect(camp.manhattanDistanceTo(northDistrictFireTile), lessThan(6));
+    expect(world.map.tileAt(camp).isWalkable, isFalse);
+    // The other camp keeps its name, and stays the district's first.
+    final barracksCamp = world.campfires.firstWhere(north.bounds.contains);
+    expect(barracksCamp, isNot(camp));
+    expect(campfireNames[barracksCamp], 'Dietro la caserma');
+    // Walked up to from the crossroads, and rested at.
+    final beside = Direction.values
+        .map(camp.step)
+        .firstWhere(reached.containsKey);
+    final resting = createGameWorld();
+    resting.player.component<PositionComponent>()
+      ..position = beside
+      ..facing = Direction.values.firstWhere((way) => beside.step(way) == camp);
+    final events = const TurnScheduler().advance(
+      resting,
+      const InteractAction(),
+    );
+    expect(events.whereType<CampfireUsedEvent>().single.at, camp);
+    // Still the way up to the fire, past it.
+    expect(
+      reached.containsKey(northDistrictFireTile.step(Direction.south)),
+      isTrue,
+    );
+  });
 }

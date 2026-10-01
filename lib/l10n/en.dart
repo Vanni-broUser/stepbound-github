@@ -151,6 +151,7 @@ final class EnglishStrings implements Strings {
     'Azienda': 'Company offices',
     'Elettronica': 'Electronics shop',
     'Dietro la caserma': 'Behind the barracks',
+    'Davanti all’incendio': 'By the blaze',
     'Zona nord': 'North side',
     'Davanti all’azienda': 'Outside the company',
     'Sagrato del Duomo': 'Duomo churchyard',

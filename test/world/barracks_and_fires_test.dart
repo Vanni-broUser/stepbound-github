@@ -93,8 +93,9 @@ void main() {
     expect(stationWreckFireSpots, hasLength(2));
     expect(count(all, FireKind.bin), 12);
     expect(count(all, FireKind.window), 23);
-    expect(count(all, FireKind.campfire), 6);
-    // One camp in the north district, one in the dead end the wrecks
+    expect(count(all, FireKind.campfire), 7);
+    // Two camps in the north district, behind the barracks and by the
+    // burning pile-up north of the crossroads, one in the dead end the wrecks
     // leave at the west end of the shopping street behind the mall, two
     // at the harbour: the Duomo sagrato and the south-east road end, one
     // on the hospital's roof, and one on the street out of the palazzo

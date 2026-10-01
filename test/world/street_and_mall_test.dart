@@ -200,7 +200,11 @@ void main() {
       isNot(contains(extinguishedNorthDistrictBinTile)),
     );
     expect(
-      north.tileOf('S').manhattanDistanceTo(northDistrictBackExitTile),
+      north
+          .tilesOf('S')
+          .where((camp) => camp != northDistrictBlazeCampTile)
+          .single
+          .manhattanDistanceTo(northDistrictBackExitTile),
       greaterThan(8),
       reason: 'the real camp remains further along the closed street',
     );
