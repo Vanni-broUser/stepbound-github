@@ -196,13 +196,15 @@ void main() {
         'he has fewer, and says there is nothing to take when he has three '
         'or more', () {
       expect(trainAmmoRefill, 3);
+      final refilled = TrainScript.ammoRefilled(rocketLauncher: false);
+      final full = TrainScript.ammoFull(rocketLauncher: false);
       final ammo = world.player.component<AmmoComponent>()..loaded = 1;
       director.onEvents(<WorldEvent>[LookedOutEvent(at: trainAmmoTiles.first)]);
       settle();
       expect(ammo.loaded, trainAmmoRefill);
-      expect(host.shown.last.single.text, TrainScript.ammoRefilled);
+      expect(host.shown.last.single.text, refilled);
       expect(
-        TrainScript.ammoRefilled,
+        refilled,
         'Munizioni ricaricate. Torna qui in qualsiasi momento se hai meno '
         'di 3 proiettili per ricaricare',
       );
@@ -212,9 +214,9 @@ void main() {
       director.onEvents(<WorldEvent>[LookedOutEvent(at: trainAmmoTiles.last)]);
       settle();
       expect(ammo.loaded, trainAmmoRefill);
-      expect(host.shown.last.single.text, TrainScript.ammoFull);
+      expect(host.shown.last.single.text, full);
       expect(
-        TrainScript.ammoFull,
+        full,
         'Hai già abbastanza munizioni. Torna qui quando avrai meno di 3 '
         'proiettili per ricaricare',
       );
@@ -224,18 +226,31 @@ void main() {
       director.onEvents(<WorldEvent>[LookedOutEvent(at: trainAmmoTiles.first)]);
       settle();
       expect(ammo.loaded, 7, reason: 'more than three are never taken away');
-      expect(host.shown.last.single.text, TrainScript.ammoFull);
+      expect(host.shown.last.single.text, full);
       host.dismiss();
 
       ammo.loaded = 0;
       director.onEvents(<WorldEvent>[LookedOutEvent(at: trainAmmoTiles.first)]);
       settle();
       expect(ammo.loaded, trainAmmoRefill, reason: 'as often as needed');
-      expect(host.shown.last.single.text, TrainScript.ammoRefilled);
+      expect(host.shown.last.single.text, refilled);
     });
 
     test('with the rocket launcher empty the crate gives one rocket, even '
-        'when the rounds are full, and never more than one', () {
+        'when the rounds are full, and never more than one; its lines name '
+        'the rocket only once the launcher is unlocked', () {
+      final refilled = TrainScript.ammoRefilled(rocketLauncher: true);
+      final full = TrainScript.ammoFull(rocketLauncher: true);
+      expect(
+        refilled,
+        'Munizioni ricaricate. Torna qui in qualsiasi momento se hai meno '
+        'di 3 proiettili o 1 razzo per ricaricare',
+      );
+      expect(
+        full,
+        'Hai già abbastanza munizioni. Torna qui quando avrai meno di 3 '
+        'proiettili o 1 razzo per ricaricare',
+      );
       final ammo = world.player.component<AmmoComponent>()
         ..loaded = trainAmmoRefill
         ..hasRocketLauncher = true
@@ -244,18 +259,13 @@ void main() {
       settle();
       expect(ammo.rockets, 1);
       expect(ammo.loaded, trainAmmoRefill);
-      expect(host.shown.last.single.text, TrainScript.rocketRefilled);
-      expect(
-        TrainScript.rocketRefilled,
-        'Hai preso un razzo per il lanciarazzi. Torna qui quando lo avrai '
-        'finito',
-      );
+      expect(host.shown.last.single.text, refilled);
       host.dismiss();
 
       director.onEvents(<WorldEvent>[LookedOutEvent(at: trainAmmoTiles.first)]);
       settle();
       expect(ammo.rockets, 1, reason: 'one rocket, only when there is none');
-      expect(host.shown.last.single.text, TrainScript.ammoFull);
+      expect(host.shown.last.single.text, full);
       host.dismiss();
 
       ammo
@@ -265,10 +275,7 @@ void main() {
       settle();
       expect(ammo.loaded, trainAmmoRefill);
       expect(ammo.rockets, 1);
-      expect(host.shown.last.map((line) => line.text), <String>[
-        TrainScript.ammoRefilled,
-        TrainScript.rocketRefilled,
-      ]);
+      expect(host.shown.last.single.text, refilled);
       host.dismiss();
 
       ammo
@@ -277,7 +284,10 @@ void main() {
       director.onEvents(<WorldEvent>[LookedOutEvent(at: trainAmmoTiles.first)]);
       settle();
       expect(ammo.rockets, 0, reason: 'no rockets without the launcher');
-      expect(host.shown.last.single.text, TrainScript.ammoFull);
+      expect(
+        host.shown.last.single.text,
+        TrainScript.ammoFull(rocketLauncher: false),
+      );
     });
 
     test('the meeting cannot happen before Luigi has been rescued', () {

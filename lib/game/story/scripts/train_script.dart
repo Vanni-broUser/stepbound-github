@@ -25,11 +25,12 @@ final class TrainScript extends StoryScript {
   /// which the memories can be lived again.
   static String get cotLine => strings.trainCotLine;
 
-  static String get ammoRefilled => strings.trainAmmoRefilled(trainAmmoRefill);
+  /// The crate's lines name the rocket only once the launcher is Mario's.
+  static String ammoRefilled({required bool rocketLauncher}) => strings
+      .trainAmmoRefilled(trainAmmoRefill, rocketLauncher: rocketLauncher);
 
-  static String get ammoFull => strings.trainAmmoFull(trainAmmoRefill);
-
-  static String get rocketRefilled => strings.trainRocketRefilled;
+  static String ammoFull({required bool rocketLauncher}) =>
+      strings.trainAmmoFull(trainAmmoRefill, rocketLauncher: rocketLauncher);
 
   /// Chiara in her corner of the second coach, once she is aboard: where
   /// the train is taking them, and in Rome what she makes of it.
@@ -115,7 +116,11 @@ final class TrainScript extends StoryScript {
     final rounds = ammo.loaded < trainAmmoRefill;
     final rocket = ammo.hasRocketLauncher && ammo.rockets == 0;
     if (!rounds && !rocket) {
-      say(StoryPrompt(<StoryLine>[StoryLine(ammoFull)]));
+      say(
+        StoryPrompt(<StoryLine>[
+          StoryLine(ammoFull(rocketLauncher: ammo.hasRocketLauncher)),
+        ]),
+      );
       return;
     }
     if (rounds) {
@@ -127,8 +132,7 @@ final class TrainScript extends StoryScript {
     }
     say(
       StoryPrompt(<StoryLine>[
-        if (rounds) StoryLine(ammoRefilled),
-        if (rocket) StoryLine(rocketRefilled),
+        StoryLine(ammoRefilled(rocketLauncher: ammo.hasRocketLauncher)),
       ]),
     );
   }

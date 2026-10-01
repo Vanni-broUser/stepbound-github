@@ -809,14 +809,13 @@ final class ItalianStrings implements Strings {
   @override
   String get trainZombieNotes => 'Appunti sugli zombi conosciuti';
   @override
-  String trainAmmoFull(int rounds) =>
-      'Hai già abbastanza munizioni. Torna qui quando avrai meno di $rounds proiettili per ricaricare';
+  String trainAmmoFull(int rounds, {required bool rocketLauncher}) =>
+      'Hai già abbastanza munizioni. Torna qui quando avrai meno di $rounds '
+      'proiettili${rocketLauncher ? ' o 1 razzo' : ''} per ricaricare';
   @override
-  String get trainRocketRefilled =>
-      'Hai preso un razzo per il lanciarazzi. Torna qui quando lo avrai finito';
-  @override
-  String trainAmmoRefilled(int rounds) =>
-      'Munizioni ricaricate. Torna qui in qualsiasi momento se hai meno di $rounds proiettili per ricaricare';
+  String trainAmmoRefilled(int rounds, {required bool rocketLauncher}) =>
+      'Munizioni ricaricate. Torna qui in qualsiasi momento se hai meno di '
+      '$rounds proiettili${rocketLauncher ? ' o 1 razzo' : ''} per ricaricare';
 }
 
 String _two(int value) => value.toString().padLeft(2, '0');
