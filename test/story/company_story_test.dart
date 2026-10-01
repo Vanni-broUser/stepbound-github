@@ -371,8 +371,8 @@ void main() {
       progress.remember(StoryMemory.chiaraCall);
       progress.missions.give(Mission.reachSurvivor);
       final after = LevelStats.of(world, progress, LevelId.hometown);
-      // Five pictures for six lines: the zombie's roar is shown twice.
-      expect(after.foundMemories - before.foundMemories, 5);
+      // One scene, however many pictures it has.
+      expect(after.foundMemories - before.foundMemories, 1);
       expect(after.openMissions, contains(Mission.reachSurvivor));
       expect(
         LevelStats.of(world, progress, LevelId.rome).missions,

@@ -186,6 +186,15 @@ extension StoryMemoryLevel on StoryMemory {
     StoryMemory.maranzaPaid => LevelId.rome,
     _ => LevelId.hometown,
   };
+
+  /// The scene it is lived in, named by the first memory of it: what the
+  /// figures of a level count, whole, however many pictures it has. The
+  /// mass runs straight into the massacre, down to Don Angelo's death: one
+  /// scene.
+  StoryMemory get scene => switch (this) {
+    StoryMemory.priestMassacre => StoryMemory.priestMass,
+    _ => this,
+  };
 }
 
 /// What the player has come to know over the whole game: the zombie types

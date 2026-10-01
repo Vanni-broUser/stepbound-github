@@ -10,8 +10,6 @@ import 'package:stepbound/ui/blood_decor.dart';
 import 'package:stepbound/ui/letterbox.dart';
 import 'package:stepbound/ui/main_menu.dart';
 import 'package:stepbound/ui/mission_marks.dart';
-import 'package:stepbound/ui/story_intro.dart';
-import 'package:stepbound/ui/zombie_book.dart';
 
 /// How a level went: each count out of what the level holds, but for the
 /// steps, which have no end.
@@ -38,10 +36,8 @@ final class LevelStats {
   /// How [level] stands in [world], as far as [progress] has got: only
   /// what belongs to that city is counted.
   factory LevelStats.of(WorldState world, Progress progress, LevelId level) {
-    Set<String> pictures(Iterable<StoryMemory> memories) => <String>{
-      for (final memory in memories)
-        for (final scene in memoryScenes[memory] ?? const <StoryScene>[])
-          scene.image,
+    Set<StoryMemory> scenes(Iterable<StoryMemory> memories) => <StoryMemory>{
+      for (final memory in memories) memory.scene,
     };
     // The level's own: Rome's story is not left behind in Molfetta.
     bool ofLevel(StoryMemory memory) => memory.level == level;
@@ -53,8 +49,8 @@ final class LevelStats {
     return LevelStats(
       foundBackpacks: pickups.where((pickup) => pickup.collected).length,
       totalBackpacks: pickups.length,
-      foundMemories: pictures(progress.memories.where(ofLevel)).length,
-      totalMemories: pictures(StoryMemory.values.where(ofLevel)).length,
+      foundMemories: scenes(progress.memories.where(ofLevel)).length,
+      totalMemories: scenes(StoryMemory.values.where(ofLevel)).length,
       killedZombies: world.entities.values
           .where(
             (entity) =>
@@ -95,7 +91,8 @@ final class LevelStats {
   final int foundBackpacks;
   final int totalBackpacks;
 
-  /// Distinct story pictures, not dialogue lines.
+  /// Story scenes, each counted whole: not its pictures, nor its lines
+  /// (see [StoryMemoryLevel.scene]).
   final int foundMemories;
   final int totalMemories;
   final int killedZombies;
