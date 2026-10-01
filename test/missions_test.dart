@@ -134,10 +134,17 @@ void main() {
       );
       final unit = list.height / (MissionsCard.rowHeight * 3.5);
       expect(unit, closeTo(2, 0.01));
-      expect(
-        tester.getRect(find.text(Mission.findSurvivors.text)).bottom,
-        lessThanOrEqualTo(list.bottom),
+      // Too long for one line, the gate goes on to the next instead of
+      // being cut off, and its row grows with it.
+      final gate = tester.getRect(
+        find.byKey(ValueKey<String>('mission-row-${Mission.clearGate.name}')),
       );
+      expect(gate.height, greaterThan(MissionsCard.rowHeight * unit));
+      expect(
+        tester.getRect(find.text(Mission.clearGate.text)).bottom,
+        lessThanOrEqualTo(gate.bottom),
+      );
+      expect(gate.bottom, lessThanOrEqualTo(list.bottom));
       expect(
         find.text(Mission.initiation.text).hitTestable(),
         findsNothing,
