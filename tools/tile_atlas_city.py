@@ -1589,10 +1589,14 @@ def city_place(atlas: Atlas, rng, name: str, marker, storefront_table,
     monument = run_of(rows, MONUMENT)
     if monument:
         x, y, _, _ = monument
-        objects.append(picture(
+        # The boulder and the car rise two cells and more over the island:
+        # whoever walks north of it goes behind them, wherever they cover
+        # his cell, not only where they fill it.
+        objects.append({**picture(
             rows, level, f"{name}_monument",
             lambda d, lv: props.paint_monument(image_of(d), rng, x * TILE,
-                                               y * TILE), MONUMENT))
+                                               y * TILE), MONUMENT),
+            "rises": True})
     ride = run_of(rows, CAROUSEL)
     if ride:
         x, y, w, h = ride
@@ -1872,11 +1876,6 @@ def industry_street(atlas: Atlas, rng) -> dict:
                       brushes.INDUSTRY_STREET_STOREFRONTS)
 
 
-def monument_square(atlas: Atlas, rng) -> dict:
-    return city_place(atlas, rng, "monumentSquare", "monument-square-rows",
-                      brushes.MONUMENT_SQUARE_STOREFRONTS)
-
-
 def via_marsala(atlas: Atlas, rng) -> dict:
     return city_place(atlas, rng, "viaMarsala", "via-marsala-rows",
                       brushes.VIA_MARSALA_STOREFRONTS, rome=True)
@@ -1886,7 +1885,6 @@ PLACES = {
     "harbour": harbour,
     "industryStreet": industry_street,
     "mallNorthStreet": mall_north_street,
-    "monumentSquare": monument_square,
     "northDistrict": north_district,
     "piazzaCinquecento": piazza_cinquecento,
     "street": street,
@@ -1897,7 +1895,6 @@ PREVIEW_ROWS = {
     "harbour": "harbour-rows",
     "industryStreet": "industry-street-rows",
     "mallNorthStreet": "mall-north-rows",
-    "monumentSquare": "monument-square-rows",
     "northDistrict": "north-rows",
     "piazzaCinquecento": "piazza-cinquecento-rows",
     "street": "level-rows",
