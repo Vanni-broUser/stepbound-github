@@ -33,6 +33,7 @@ void main() {
       final mutilated = airlinerMutilatedTiles.firstWhere(
         (tile) =>
             tile.y == cabin.origin.y + aisleRow + 1 &&
+            tile.x > cabin.origin.x + 4 &&
             tile.x < cabin.origin.x + 10,
       );
       expect(
@@ -232,7 +233,7 @@ void main() {
         expect(walk(world, bitesAllowed: false).contains(exit), isFalse);
       });
 
-      test('the first one lies under a light, in sight of the tear', () {
+      test('the first one lies in the galley, in sight of the tear', () {
         final world = createGameWorld();
         final start = airlinerCabinTear.first.step(Direction.north);
         final first = mutilatedTiles(world).reduce(
@@ -242,10 +243,9 @@ void main() {
         );
         expect(first.manhattanDistanceTo(start), lessThanOrEqualTo(3));
         expect(
-          cabin.lights.any(
-            (light) => light.tile.manhattanDistanceTo(first) <= 1,
-          ),
-          isTrue,
+          first.y,
+          lessThan(start.y - 1),
+          reason: 'not right by the tear: a step in, against the wall',
         );
       });
 

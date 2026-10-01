@@ -27,8 +27,8 @@ import 'package:stepbound/core/world.dart';
 ///
 /// The passengers who lost their legs in the crash lie where they fell, the
 /// mutilated zombies `M`: they never move, but bite whoever passes next to
-/// them. The first lies in the forward galley, under an emergency light,
-/// the first thing Mario sees coming in. The next, past the first block of
+/// them. The first lies in the forward galley, by the trolley, a few steps
+/// from the tear Mario comes in through. The next, past the first block of
 /// seats, lies just off the aisle, where an emergency light on the floor
 /// of the aisle, a cell past it, lets him be made out. Another lies across the
 /// aisle past the cross aisle, and there is no stepping round him in it:
@@ -53,8 +53,8 @@ const List<String> airlinerCabinRows = <String>[
   'xI.K.TTT..TTT..TrT.::.TTT.MTTT..TTT.*....:Ix',
   'xI.....b*...Z.........:.....M....b........Ix',
   'xI..*.......:*........*:.......*........*.Ix',
-  'xI*K.TTTM.TrT..TTT.::.TTT.*rrr..TTT.......Ix',
-  'xIM:.TTT..TTT..TTT.::.TTT..TTT..TTT...+...Ix',
+  'xIMK.TTTM.TrT..TTT.::.TTT.*rrr..TTT.......Ix',
+  'xI.:.TTT..TTT..TTT.::.TTT..TTT..TTT...+...Ix',
   'xI...TTT..TTT..TTT.::.TTT..TTT..TTT..K.K..Ix',
   'xwwEEwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwOOwwwwwx',
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
