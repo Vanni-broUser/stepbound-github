@@ -68,6 +68,7 @@ const List<PlaceSpec> hometownPlaces = <PlaceSpec>[
     area: AreaId.hometownTown,
     rows: northDistrictRows,
     legend: outdoorLegend,
+    cameraZones: northDistrictCameraZones,
   ),
   PlaceSpec(
     id: PlaceId.harbour,

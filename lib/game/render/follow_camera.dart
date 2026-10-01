@@ -14,8 +14,12 @@ Rect pixelRect(GridRect bounds, {double tileSize = 16}) => Rect.fromLTRB(
 );
 
 /// Keeps Mario in the middle of the view, frame by frame as he walks,
-/// inside the place he is in. A place smaller than the view sits centred
-/// on the dark background.
+/// inside the place he is in -- or, where the place declares a camera
+/// zone, inside that zone's limits (see [CameraZone]): there the view
+/// stops as at the edge of the place. Walking from one zone into another,
+/// the limits slide over to the new ones in a fraction of a second rather
+/// than jumping. A place smaller than the view sits centred on the dark
+/// background.
 ///
 /// Two fingers can bring the view closer (see [beginPinch]): it zooms
 /// toward the point they were pinched on and stays there, it does not
@@ -36,8 +40,17 @@ final class FollowCamera {
   /// How far inside a zoomed view Mario always stays, in pixels.
   static const double zoomMargin = 16;
 
+  /// How fast the edges the view stops at slide to a new camera zone's:
+  /// most of the way in about a third of a second.
+  static const double limitsRate = 9;
+
   final CameraComponent camera;
   Place? _place;
+
+  /// The edges the view is kept inside, in pixels, on their way to
+  /// [_targetLimits] when Mario has changed camera zone.
+  Rect _limits = Rect.zero;
+  Rect _targetLimits = Rect.zero;
 
   /// How many screen pixels a world pixel takes, before any pinch: the
   /// same on both axes, so nothing is stretched.
@@ -125,30 +138,54 @@ final class FollowCamera {
   void snapTo(Vector2 player, Place place) {
     _place = place;
     _zoom = 1;
+    _limits = _targetLimits = _limitsFor(player, place);
     _centre = _rounded(_body(player));
-    _clamp(place);
+    _clamp();
     _show(player);
   }
+
+  /// The edges the view stops at with Mario's feet at [player]: the
+  /// limits of the camera zone of the tile he stands on.
+  static Rect _limitsFor(Vector2 player, Place place) => pixelRect(
+    place.cameraLimitsAt(
+      GridPoint((player.x / 16).floor(), ((player.y - 1) / 16).floor()),
+    ),
+  );
 
   static Vector2 _body(Vector2 feet) => Vector2(feet.x, feet.y - bodyHeight);
 
   static Vector2 _rounded(Vector2 point) =>
       Vector2(point.x.roundToDouble(), point.y.roundToDouble());
 
-  /// One frame of following [player]: a new place is snapped to, with the
-  /// whole view, like the first one.
-  void follow({required Vector2 player, required Place place}) {
+  /// One frame of following [player], [dt] seconds after the last: a new
+  /// place is snapped to, with the whole view, like the first one. Without
+  /// [dt], a change of camera zone is not slid over to but taken at once.
+  void follow({required Vector2 player, required Place place, double? dt}) {
     if (place != _place) {
       snapTo(player, place);
       return;
     }
+    _targetLimits = _limitsFor(player, place);
+    if (dt == null) {
+      _limits = _targetLimits;
+    } else if (_limits != _targetLimits) {
+      final t = 1 - math.exp(-limitsRate * dt);
+      final next = Rect.lerp(_limits, _targetLimits, t)!;
+      // Close enough: there, so it stops moving by fractions of a pixel.
+      final off =
+          (next.left - _targetLimits.left).abs() +
+          (next.top - _targetLimits.top).abs() +
+          (next.right - _targetLimits.right).abs() +
+          (next.bottom - _targetLimits.bottom).abs();
+      _limits = off < 0.5 ? _targetLimits : next;
+    }
     _centre = _rounded(_body(player));
-    _clamp(place);
+    _clamp();
     _show(player);
   }
 
-  void _clamp(Place place) {
-    final area = pixelRect(place.bounds);
+  void _clamp() {
+    final area = _limits;
     final halfWidth = _view.x / 2;
     final halfHeight = _view.y / 2;
     final x = area.width <= halfWidth * 2

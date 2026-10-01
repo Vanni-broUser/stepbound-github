@@ -105,6 +105,30 @@ col pollice ancora sul joystick mentre la schermata toglie i controlli (a
 ovest, dove fu segnalato, oggi la strada finisce contro le Terme di
 Diocleziano).
 
+## Luoghi non rettangolari: il fuori mappa e la telecamera
+
+Un posto puo non essere un rettangolo: le celle ` ` (`Legend.offMap`) sono
+fuori mappa, nere, come oltre il bordo (la piazza dei Cinquecento a L, il
+quartiere nord sopra la strada chiusa dal tamponamento e sopra
+l'ospedale). La telecamera pero di suo si ferma solo ai bordi del
+rettangolo del posto: senza altro, dove arriva a quelle celle mostra il
+nero dentro l'inquadratura.
+
+Regola fissa: **un posto con celle fuori mappa dichiara le sue zone della
+telecamera** (`PlaceSpec.cameraZones`, `CameraZone` in
+`lib/core/levels/place.dart`). Ogni zona e un'area dove sta Mario e i
+bordi a cui la vista si ferma mentre lui e li, come fosse il bordo della
+mappa. Passando da una zona all'altra i bordi scorrono ai nuovi in una
+frazione di secondo (`FollowCamera.limitsRate`), senza scatti.
+
+- Una zona comincia dove il suo bordo non si vede ancora: cosi la
+  telecamera ci scivola senza che si veda niente fuori mappa, nemmeno
+  mentre scorre.
+- `test/camera_zones_test.dart` lo controlla per ogni posto con celle
+  fuori mappa: con la telecamera vera, su quattro schermi (dal 4:3 al
+  2.4:1), da ogni cella calpestabile e a ogni passaggio tra zone, nessuna
+  cella fuori mappa entra nell'inquadratura.
+
 ## Cosa resta da fare
 
 ### Confronto a schermo con la versione precedente

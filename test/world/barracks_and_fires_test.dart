@@ -85,10 +85,11 @@ void main() {
     // two windows on fire, and three more in the pile-up at its east end;
     // and on the monument's square past it, a car, two bins and three
     // windows, and one more in the pile-up at the end of its east road;
-    // and three in the north district round the crossroads west of the
-    // hypermarket's road, two of them in the pile-up closing its road north,
+    // and four in the north district round the crossroads west of the
+    // hypermarket's road, three of them in the pile-up closing its road
+    // north, either side of the burning lane and on the pavement,
     // with three more windows on fire along the new streets.
-    expect(count(all, FireKind.car), 24 + stationWreckFireSpots.length);
+    expect(count(all, FireKind.car), 25 + stationWreckFireSpots.length);
     expect(stationWreckFireSpots, hasLength(2));
     expect(count(all, FireKind.bin), 12);
     expect(count(all, FireKind.window), 23);
