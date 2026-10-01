@@ -599,7 +599,7 @@ final class StepboundGame extends FlameGame
     if (free && _crossOutLeft > 0) {
       _crossOutLeft -= dt;
     }
-    _camera.follow(player: _playerFeet, place: _placeShown);
+    _camera.follow(player: _playerFeet, place: _placeShown, dt: dt);
     _places.cull(camera.visibleWorldRect);
     _cullOffscreen();
     final shown = _placeShown;
@@ -897,6 +897,13 @@ final class StepboundGame extends FlameGame
 
   /// Called by the work-in-progress screen once it is tapped away.
   void closeWorkInProgress() => _covers.closeWorkInProgress();
+
+  @override
+  void endWithNoWayOut(String reason) {
+    input.stopWalking();
+    _covers.gameOver(reason: reason);
+    audio.play(Sfx.gameOver);
+  }
 
   @override
   void openZombieBook() => _covers.openZombieBook();

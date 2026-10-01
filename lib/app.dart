@@ -406,9 +406,10 @@ final class _StepboundAppState extends State<StepboundApp> {
       key: ValueKey<String>('level-end-black'),
       color: Colors.black,
     ),
-    GameOverCover() => Letterbox(
+    GameOverCover(:final reason) => Letterbox(
       color: _GameOverOverlay.backdrop,
       child: _GameOverOverlay(
+        reason: reason,
         resumePoint: _flow.session.resumePoint,
         restartsFromStory: game.progress.level == LevelId.hometown,
         onResumeFromCamp: () =>
@@ -626,7 +627,12 @@ final class _GameOverOverlay extends StatefulWidget {
     required this.onResumeFromCamp,
     required this.onRestartLevel,
     required this.onMenu,
+    this.reason,
   });
+
+  /// Why the game is over, when Mario is still standing: shown under the
+  /// title.
+  final String? reason;
 
   /// Where the save to go back to was made, if there is one. With one it
   /// is the first choice and the one the countdown takes, and starting the
@@ -711,6 +717,19 @@ final class _GameOverOverlayState extends State<_GameOverOverlay> {
                 children: <Widget>[
                   // Grows with the view, like the dialogue text.
                   BloodyTitle(strings.gameOver, fontSize: 34 * unit),
+                  if (widget.reason case final reason?) ...<Widget>[
+                    SizedBox(height: 4 * unit),
+                    MenuPanel(
+                      unit: unit,
+                      width: MenuButton.fullWidth,
+                      child: MenuParagraph(
+                        reason,
+                        key: const ValueKey<String>('game-over-reason'),
+                        unit: unit,
+                        center: true,
+                      ),
+                    ),
+                  ],
                   SizedBox(height: 4 * unit),
                   ...(_confirmingRestart ? _confirm(unit) : _choices(unit)),
                 ],

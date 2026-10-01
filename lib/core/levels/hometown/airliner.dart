@@ -2,6 +2,7 @@ import 'package:stepbound/core/grid/grid_point.dart';
 import 'package:stepbound/core/items/pickup.dart';
 import 'package:stepbound/core/levels/game_world.dart';
 import 'package:stepbound/core/levels/place.dart';
+import 'package:stepbound/core/world.dart';
 
 // The ASCII maps are one row per line, however wide the place is.
 
@@ -26,10 +27,13 @@ import 'package:stepbound/core/levels/place.dart';
 ///
 /// The passengers who lost their legs in the crash lie where they fell, the
 /// mutilated zombies `M`: they never move, but bite whoever passes next to
-/// them. The first lies in the forward galley, under an emergency light,
-/// the first thing Mario sees coming in. Another lies across the aisle past
-/// the cross aisle, and there is no stepping round him in it: the way past
-/// is over the broken seats beside him. The rest can be given a wide berth.
+/// them. The first lies at the head of the aisle, past the forward
+/// galley, a few steps from the tear Mario comes in through. The next,
+/// past the first block of seats, lies just off the aisle, where an
+/// emergency light on the floor of the aisle two cells from him lets him be
+/// made out. Another lies across the aisle past the cross aisle, and there
+/// is no stepping round him in it: the way past is over the broken seats
+/// beside him. The rest can be given a wide berth.
 /// The flight bag `9` between two blocks of seats has rounds, whatever
 /// Mario came in with.
 ///
@@ -46,21 +50,24 @@ const List<String> airlinerCabinRows = <String>[
   'xWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWx',
   'xI...TTT..TTT9.TTT.::.TTT..TTT..TTT..b.Z:.Ix',
   'xI.:.TTT..TTT..TTT.::.TTT..TTT..TTT.......Ix',
-  'xI.K.TTT*.TTT..TrT.::.TTT.MTTT..TTT.*....:Ix',
-  'xI.....b....Z.........:.....M....b........Ix',
+  'xI.K.TTT..TTT..TrT.::.TTT.MTTT..TTT.*....:Ix',
+  'xIM....b*...Z.........:.....M....b........Ix',
   'xI..*.......:*........*:.......*........*.Ix',
-  'xI*K.TTTM.TrT..TTT.::.TTT.*rrr..TTT.......Ix',
-  'xIM:.TTT..TTT..TTT.::.TTT..TTT..TTT...+...Ix',
+  'xI.K.TTTM.TrT..TTT.::.TTT.*rrr..TTT.......Ix',
+  'xI.:.TTT..TTT..TTT.::.TTT..TTT..TTT...+...Ix',
   'xI...TTT..TTT..TTT.::.TTT..TTT..TTT....KK.Ix',
   'xwwEEwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwOOwwwwwx',
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
 ];
 // airliner-cabin-rows-end
 
-/// Emergency lights hung over what has a glyph of its own: two over the
-/// loose panelling of the cross aisle, where the floor buckled, and one
-/// over the seats amidships.
+/// Emergency lights hung over what has a glyph of its own: one over the
+/// trolley in the forward galley, so the first mutilated zombie, at the
+/// head of the aisle below it, can be made out; two over the loose
+/// panelling of the cross aisle, where the floor buckled, and one over the
+/// seats amidships.
 const List<GridPoint> airlinerCabinLamps = <GridPoint>[
+  GridPoint(3, 4),
   GridPoint(19, 3),
   GridPoint(20, 8),
   GridPoint(27, 3),
@@ -95,9 +102,12 @@ const List<GridPoint> airlinerCabinLamps = <GridPoint>[
 ///
 /// The airliner struck the building at the north-west corner of the upper
 /// terrace on its way down, and the fuel it spilt there is still burning
-/// `&`. Out of it have walked two zombies on fire `Y`: they go after Mario
-/// like wanderers, and every tile they step off catches fire and stays
-/// alight, shut for good.
+/// `&`. Out of it have walked two zombies on fire `Y`, one of them already
+/// halfway to the tail, near enough to see Mario climb down out of it:
+/// they go after Mario like wanderers, and every tile they step off catches
+/// fire and stays alight, shut for good. Should the fire shut Mario in
+/// where no way off the roofs can be reached, the game says so and offers
+/// the campfire or the level again.
 ///
 /// Glyphs: `x` the drop and the sky, `W` the party walls and the roofline
 /// the tail sits in and `#` the tail itself, all walls; `T`, `n`, `k`,
@@ -111,7 +121,7 @@ const List<String> airlinerRoofRows = <String>[
   'xxxxxxxxxxx########xxxxxxxxxxx',
   'xWWWWWWWWWW###DD###WWWWWWWWWWx',
   'xW&&&&&.....::::::..........Wx',
-  'xW&&&&Y..:.........:...T....Wx',
+  'xW&&&&...:Y........:...T....Wx',
   'xW&&Y..n.......b.......:....Wx',
   'xW&.:........T.........n....Wx',
   'xW.......:........:.........Wx',
@@ -193,6 +203,35 @@ final List<GridPoint> rooftopBurningZombieTiles = _airlinerRoofs.tilesOf('Y');
 
 /// The first of them.
 const String rooftopBurningZombieId = '${rooftopBurningZombiePrefix}0';
+
+/// Whether Mario, standing at [at] on the roofs past the airliner, can
+/// still get off them: through any way out he can walk to -- the tail
+/// break, the next block's stairs -- or, with the grappling hook, across a
+/// gap from beside its edge. Only the map counts: the fire the burning
+/// zombies leave behind never goes out, while a zombie in the way can be
+/// shot. Anywhere but on the roofs the answer is always yes.
+bool hasRooftopWayOut(
+  WorldState world,
+  GridPoint at, {
+  required bool grapplingHook,
+}) {
+  if (!_airlinerRoofs.bounds.contains(at)) {
+    return true;
+  }
+  final reached = world.map.floodFillDistances(
+    at,
+    maxDistance: _airlinerRoofs.width * _airlinerRoofs.height,
+  );
+  if (reached.keys.any(world.portals.containsKey)) {
+    return true;
+  }
+  return grapplingHook &&
+      world.grapples.keys.any(
+        (edge) => Direction.values.any(
+          (side) => reached.containsKey(edge.step(side)),
+        ),
+      );
+}
 
 /// The tear in the belly of the airliner, in the lane the wreck left open
 /// at the crossroads behind the hypermarket: two tiles wide, like the

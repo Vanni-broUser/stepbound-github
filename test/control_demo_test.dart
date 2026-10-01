@@ -60,8 +60,9 @@ void main() {
         DialogueLine.tutorial('Guarda', demo: demo),
       ]);
       final positioned = tester.widget<Positioned>(
-        find.byWidgetPredicate(
-          (widget) => widget is Positioned && widget.child is ControlDemoView,
+        find.ancestor(
+          of: find.byType(ControlDemoView),
+          matching: find.byType(Positioned),
         ),
       );
       if (demo == ControlDemo.move) {
@@ -74,30 +75,34 @@ void main() {
     }
   });
 
+  Future<void> showHint(WidgetTester tester, VoidCallback onFinished) =>
+      tester.pumpWidget(
+        MaterialApp(
+          home: GameplayDialogue(
+            onFinished: onFinished,
+            lines: const <DialogueLine>[
+              DialogueLine.tutorial(
+                'Muoviti',
+                demo: ControlDemo.move,
+                advanceOnRightDrag: true,
+              ),
+            ],
+          ),
+        ),
+      );
+
   testWidgets('a rightward drag dismisses only the opening movement hint', (
     tester,
   ) async {
     var finished = false;
-    await tester.pumpWidget(
-      MaterialApp(
-        home: GameplayDialogue(
-          onFinished: () => finished = true,
-          lines: const <DialogueLine>[
-            DialogueLine.tutorial(
-              'Muoviti',
-              demo: ControlDemo.move,
-              advanceOnRightDrag: true,
-            ),
-          ],
-        ),
-      ),
-    );
+    await showHint(tester, () => finished = true);
     final dialogue = find.byKey(const ValueKey<String>('gameplay-dialogue'));
-    await tester.drag(dialogue, const Offset(-100, 0));
+    final right = tester.getTopRight(dialogue) + const Offset(-100, 100);
+    await tester.dragFrom(right, const Offset(-100, 0));
     await tester.pump();
-    expect(finished, isFalse, reason: 'only the requested rightward drag');
+    expect(finished, isFalse, reason: 'on the right, only a rightward drag');
 
-    await tester.drag(dialogue, const Offset(100, 0));
+    await tester.dragFrom(right, const Offset(100, 0));
     await tester.pump();
     expect(finished, isTrue);
 
@@ -113,5 +118,50 @@ void main() {
     await tester.drag(dialogue, const Offset(100, 0));
     await tester.pump();
     expect(finished, isFalse);
+  });
+
+  testWidgets('a drag any way or a tap on the left half, or on the pad '
+      'shown, dismisses the movement hint straight away', (tester) async {
+    GameplayDialogue.settleTime = GameplayDialogue.defaultSettleTime;
+    final dialogue = find.byKey(const ValueKey<String>('gameplay-dialogue'));
+    final demo = find.byType(ControlDemoView);
+    for (final (name, gesture) in <(String, Future<void> Function())>[
+      (
+        'drag left',
+        () => tester.dragFrom(
+          tester.getTopLeft(dialogue) + const Offset(60, 120),
+          const Offset(-40, 0),
+        ),
+      ),
+      (
+        'drag up',
+        () => tester.dragFrom(
+          tester.getBottomLeft(dialogue) + const Offset(80, -80),
+          const Offset(0, -60),
+        ),
+      ),
+      (
+        'tap left',
+        () => tester.tapAt(
+          tester.getBottomLeft(dialogue) + const Offset(80, -80),
+        ),
+      ),
+      ('tap on the pad', () => tester.tapAt(tester.getCenter(demo))),
+    ]) {
+      var finished = false;
+      await showHint(tester, () => finished = true);
+      await gesture();
+      await tester.pump();
+      expect(finished, isTrue, reason: name);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pump(GameplayDialogue.defaultSettleTime);
+    }
+
+    var finished = false;
+    await showHint(tester, () => finished = true);
+    await tester.tapAt(tester.getTopRight(dialogue) + const Offset(-60, 120));
+    await tester.pump();
+    expect(finished, isFalse, reason: 'a tap on the right waits as ever');
+    await tester.pump(GameplayDialogue.defaultSettleTime);
   });
 }

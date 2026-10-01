@@ -125,6 +125,7 @@ const List<PlaceSpec> romePlaces = <PlaceSpec>[
     area: AreaId.romeStreets,
     rows: piazzaCinquecentoRows,
     legend: romeStreetLegend,
+    cameraZones: piazzaCinquecentoCameraZones,
   ),
   PlaceSpec(
     id: PlaceId.viaMarsala,

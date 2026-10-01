@@ -197,16 +197,16 @@ final GridPoint hospitalNextRoofEdgeTile = _hospitalRoof.tileOf('<');
 /// ones out on the street, past it, all look west.
 final GridRect hospitalForecourt = GridRect(
   _north.origin.x + 2,
-  _north.origin.y + 24,
+  _north.origin.y + 28,
   _north.origin.x + 17,
-  _north.origin.y + 33,
+  _north.origin.y + 37,
 );
 
 /// A sprinter in the middle of the forecourt, among the horde: placed by
 /// hand rather than drawn, so the other sprinters keep their numbers.
 final GridPoint hospitalForecourtSprinterTile = GridPoint(
   _north.origin.x + 10,
-  _north.origin.y + 31,
+  _north.origin.y + 35,
 );
 const String hospitalForecourtSprinterId = 'hospital-forecourt-sprinter';
 

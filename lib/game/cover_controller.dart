@@ -213,6 +213,8 @@ final class CoverController {
 
   // -------------------------------------------------------- game over
 
-  /// Mario is dead; whatever was up stays under it.
-  void gameOver() => cover.value = const GameOverCover();
+  /// Mario is dead, or has no way out left ([reason]); whatever was up
+  /// stays under it.
+  void gameOver({String? reason}) =>
+      cover.value = GameOverCover(reason: reason);
 }

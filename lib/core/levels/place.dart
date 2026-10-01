@@ -157,6 +157,20 @@ final class LightSpot {
   final bool torch;
 }
 
+/// Where the camera stops in part of a place, when it must stop short of
+/// the place's edges: with Mario anywhere in [area], the view is kept
+/// inside [limits] (both in the place's own tiles) instead of the whole
+/// place, as if the place ended there. A place that is not a rectangle
+/// declares them so the view never shows what lies off its map
+/// ([Legend.offMap]): the camera does not know about it, only about the
+/// edges it is given.
+final class CameraZone {
+  const CameraZone({required this.area, required this.limits});
+
+  final GridRect area;
+  final GridRect limits;
+}
+
 /// A place as a level describes it: its ASCII [rows] and what they mean.
 /// The renderer paints it from those same rows out of the tile atlas, so
 /// they are the only place its layout is written down. Indoors (a
@@ -181,6 +195,7 @@ final class PlaceSpec {
     this.darkness = defaultDarkness,
     this.litAreas = const <GridRect>[],
     this.art,
+    this.cameraZones = const <CameraZone>[],
   });
 
   /// How dark an unlit room is, between its lamps: nearly black.
@@ -227,6 +242,10 @@ final class PlaceSpec {
 
   /// The area the place is loaded with.
   final AreaId area;
+
+  /// The parts of the place where the camera stops short of its edges,
+  /// first match first; everywhere else it stops at the edges.
+  final List<CameraZone> cameraZones;
 
   /// The level the place belongs to. The train, shared by all of them,
   /// counts as Molfetta's, where it is found.
@@ -363,6 +382,27 @@ final class Place {
     }
     return Map<GridPoint, Direction>.unmodifiable(ends);
   }();
+
+  /// What the view is kept inside with Mario on [tile]: the limits of the
+  /// first of the place's camera zones he is in, or the whole place.
+  GridRect cameraLimitsAt(GridPoint tile) {
+    for (final zone in spec.cameraZones) {
+      final area = zone.area;
+      if (tile.x >= origin.x + area.left &&
+          tile.x <= origin.x + area.right &&
+          tile.y >= origin.y + area.top &&
+          tile.y <= origin.y + area.bottom) {
+        final limits = zone.limits;
+        return GridRect(
+          origin.x + limits.left,
+          origin.y + limits.top,
+          origin.x + limits.right,
+          origin.y + limits.bottom,
+        );
+      }
+    }
+    return bounds;
+  }
 
   /// Indoors, the lamps and the daylight at the doors; none outdoors.
   late final List<LightSpot> lights = <LightSpot>[

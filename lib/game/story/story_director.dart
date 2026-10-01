@@ -257,6 +257,11 @@ abstract interface class StoryHost {
   /// [onClosed] once it is tapped away.
   void showWorkInProgress({void Function()? onClosed});
 
+  /// Mario is shut in where he can go no further: the game is over, the
+  /// way it is when he dies, [reason] saying why, and the campfire or the
+  /// level are there to start again from.
+  void endWithNoWayOut(String reason);
+
   /// Opens the book of the zombie types met so far.
   void openZombieBook();
 

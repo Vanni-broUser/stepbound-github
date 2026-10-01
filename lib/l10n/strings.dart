@@ -312,6 +312,7 @@ abstract interface class Strings {
   String get romeArrivalLines2;
   String get rooftopsGapLesson;
   String get rooftopsGrappleLine;
+  String get rooftopsNoWayOut;
   String get speakerCultist;
   String get speakerMysteryVoice;
   String get speakerZombie;

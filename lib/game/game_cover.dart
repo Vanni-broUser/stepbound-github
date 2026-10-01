@@ -107,7 +107,10 @@ final class LevelEndCover extends GameCover {
   const LevelEndCover();
 }
 
-/// Mario is dead.
+/// Mario is dead, or shut in with no way out: [reason] then says so.
 final class GameOverCover extends GameCover {
-  const GameOverCover();
+  const GameOverCover({this.reason});
+
+  /// Why the game is over when Mario is still standing.
+  final String? reason;
 }

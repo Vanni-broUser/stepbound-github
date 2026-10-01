@@ -144,6 +144,12 @@ final class FakeStoryHost implements StoryHost, HometownActions {
     onClosed?.call();
   }
 
+  /// Why the game ended with Mario shut in, each time it did.
+  final List<String> noWayOut = <String>[];
+
+  @override
+  void endWithNoWayOut(String reason) => noWayOut.add(reason);
+
   int zombieBooksOpened = 0;
 
   @override
