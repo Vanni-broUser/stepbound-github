@@ -318,6 +318,10 @@ const Map<PlaceId, List<GridPoint>> romeZombieSpots =
         GridPoint(131, 46),
         GridPoint(62, 63),
         GridPoint(96, 60),
+        // On the pavement across the top, halfway between the Baths of
+        // Diocletian and the front of Termini: last, so that the ones
+        // before it keep their ids in the saves.
+        GridPoint(36, 7),
       ],
       PlaceId.termeDiocleziano: <GridPoint>[
         GridPoint(10, 8),
