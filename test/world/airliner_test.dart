@@ -247,6 +247,14 @@ void main() {
         );
         expect(first.manhattanDistanceTo(start), lessThanOrEqualTo(5));
         expect(first.y, airlinerCabinAisleRow - 1, reason: 'in the aisle');
+        expect(
+          cabin.lights.any(
+            (light) =>
+                light.tile == first.step(Direction.north).step(Direction.east),
+          ),
+          isTrue,
+          reason: 'a light over the trolley beside him lets him be seen',
+        );
       });
 
       test('none lies in front of the tail break', () {

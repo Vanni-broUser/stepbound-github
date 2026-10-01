@@ -61,10 +61,13 @@ const List<String> airlinerCabinRows = <String>[
 ];
 // airliner-cabin-rows-end
 
-/// Emergency lights hung over what has a glyph of its own: two over the
-/// loose panelling of the cross aisle, where the floor buckled, and one
-/// over the seats amidships.
+/// Emergency lights hung over what has a glyph of its own: one over the
+/// trolley in the forward galley, so the first mutilated zombie, at the
+/// head of the aisle below it, can be made out; two over the loose
+/// panelling of the cross aisle, where the floor buckled, and one over the
+/// seats amidships.
 const List<GridPoint> airlinerCabinLamps = <GridPoint>[
+  GridPoint(3, 4),
   GridPoint(19, 3),
   GridPoint(20, 8),
   GridPoint(27, 3),
