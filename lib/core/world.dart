@@ -213,6 +213,18 @@ final class WorldState {
   /// the floor in front of the first step to the last, which is the door.
   /// A flight is climbed only along it: see [canStep].
   final Map<GridPoint, Direction> stairs;
+
+  /// The tiles the ways in and out of places need clear: every door, the
+  /// tile each one puts Mario down on, and the spot the grappling hook
+  /// lands him on. No zombie stops on one (see `ZombieAi`): one that
+  /// chased Mario up to a door and stood there would shut the way back, or
+  /// have him land in its arms the moment he came back through.
+  Set<GridPoint> doorways() => <GridPoint>{
+    ...portals.keys,
+    for (final portal in portals.values) portal.to,
+    for (final grapple in grapples.values) grapple.to,
+  };
+
   final String playerId;
   final SeededRandom random;
   final List<NoisePulse> _pendingNoises;
