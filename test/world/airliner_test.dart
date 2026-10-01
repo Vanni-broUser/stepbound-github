@@ -35,12 +35,13 @@ void main() {
             tile.y == cabin.origin.y + aisleRow + 1 &&
             tile.x < cabin.origin.x + 10,
       );
-      final beside = mutilated.step(Direction.north);
-      expect(cabin.tilesOf('*'), contains(beside));
+      expect(
+        cabin.tilesOf('*'),
+        contains(mutilated.step(Direction.north).step(Direction.north)),
+      );
       final lamps = cabin
           .tilesOf('*')
           .where((tile) => tile.y == cabin.origin.y + aisleRow)
-          .where((tile) => tile != beside)
           .toList();
       expect(lamps, hasLength(5));
       expect(

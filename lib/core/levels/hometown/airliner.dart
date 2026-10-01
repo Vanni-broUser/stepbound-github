@@ -30,7 +30,7 @@ import 'package:stepbound/core/world.dart';
 /// them. The first lies in the forward galley, under an emergency light,
 /// the first thing Mario sees coming in. The next, past the first block of
 /// seats, lies just off the aisle, where an emergency light on the floor
-/// of the aisle beside him lets him be made out. Another lies across the
+/// of the aisle, a cell past it, lets him be made out. Another lies across the
 /// aisle past the cross aisle, and there is no stepping round him in it:
 /// the way past is over the broken seats beside him. The rest can be given
 /// a wide berth.
@@ -51,8 +51,8 @@ const List<String> airlinerCabinRows = <String>[
   'xI...TTT..TTT9.TTT.::.TTT..TTT..TTT..b.Z:.Ix',
   'xI.:.TTT..TTT..TTT.::.TTT..TTT..TTT.......Ix',
   'xI.K.TTT..TTT..TrT.::.TTT.MTTT..TTT.*....:Ix',
-  'xI.....b....Z.........:.....M....b........Ix',
-  'xI..*...*...:*........*:.......*........*.Ix',
+  'xI.....b*...Z.........:.....M....b........Ix',
+  'xI..*.......:*........*:.......*........*.Ix',
   'xI*K.TTTM.TrT..TTT.::.TTT.*rrr..TTT.......Ix',
   'xIM:.TTT..TTT..TTT.::.TTT..TTT..TTT...+...Ix',
   'xI...TTT..TTT..TTT.::.TTT..TTT..TTT..K.K..Ix',
