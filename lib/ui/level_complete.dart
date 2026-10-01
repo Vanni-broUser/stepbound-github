@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
@@ -647,7 +648,9 @@ final class MissionsCard extends StatefulWidget {
   /// Crossed out together with [finale], on a row of its own under it.
   final SecretMission? secret;
 
-  /// One mission's row, and how many of them show at once.
+  /// One mission's row, at its shortest: a mission too long for one line
+  /// goes on to the next, and its row grows with it. And how many of the
+  /// one-line rows show at once.
   static const double rowHeight = 10;
   static const double visibleRows = 3.5;
 
@@ -662,6 +665,10 @@ final class _MissionsCardState extends State<MissionsCard>
     vsync: this,
     duration: const Duration(milliseconds: 1100),
   );
+
+  /// The last row crossed out on this screen: the finale's, or the
+  /// secret's under it.
+  final GlobalKey _lastCelebrated = GlobalKey();
 
   /// The finale being crossed out on this screen, if there is one.
   Mission? get _celebrated => switch (widget.finale) {
@@ -684,13 +691,20 @@ final class _MissionsCardState extends State<MissionsCard>
       return;
     }
     // Down just far enough for its row, and the secret's under it, to be
-    // the last ones whole in view.
-    final row =
-        widget.stats.doneMissions.indexOf(_celebrated!) +
-        (widget.secret == null ? 0 : 1);
-    if (_scroll.hasClients) {
+    // the last ones whole in view: their bottom where the third one-line
+    // row ends, whatever the rows above or the row itself take.
+    final row = _lastCelebrated.currentContext?.findRenderObject();
+    if (row is RenderBox && row.hasSize && _scroll.hasClients) {
       final rowHeight = MissionsCard.rowHeight * widget.unit;
-      final target = (row + 1 - MissionsCard.visibleRows.floor()) * rowHeight;
+      final view = rowHeight * MissionsCard.visibleRows;
+      final bottom = rowHeight * MissionsCard.visibleRows.floor();
+      final height = row.size.height;
+      final alignment = height >= view
+          ? 0.0
+          : ((bottom - height) / (view - height)).clamp(0.0, 1.0);
+      final target = RenderAbstractViewport.of(
+        row,
+      ).getOffsetToReveal(row, alignment).offset;
       await _scroll.animateTo(
         target.clamp(0, _scroll.position.maxScrollExtent),
         duration: const Duration(milliseconds: 450),
@@ -750,27 +764,41 @@ final class _MissionsCardState extends State<MissionsCard>
               Expanded(
                 child: SizedBox(
                   height: listHeight,
-                  child: ListView(
+                  // Every row built, however far down: the finale's has to
+                  // be measured to be scrolled to.
+                  child: SingleChildScrollView(
                     key: const ValueKey<String>('missions-list'),
                     controller: _scroll,
-                    padding: EdgeInsets.zero,
-                    children: <Widget>[
-                      for (final mission in stats.doneMissions)
-                        _row(
-                          mission,
-                          crossed: mission == celebrated ? strokes : 1,
-                          boxScale: mission == celebrated ? 1 + swell * 0.5 : 1,
-                        ),
-                      for (final secret in stats.doneSecrets)
-                        _secretRow(
-                          secret,
-                          crossed: secret == celebratedSecret ? strokes : 1,
-                          boxScale: secret == celebratedSecret
-                              ? 1 + swell * 0.5
-                              : 1,
-                        ),
-                      for (final mission in undone) _row(mission, crossed: 0),
-                    ],
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: <Widget>[
+                        for (final mission in stats.doneMissions)
+                          _celebratedLast(
+                            last:
+                                mission == celebrated &&
+                                celebratedSecret == null,
+                            child: _row(
+                              mission,
+                              crossed: mission == celebrated ? strokes : 1,
+                              boxScale: mission == celebrated
+                                  ? 1 + swell * 0.5
+                                  : 1,
+                            ),
+                          ),
+                        for (final secret in stats.doneSecrets)
+                          _celebratedLast(
+                            last: secret == celebratedSecret,
+                            child: _secretRow(
+                              secret,
+                              crossed: secret == celebratedSecret ? strokes : 1,
+                              boxScale: secret == celebratedSecret
+                                  ? 1 + swell * 0.5
+                                  : 1,
+                            ),
+                          ),
+                        for (final mission in undone) _row(mission, crossed: 0),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -851,6 +879,10 @@ final class _MissionsCardState extends State<MissionsCard>
     );
   }
 
+  /// [child], found again by [_lastCelebrated] when it is [last].
+  Widget _celebratedLast({required bool last, required Widget child}) =>
+      last ? KeyedSubtree(key: _lastCelebrated, child: child) : child;
+
   Widget _row(
     Mission mission, {
     required double crossed,
@@ -887,9 +919,9 @@ final class _MissionsCardState extends State<MissionsCard>
   }) {
     final unit = widget.unit;
     final box = 7 * unit;
-    return SizedBox(
+    return ConstrainedBox(
       key: ValueKey<String>(key),
-      height: MissionsCard.rowHeight * unit,
+      constraints: BoxConstraints(minHeight: MissionsCard.rowHeight * unit),
       child: Row(
         children: <Widget>[
           SizedBox(width: 1.5 * unit),
@@ -908,14 +940,16 @@ final class _MissionsCardState extends State<MissionsCard>
           Expanded(
             child: Opacity(
               opacity: crossed > 0 ? 1 : 0.62,
-              child: Text(
-                text,
-                maxLines: 1,
-                overflow: TextOverflow.fade,
-                softWrap: false,
-                style: colour == null
-                    ? missionTextStyle(7 * unit)
-                    : missionTextStyle(7 * unit).copyWith(color: colour),
+              // A line on its own keeps to the row's height; the gap only
+              // shows between wrapped missions.
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 0.5 * unit),
+                child: Text(
+                  text,
+                  style: colour == null
+                      ? missionTextStyle(7 * unit)
+                      : missionTextStyle(7 * unit).copyWith(color: colour),
+                ),
               ),
             ),
           ),
