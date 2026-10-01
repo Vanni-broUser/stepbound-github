@@ -6479,19 +6479,19 @@
               "kind": "neighbour",
               "dx": -1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 2,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "pattern",
@@ -9066,19 +9066,19 @@
               "kind": "neighbour",
               "dx": -1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 2,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "pattern",
@@ -9831,17 +9831,26 @@
       ],
       "objects": [
         {
-          "image": "hometown/industryStreet_factory.png",
-          "at": [52, 0],
-          "underAt": [52, 0],
+          "image": "hometown/industryStreet_shop_10_4.png",
+          "at": [10, 4],
           "under": [
-            "\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6",
-            "\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6",
-            "\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6",
-            "\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6",
-            "\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6",
-            "\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6",
-            "\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00d8\u00d8\u00d8\u00d8\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6"
+            "HHHHH",
+            "HHHHH",
+            "HHHHH"
+          ]
+        },
+        {
+          "image": "hometown/industryStreet_factory.png",
+          "at": [54, 0],
+          "underAt": [54, 0],
+          "under": [
+            "\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6",
+            "\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6",
+            "\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6",
+            "\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6",
+            "\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6",
+            "\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6",
+            "\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00d8\u00d8\u00d8\u00d8\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6\u00c6"
           ]
         }
       ]
@@ -11512,19 +11521,19 @@
               "kind": "neighbour",
               "dx": -1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 2,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "pattern",
@@ -13177,19 +13186,19 @@
               "kind": "neighbour",
               "dx": -1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 2,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "pattern",
@@ -14774,19 +14783,19 @@
               "kind": "neighbour",
               "dx": -1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 2,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "pattern",
@@ -18420,19 +18429,19 @@
               "kind": "neighbour",
               "dx": -1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 2,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "pattern",
@@ -22302,19 +22311,19 @@
               "kind": "neighbour",
               "dx": -1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 2,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "pattern",
@@ -25372,19 +25381,19 @@
               "kind": "neighbour",
               "dx": -1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 2,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "pattern",

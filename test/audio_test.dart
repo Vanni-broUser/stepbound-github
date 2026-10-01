@@ -58,20 +58,20 @@ void main() {
     }
   });
 
-  test('the industries and the company play the hold music gone wrong', () {
+  test('the company plays the hold music gone wrong, its street not', () {
     final stage = StepboundGame(
       world: createGameWorld(),
       progress: Progress(),
     ).hometown;
-    const industries = <PlaceId>{
-      PlaceId.industryStreet,
+    const company = <PlaceId>{
       PlaceId.companyGround,
       PlaceId.companyFirst,
       PlaceId.companySecond,
     };
-    for (final id in industries) {
+    for (final id in company) {
       expect(stage.musicOf(id), Music.weasel, reason: '$id');
     }
+    expect(stage.musicOf(PlaceId.industryStreet), isNull);
     expect(stage.musicOf(PlaceId.monumentSquare), isNull);
   });
 

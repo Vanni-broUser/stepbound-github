@@ -148,6 +148,10 @@ SHOPS = {
     # still hanging behind it.
     "macelleria": ((214, 210, 200), (160, 152, 140), (150, 26, 26), (246, 240, 228), "MACELLERIA", ()),
     "souvenirroma": ((214, 150, 84), (236, 224, 200), (30, 60, 110), (240, 200, 90), "SOUVENIR ROMA", ()),
+    # Molfetta, on the street out of the palazzo, west of its portone: the
+    # barber's, a white sign with blue letters, the striped pole by its
+    # door, a chair and the mirror through the window.
+    "barbiere": ((176, 186, 190), (124, 134, 140), (236, 236, 228), (30, 60, 130), "BARBIERE", ()),
 }
 # The shops whose palazzo keeps its own Roman floors above the shop front.
 # The shops of the harbour's old town keep the limestone and the green
@@ -255,6 +259,12 @@ def paint_icon(d, kind, x, y):
         rect(d, x + 3, y, 5, 3, (196, 200, 206))  # the blade
         rect(d, x + 3, y + 2, 5, 1, (140, 144, 150))
         rect(d, x + 6, y + 3, 2, 3, (110, 72, 44))  # the handle
+    elif kind == "barbiere":  # a pair of scissors, open
+        for i in range(5):
+            rect(d, x + 1 + i, y + i, 1, 1, (150, 156, 166))
+            rect(d, x + 6 - i, y + i, 1, 1, (150, 156, 166))
+        d.ellipse([x, y + 5, x + 2, y + 7], outline=(40, 40, 44))
+        d.ellipse([x + 5, y + 5, x + 7, y + 7], outline=(40, 40, 44))
     elif kind == "pizzeria":
         rect(d, x + 1, y + 1, 6, 6, (230, 190, 90))
         rect(d, x + 2, y + 2, 4, 4, (200, 60, 40))
@@ -424,6 +434,8 @@ def paint_storefront(d, rng, px, py0, w, h, kind):
     else:
         paint_shutter(d, door_x, shop_top + 2, door_w, 15, 15)
     for wx in (px + 3, door_x + door_w + 1):
+        if kind == "barbiere" and wx == px + 3:
+            continue  # its window, painted below
         if kind in ("kebab", "kebab2", "bar", "burger", "trattoria",
                     "studio", "ristorante", "pizzeria_forno", "doner"):
             paint_boards(d, wx, shop_top + 2, window_w, 12)
@@ -477,6 +489,9 @@ def paint_storefront(d, rng, px, py0, w, h, kind):
             rect(d, fx + 1, shop_top + 6, 2, 2, (180, 110, 50))
             rect(d, fx + 3, shop_top + 6, 1, 2, (90, 150, 60))
         rect(d, door_x + 7, shop_top + 4, 2, 7, BLOOD)
+    elif kind == "barbiere":
+        paint_barber_window(d, px + 3, shop_top + 2, window_w, 12)
+        paint_barber_pole(d, door_x - 3, shop_top + 1)
     # scorch marks licking up from the shop
     for _ in range(0 if roman else 3):
         sx = px + rng.randrange(3, w - 6)
@@ -514,6 +529,42 @@ def paint_butcher_window(d, x, y, w, h):
     rect(d, x + w // 2, y + h - 2, 1, 4, BLOOD_DARK)  # run down the front
     for i in range(0, w, 3):  # glass teeth
         rect(d, x + i, y, 1, 1 + (i * 5) % 3, (150, 180, 200))
+
+
+def paint_barber_window(d, x, y, w, h):
+    """The barber's window, its glass gone: the mirror along the back
+    wall, cracked across, the chair turned to the street with its
+    headrest and footrest, a towel left over the arm, and the shelf of
+    bottles under the mirror."""
+    rect(d, x, y, w, h, (18, 16, 18))
+    rect(d, x + 1, y + 1, w - 2, 5, (120, 140, 150))  # the mirror
+    rect(d, x + 1, y + 1, w - 2, 1, (170, 190, 200))
+    for i in range(6):  # the crack across it
+        rect(d, x + 4 + i * 3, y + 1 + (i * 2) % 5, 3, 1, (60, 70, 76))
+    rect(d, x + 1, y + 6, w - 2, 1, (90, 70, 50))  # the shelf
+    for bx in range(x + 2, x + w - 2, 4):
+        rect(d, bx, y + 5, 2, 1, (60, 130, 160) if bx % 8 else (200, 80, 60))
+    cx = x + w // 2 - 4
+    rect(d, cx + 2, y + 6, 4, 1, (40, 40, 44))  # the headrest
+    rect(d, cx, y + 7, 8, 3, (150, 30, 34))  # the seat and its back
+    rect(d, cx - 1, y + 8, 1, 2, (180, 184, 190))  # the arms
+    rect(d, cx + 8, y + 8, 1, 2, (180, 184, 190))
+    rect(d, cx + 8, y + 7, 2, 2, (230, 228, 220))  # the towel
+    rect(d, cx + 3, y + 10, 2, 2, (180, 184, 190))  # the pump
+    rect(d, cx + 1, y + 11, 6, 1, (120, 124, 130))
+    for i in range(0, w, 3):  # glass teeth
+        rect(d, x + i, y, 1, 1 + (i * 5) % 3, (150, 180, 200))
+
+
+def paint_barber_pole(d, x, y):
+    """The barber's pole by the door: a glass column striped red, white
+    and blue, its caps of chrome, gone dark with the power."""
+    rect(d, x, y, 3, 1, (190, 194, 200))
+    rect(d, x, y + 13, 3, 1, (190, 194, 200))
+    stripes = ((190, 40, 40), (236, 236, 228), (40, 70, 150))
+    for i in range(12):
+        for j in range(3):
+            rect(d, x + j, y + 1 + i, 1, 1, stripes[(i + j) % 3])
 
 
 def paint_doner_counter(d, x, y, w, h):
@@ -1506,7 +1557,7 @@ def paint_factory(d, rng, level):
     red canopy on two steel posts over it, its name along the canopy,
     and under it the glass doors in their
     steel frame, one leaf thrown open and the other smashed, the
-    reception lit inside. Burnt at one end, blood on the glass, tagged."""
+    reception lit inside. Blood on the glass, tagged."""
     cells = [(x, y) for y in range(level.height) for x in range(level.width)
              if level.at(x, y) in "ÆØ"]
     if not cells:
@@ -1625,11 +1676,6 @@ def paint_factory(d, rng, level):
                scale=2)
     paint_text(d, tx, canopy + 2, FACTORY_NAME, (255, 240, 200),
                scale=2)
-    # burnt at the west end, where a car went up against it
-    rect(d, px, eaves + 2, 26, ground - eaves - 2, (58, 54, 52))
-    rect(d, px + 3, eaves - 4, 18, 6, (80, 76, 72))
-    for rx in range(px + 1, px + 26, 3):
-        rect(d, rx, eaves + 2, 1, ground - eaves - 8, (44, 40, 38))
     rect(d, ex1 + 22, ground - 20, 8, 10, BLOOD)
     rect(d, ex1 + 25, ground - 10, 2, 6, BLOOD_DARK)
     # tags
