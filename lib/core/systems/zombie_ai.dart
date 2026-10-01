@@ -97,20 +97,14 @@ final class ZombieAi {
       hearing.lastHeard = playerPosition;
     }
     final target = seesPlayer ? playerPosition : hearing.lastHeard;
-    // Built only when asked for: the stationary ones never do.
-    late final doorways = world.doorways();
-    if (target == null || target == zombiePosition.position) {
-      if (target != null && !seesPlayer) {
+    if (target == null) {
+      world.emit(WaitedEvent(zombie.id));
+      return;
+    }
+
+    if (target == zombiePosition.position) {
+      if (!seesPlayer) {
         hearing.lastHeard = null;
-      }
-      // One left standing in a doorway (a save from before they kept out
-      // of them) gets out of the way as soon as it has nothing to do.
-      final actor = zombie.component<ActorComponent>();
-      if (!actor.stationary &&
-          zombie.maybeComponent<TetherComponent>() == null &&
-          doorways.contains(zombiePosition.position)) {
-        _stagger(world, zombie);
-        return;
       }
       world.emit(WaitedEvent(zombie.id));
       return;
@@ -150,6 +144,7 @@ final class ZombieAi {
     // Round the doorways, which must stay clear. Only where there is no
     // way round (a door that opens onto a narrow street) does it cross the
     // tile in front of one, and never a door itself.
+    final doorways = world.doorways();
     final next =
         stepTowards(doorways.contains) ??
         stepTowards(world.portals.containsKey);

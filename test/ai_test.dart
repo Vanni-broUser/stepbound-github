@@ -90,6 +90,44 @@ void main() {
       );
     });
 
+    test('over a gap with the hook the zombies keep their turn: both roofs '
+        'are one place', () {
+      final factory = EntityFactory(BalanceConfig.standard());
+      final world = WorldState(
+        map: TileMap.fromAscii(const <String>[
+          '#########',
+          '#..#....#',
+          '#########',
+        ]),
+        entities: <Entity>[
+          factory.player(id: 'player', position: const GridPoint(2, 1)),
+          factory.zombie(
+            id: 'zombie',
+            kind: EntityKind.sprinter,
+            position: const GridPoint(5, 1),
+          ),
+        ],
+        grapples: <GridPoint, Portal>{
+          const GridPoint(3, 1): const Portal(
+            to: GridPoint(4, 1),
+            facing: Direction.east,
+          ),
+        },
+        playerId: 'player',
+        random: SeededRandom(1),
+      );
+      world.player.component<PositionComponent>().facing = Direction.east;
+      world.player.component<AmmoComponent>().grapplingHook = true;
+
+      final events = const TurnScheduler().advance(
+        world,
+        const InteractAction(),
+      );
+
+      expect(events.whereType<TeleportedEvent>().single.grappled, isTrue);
+      expect(events.whereType<DamagedEvent>().single.sourceEntityId, 'zombie');
+    });
+
     test('through a door right into the zombie standing behind it is the '
         'end of Mario, turn or no turn', () {
       final factory = EntityFactory(BalanceConfig.standard());
@@ -722,36 +760,6 @@ void main() {
         world.player.component<HealthComponent>().current,
         lessThan(world.player.component<HealthComponent>().maximum),
       );
-    });
-
-    test('one found standing in a doorway steps out of it', () {
-      final factory = EntityFactory(BalanceConfig.standard());
-      const door = GridPoint(3, 1);
-      final world = WorldState(
-        map: TileMap.fromAscii(const <String>[
-          '#########',
-          '#.......#',
-          '#########',
-        ]),
-        entities: <Entity>[
-          factory.player(id: 'player', position: const GridPoint(7, 1)),
-          // Turned away from Mario, west: it has nothing to go after.
-          factory.zombie(
-            id: 'zombie',
-            kind: EntityKind.sprinter,
-            position: door,
-          ),
-        ],
-        portals: <GridPoint, Portal>{
-          door: const Portal(to: GridPoint(1, 1), facing: Direction.west),
-        },
-        playerId: 'player',
-        random: SeededRandom(1),
-      );
-
-      const TurnScheduler().advance(world, const WaitAction());
-
-      expect(world.doorways(), isNot(contains(at(world, 'zombie'))));
     });
   });
 
