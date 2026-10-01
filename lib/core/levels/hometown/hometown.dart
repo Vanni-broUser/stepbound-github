@@ -228,6 +228,7 @@ const List<PlaceSpec> hometownPlaces = <PlaceSpec>[
     area: AreaId.hometownHarbour,
     rows: duomoTowerRoofRows,
     legend: duomoTowerRoofLegend,
+    cameraZones: duomoTowerRoofCameraZones,
   ),
   PlaceSpec(
     id: PlaceId.hospitalFirstFloor,
@@ -637,6 +638,8 @@ LevelContents hometownContents(EntityFactory factory) {
         facing: Direction.east,
       ),
     )
+    // Waiting on the Duomo's other tower, out of sight from this one.
+    ..addAll(createDuomoTowerCultists())
     // Shut in the flat behind the palazzo's locked door, turned to it
     // (west, the way a zombie faces unless told).
     ..add(

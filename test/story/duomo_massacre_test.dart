@@ -282,58 +282,19 @@ void main() {
     );
   });
 
-  group("on the Duomo's other tower", () {
-    TeleportedEvent swing(GridPoint edge) => TeleportedEvent(
-      entityId: world.playerId,
-      from: edge.step(world.grapples[edge]!.facing.opposite),
-      to: world.grapples[edge]!.to,
-      grappled: true,
-    );
-
-    test('a cultist comes up after Mario the first time he lands there, '
-        'once the swing has played, headed straight for him', () {
-      director
-        ..onEvents(<WorldEvent>[swing(duomoTowerLookoutTile)])
-        ..update(0.1, turnAnimating: true);
-      expect(host.spawned, isEmpty, reason: 'not while he swings');
-      settle();
-
-      final cultist = host.spawned.single;
-      expect(cultist.id, duomoFarTowerCultistId);
-      expect(cultist.kind, EntityKind.cultist);
-      expect(
-        cultist.component<PositionComponent>().position,
-        duomoFarTowerCultistTile,
-      );
-      expect(cultist.component<HearingComponent>().lastHeard, isNotNull);
-
-      // Back and over again: it came out once.
-      director.onEvents(<WorldEvent>[swing(duomoFarTowerEdgeTile)]);
-      settle();
-      host.dismiss();
-      director.onEvents(<WorldEvent>[swing(duomoTowerLookoutTile)]);
-      settle();
-      host.dismiss();
-      expect(host.spawned, hasLength(1));
-      expect(
-        (director.toJson()['rooftops']!
-            as Map<String, Object?>)['towerCultist'],
-        isTrue,
-      );
-    });
-
-    test('nowhere else', () {
-      for (final edge in <GridPoint>[
-        rooftopGapTile,
-        hospitalRoofLookoutTile,
-        duomoFarTowerEdgeTile,
-      ]) {
-        director.onEvents(<WorldEvent>[swing(edge)]);
-        settle();
-        host.dismiss();
-      }
-      expect(host.spawned, isEmpty);
-    });
+  test("landing on the Duomo's other tower raises nobody: its cultists "
+      'are there from the start', () {
+    final edge = duomoTowerLookoutTile;
+    director.onEvents(<WorldEvent>[
+      TeleportedEvent(
+        entityId: world.playerId,
+        from: edge.step(world.grapples[edge]!.facing.opposite),
+        to: world.grapples[edge]!.to,
+        grappled: true,
+      ),
+    ]);
+    settle();
+    expect(host.spawned, isEmpty);
   });
 
   group('the terraces, with the hook', () {

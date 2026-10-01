@@ -171,7 +171,9 @@ void main() {
       );
       expect(
         after.simulation.entities.values.where(
-          (entity) => entity.kind == EntityKind.cultist,
+          (entity) =>
+              entity.kind == EntityKind.cultist &&
+              !entity.id.startsWith(duomoFarTowerCultistPrefix),
         ),
         hasLength(4),
       );

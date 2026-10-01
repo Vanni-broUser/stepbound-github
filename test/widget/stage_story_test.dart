@@ -148,7 +148,11 @@ void main() {
       await tester.pump();
 
       final cultists = game.simulation.entities.values
-          .where((entity) => entity.kind == EntityKind.cultist)
+          .where(
+            (entity) =>
+                entity.kind == EntityKind.cultist &&
+                !entity.id.startsWith(duomoFarTowerCultistPrefix),
+          )
           .toList();
       expect(cultists, hasLength(4));
       expect(
@@ -184,7 +188,9 @@ void main() {
       await tester.pump();
       expect(
         game.simulation.entities.values.where(
-          (entity) => entity.kind == EntityKind.cultist,
+          (entity) =>
+              entity.kind == EntityKind.cultist &&
+              !entity.id.startsWith(duomoFarTowerCultistPrefix),
         ),
         hasLength(4),
       );
@@ -224,7 +230,9 @@ void main() {
       );
       expect(
         game.simulation.entities.values.where(
-          (entity) => entity.kind == EntityKind.cultist,
+          (entity) =>
+              entity.kind == EntityKind.cultist &&
+              !entity.id.startsWith(duomoFarTowerCultistPrefix),
         ),
         hasLength(4),
         reason: 'the four in the nave, and no fifth one on the cross',

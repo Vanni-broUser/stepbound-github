@@ -12,10 +12,9 @@ import 'package:stepbound/l10n/language.dart';
 /// hook, looking over is all Mario can do: the gap is measured for him,
 /// and he can come back and look again. With it, the game says so, and he
 /// swings across as soon as the line is dismissed (the line is the
-/// game's: see `StepboundGame`). The first time he lands on the Duomo's
-/// other tower,
-/// after the backpack seen from the first, a cultist comes up there after
-/// him.
+/// game's: see `StepboundGame`). On the Duomo's other tower, after the
+/// backpack seen from the first, two cultists are waiting, out of sight
+/// until he is over (see `duomoTowerRoofCameraZones`).
 ///
 /// Back in Molfetta with the hook, Mario is given
 /// [Mission.exploreTerraces]; it is done once he has crossed all three
@@ -39,13 +38,6 @@ final class RooftopsScript extends StoryScript {
   /// The game has already ended with Mario shut in.
   bool _shutIn = false;
 
-  /// Whether the cultist on the Duomo's other tower has come out.
-  bool _towerCultistOut = false;
-
-  /// Mario is swinging onto the Duomo's other tower for the first time:
-  /// the cultist comes out once the swing has played.
-  bool _towerCultistDue = false;
-
   /// The gaps crossed with the hook, by their names in
   /// `hometownGrappleCrossings`.
   final Set<String> _crossed = <String>{};
@@ -63,12 +55,6 @@ final class RooftopsScript extends StoryScript {
         _crossed.add(crossing);
         _checkTerraces();
       }
-      // The line was said before the swing (see `StepboundGame`): the
-      // cultist comes up once Mario has landed.
-      if (!_towerCultistOut &&
-          to == world.grapples[duomoTowerLookoutTile]?.to) {
-        _towerCultistDue = true;
-      }
       return;
     }
     if (event is! LookedOutEvent ||
@@ -81,26 +67,8 @@ final class RooftopsScript extends StoryScript {
     say(StoryPrompt(<StoryLine>[StoryLine(gapLesson)]));
   }
 
-  /// The cultist comes out of the far corner of the other tower, headed
-  /// for where Mario landed: it sees him at once, and raises the alert.
-  void _raiseTowerCultist() {
-    if (_towerCultistOut) {
-      return;
-    }
-    _towerCultistOut = true;
-    final cultist = createDuomoTowerCultist();
-    cultist.component<HearingComponent>().lastHeard = world.player
-        .component<PositionComponent>()
-        .position;
-    host.spawnZombie(cultist);
-  }
-
   @override
   void update({required bool turnAnimating}) {
-    if (_towerCultistDue && !turnAnimating) {
-      _towerCultistDue = false;
-      _raiseTowerCultist();
-    }
     _checkWayOut(turnAnimating: turnAnimating);
     final missions = progress.missions;
     const mission = Mission.exploreTerraces;
@@ -144,7 +112,6 @@ final class RooftopsScript extends StoryScript {
 
   @override
   Map<String, Object?> toJson() => <String, Object?>{
-    if (_towerCultistOut) 'towerCultist': true,
     if (_crossed.isNotEmpty) 'crossed': <String>[..._crossed],
   };
 
@@ -152,7 +119,6 @@ final class RooftopsScript extends StoryScript {
   void restore(Map<String, Object?> json) {
     _fireMoved = true;
     _shutIn = false;
-    _towerCultistOut = json['towerCultist'] as bool? ?? false;
     _crossed
       ..clear()
       ..addAll((json['crossed'] as List<Object?>? ?? const <Object?>[]).cast());

@@ -176,15 +176,24 @@ void main() {
     expect(restored.player.component<AmmoComponent>().rockets, 2);
   });
 
-  test("the cultist comes out on the other tower's roof, out of sight of "
-      'the first and walkable to Mario', () {
+  test("two cultists wait on the other tower's roof from the start, "
+      'walkable to Mario and not on the backpack', () {
     final world = createGameWorld();
     final landing = world.grapples[duomoTowerLookoutTile]!.to;
-    expect(world.map.tileAt(duomoFarTowerCultistTile).isWalkable, isTrue);
-    expect(placeAt(duomoFarTowerCultistTile)?.id, PlaceId.duomoTowerRoof);
     final reached = world.map.floodFillDistances(landing, maxDistance: 400);
-    expect(reached.containsKey(duomoFarTowerCultistTile), isTrue);
-    expect(world.entities.containsKey(duomoFarTowerCultistId), isFalse);
-    expect(duomoFarTowerCultistTile, isNot(duomoFarTowerBackpackTile));
+    final cultists = <Entity>[
+      for (final entity in world.entities.values)
+        if (entity.id.startsWith(duomoFarTowerCultistPrefix)) entity,
+    ];
+    expect(cultists, hasLength(2));
+    for (final cultist in cultists) {
+      final at = cultist.component<PositionComponent>().position;
+      expect(cultist.kind, EntityKind.cultist);
+      expect(duomoFarTowerCultistTiles, contains(at));
+      expect(placeAt(at)?.id, PlaceId.duomoTowerRoof);
+      expect(world.map.tileAt(at).isWalkable, isTrue);
+      expect(reached.containsKey(at), isTrue);
+      expect(at, isNot(duomoFarTowerBackpackTile));
+    }
   });
 }

@@ -21,7 +21,6 @@ void main() {
       <GridPoint>[
         ...carabiniereSpawns,
         ...mallHordeSpawns,
-        createDuomoTowerCultist().component<PositionComponent>().position,
       ].where(doorways.contains),
       isEmpty,
     );
