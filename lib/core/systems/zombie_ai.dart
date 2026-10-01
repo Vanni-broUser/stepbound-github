@@ -75,7 +75,10 @@ final class ZombieAi {
     final zombiePosition = zombie.component<PositionComponent>();
     final playerPosition = world.player.component<PositionComponent>().position;
 
-    if (zombiePosition.position.manhattanDistanceTo(playerPosition) == 1 ||
+    // Never over the rails of a flight of stairs: it bites only where it
+    // could step (see `WorldState.canStep`).
+    if ((zombiePosition.position.manhattanDistanceTo(playerPosition) == 1 &&
+            world.canStep(zombiePosition.position, playerPosition)) ||
         _inReach(world, zombie)) {
       zombiePosition.facing = _directionBetween(
         zombiePosition.position,
@@ -326,7 +329,8 @@ final class ZombieAi {
   }
 
   /// A baton hits the player further than one tile away when they stand in
-  /// a straight line with nothing (wall, table, body, backpack) in between.
+  /// a straight line with nothing (wall, table, body, backpack, the rail of
+  /// a flight of stairs) in between.
   bool _inReach(WorldState world, Entity zombie) {
     final reach = zombie.component<ActorComponent>().attackReach;
     if (reach < 2) {
@@ -342,13 +346,18 @@ final class ZombieAi {
     }
     final direction = _directionBetween(from, to);
     var cursor = from.step(direction);
+    if (!world.canStep(from, cursor)) {
+      return false;
+    }
     while (cursor != to) {
+      final next = cursor.step(direction);
       if (!world.map.tileAt(cursor).isWalkable ||
           world.entityAt(cursor, excluding: zombie.id) != null ||
-          world.pickupAt(cursor) != null) {
+          world.pickupAt(cursor) != null ||
+          !world.canStep(cursor, next)) {
         return false;
       }
-      cursor = cursor.step(direction);
+      cursor = next;
     }
     return true;
   }

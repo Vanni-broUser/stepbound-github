@@ -80,7 +80,8 @@ const List<String> romePalazzoSecondFloorRows = <String>[
 /// stairwell's little house `H` on the palazzo's terrace, east. The terrace
 /// is paved in cotto `.`, walled round by its parapet `^`, with the water
 /// tanks `T`, an aerial `n`, the posts of the washing lines `l`, a deck
-/// chair `a`, the lemon trees in their pots `p` and a satellite dish `s`.
+/// chair `a`, the lemon trees in their pots `p`, a satellite dish `s` and,
+/// towards the terrace's south-east corner, a campfire `S`.
 /// Everywhere past what can be walked on the roofs of Rome begin, tiles
 /// `R`. West, across the drop `x` to the street, the bank's flat roof:
 /// gravel `,`, its own parapet `^`, the air conditioners `k`, a skylight
@@ -104,7 +105,7 @@ const List<String> romePalazzoRoofRows = <String>[
   'RR^,,,vv,,,,,,,,,,^xxx^......:.......b.....^RR',
   'RR^,,,vv,,,,,k,,,,^xxx^.................s..^RR',
   'RR^,,,,,:,,,,,,,:,^xxx^...a....p...........^RR',
-  'RR^,,,,,,,,,,,,,,,^xxx^...........:.......p^RR',
+  'RR^,,,,,,,,,,,,,,,^xxx^...........:.....S.p^RR',
   'RR^^^^^^^^^^^^^^^^^xxx^....................^RR',
   'RRRRRRRRRRRRRRRRRRRxxx^^^^^^^^^^^^^^^^^^^^^^RR',
   'RRRRRRRRRRRRRRRRRRRxxxRRRRRRRRRRRRRRRRRRRRRRRR',

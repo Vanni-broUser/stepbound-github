@@ -71,7 +71,7 @@ final class EnglishStrings implements Strings {
   @override
   String get menuSlotBackup => '(backup)';
   @override
-  String get menuSlotSuspended => '(suspended)';
+  String get menuSlotSuspended => '[ SUSPENDED ]';
   @override
   String get menuGift => 'GIFT';
   @override
@@ -173,6 +173,7 @@ final class EnglishStrings implements Strings {
     'Sagrato del Duomo': 'Duomo churchyard',
     'Fine del porto': 'End of the harbour',
     'Tetti di via Marsala': 'Via Marsala rooftops',
+    'Terrazza di via Marsala': 'Via Marsala terrace',
     'Banca': 'Bank',
     'Caveau della banca': 'Bank vault',
     'Piazza dei Cinquecento': 'Piazza dei Cinquecento',
@@ -735,8 +736,7 @@ final class EnglishStrings implements Strings {
   String get palazzoKeyUsedLine =>
       'You used the Key of the third floor to open the door';
   @override
-  String get palazzoLockedDoorLine =>
-      'This door is locked. One of the neighbours must have the key';
+  String get palazzoLockedDoorLine => 'This door is locked. You need a key';
   @override
   String get priestBarKeyLine =>
       'Use this key to open a door in the Bar Arcobaleno on the harbour, there you will find my episcopal ring';

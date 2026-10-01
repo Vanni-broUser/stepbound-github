@@ -70,7 +70,7 @@ const Legend bankLegend = Legend(walls: 'xWwIQB', obstacles: 'GTKhlSCPpLor');
 /// gravel and the rubble crunch.
 const Legend romeRoofLegend = Legend(
   walls: 'xRH',
-  obstacles: '^<>Tnlapsko',
+  obstacles: '^<>TnlapskoS',
   debris: ':,',
 );
 
@@ -353,9 +353,14 @@ const GridPoint terminiRubbishBackpackSpot = GridPoint(5, 10);
 /// The campfire on Piazza dei Cinquecento, in front of Termini.
 final GridPoint piazzaCampfireTile = _piazza.tileOf('S');
 
+/// The campfire on the terrace of the palazzo beside the bank, on Via
+/// Marsala, towards its south-east corner.
+final GridPoint terraceCampfireTile = _palazzoRoof.tileOf('S');
+
 /// Rome's campfires, by tile, with the name shown in the save slots.
 final Map<GridPoint, String> romeCampfireNames = <GridPoint, String>{
   piazzaCampfireTile: 'Piazza dei Cinquecento',
+  terraceCampfireTile: 'Terrazza di via Marsala',
 };
 
 /// The one sprinter of Rome, loose on the piazza.
@@ -482,9 +487,10 @@ const String roadblockCarabinierePrefix = 'roadblock-carabiniere-';
 const String roadblockBackpackId = 'roadblock-backpack';
 final GridPoint roadblockBackpackTile = _piazza.tileOf('9');
 
-/// The fires burning in Rome's streets.
+/// The fires burning in Rome's streets, and the campfire on the terrace.
 final List<FireSpot> romeFireSpots = <FireSpot>[
-  for (final street in <Place>[_piazza, _marsala]) ...firesIn(street),
+  for (final street in <Place>[_piazza, _marsala, _palazzoRoof])
+    ...firesIn(street),
   ...roadblockFireSpots,
 ];
 
