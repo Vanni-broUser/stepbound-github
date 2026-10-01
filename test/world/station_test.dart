@@ -184,7 +184,7 @@ void main() {
         final rows = room.rows;
         final sides = <int>[
           for (var y = 0; y < rows.length; y++)
-            if (walled(rows[y].replaceAll('x', ' '))) y,
+            if (walled(rows[y].replaceAll(RegExp('[x_]'), ' '))) y,
         ];
         expect(sides, isNotEmpty, reason: '${room.id}');
         for (var y = sides.first; y <= sides.last; y++) {
@@ -193,12 +193,12 @@ void main() {
           final east = row.lastIndexOf('|');
           expect(west, isNot(east), reason: '${room.id} row $y');
           expect(
-            row.substring(0, west).replaceAll('x', ''),
+            row.substring(0, west).replaceAll(RegExp('[x_]'), ''),
             isEmpty,
             reason: '${room.id} row $y: nothing outside the west wall',
           );
           expect(
-            row.substring(east + 1).replaceAll('x', ''),
+            row.substring(east + 1).replaceAll(RegExp('[x_]'), ''),
             isEmpty,
             reason: '${room.id} row $y: nothing outside the east wall',
           );

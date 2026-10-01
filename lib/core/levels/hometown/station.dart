@@ -52,7 +52,10 @@ import 'package:stepbound/core/levels/place.dart';
 /// over; `?` burns and cannot be walked through; `.` the hall floor, `=`
 /// the platform, `,` ballast, `-` the rails, `:` litter (noisy), `b`
 /// blood, `p` the tactile path, `*` a working lamp, `+` a flickering one,
-/// `Z` a wanderer. Two wanderers roam the underpass too.
+/// `Z` a wanderer. Two wanderers roam the underpass too. `_` is ballast
+/// out of reach, a wall: beside the station's rooms under the tracks that
+/// run on off the map, and past both ends of the train on the far
+/// platform, whose walls go on above it and round the foot of its stairs.
 // station-rows-start
 const List<String> stationRows = <String>[
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
@@ -64,16 +67,16 @@ const List<String> stationRows = <String>[
   'HHHH??CCCCCCCCCCCCCCCCC#VVVMMMMMMMMMMMMMMMM',
   'HHHH??CCCCCCCCCCCCCCCCC#VVVMMMMMMMMMMMMMMMM',
   'HHHH??CCCCCCCCCCCCCCCCC#VVVMMMMMMMMMMMMMMMM',
-  'xxx|==================:#VVV##==========|xxx',
-  'xxx|==nn=====T=====nn=9#VVV#===========|xxx',
-  'xxx|=================:=#VVV============|xxx',
-  'xxx|WWWWWWWW....WWWWWWWWVVVWWWW....WWWW|xxx',
-  'xxx|.Z.:......Z......:..VVV............|xxx',
-  'xxx|..T....K.........:..VVV..:.ppppp...|xxx',
-  'xxx|.....b......:......#VVV#b..p...UU..|xxx',
-  'xxx|..:.............:.##VVV##..p...UU..|xxx',
-  'xxx|........:.........##VVV##T.p.....:.|xxx',
-  'xxx|wwwwwwwwEEwwwwwwwwwwwwwwwwwOOwwwwww|xxx',
+  '___|==================:#VVV##==========|___',
+  '___|==nn=====T=====nn=9#VVV#===========|___',
+  '___|=================:=#VVV============|___',
+  '___|WWWWWWWW....WWWWWWWWVVVWWWW....WWWW|___',
+  '___|.Z.:......Z......:..VVV............|___',
+  '___|..T....K.........:..VVV..:.ppppp...|___',
+  '___|.....b......:......#VVV#b..p...UU..|___',
+  '___|..:.............:.##VVV##..p...UU..|___',
+  '___|........:.........##VVV##T.p.....:.|___',
+  '___|wwwwwwwwEEwwwwwwwwwwwwwwwwwOOwwwwww|___',
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
 ];
 // station-rows-end
@@ -105,19 +108,20 @@ const List<String> stationUnderpassRows = <String>[
 /// repeated `l` and `r` cells carry the two damaged Molfetta station signs.
 // far-platform-rows-start
 const List<String> stationFarSideRows = <String>[
-  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
-  'xWWWllllllllWWWWWWWWWWWWrrrrrrrrWWWx',
-  'xWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWx',
-  'xMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMx',
-  'xMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMx',
-  'xMMMMMPMMMMMMMMMMMMMMMMMMMMMMMMMMMMx',
+  'WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW',
+  'WWWWllllllllWWWWWWWWWWWWrrrrrrrrWWWW',
+  'WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW',
+  '_MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM_',
+  '_MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM_',
+  '_MMMMMPMMMMMMMMMMMMMMMMMMMMMMMMMMMM_',
   '|==================================|',
   '|==nn======T=========nn=====T======|',
   '|=:=========================:======|',
   '|==================================|',
   '|WWWWWWWWWWWWWWWWDDWWWWWWWWWWWWWWWW|',
-  'xxxxxxxxxxxxxxxxxDDxxxxxxxxxxxxxxxxx',
-  'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+  'WWWWWWWWWWWWWWWWWDDWWWWWWWWWWWWWWWWW',
+  'WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW',
+  'WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW',
 ];
 // far-platform-rows-end
 
@@ -128,7 +132,7 @@ const List<String> stationFarSideRows = <String>[
 /// the far-platform signs `l` and `r` hang against the wall, and the gap by
 /// the burning car `?` is on fire.
 const Legend stationLegend = Legend(
-  walls: 'xWwMmCVHP#|lr',
+  walls: 'xWwMmCVHP#|lr_',
   obstacles: 'TKn',
   fire: '?',
 );

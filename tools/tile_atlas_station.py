@@ -401,7 +401,7 @@ def station_far_side(atlas: Atlas, rng) -> dict:
         # The ground, in the order the baker laid it: track, ballast, the
         # platform and its edge, and the booking hall's terrazzo elsewhere.
         rule("ground", "-", rails, [neighbour_key(-1, 0, "-")]),
-        rule("ground", ",M", [ballast]),
+        rule("ground", ",M_", [ballast]),
         rule("ground", "=Tno",
              [platform(0, False), platform(1, False),
               platform(0, True), platform(1, True)],
@@ -594,7 +594,7 @@ def station_hall(atlas: Atlas, rng) -> dict:
         # platform and its edge, and the booking hall's terrazzo elsewhere.
         # The track runs on off the west edge of the map.
         rule("ground", "-", rails, [neighbour_key(-1, 0, "-x")]),
-        rule("ground", ",MmCVH", [ballast]),
+        rule("ground", ",MmCVH_", [ballast]),
         rule("ground", "?", [atlas.bucket(lambda: tile_of(
             lambda d: station.paint_scorched_ballast(d, rng, 0, 0)))]),
         rule("ground", "=TKn9",
