@@ -6,6 +6,7 @@ import 'package:stepbound/game/audio/game_audio.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/crucified_zombie_component.dart';
+import 'package:stepbound/game/render/npc_component.dart';
 import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/ui/portrait_image.dart';
@@ -112,6 +113,40 @@ void main() {
       tapOn(game, Direction.east);
       game.update(0.3);
       expect(mario.position, start.step(Direction.east));
+    });
+  });
+
+  testWidgets('out of the view, Luigi is gone at once: Mario does not wait '
+      'for him to get to the stairs', (tester) {
+    return tester.runAsync(() async {
+      final game = await pumpReadyGame(tester);
+      final map = game.simulation.map;
+      for (var x = luigiBars.left; x <= luigiBars.right; x++) {
+        map.setTile(GridPoint(x, luigiBars.top), const Tile(TileKind.floor));
+      }
+      game.simulation.player.component<PositionComponent>()
+        ..position = GridPoint(luigiBars.right + 2, luigiSceneTrigger.top)
+        ..facing = Direction.east;
+      game.update(1 / 60);
+
+      var walked = 0;
+      var from = luigiTile;
+      for (final tile in luigiExitPath) {
+        walked += (tile.x - from.x).abs() + (tile.y - from.y).abs();
+        from = tile;
+      }
+      final toTheStairs = walked / NpcComponent.walkTilesPerSecond;
+
+      var gone = false;
+      game.hometown.sendLuigiAway(onFinished: () => gone = true);
+      var elapsed = 0.0;
+      for (var i = 0; i < 400 && !gone; i++) {
+        game.update(0.05);
+        elapsed += 0.05;
+      }
+      expect(gone, isTrue);
+      expect(elapsed, lessThan(toTheStairs - 0.5));
+      expect(map.tileAt(luigiTile).isWalkable, isTrue);
     });
   });
 

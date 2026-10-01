@@ -61,9 +61,13 @@ final class HometownStage extends LevelStage implements HometownActions {
   bool _stairCultistMoved = false;
   bool _changingOutfit = false;
 
-  /// True while Luigi walks out of the hypermarket: Mario waits for him to
-  /// be gone, so the two never walk through each other.
-  bool _luigiLeaving = false;
+  /// Luigi walking out of the hypermarket, until he is gone: Mario waits
+  /// for him, so the two never walk through each other. Out of the view he
+  /// is gone at once: nobody sees him get to the stairs.
+  NpcComponent? _leavingLuigi;
+  void Function()? _luigiGoneThen;
+
+  bool get _luigiLeaving => _leavingLuigi != null;
 
   MallScript get _mallScript =>
       game.story.scripts.whereType<MallScript>().first;
@@ -171,6 +175,12 @@ final class HometownStage extends LevelStage implements HometownActions {
       _chiara!.removeFromParent();
       _chiara = null;
       _vacate(chiaraTile);
+    }
+    final luigi = _leavingLuigi;
+    if (luigi != null &&
+        !luigi.toRect().overlaps(game.camera.visibleWorldRect)) {
+      luigi.removeFromParent();
+      _luigiGone();
     }
   }
 
@@ -284,15 +294,21 @@ final class HometownStage extends LevelStage implements HometownActions {
     }
     _luigi = null;
     game.input.stop();
-    _luigiLeaving = true;
-    luigi.walkAwayThrough(
-      luigiExitPath,
-      onArrived: () {
-        _luigiLeaving = false;
-        _vacate(luigiTile);
-        onFinished?.call();
-      },
-    );
+    _leavingLuigi = luigi;
+    _luigiGoneThen = onFinished;
+    luigi.walkAwayThrough(luigiExitPath, onArrived: _luigiGone);
+  }
+
+  /// Luigi is down the stairs, or out of the view: Mario can go on.
+  void _luigiGone() {
+    if (_leavingLuigi == null) {
+      return;
+    }
+    _leavingLuigi = null;
+    _vacate(luigiTile);
+    final then = _luigiGoneThen;
+    _luigiGoneThen = null;
+    then?.call();
   }
 
   @override
