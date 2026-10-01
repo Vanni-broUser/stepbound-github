@@ -22,6 +22,10 @@ from PIL import Image
 CELL_W = 16
 CELL_H = 24
 SHEET_SIDE = 96
+SOURCE_CELL_W = 64
+SOURCE_CELL_H = 96
+SOURCE_SHEET_W = SOURCE_CELL_W * 6
+SOURCE_SHEET_H = SOURCE_CELL_H * 4
 DIRECTIONS = ("south", "west", "east", "north")
 ZOMBIE_TYPES = ("wanderer", "sprinter", "brute", "blind")
 
@@ -795,6 +799,57 @@ def build_sheet(row_frames) -> Image.Image:
     return sheet
 
 
+def brute_source_sheet(action: str) -> Image.Image:
+    """Reduce the detailed Brute source atlas to the runtime 96x96 grid.
+
+    The source keeps four times as many pixels on each axis so the painted
+    fabric, skin and face clusters survive the final reduction.  Cropping one
+    cell at a time prevents neighbouring animation frames bleeding together.
+    """
+    source_name = "brute_walk.png" if action == "walk" else f"brute_{action}.png"
+    source_path = os.path.abspath(
+        os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "assets",
+            "characters",
+            "zombies",
+            "sources",
+            source_name,
+        )
+    )
+    with Image.open(source_path) as opened:
+        source = opened.convert("RGBA")
+    if source.size != (SOURCE_SHEET_W, SOURCE_SHEET_H):
+        raise ValueError(
+            f"{source_name} must be {SOURCE_SHEET_W}x{SOURCE_SHEET_H}, "
+            f"got {source.width}x{source.height}"
+        )
+    sheet = Image.new("RGBA", (SHEET_SIDE, SHEET_SIDE), (0, 0, 0, 0))
+    for row in range(4):
+        for column in range(6):
+            left = column * SOURCE_CELL_W
+            top = row * SOURCE_CELL_H
+            frame = source.crop(
+                (left, top, left + SOURCE_CELL_W, top + SOURCE_CELL_H)
+            ).resize((CELL_W, CELL_H), Image.Resampling.LANCZOS)
+            alpha_box = frame.getchannel("A").getbbox()
+            if alpha_box is None:
+                raise ValueError(f"{source_name} row {row} column {column} is empty")
+            foot_offset = CELL_H - alpha_box[3]
+            if foot_offset:
+                anchored = Image.new("RGBA", (CELL_W, CELL_H), (0, 0, 0, 0))
+                anchored.alpha_composite(frame, (0, foot_offset))
+                frame = anchored
+            # The runtime contract reserves one transparent pixel on either
+            # side of every cell. LANCZOS can otherwise leave a faint fringe.
+            for y in range(CELL_H):
+                frame.putpixel((0, y), (0, 0, 0, 0))
+                frame.putpixel((CELL_W - 1, y), (0, 0, 0, 0))
+            sheet.alpha_composite(frame, (column * CELL_W, row * CELL_H))
+    return sheet
+
+
 def directional_rows(painter):
     """Frames per row; the east row mirrors the west row."""
     rows = []
@@ -866,12 +921,12 @@ def main() -> None:
 
     # Mario's gun and pickup sheets come from tools/generate_protagonist_actions.py,
     # which builds them from his real idle frames.
-    outputs = {"brute.png": brute_walk_sheet(ZOMBIE_SPECS["brute"])}
+    outputs = {"brute.png": brute_source_sheet("walk")}
     for zombie_type in ZOMBIE_TYPES:
         spec = ZOMBIE_SPECS[zombie_type]
         for action in ("hit", "bite", "death"):
             outputs[f"{zombie_type}_{action}.png"] = (
-                brute_action_sheet(spec, action)
+                brute_source_sheet(action)
                 if zombie_type == "brute"
                 else zombie_sheet(spec, action)
             )

@@ -72,7 +72,13 @@ Combat animations share the same 96×96, 4-rows-by-6-columns grid and are listed
 - `zombies/sprites/<type>_bite.png`: wind-up, two lunge frames with an open maw, recovery.
 - `zombies/sprites/<type>_death.png`: six-frame collapse from flinch to prone.
 
-The common sheets are produced by `tools/generate_action_sprites.py`; the carabiniere and special archetypes are derived by `tools/generate_carabiniere.py` and `tools/generate_special_zombies.py`. Run the scripts from the repository root with Python and Pillow.
+The common sheets are produced by `tools/generate_action_sprites.py`; the
+Brute's walk and action sheets are reduced cell by cell from the detailed
+384×384 masters in `assets/characters/zombies/sources/`, so neighbouring
+frames never bleed across the runtime grid. The carabiniere and special
+archetypes are derived by `tools/generate_carabiniere.py` and
+`tools/generate_special_zombies.py`. Run the scripts from the repository root
+with Python and Pillow.
 
 ## Props
 
