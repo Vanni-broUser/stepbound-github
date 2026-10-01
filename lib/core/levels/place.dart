@@ -150,11 +150,20 @@ final class Legend {
 /// A ceiling lamp, or daylight through a door, inside a building, or a
 /// burning [torch], which throws a wider, warmer light.
 final class LightSpot {
-  const LightSpot(this.tile, {this.flickers = false, this.torch = false});
+  const LightSpot(
+    this.tile, {
+    this.flickers = false,
+    this.torch = false,
+    this.spill = false,
+  });
 
   final GridPoint tile;
   final bool flickers;
   final bool torch;
+
+  /// Not a lamp but the light of a lit room coming through an open door
+  /// into a dark one: a soft pool, with no lamp's warmth in it.
+  final bool spill;
 }
 
 /// Where the camera stops in part of a place, when it must stop short of
@@ -194,6 +203,7 @@ final class PlaceSpec {
     this.flickeringLamps = const <GridPoint>[],
     this.darkness = defaultDarkness,
     this.litAreas = const <GridRect>[],
+    this.openDoors = '',
     this.art,
     this.cameraZones = const <CameraZone>[],
   });
@@ -235,6 +245,11 @@ final class PlaceSpec {
   /// on, so no darkness falls there at all: the stairwell of a block of
   /// flats, whose flats stay dim. In the place's own tile coordinates.
   final List<GridRect> litAreas;
+
+  /// The glyphs of the doors standing open between the [litAreas] and the
+  /// dark rooms off them -- the flats' doors onto a lit landing -- that
+  /// let a little of the light through (see [LightSpot.spill]).
+  final String openDoors;
 
   /// The place whose art in the tile atlas this one is painted with, when
   /// it has none of its own: its rows then keep to that place's glyphs.
@@ -411,7 +426,9 @@ final class Place {
         if (glyph == '*' || spec.daylight.contains(glyph))
           LightSpot(tile)
         else if (glyph == '+')
-          LightSpot(tile, flickers: true),
+          LightSpot(tile, flickers: true)
+        else if (spec.openDoors.contains(glyph))
+          LightSpot(tile, spill: true),
     if (indoor)
       for (final torch in torches) LightSpot(torch, torch: true),
     if (indoor)

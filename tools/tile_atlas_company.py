@@ -231,6 +231,14 @@ def paint_doorway(d, px, py):
     rect(d, px + TILE - 2, py, 2, 12, CO_STEEL)
 
 
+def paint_side_doorway(d, px, py):
+    """paint_doorway's frame in a side wall (see
+    tile_atlas_palazzo.paint_side_door): the door long gone."""
+    palazzo.paint_side_door(d, px, py, CO_WALL_TOP, CO_WALL_TOP_LIGHT,
+                            CO_STEEL, CO_STEEL, CO_STEEL_DARK, CO_STEEL,
+                            CO_VINYL, CO_VINYL_SEAM, "gone")
+
+
 def stair_door() -> Image.Image:
     """The way up, two tiles high in the back wall: a concrete flight with
     yellow nosings climbing into the dark behind the wall, its steel
@@ -512,7 +520,8 @@ def company_floor(atlas: Atlas, rng, marker: str, images: str) -> dict:
         [atlas.bucket(lambda b=below: tile_of(
             lambda d: paint_partition(d, 0, 0, b)), 1)
          for below in (False, True)],
-        [neighbour_key(0, 1, CO_WALLS)]))
+        # A door below a wall is in that wall: it runs on down into it.
+        [neighbour_key(0, 1, CO_WALLS + "d")]))
     # Glass up and down the room where there is glass above or below it.
     rules.append(rule(
         "structures", "G",
@@ -522,7 +531,11 @@ def company_floor(atlas: Atlas, rng, marker: str, images: str) -> dict:
         [neighbour_key(0, 1, "G")]))
     rules.append(rule("structures", "w", one(paint_front_wall)))
     rules.append(rule("structures", "E", one(paint_gate)))
-    rules.append(rule("structures", "d", one(paint_doorway)))
+    # In a side wall -- one with a wall above the door -- the frame runs
+    # along the wall (see tile_atlas_palazzo.paint_side_door).
+    rules.append(rule("structures", "d", [one(paint_doorway)[0],
+                                          one(paint_side_doorway)[0]],
+                      [neighbour_key(0, -1, CO_WALLS)]))
     rules.append(rule("structures", "v", one(paint_stairs_down)))
     rules.append(rule("structures", ":", randomly(paint_litter)))
     rules.append(rule("structures", "b", randomly(palazzo.paint_blood)))

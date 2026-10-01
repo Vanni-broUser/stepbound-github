@@ -154,6 +154,8 @@ const List<PlaceSpec> romePlaces = <PlaceSpec>[
     indoor: true,
     darkness: palazzoFlatDarkness,
     litAreas: <GridRect>[romePalazzoStairwell],
+    // Light from the landing through the flats' doors, kicked in.
+    openDoors: 'P',
     name: 'Palazzo',
   ),
   PlaceSpec(
@@ -164,6 +166,8 @@ const List<PlaceSpec> romePlaces = <PlaceSpec>[
     indoor: true,
     darkness: palazzoFlatDarkness,
     litAreas: <GridRect>[romePalazzoStairwell],
+    // Light from the landing through the flats' doors, kicked in.
+    openDoors: 'P',
     name: 'Palazzo',
   ),
   PlaceSpec(

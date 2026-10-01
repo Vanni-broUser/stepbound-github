@@ -74,6 +74,9 @@ PZ_RUBBLE = ((196, 184, 160), (160, 148, 128), (124, 112, 98), (210, 200,
 PZ_DAYLIGHT = (238, 214, 150)
 PZ_WALLS = "xWwIL"
 
+# The doors, which stand in a side wall wherever there is wall above them.
+SIDE_DOORS = "dPLY"
+
 # The picture of the way up, one per palazzo.
 STAIRS_IMAGE = "palazzo_stairs_up.png"
 
@@ -258,13 +261,113 @@ def paint_unlocked_door(d, px, py):
     rect(d, px + 2, py + 15, TILE - 4, 1, PZ_MARBLE_BAND)
 
 
-def locked_door_sprites() -> tuple[Image.Image, Image.Image]:
+# ------------------------------------------------- doors in the side walls
+#
+# A door in a wall that runs north to south stands in that wall's line:
+# the wall runs right up to the door's cell without showing its end face,
+# stops, and starts again below it, and between the two the door stands
+# on its stone sill where the wall's core would be -- the leaf in line with
+# the wall (shut), stood back upright on its west side (open), sagging off
+# a hinge (down), or gone, the sill bare. The palazzo's door painters above
+# are for the walls that run east to west; palazzo_floor picks these
+# whenever the cell above the door is a wall, and draws that wall running
+# on down to the door's cell.
+
+# How far in from either side of its cell the side wall's core starts (see
+# paint_partition): where the door's leaf stands.
+SIDE_EDGE = 3
+
+
+def paint_side_door(d, px, py, wall, wall_light, leaf, leaf_light, leaf_dark,
+                    metal, sill, sill_edge, state, blood=False, bolt=None):
+    """A door in a side wall, in the colours of the palazzo it is in: the
+    stone `sill` across the wall's thickness, `sill_edge` its joints.
+    `state` is "shut", "open", "down" (sagging off a hinge) or "gone" (the
+    bare sill); `blood` drags a smear over the sill, `bolt` (a colour) bars
+    a shut leaf across. `wall_light` is the side walls' light edge, which
+    stops short of the door with the rest of the wall."""
+    # The wall stops above the door and starts again below it: across the
+    # whole of its thickness lies the stone sill, in slabs, the shadow of
+    # the wall's end along its top.
+    rect(d, px, py, TILE, TILE, sill)
+    rect(d, px, py + 8, TILE, 1, sill_edge)
+    rect(d, px, py, TILE, 2, shade(sill, -40))
+    rect(d, px + 1, py, TILE - 2, 1, wall)  # the wall's end, above
+    core_x, core_w = px + SIDE_EDGE, TILE - 2 * SIDE_EDGE
+    if state == "shut":
+        # The leaf in the wall's line, filling its core: framed, panelled
+        # down its length, the handle on either face.
+        rect(d, core_x, py, core_w, TILE, leaf_dark)
+        rect(d, core_x + 1, py + 1, core_w - 2, TILE - 2, leaf)
+        rect(d, core_x + 3, py + 2, core_w - 6, 5, leaf_light)
+        rect(d, core_x + 3, py + 9, core_w - 6, 5, leaf_light)
+        rect(d, px + 2, py + 8, 1, 2, metal)
+        rect(d, px + TILE - 3, py + 8, 1, 2, metal)
+        if bolt is not None:
+            rect(d, core_x, py + 7, core_w, 2, bolt)
+        if blood:
+            rect(d, core_x + 2, py + 11, 5, 1, BLOOD)
+            rect(d, core_x + 3, py + 11, 1, 4, BLOOD_DARK)
+        return
+    if state == "open":
+        # Stood back upright on its west side: its edge down the wall's
+        # line, the handle on its face.
+        rect(d, core_x, py + 1, 3, TILE - 2, leaf_dark)
+        rect(d, core_x + 1, py + 2, 1, TILE - 4, leaf_light)
+        rect(d, core_x + 2, py + 8, 1, 2, metal)
+    elif state == "down":
+        # Off its upper hinge, sagging across into the opening.
+        rect(d, core_x, py + 3, 3, TILE - 4, leaf_dark)
+        rect(d, core_x + 1, py + 4, 1, TILE - 6, leaf_light)
+        rect(d, core_x + 3, py + TILE - 5, 2, 4, leaf_dark)
+        rect(d, core_x + 3, py + TILE - 4, 1, 2, leaf)
+        rect(d, core_x + 2, py + 9, 1, 1, metal)
+    if blood:
+        rect(d, core_x + 4, py + 6, 4, 3, BLOOD)
+        rect(d, core_x + 6, py + 9, 1, 3, BLOOD_DARK)
+
+
+def paint_side_doorway(d, px, py):
+    """paint_doorway's door in a side wall: torn off, along the sill."""
+    paint_side_door(d, px, py, PZ_WALL_TOP, PZ_WALL_TOP_LIGHT, PZ_WOOD,
+                    PZ_WOOD_LIGHT, PZ_WOOD_DARK, (200, 180, 90),
+                    PZ_MARBLE, PZ_MARBLE_BAND, "down")
+
+
+def paint_side_flat_door(d, px, py):
+    """paint_flat_door's door in a side wall: kicked in, swung back, the
+    blood dragged out over the sill."""
+    paint_side_door(d, px, py, PZ_WALL_TOP, PZ_WALL_TOP_LIGHT, PZ_WOOD,
+                    PZ_WOOD_LIGHT, PZ_WOOD_DARK, (200, 180, 90),
+                    PZ_MARBLE, PZ_MARBLE_BAND, "open",
+                    blood=True)
+
+
+def paint_side_locked_door(d, px, py):
+    """paint_locked_door's door in a side wall: shut, barred, bloodied."""
+    paint_side_door(d, px, py, PZ_WALL_TOP, PZ_WALL_TOP_LIGHT, PZ_WOOD,
+                    PZ_WOOD_LIGHT, PZ_WOOD_DARK, (200, 180, 90),
+                    PZ_MARBLE, PZ_MARBLE_BAND, "shut",
+                    blood=True, bolt=PZ_STEEL)
+
+
+def paint_side_unlocked_door(d, px, py):
+    """paint_unlocked_door's door in a side wall: swung back, whole."""
+    paint_side_door(d, px, py, PZ_WALL_TOP, PZ_WALL_TOP_LIGHT, PZ_WOOD,
+                    PZ_WOOD_LIGHT, PZ_WOOD_DARK, (210, 190, 110),
+                    PZ_MARBLE, PZ_MARBLE_BAND, "open")
+
+
+def locked_door_sprites(side: bool = False
+                        ) -> tuple[Image.Image, Image.Image]:
     """The third floor's locked door as an object, shut and opened: the key
-    swaps one for the other."""
+    swaps one for the other. With `side` it is a door in a side wall."""
     shut = Image.new("RGBA", (TILE, TILE), TRANSPARENT)
-    paint_locked_door(ImageDraw.Draw(shut), 0, 0)
+    (paint_side_locked_door if side else paint_locked_door)(
+        ImageDraw.Draw(shut), 0, 0)
     opened = Image.new("RGBA", (TILE, TILE), TRANSPARENT)
-    paint_unlocked_door(ImageDraw.Draw(opened), 0, 0)
+    (paint_side_unlocked_door if side else paint_unlocked_door)(
+        ImageDraw.Draw(opened), 0, 0)
     return shut, opened
 
 
@@ -657,23 +760,36 @@ def palazzo_floor(atlas: Atlas, rng, glyphs: str, style=None) -> dict:
             lambda d: s.paint_wall(d, rng, 0, 0, u)))
          for upper in (False, True)],
         [neighbour_key(0, 1, "xWMw")]))
+    # A side wall runs on down into a door cut in it (see paint_side_door):
+    # a door below a wall is in that wall, so the wall shows no face there.
     rules.append(rule(
         "structures", "I",
         [atlas.bucket(lambda b=below: tile_of(
             lambda d: s.paint_partition(d, 0, 0, b)), 1)
          for below in (False, True)],
-        [neighbour_key(0, 1, s.PZ_WALLS)]))
+        [neighbour_key(0, 1, s.PZ_WALLS + SIDE_DOORS)]))
     rules.append(rule("structures", "w", one(s.paint_front_wall)))
-    rules.append(rule("structures", "d", one(s.paint_doorway)))
+    # A door in a wall running east to west, or -- with a wall above it --
+    # in one running north to south (see paint_side_door).
+    side_wall = [neighbour_key(0, -1, s.PZ_WALLS)]
+
+    def door(front, side):
+        return [one(front)[0], one(side)[0]]
+
+    rules.append(rule("structures", "d",
+                      door(s.paint_doorway, s.paint_side_doorway), side_wall))
     rules.append(rule("structures", "D", one(s.paint_stairs_down)))
     rules.append(rule("structures", ":", randomly(s.paint_rubble)))
     rules.append(rule("structures", "b", randomly(s.paint_blood)))
     if "P" in glyphs:
-        rules.append(rule("structures", "P", one(s.paint_flat_door)))
+        rules.append(rule("structures", "P", door(
+            s.paint_flat_door, s.paint_side_flat_door), side_wall))
     if "L" in glyphs:
-        rules.append(rule("structures", "L", one(s.paint_locked_door)))
+        rules.append(rule("structures", "L", door(
+            s.paint_locked_door, s.paint_side_locked_door), side_wall))
     if "Y" in glyphs:
-        rules.append(rule("structures", "Y", one(s.paint_unlocked_door)))
+        rules.append(rule("structures", "Y", door(
+            s.paint_unlocked_door, s.paint_side_unlocked_door), side_wall))
     if "E" in glyphs:
         rules.append(rule("structures", "E", one(s.paint_portone)))
     if "M" in glyphs:
@@ -767,7 +883,8 @@ def palazzo_third_floor(atlas: Atlas, rng) -> dict:
     """The rules that paint PlaceId.palazzoThirdFloor, and its locked door,
     which the key opens."""
     art = palazzo_floor(atlas, rng, "PLpcU" + FURNITURE)
-    shut, opened = locked_door_sprites()
+    # The locked door is in the side wall of the landing.
+    shut, opened = locked_door_sprites(side=True)
     art["objects"].append({"glyph": "L", "image": "palazzo_flat_door.png",
                            "sprite": shut,
                            "whenOpen": "palazzo_flat_door_open.png",
