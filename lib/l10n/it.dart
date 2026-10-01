@@ -500,6 +500,9 @@ final class ItalianStrings implements Strings {
   String get backpacksGoldIngotThought =>
       "Questo andrà bene per quei due maranza. Non penso di poterne fare qualcos'altro";
   @override
+  String get backpacksGoldIngotPuzzled =>
+      "Wow un lingotto d'oro... ma cosa me ne faccio?";
+  @override
   String get backpacksGrapplingHookFound => 'Hai trovato un rampino';
   @override
   String get backpacksGrapplingHookLesson =>

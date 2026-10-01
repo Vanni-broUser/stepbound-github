@@ -1,4 +1,5 @@
 import 'package:stepbound/core/core.dart';
+import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/story/story_director.dart';
 import 'package:stepbound/l10n/language.dart';
 
@@ -20,6 +21,7 @@ final class BackpacksScript extends StoryScript {
   static String get palazzoKeyFound => strings.backpacksPalazzoKeyFound;
   static String get goldIngotFound => strings.backpacksGoldIngotFound;
   static String get goldIngotThought => strings.backpacksGoldIngotThought;
+  static String get goldIngotPuzzled => strings.backpacksGoldIngotPuzzled;
   static String get grapplingHookLesson => strings.backpacksGrapplingHookLesson;
   static String get noRocketLauncher => strings.backpacksNoRocketLauncher;
   static String get rocketLauncherFound => strings.backpacksRocketLauncherFound;
@@ -140,12 +142,14 @@ final class BackpacksScript extends StoryScript {
       }
       if (goldIngot) {
         // What Tonino and Marcello asked for: it is theirs once Mario has
-        // taken it to them (see MaranzaScript).
+        // taken it to them (see MaranzaScript). Found before he has met
+        // them, it is only gold he has no use for.
+        final metThem = progress.hasExperienced(StoryMemory.maranzaMet);
         say(
           StoryPrompt(
             <StoryLine>[
               StoryLine(goldIngotFound),
-              StoryLine.mario(goldIngotThought),
+              StoryLine.mario(metThem ? goldIngotThought : goldIngotPuzzled),
             ],
             delay: StoryDirector.pickupDelay,
             onShown: () => host.unlock(HudElement.goldIngot),

@@ -125,6 +125,23 @@ void main() {
     expect(offices.bounds.contains(upstairs), isTrue);
   });
 
+  test("the vault's doorway, two cells tall, opens straight on to its "
+      'floor: nothing stands in front of it, on either side', () {
+    final world = createGameWorld();
+    final doorway = place(PlaceId.bankVault).tilesOf('O');
+    expect(doorway, hasLength(2));
+    for (final cell in doorway) {
+      expect(world.map.tileAt(cell).isWalkable, isTrue);
+      for (final side in <Direction>[Direction.west, Direction.east]) {
+        expect(
+          world.map.tileAt(cell.step(side)).isWalkable,
+          isTrue,
+          reason: '${cell.step(side)}',
+        );
+      }
+    }
+  });
+
   test('the backpack in the vault holds the gold ingot', () {
     final world = createGameWorld();
     final backpack = world.pickups[bankIngotBackpackId]!;

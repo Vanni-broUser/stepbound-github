@@ -220,15 +220,25 @@ def paint_glass_door(d, px, py):
         rect(d, px + sx, py + sy, 2, 1, (210, 230, 240))
 
 
-def paint_vault_doorway(d, px, py):
-    """The vault's doorway: the steel of the frame underfoot, the holes
-    the bolts went into."""
-    rect(d, px, py, TILE, TILE, BK_STEEL)
-    rect(d, px, py, 3, TILE, BK_STEEL_DARK)
-    rect(d, px + 13, py, 3, TILE, BK_STEEL_DARK)
-    for by in range(py + 2, py + TILE, 5):
-        rect(d, px + 1, by, 1, 2, BK_BLACK)
-        rect(d, px + 14, by, 1, 2, BK_BLACK)
+def paint_vault_doorway(d, px, py, lower):
+    """The vault's doorway, two cells tall, the way through the steel wall:
+    the vault's own floor plate runs out through it, darker than the wall
+    either side, so it reads as the gap it is, with the brass sill the door
+    shut against across it. Over the upper cell the shadow of the wall's
+    cut end, under the lower one the holes the bolts went into."""
+    rect(d, px, py, TILE, TILE, BK_STEEL_DARK)
+    for i in range(0, TILE, 4):
+        for j in range(0, TILE, 4):
+            off = 2 if (j // 4) % 2 else 0
+            rect(d, px + (i + off) % TILE, py + j + 1, 2, 1, BK_STEEL)
+    rect(d, px + 6, py, 4, TILE, BK_BRASS_DARK)
+    rect(d, px + 7, py, 2, TILE, BK_BRASS)
+    if lower:
+        for bx in (px + 2, px + 12):
+            rect(d, bx, py + 13, 2, 2, BK_BLACK)
+    else:
+        rect(d, px, py, TILE, 3, BK_BLACK)
+        rect(d, px, py + 3, TILE, 1, (40, 42, 48))
 
 
 def paint_vault_door(d, px, py, lower):
@@ -500,7 +510,10 @@ def bank_floor(atlas: Atlas, rng, glyphs: str) -> dict:
                 bool(i & 8))), 1) for index in range(16)], keys))
         rules.append(rule("structures", "d", one(paint_glass_door)))
     if "O" in glyphs:
-        rules.append(rule("structures", "O", one(paint_vault_doorway)))
+        rules.append(rule("structures", "O", [atlas.bucket(
+            lambda lo=lower: tile_of(
+                lambda d: paint_vault_doorway(d, 0, 0, lo)), 1)
+            for lower in (False, True)], [neighbour_key(0, -1, "O")]))
     if "o" in glyphs:
         buckets, up = leaning(atlas, lambda i: lambda d, px, py:
                               paint_vault_door(d, px, py, bool(i)),
