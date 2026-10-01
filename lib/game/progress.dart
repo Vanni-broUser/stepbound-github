@@ -186,6 +186,16 @@ extension StoryMemoryLevel on StoryMemory {
     StoryMemory.maranzaPaid => LevelId.rome,
     _ => LevelId.hometown,
   };
+
+  /// The scene it is lived in, named by the first memory of it: what the
+  /// figures of a level count, whole, however many pictures it has. The
+  /// mass runs straight into the massacre, and the golden pistol is
+  /// handed over in Luigi's welcome at the station: one scene each.
+  StoryMemory get scene => switch (this) {
+    StoryMemory.priestMassacre => StoryMemory.priestMass,
+    StoryMemory.goldenPistol => StoryMemory.luigiAtStation,
+    _ => this,
+  };
 }
 
 /// What the player has come to know over the whole game: the zombie types
