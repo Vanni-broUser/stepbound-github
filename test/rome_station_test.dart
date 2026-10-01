@@ -141,6 +141,20 @@ void main() {
       isNotEmpty,
       reason: 'it lies up against the heap',
     );
+    // By the breach, past the brute standing before it, another.
+    final byTheBreach = world.pickups[terminiBreachBackpackId]!;
+    expect(byTheBreach.ammo, 2);
+    expect(reached.containsKey(byTheBreach.position), isTrue);
+    final brute = world.entities[terminiBruteId]!
+        .component<PositionComponent>()
+        .position;
+    expect(byTheBreach.position.manhattanDistanceTo(brute), lessThan(6));
+    expect(
+      terminiBreachTiles
+          .map(byTheBreach.position.manhattanDistanceTo)
+          .reduce((a, b) => a < b ? a : b),
+      lessThan(5),
+    );
     final street = travel(world, terminiBreachTiles.first, Direction.north);
     expect(marsala.bounds.contains(street), isTrue);
     expect(world.map.tileAt(street).isWalkable, isTrue);

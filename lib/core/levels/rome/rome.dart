@@ -373,6 +373,13 @@ const GridPoint piazzaSprinterSpot = GridPoint(67, 12);
 const String terminiBruteId = 'termini-brute';
 const GridPoint terminiBruteSpot = GridPoint(84, 4);
 
+/// The backpack left on the ballast against the back wall, a few steps
+/// east of the breach onto Via Marsala and of the brute standing in front
+/// of it, with two rounds in it: picking it up means getting past him. In
+/// the far platform's own tile coordinates.
+const String terminiBreachBackpackId = 'termini-breach-backpack';
+const GridPoint terminiBreachBackpackSpot = GridPoint(88, 3);
+
 /// The wanderers on the platforms of Termini, `termini-wanderer-<n>`.
 const String terminiZombiePrefix = 'termini-wanderer-';
 
@@ -574,7 +581,8 @@ Map<GridPoint, Portal> _portals() => <GridPoint, Portal>{
 
 /// What Rome holds when a game starts: the dead wandering Termini and
 /// the streets round it, the carabinieri at the roadblock east of the
-/// piazza, a backpack in the rubbish, one by the tank and the grappling
+/// piazza, a backpack in the rubbish, one by the breach onto Via Marsala,
+/// one by the tank and the grappling
 /// hook in the Baths of Diocletian, the station's doors, and the fire in
 /// the roadblock's gap to look at.
 LevelContents romeContents(EntityFactory factory) => LevelContents(
@@ -616,6 +624,11 @@ LevelContents romeContents(EntityFactory factory) => LevelContents(
     Pickup(
       id: terminiRubbishBackpackId,
       position: _onGrid(PlaceId.terminiFarPlatform, terminiRubbishBackpackSpot),
+      ammo: 2,
+    ),
+    Pickup(
+      id: terminiBreachBackpackId,
+      position: _onGrid(PlaceId.terminiFarPlatform, terminiBreachBackpackSpot),
       ammo: 2,
     ),
     Pickup(id: roadblockBackpackId, position: roadblockBackpackTile, ammo: 2),
