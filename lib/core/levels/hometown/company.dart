@@ -32,7 +32,8 @@ import 'package:stepbound/core/levels/place.dart';
 /// - `:` paper and broken plastic strewn about (noisy), `b` blood, `c` a
 ///   body, `*` a ceiling lamp, `+` a flickering one.
 /// - `Q` an operator turned, the handset still at its ear on its cord to
-///   the desk beside it (see `TetherComponent`), `9` a backpack.
+///   the desk beside it (see `TetherComponent`), `9` a backpack, `z` a
+///   sprinter loose in the aisles, only on the floors above.
 /// - `v` the stairs down, in the front wall of the floors above.
 // company-rows-start
 const List<String> companyRows = <String>[
@@ -66,7 +67,8 @@ const List<String> companyRows = <String>[
 /// west and the east half has its one doorway choked with another heap.
 /// Each half has its stairs down `v` in the front wall, over the flight up
 /// from the ground floor, and its stairs up `U` in the back wall. The
-/// operators are at their desks on both sides.
+/// operators are at their desks on both sides, and a sprinter runs loose
+/// in each half.
 // company-first-rows-start
 const List<String> companyFirstRows = <String>[
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
@@ -78,7 +80,7 @@ const List<String> companyFirstRows = <String>[
   'x..-------....-------....I..-------..-------.x',
   'x..D|D|D|D....D|D|D|D....I..D|D|D|D..D|D|D|D.x',
   'x..h|h|Q|h....h|h|h|h....I..h|Q|h|h..h|h|h|h.x',
-  'x.......................rr...................x',
+  'x..........z............rr.......z...........x',
   'x..h|h|h|h....h|h|Q|h...rrr.h|h|h|h..h|h|Q|h.x',
   'x.cB|B|B|B....B|B|B|B....rr.B|B|B|B..B|B|B|B.x',
   'x..-------....-------....I.:-------..-------.x',
@@ -97,7 +99,7 @@ const List<String> companyFirstRows = <String>[
 /// boss's office behind glass in the middle of the back wall. The flights
 /// down from the west half and to the east half of the first floor are
 /// both here: across it is the way round. A backpack with two rounds lies
-/// against the west wall.
+/// against the west wall, and a sprinter runs loose in the middle.
 // company-second-rows-start
 const List<String> companySecondRows = <String>[
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
@@ -109,7 +111,7 @@ const List<String> companySecondRows = <String>[
   'x..-------.........G.....pG..-------.-------.x',
   'x..D|D|D|D.........Gc.....G..D|D|D|D.D|D|D|D.x',
   'x..h|Q|h|h.........GGGdGGGG..h|Q|h|h.h|Q|h|h.x',
-  'x............................................x',
+  'x.....................z......................x',
   'x9.h|h|h|h.-----...........c.h|h|h|Q.h|h|h|h.x',
   'x..B|B|B|B.D|D|D....---......B|B|B|B.B|B|B|B*x',
   'x.b-------.h|Q|h....D|D......-------.-------.x',
@@ -167,6 +169,14 @@ final List<(GridPoint, GridPoint)> companyFlights = <(GridPoint, GridPoint)>[
 /// The backpack with two rounds, against the west wall of the top floor.
 const String companyBackpackId = 'backpack-company';
 final GridPoint companyBackpackTile = _companySecond.tileOf('9');
+
+/// The sprinters loose in the aisles of the floors above the ground one,
+/// `company-sprinter-<n>`, floor by floor from the first up.
+const String companySprinterPrefix = 'company-sprinter-';
+final List<GridPoint> companySprinterTiles = <GridPoint>[
+  ..._companyFirst.tilesOf('z'),
+  ..._companySecond.tilesOf('z'),
+];
 
 /// The company's two wings, either side of the glass wall, from the back
 /// wall to the front one: the west one Mario walks into, the east one

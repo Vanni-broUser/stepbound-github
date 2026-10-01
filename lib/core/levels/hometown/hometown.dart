@@ -756,6 +756,16 @@ LevelContents hometownContents(EntityFactory factory) {
       ),
     );
   }
+  // Loose in the aisles upstairs, facing west as zombies do unless told.
+  for (final (index, tile) in companySprinterTiles.indexed) {
+    entities.add(
+      factory.zombie(
+        id: '$companySprinterPrefix$index',
+        kind: EntityKind.sprinter,
+        position: tile,
+      ),
+    );
+  }
   for (final (tiles, prefix) in <(List<GridPoint>, String)>[
     (electronicsShopZombieTiles, electronicsShopZombiePrefix),
     (palazzoZombieTiles, palazzoZombiePrefix),

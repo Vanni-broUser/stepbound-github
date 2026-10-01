@@ -140,6 +140,46 @@ void main() {
     );
   });
 
+  test('three sprinters run loose upstairs: one in each half of the first '
+      'floor, one on the top floor, none on the ground floor, none by the '
+      'stairs', () {
+    final world = createGameWorld();
+    final sprinters = <Entity>[
+      for (final entity in world.entities.values)
+        if (entity.id.startsWith(companySprinterPrefix)) entity,
+    ];
+    expect(sprinters, hasLength(3));
+    final first = place(PlaceId.companyFirst);
+    final second = place(PlaceId.companySecond);
+    final halfway = first.tilesOf('I').first.x;
+    final floors = <Place>[];
+    for (final sprinter in sprinters) {
+      expect(sprinter.kind, EntityKind.sprinter);
+      final at = sprinter.component<PositionComponent>().position;
+      expect(world.map.tileAt(at).isWalkable, isTrue, reason: sprinter.id);
+      final floor = placeAt(at)!;
+      floors.add(floor);
+      for (final stairs in <GridPoint>[
+        ...floor.tilesOf('v'),
+        ...floor.tilesOf('U'),
+      ]) {
+        expect(
+          at.manhattanDistanceTo(stairs),
+          greaterThan(6),
+          reason: sprinter.id,
+        );
+      }
+    }
+    expect(floors, isNot(contains(company)));
+    expect(floors.where((floor) => floor == second), hasLength(1));
+    final onFirst = [
+      for (final sprinter in sprinters)
+        if (placeAt(sprinter.component<PositionComponent>().position) == first)
+          sprinter.component<PositionComponent>().position.x < halfway,
+    ];
+    expect(onFirst, unorderedEquals(<bool>[true, false]));
+  });
+
   test('the operators sit at their desks, each on a cord to it, none in '
       'the west wing of the ground floor, two in the east one out of sight '
       'from it', () {
