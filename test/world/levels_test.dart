@@ -93,7 +93,10 @@ void main() {
     );
     expect(hometown, contains(EntityKind.cultist));
     expect(levelCampfires(LevelId.hometown), hasLength(7));
-    expect(levelCampfires(LevelId.rome), <String>{'Piazza dei Cinquecento'});
+    expect(levelCampfires(LevelId.rome), <String>{
+      'Piazza dei Cinquecento',
+      'Terrazza di via Marsala',
+    });
   });
 
   test('the wanderers of Termini stand on its platforms, and its stairs are '

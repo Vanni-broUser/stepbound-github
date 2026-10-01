@@ -866,6 +866,7 @@ def rome_palazzo_roof(atlas: Atlas, rng) -> dict:
         lambda t=top: tile_of(lambda d: paint_stair_house(d, 0, 0, t)), 1)
         for top in (False, True)], [neighbour_key(0, 1, "HD")]))
     rules.append(rule("structures", "D", one(paint_terrace_door)))
+    rules.append(rule("structures", "S", one(props.paint_campfire)))
     rules.append(rule("structures", "v", [atlas.bucket(
         lambda h=head: tile_of(lambda d: paint_bank_stairs(d, 0, 0, h)), 1)
         for head in (True, False)], [neighbour_key(0, -1, "v")]))

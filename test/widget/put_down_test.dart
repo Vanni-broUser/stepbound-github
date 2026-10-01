@@ -232,7 +232,7 @@ void main() {
       await tester.pump();
       await tester.tap(find.byKey(const ValueKey<String>('menu-load')));
       await tester.pump();
-      expect(find.textContaining('(in sospeso)'), findsOne);
+      expect(find.textContaining('[ IN SOSPESO ]\nSLOT 1'), findsOne);
       expect(find.textContaining('Città natale'), findsOne);
       await tester.tap(find.byKey(const ValueKey<String>('menu-slot-1')));
       await tester.pump();
