@@ -148,7 +148,7 @@ SHOPS = {
     # still hanging behind it.
     "macelleria": ((214, 210, 200), (160, 152, 140), (150, 26, 26), (246, 240, 228), "MACELLERIA", ()),
     "souvenirroma": ((214, 150, 84), (236, 224, 200), (30, 60, 110), (240, 200, 90), "SOUVENIR ROMA", ()),
-    # Molfetta, on the street out of the palazzo, behind the camp: the
+    # Molfetta, on the street out of the palazzo, west of its portone: the
     # barber's, a white sign with blue letters, the striped pole by its
     # door, a chair and the mirror through the window.
     "barbiere": ((176, 186, 190), (124, 134, 140), (236, 236, 228), (30, 60, 130), "BARBIERE", ()),

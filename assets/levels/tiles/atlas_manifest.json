@@ -6479,19 +6479,19 @@
               "kind": "neighbour",
               "dx": -1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 2,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "pattern",
@@ -9066,19 +9066,19 @@
               "kind": "neighbour",
               "dx": -1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 2,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "pattern",
@@ -9831,12 +9831,12 @@
       ],
       "objects": [
         {
-          "image": "hometown/industryStreet_shop_34_4.png",
-          "at": [34, 4],
+          "image": "hometown/industryStreet_shop_10_4.png",
+          "at": [10, 4],
           "under": [
-            "HHHHHH",
-            "HHHHHH",
-            "HHHHHH"
+            "HHHHH",
+            "HHHHH",
+            "HHHHH"
           ]
         },
         {
@@ -11521,19 +11521,19 @@
               "kind": "neighbour",
               "dx": -1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 2,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "pattern",
@@ -13186,19 +13186,19 @@
               "kind": "neighbour",
               "dx": -1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 2,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "pattern",
@@ -14783,19 +14783,19 @@
               "kind": "neighbour",
               "dx": -1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 2,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "pattern",
@@ -18429,19 +18429,19 @@
               "kind": "neighbour",
               "dx": -1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 2,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "pattern",
@@ -22305,19 +22305,19 @@
               "kind": "neighbour",
               "dx": -1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 2,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "pattern",
@@ -25375,19 +25375,19 @@
               "kind": "neighbour",
               "dx": -1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 1,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "neighbour",
               "dx": 2,
               "dy": 0,
-              "glyphs": "Hf\u0126"
+              "glyphs": "Hf\u0126\u00ab"
             },
             {
               "kind": "pattern",

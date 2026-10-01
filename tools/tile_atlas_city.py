@@ -755,10 +755,12 @@ def sliver_rule(atlas: Atlas, rng, colours, old_town: bool, rome: bool,
     the building beside it instead: its colour, and no seam between them.
     A band of two columns, each the edge of its own building, becomes one
     building in the colour of the first."""
+    # A portone is part of its palazzo's front: the column beside it is
+    # not left alone by it.
     keys = segment_keys() + [
-        neighbour_key(-1, 0, FACADE),
-        neighbour_key(1, 0, FACADE),
-        neighbour_key(2, 0, FACADE),
+        neighbour_key(-1, 0, FRONT),
+        neighbour_key(1, 0, FRONT),
+        neighbour_key(2, 0, FRONT),
         pattern_key(1, 0, SPAN, values=ENDS),
         pattern_key(1, 0, SPAN, values=STARTS),
         neighbour_key(0, -1, FACADE),
