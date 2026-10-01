@@ -60,7 +60,6 @@ enum PlaceId {
   companyGround,
   companyFirst,
   companySecond,
-  monumentSquare,
   electronicsShop,
   eastBlockTopFloor,
   eastBlockLowerFloor,

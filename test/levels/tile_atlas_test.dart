@@ -150,6 +150,16 @@ void main() {
     expect(art.objects.where((object) => object.rises), unorderedEquals(tall));
   });
 
+  test('the monument rises over the cells north of its island: whoever '
+      'walks there goes behind the boulder and the car', () {
+    final art = manifest.places[place(PlaceId.industryStreet).artId.name]!;
+    final monument = art.objects.singleWhere(
+      (object) => object.image.contains('monument'),
+    );
+    expect(monument.rises, isTrue);
+    expect(monument.underCorner, isNotNull);
+  });
+
   test('every car of a pile-up is drawn, even stacked lane on lane', () {
     var cars = 0;
     // Only outdoors are these glyphs cars (in the bar `U` is a zombie).

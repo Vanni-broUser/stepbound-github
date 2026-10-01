@@ -371,12 +371,6 @@ const List<PlaceSpec> hometownPlaces = <PlaceSpec>[
     darkness: companyDarkness,
     name: 'Azienda',
   ),
-  PlaceSpec(
-    id: PlaceId.monumentSquare,
-    area: AreaId.hometownTown,
-    rows: monumentSquareRows,
-    legend: outdoorLegend,
-  ),
   // Its lamps `*` still on, daylight in through the door from the square.
   PlaceSpec(
     id: PlaceId.electronicsShop,
@@ -428,7 +422,6 @@ Iterable<Place> get _streets => <Place>[
   place(PlaceId.harbour),
   place(PlaceId.mallNorthStreet),
   place(PlaceId.industryStreet),
-  place(PlaceId.monumentSquare),
 ];
 
 /// The wanderers standing in the places the outdoor glyphs do not reach:
@@ -531,7 +524,6 @@ Map<GridPoint, Portal> _portals() => <GridPoint, Portal>{
   ...eastBlockPortals,
   ...palazzoPortals,
   ...companyPortals,
-  ...monumentSquarePortals,
   ...electronicsShopPortals,
 };
 
@@ -753,6 +745,16 @@ LevelContents hometownContents(EntityFactory factory) {
           (direction) => tile.step(direction.opposite) == desk,
         ),
         tether: TetherComponent(anchor: desk, length: companyCordLength),
+      ),
+    );
+  }
+  // Loose in the aisles upstairs, facing west as zombies do unless told.
+  for (final (index, tile) in companySprinterTiles.indexed) {
+    entities.add(
+      factory.zombie(
+        id: '$companySprinterPrefix$index',
+        kind: EntityKind.sprinter,
+        position: tile,
       ),
     );
   }

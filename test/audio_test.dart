@@ -72,7 +72,6 @@ void main() {
       expect(stage.musicOf(id), Music.weasel, reason: '$id');
     }
     expect(stage.musicOf(PlaceId.industryStreet), isNull);
-    expect(stage.musicOf(PlaceId.monumentSquare), isNull);
   });
 
   test('once met, Tonino and Marcello bring their music into view', () {

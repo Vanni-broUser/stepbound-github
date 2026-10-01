@@ -2,20 +2,26 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/core/core.dart';
 
 void main() {
-  final square = place(PlaceId.monumentSquare);
+  final square = place(PlaceId.industryStreet);
   final shop = place(PlaceId.electronicsShop);
   final world = createGameWorld();
 
-  test('the road south off the street of the company comes into the top '
-      'of the square, lane for lane, and back', () {
-    expect(industryStreetSouthEdge, hasLength(monumentSquareNorthEdge.length));
-    for (final (i, edge) in industryStreetSouthEdge.indexed) {
-      final down = world.portals[edge]!;
-      expect(down.to, monumentSquareNorthEdge[i].step(Direction.south));
-      expect(down.facing, Direction.south);
-      final up = world.portals[monumentSquareNorthEdge[i]]!;
-      expect(up.to, edge.step(Direction.north));
-    }
+  test('the road south off the street of the company runs on down to the '
+      'square on the same map: no door between the two', () {
+    final reached = world.map.floodFillDistances(
+      industryStreetPortone.step(Direction.south),
+      maxDistance: square.width * square.height,
+    );
+    expect(reached.containsKey(monumentSquareShopDoor), isTrue);
+    expect(square.bounds.contains(monumentSquareShopDoor), isTrue);
+    expect(
+      world.portals.keys.where(
+        (door) =>
+            square.bounds.contains(door) &&
+            square.bounds.contains(world.portals[door]!.to),
+      ),
+      isEmpty,
+    );
   });
 
   test('the monument stands on its island, three cells by three, and is '
@@ -25,7 +31,7 @@ void main() {
       expect(world.map.tileAt(tile).isWalkable, isFalse);
     }
     final reached = world.map.floodFillDistances(
-      monumentSquareNorthEdge.first,
+      monumentSquareShopDoor.step(Direction.south),
       maxDistance: 5000,
     );
     for (final side in Direction.values) {
@@ -109,7 +115,10 @@ void main() {
     expect(world.map.tileAt(pharmacyBackpackTile).isWalkable, isTrue);
     expect(
       world.map
-          .floodFillDistances(monumentSquareNorthEdge.first, maxDistance: 5000)
+          .floodFillDistances(
+            monumentSquareShopDoor.step(Direction.south),
+            maxDistance: 5000,
+          )
           .containsKey(pharmacyBackpackTile),
       isTrue,
     );
