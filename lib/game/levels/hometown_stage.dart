@@ -260,6 +260,13 @@ final class HometownStage extends LevelStage implements HometownActions {
             canInteract() &&
             !simulation.map.tileAt(duomoUpperLockedDoorTile).isWalkable,
       ),
+      // The flat door still locked on the palazzo's third floor, the same.
+      InteractGlintComponent(
+        tile: palazzoLockedDoorTile,
+        active: () =>
+            canInteract() &&
+            !simulation.map.tileAt(palazzoLockedDoorTile).isWalkable,
+      ),
       for (final fire in hometownCampfireNames.keys)
         InteractGlintComponent(
           tile: fire,
