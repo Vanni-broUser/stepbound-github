@@ -245,7 +245,7 @@ void main() {
               ? a
               : b,
         );
-        expect(first.manhattanDistanceTo(start), lessThanOrEqualTo(4));
+        expect(first.manhattanDistanceTo(start), lessThanOrEqualTo(5));
         expect(first.y, airlinerCabinAisleRow - 1, reason: 'in the aisle');
       });
 
