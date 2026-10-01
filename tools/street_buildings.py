@@ -1506,7 +1506,7 @@ def paint_factory(d, rng, level):
     red canopy on two steel posts over it, its name along the canopy,
     and under it the glass doors in their
     steel frame, one leaf thrown open and the other smashed, the
-    reception lit inside. Burnt at one end, blood on the glass, tagged."""
+    reception lit inside. Blood on the glass, tagged."""
     cells = [(x, y) for y in range(level.height) for x in range(level.width)
              if level.at(x, y) in "ÆØ"]
     if not cells:
@@ -1625,11 +1625,6 @@ def paint_factory(d, rng, level):
                scale=2)
     paint_text(d, tx, canopy + 2, FACTORY_NAME, (255, 240, 200),
                scale=2)
-    # burnt at the west end, where a car went up against it
-    rect(d, px, eaves + 2, 26, ground - eaves - 2, (58, 54, 52))
-    rect(d, px + 3, eaves - 4, 18, 6, (80, 76, 72))
-    for rx in range(px + 1, px + 26, 3):
-        rect(d, rx, eaves + 2, 1, ground - eaves - 8, (44, 40, 38))
     rect(d, ex1 + 22, ground - 20, 8, 10, BLOOD)
     rect(d, ex1 + 25, ground - 10, 2, 6, BLOOD_DARK)
     # tags
