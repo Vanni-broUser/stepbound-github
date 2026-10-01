@@ -124,6 +124,70 @@ void main() {
     expect(world.canStep(head.step(Direction.west), head), isTrue);
   });
 
+  /// A wanderer at [at], with Mario heard at [heard] and every other
+  /// zombie of the game out of the way.
+  Entity zombieAt(GridPoint at, GridPoint heard) {
+    for (final entity in world.entities.values.toList()) {
+      if (entity.id != world.playerId) {
+        entity.component<PositionComponent>().position = const GridPoint(0, 0);
+      }
+    }
+    final zombie = createMallZombie('stairs-zombie', at);
+    world.addEntity(zombie);
+    zombie.component<HearingComponent>().lastHeard = heard;
+    return zombie;
+  }
+
+  test('a zombie never bites over the rail of a flight: Mario on a step '
+      'is out of reach of one beside it', () {
+    final head = _topLeft(rooftopFarStairs);
+    final middle = head.step(Direction.east);
+    world.player.component<PositionComponent>().position = middle;
+    zombieAt(middle.step(Direction.north), middle);
+    final events = <WorldEvent>[
+      for (var tick = 0; tick < 2; tick++)
+        ...const TurnScheduler().advance(world, const WaitAction()),
+    ];
+    expect(
+      events.whereType<DamagedEvent>().where(
+        (event) => event.entityId == world.playerId,
+      ),
+      isEmpty,
+    );
+  });
+
+  test('chasing Mario round any flight, a zombie never steps against it', () {
+    for (final step in createGameWorld().stairs.keys) {
+      for (final side in Direction.values) {
+        for (final away in Direction.values) {
+          world = createGameWorld();
+          final from = step.step(side);
+          final heard = step.step(away).step(away);
+          if (world.stairs.containsKey(from) ||
+              !world.map.tileAt(from).isWalkable ||
+              !world.map.tileAt(heard).isWalkable) {
+            continue;
+          }
+          world.player.component<PositionComponent>().position = heard;
+          zombieAt(from, heard);
+          for (var tick = 0; tick < 8; tick++) {
+            for (final moved
+                in const TurnScheduler()
+                    .advance(world, const WaitAction())
+                    .whereType<MovedEvent>()
+                    .where((event) => event.entityId == 'stairs-zombie')) {
+              expect(
+                world.canStep(moved.from, moved.to),
+                isTrue,
+                reason: '${moved.from} to ${moved.to}, by $step',
+              );
+            }
+          }
+        }
+      }
+    }
+  });
+
   test('every other stairway, one cell wide in its wall, can only be got '
       'onto from the floor in front of it', () {
     for (final place in gamePlaces) {
