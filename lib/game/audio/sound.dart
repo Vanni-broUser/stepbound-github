@@ -27,8 +27,8 @@ enum Music {
   maranza('music/maranza.mp3'),
 
   /// Pizzicato tiptoeing like a cartoon villain, slowed down: the hold
-  /// music of a call centre gone wrong. Molfetta's industries, the company
-  /// and Chiara's scenes.
+  /// music of a call centre gone wrong. Inside the company, and Chiara's
+  /// scenes and their memories: never out in the street.
   weasel('music/weasel.mp3');
 
   const Music(this.file);

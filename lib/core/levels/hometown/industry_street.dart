@@ -15,7 +15,7 @@ import 'package:stepbound/core/levels/place.dart';
 /// the south side. East of the palazzo, a few palazzi on, the office
 /// block of a call centre `Æ`, its front all tinted glass, its way in `Ø`
 /// under a red canopy with its name on it, the glass doors broken open
-/// (company.dart); between the two, a camp
+/// (company.dart); between the two, nearer the portone, a camp
 /// on the pavement with its fire `S`. Past the company, at the east edge of
 /// the map, a pile-up shuts the street from pavement to pavement: cars,
 /// burning `XX` and overturned `UU`, some ahead of the others and some
@@ -39,7 +39,7 @@ const List<String> industryStreetRows = <String>[
   'BBBBHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHfHHHHHHHÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆHHH',
   'BBBBHHHHHHHHHHHfHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆÆHHH',
   'BBBBHHHHHHHHHHHHHHHHHHHHHHHHHHH«HHHHHHHHHHHHHHHHHHHHÆÆÆÆÆÆÆÆÆÆØØØØÆÆÆÆÆÆÆÆÆÆÆHHH',
-  'BBBBT=/===T=F==========================/====S======================/=========UU=',
+  'BBBBT=/===T=F========================S=/===========================/=========UU=',
   'BBBB=....Z▏.......:........>.......UU...............r..d..............CC...XX..k',
   'BBBB=.ɔ.-Z----------w-----d-----------w-------:--->----------:--------------CC-k',
   'BBBB=....Z....CC.............:...........d..............w.XX....>....w....XX....',
