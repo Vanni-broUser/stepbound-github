@@ -1589,10 +1589,14 @@ def city_place(atlas: Atlas, rng, name: str, marker, storefront_table,
     monument = run_of(rows, MONUMENT)
     if monument:
         x, y, _, _ = monument
-        objects.append(picture(
+        # The boulder and the car rise two cells and more over the island:
+        # whoever walks north of it goes behind them, wherever they cover
+        # his cell, not only where they fill it.
+        objects.append({**picture(
             rows, level, f"{name}_monument",
             lambda d, lv: props.paint_monument(image_of(d), rng, x * TILE,
-                                               y * TILE), MONUMENT))
+                                               y * TILE), MONUMENT),
+            "rises": True})
     ride = run_of(rows, CAROUSEL)
     if ride:
         x, y, w, h = ride
