@@ -736,8 +736,7 @@ final class EnglishStrings implements Strings {
   String get palazzoKeyUsedLine =>
       'You used the Key of the third floor to open the door';
   @override
-  String get palazzoLockedDoorLine =>
-      'This door is locked. One of the neighbours must have the key';
+  String get palazzoLockedDoorLine => 'This door is locked. You need a key';
   @override
   String get priestBarKeyLine =>
       'Use this key to open a door in the Bar Arcobaleno on the harbour, there you will find my episcopal ring';

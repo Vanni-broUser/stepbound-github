@@ -714,8 +714,7 @@ final class ItalianStrings implements Strings {
   String get palazzoKeyUsedLine =>
       'Hai usato la Chiave del terzo piano per aprire la porta';
   @override
-  String get palazzoLockedDoorLine =>
-      'Questa porta è chiusa a chiave. Qualcuno dei vicini avrà la chiave';
+  String get palazzoLockedDoorLine => 'Questa porta è chiusa. Serve una chiave';
   @override
   String get priestBarKeyLine =>
       'Usa questa chiave per aprire una porta nel bar Arcobaleno sul porto, lì troverai il mio anello episcopale';
