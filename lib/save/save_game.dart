@@ -132,6 +132,13 @@ final class SaveGame {
   /// The zombie types met and the story scenes seen, as `Progress.toJson`.
   final Map<String, Object?> progress;
 
+  /// The level the save was made in, as [progress] says; null if it does
+  /// not say one the game knows.
+  LevelId? get level => switch (progress['level']) {
+    final String name => LevelId.values.asNameMap()[name],
+    _ => null,
+  };
+
   /// Names of the unlocked touch controls.
   final List<String> hud;
 

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
@@ -135,8 +136,25 @@ final class _MainMenuState extends State<MainMenu> {
       'SLOT $slot  ${strings.date(save.savedAt)}'
           '${fromBackup ? '  ${strings.menuSlotBackup}' : ''}'
           '${suspended ? '  ${strings.menuSlotSuspended}' : ''}\n'
-          '${strings.place(save.place)}  ·  ${_played(save.played)}',
+          '${_where(save, _played(save.played))}',
   };
+
+  /// The level the save was made in and the time [played], then, on a
+  /// line of its own, where in the level: the campfire's name or the
+  /// place's, left out when it is just the level's name.
+  static String _where(SaveGame save, String played) {
+    final place = strings.place(save.place);
+    final level = switch (save.level) {
+      LevelId.hometown => strings.levelHometown,
+      LevelId.rome => strings.levelRome,
+      null => null,
+    };
+    return switch (level) {
+      null => '$place  ·  $played',
+      _ when level == place => '$level  ·  $played',
+      _ => '$level  ·  $played\n$place',
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -156,12 +174,15 @@ final class _MainMenuState extends State<MainMenu> {
                   Image.asset(
                     MainMenu.logo,
                     // Smaller where there is more under it: the settings
-                    // have the most.
+                    // and the slots have the most.
                     height:
                         constraints.maxHeight *
                         switch (_page) {
                           _MenuPage.home => 0.32,
-                          _MenuPage.settings => 0.13,
+                          // The slots, three lines each.
+                          _MenuPage.settings ||
+                          _MenuPage.load ||
+                          _MenuPage.newGame => 0.13,
                           _ => 0.22,
                         },
                     fit: BoxFit.contain,

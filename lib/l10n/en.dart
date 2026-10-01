@@ -173,6 +173,7 @@ final class EnglishStrings implements Strings {
     'Sagrato del Duomo': 'Duomo churchyard',
     'Fine del porto': 'End of the harbour',
     'Tetti di via Marsala': 'Via Marsala rooftops',
+    'Terrazza di via Marsala': 'Via Marsala terrace',
     'Banca': 'Bank',
     'Caveau della banca': 'Bank vault',
     'Piazza dei Cinquecento': 'Piazza dei Cinquecento',
