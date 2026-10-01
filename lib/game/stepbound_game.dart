@@ -187,6 +187,8 @@ final class StepboundGame extends FlameGame
     places: gamePlaces,
     playerFeet: () => _characters[playerId]!.position,
     showOpened: (place) => _stages.any((stage) => stage.showsOpened(place.id)),
+    shutRows: (place) =>
+        _stages.map((stage) => stage.shutRows(place.id)).nonNulls.firstOrNull,
     onKeptChanged: _syncProps,
     beacons: () => <GridPoint>[
       for (final id in beaconPickupIds)
@@ -597,7 +599,7 @@ final class StepboundGame extends FlameGame
     if (free && _crossOutLeft > 0) {
       _crossOutLeft -= dt;
     }
-    _camera.follow(player: _playerFeet, place: _placeShown);
+    _camera.follow(player: _playerFeet, place: _placeShown, dt: dt);
     _places.cull(camera.visibleWorldRect);
     _cullOffscreen();
     final shown = _placeShown;

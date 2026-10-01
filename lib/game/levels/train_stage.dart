@@ -34,11 +34,20 @@ final class TrainStage extends LevelStage {
   }
 
   /// Nobody walks through a person: her spot is an obstacle while she is
-  /// there, and floor until she is.
-  void _syncChiaraTile() => simulation.map.setTile(
-    trainChiaraTile,
-    Tile(_chiaraAboard ? TileKind.obstacle : TileKind.floor),
-  );
+  /// there, and floor until she is. Her things come aboard with her, so
+  /// until then her corner is bare floor too.
+  void _syncChiaraTile() {
+    simulation.map.setTile(
+      trainChiaraTile,
+      Tile(_chiaraAboard ? TileKind.obstacle : TileKind.floor),
+    );
+    for (final MapEntry(key: tile, value: glyph) in trainChiaraThings.entries) {
+      simulation.map.setTile(
+        tile,
+        Tile(_chiaraAboard ? trainLegend.kindOf(glyph) : TileKind.floor),
+      );
+    }
+  }
 
   NpcComponent _chiaraAboardComponent() => _chiara = NpcComponent(
     asset: NpcComponent.chiaraAsset,
@@ -121,8 +130,14 @@ final class TrainStage extends LevelStage {
     // At Termini the train is Mario's own, its door open from the start.
     PlaceId.romeTermini => true,
     PlaceId.stationFarSide => _luigiRescued,
+    // Chiara's corner, her things in it, once she is aboard.
+    PlaceId.trainInterior => _chiaraAboard,
     _ => false,
   };
+
+  @override
+  List<String>? shutRows(PlaceId place) =>
+      place == PlaceId.trainInterior ? trainRowsBeforeChiara : null;
 
   /// Luigi carries the keys: rescuing him opens the visible passenger door
   /// and its matching tile in the same frame. Before that the train remains

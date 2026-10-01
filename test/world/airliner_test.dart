@@ -131,12 +131,12 @@ void main() {
         airlinerCabinTear.first.step(Direction.north),
         cabin,
       );
-      // A trolley closes one half of the break; the other is open.
+      // The trolleys stand aside: the whole break is open.
       expect(
         airlinerTailBreak.where(
           (door) => reached.containsKey(door.step(Direction.north)),
         ),
-        hasLength(1),
+        hasLength(airlinerTailBreak.length),
         reason: 'the aisle runs the length of the cabin',
       );
       expect(cabin.lights, isNotEmpty, reason: 'a room on a dark background');
