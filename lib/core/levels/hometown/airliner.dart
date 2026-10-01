@@ -51,7 +51,7 @@ const List<String> airlinerCabinRows = <String>[
   'xI..*.......:*........*:.......*........*.Ix',
   'xI*K.TTTM.TrT..TTT.::.TTT.*rrr..TTT.......Ix',
   'xIM:.TTT..TTT..TTT.::.TTT..TTT..TTT...+...Ix',
-  'xI...TTT..TTT..TTT.::.TTT..TTT..TTT..K.K..Ix',
+  'xI...TTT..TTT..TTT.::.TTT..TTT..TTT....KK.Ix',
   'xwwEEwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwOOwwwwwx',
   'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
 ];

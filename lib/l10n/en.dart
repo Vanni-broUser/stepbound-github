@@ -829,11 +829,14 @@ final class EnglishStrings implements Strings {
   @override
   String get trainZombieNotes => 'Notes on the zombies met so far';
   @override
-  String trainAmmoFull(int rounds) =>
-      'You already have enough ammunition. Come back here when you have fewer than $rounds bullets to reload';
+  String trainAmmoFull(int rounds, {required bool rocketLauncher}) =>
+      'You already have enough ammunition. Come back here when you have '
+      'fewer than $rounds bullets${rocketLauncher ? ' or 1 rocket' : ''} '
+      'to reload';
   @override
-  String trainAmmoRefilled(int rounds) =>
-      'Ammunition refilled. Come back here any time you have fewer than $rounds bullets to reload';
+  String trainAmmoRefilled(int rounds, {required bool rocketLauncher}) =>
+      'Ammunition refilled. Come back here any time you have fewer than '
+      '$rounds bullets${rocketLauncher ? ' or 1 rocket' : ''} to reload';
 }
 
 String _two(int value) => value.toString().padLeft(2, '0');
