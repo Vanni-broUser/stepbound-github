@@ -1872,11 +1872,6 @@ def industry_street(atlas: Atlas, rng) -> dict:
                       brushes.INDUSTRY_STREET_STOREFRONTS)
 
 
-def monument_square(atlas: Atlas, rng) -> dict:
-    return city_place(atlas, rng, "monumentSquare", "monument-square-rows",
-                      brushes.MONUMENT_SQUARE_STOREFRONTS)
-
-
 def via_marsala(atlas: Atlas, rng) -> dict:
     return city_place(atlas, rng, "viaMarsala", "via-marsala-rows",
                       brushes.VIA_MARSALA_STOREFRONTS, rome=True)
@@ -1886,7 +1881,6 @@ PLACES = {
     "harbour": harbour,
     "industryStreet": industry_street,
     "mallNorthStreet": mall_north_street,
-    "monumentSquare": monument_square,
     "northDistrict": north_district,
     "piazzaCinquecento": piazza_cinquecento,
     "street": street,
@@ -1897,7 +1891,6 @@ PREVIEW_ROWS = {
     "harbour": "harbour-rows",
     "industryStreet": "industry-street-rows",
     "mallNorthStreet": "mall-north-rows",
-    "monumentSquare": "monument-square-rows",
     "northDistrict": "north-rows",
     "piazzaCinquecento": "piazza-cinquecento-rows",
     "street": "level-rows",

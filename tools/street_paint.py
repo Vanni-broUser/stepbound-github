@@ -126,12 +126,6 @@ NORTH_STOREFRONTS = {
         (109, 6, "elettronica_aperta"),
     ],
 }
-# On the road east of the monument's square, the Elettronica, its door
-# `h` at column 46: the one shop in town still open.
-# On the road west of it, the chemist's, shut like the rest.
-MONUMENT_SQUARE_STOREFRONTS = {
-    9: [(5, 6, "farmacia"), (44, 5, "elettronica_aperta")],
-}
 MALL_NORTH_STOREFRONTS = {
     3: [
         (4, 5, "pizzeria"),
@@ -164,9 +158,13 @@ VIA_MARSALA_STOREFRONTS = {
 # and every picture drawn after it in the atlas, stays as it was.
 OWN_STREAM = "own"
 # On the street out of the palazzo, a few palazzi west of its portone, a
-# palazzo to itself: the barber's, the only one in town.
+# palazzo to itself: the barber's, the only one in town. Down the road
+# south, on the same map, the monument's square: on the road east of it,
+# the Elettronica, its door `h` at column 46, the one shop in town still
+# open; on the road west of it, the chemist's, shut like the rest.
 INDUSTRY_STREET_STOREFRONTS = {
-    4: [(10, 5, "barbiere", OWN_STREAM)],
+    4: [(40, 5, "barbiere", OWN_STREAM)],
+    31: [(5, 6, "farmacia"), (44, 5, "elettronica_aperta")],
 }
 HARBOUR_STOREFRONTS = {
     7: [(123, 5, "arcobaleno")],  # up the alley, its door `h` at column 125

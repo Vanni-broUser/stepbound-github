@@ -224,9 +224,9 @@ void main() {
       'and no way off it goes nowhere: east, past the company, it ends '
       'against a pile-up at the edge of the map', () {
     expect(campfireNames[industryStreetCampfireTile], 'Davanti all’azienda');
-    // The road going down south leads on to the monument's square
-    // (monument_square_test.dart); past the pile-up the street runs on to
-    // the edge, but nobody gets there.
+    // The road going down south leads on to the monument's square, on the
+    // same map (monument_square_test.dart); past the pile-ups the roads
+    // run on to the edge, but nobody gets there.
     final world = createGameWorld();
     final reachable = world.map.floodFillDistances(
       industryStreetCampfireTile.step(Direction.south),
