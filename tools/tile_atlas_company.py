@@ -520,7 +520,8 @@ def company_floor(atlas: Atlas, rng, marker: str, images: str) -> dict:
         [atlas.bucket(lambda b=below: tile_of(
             lambda d: paint_partition(d, 0, 0, b)), 1)
          for below in (False, True)],
-        [neighbour_key(0, 1, CO_WALLS)]))
+        # A door below a wall is in that wall: it runs on down into it.
+        [neighbour_key(0, 1, CO_WALLS + "d")]))
     # Glass up and down the room where there is glass above or below it.
     rules.append(rule(
         "structures", "G",
