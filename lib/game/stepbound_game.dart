@@ -187,6 +187,8 @@ final class StepboundGame extends FlameGame
     places: gamePlaces,
     playerFeet: () => _characters[playerId]!.position,
     showOpened: (place) => _stages.any((stage) => stage.showsOpened(place.id)),
+    shutRows: (place) =>
+        _stages.map((stage) => stage.shutRows(place.id)).nonNulls.firstOrNull,
     onKeptChanged: _syncProps,
     beacons: () => <GridPoint>[
       for (final id in beaconPickupIds)

@@ -24,6 +24,7 @@ final class PlaceLayers {
     required this.places,
     required this.playerFeet,
     this.showOpened,
+    this.shutRows,
     this.onKeptChanged,
     this.beacons,
   });
@@ -36,6 +37,10 @@ final class PlaceLayers {
 
   /// Whether the story has opened what [Place] can open.
   final bool Function(Place place)? showOpened;
+
+  /// The rows [Place] is drawn from while shut, when they are not its own
+  /// (see [TilePlaceComponent.shutRows]).
+  final List<String>? Function(Place place)? shutRows;
 
   /// Told which places are kept whenever that changes, before their
   /// pictures are composed: for whatever else the game puts in the world
@@ -162,6 +167,7 @@ final class PlaceLayers {
       place: place,
       offset: Offset(area.left, area.top),
       useOpen: () => showOpened?.call(place) ?? false,
+      shutRows: shutRows?.call(place),
     );
     return (
       area: area,

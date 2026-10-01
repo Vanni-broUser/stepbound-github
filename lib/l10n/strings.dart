@@ -338,6 +338,6 @@ abstract interface class Strings {
   String get trainRomeLines2;
   String get trainWardrobeLine;
   String get trainZombieNotes;
-  String trainAmmoFull(int rounds);
-  String trainAmmoRefilled(int rounds);
+  String trainAmmoFull(int rounds, {required bool rocketLauncher});
+  String trainAmmoRefilled(int rounds, {required bool rocketLauncher});
 }
