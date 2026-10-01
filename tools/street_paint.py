@@ -109,8 +109,8 @@ STREET_STOREFRONTS = {
     ],
 }
 NORTH_STOREFRONTS = {
-    27: [(68, 7, "barsport")],
-    30: [
+    31: [(68, 7, "barsport")],
+    34: [
         # On the road west to the hospital, past the side road down from
         # the crossroads: a shop every so often between the palazzi, the
         # pizzeria and the kebab shop with pictures of their own.

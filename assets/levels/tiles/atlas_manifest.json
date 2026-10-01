@@ -15449,8 +15449,8 @@
       ],
       "objects": [
         {
-          "image": "hometown/northDistrict_shop_18_30.png",
-          "at": [18, 30],
+          "image": "hometown/northDistrict_shop_18_34.png",
+          "at": [18, 34],
           "under": [
             "HHHHHHH",
             "HHHHHHH",
@@ -15458,8 +15458,8 @@
           ]
         },
         {
-          "image": "hometown/northDistrict_shop_34_30.png",
-          "at": [34, 30],
+          "image": "hometown/northDistrict_shop_34_34.png",
+          "at": [34, 34],
           "under": [
             "HHHHHH",
             "HHHHHH",
@@ -15467,8 +15467,8 @@
           ]
         },
         {
-          "image": "hometown/northDistrict_shop_45_30.png",
-          "at": [45, 30],
+          "image": "hometown/northDistrict_shop_45_34.png",
+          "at": [45, 34],
           "under": [
             "HHHHH",
             "HHHHH",
@@ -15476,8 +15476,8 @@
           ]
         },
         {
-          "image": "hometown/northDistrict_shop_100_30.png",
-          "at": [100, 30],
+          "image": "hometown/northDistrict_shop_100_34.png",
+          "at": [100, 34],
           "under": [
             "HHHHH",
             "HHHHH",
@@ -15485,8 +15485,8 @@
           ]
         },
         {
-          "image": "hometown/northDistrict_shop_109_30.png",
-          "at": [109, 30],
+          "image": "hometown/northDistrict_shop_109_34.png",
+          "at": [109, 34],
           "under": [
             "HHHHHH",
             "HHHHHH",
@@ -15494,8 +15494,8 @@
           ]
         },
         {
-          "image": "hometown/northDistrict_shop_68_27.png",
-          "at": [68, 27],
+          "image": "hometown/northDistrict_shop_68_31.png",
+          "at": [68, 31],
           "under": [
             "HHHHHHH",
             "HHHHHfH",
@@ -15529,13 +15529,17 @@
             "GGGGGGGGGGGGGGGG",
             "GGGGGGGGGGGGGGGG",
             "GGGGGGGGGGGGGGGG",
+            "GGGGGGGGGGGGGGGG",
+            "GGGGGGGGGGGGGGGG",
+            "GGGGGGGGGGGGGGGG",
+            "GGGGGGGGGGGGGGGG",
             "GGGGGGG$$GGGGGGG"
           ]
         },
         {
           "image": "hometown/northDistrict_fountain.png",
-          "at": [76, 34],
-          "underAt": [76, 34],
+          "at": [76, 38],
+          "underAt": [76, 38],
           "under": [
             "OOOOO",
             "OOOOO",
