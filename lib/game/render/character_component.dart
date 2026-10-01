@@ -47,6 +47,7 @@ final class CharacterComponent extends PositionComponent with StandsOnFloor {
   static const double pickupDuration = 0.6;
   static const double emergeDuration = 0.9;
   static const double restDuration = 1.5;
+  static const double imposingZombieHeight = 28;
 
   final Entity entity;
   ui.Image? _atlas;
@@ -645,14 +646,22 @@ final class CharacterComponent extends PositionComponent with StandsOnFloor {
       ? 2
       : 0;
 
+  double get _renderHeight => switch (entity.kind) {
+    EntityKind.brute || EntityKind.cultist => imposingZombieHeight,
+    _ => 24,
+  };
+
   void _drawCell(ui.Canvas canvas, ui.Image atlas, int row, int column) {
     // The supplied occultist sheets leave two transparent pixels under
     // every frame. Compensate at draw time so Mario keeps the same foot
     // anchor when changing clothes.
+    final height = _renderHeight;
     canvas.drawImageRect(
       atlas,
       ui.Rect.fromLTWH(column * 16, row * 24, 16, 24),
-      ui.Rect.fromLTWH(0, _outfitOffset, 16, 24),
+      // Grow imposing zombies upward so their feet keep the same world-space
+      // anchor and therefore the same collision and depth-sorting behaviour.
+      ui.Rect.fromLTWH(0, 24 - height + _outfitOffset, 16, height),
       _paint,
     );
   }
