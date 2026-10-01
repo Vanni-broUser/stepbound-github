@@ -32,6 +32,8 @@ abstract interface class Strings {
   String settingsSendData({required bool on});
   String get reportProblem;
   String get reportProblemThanks;
+  String get reportProblemHint;
+  String get reportProblemSend;
   String get menuChooseNewSlot;
   String get menuChooseSave;
   String menuOverwrite(int slot);

@@ -222,14 +222,18 @@ final class _StepboundAppState extends State<StepboundApp> {
   );
 
   /// SEGNALA UN PROBLEMA, from the settings: a report with no error in
-  /// it, the trail being the point, for the bugs that throw nothing, a
-  /// script that never lets go of Mario or a button that does not answer.
-  /// It leaves on its own when the app sends (true), or else goes to the
-  /// share sheet (false).
-  Future<bool> _reportProblem() async {
+  /// it but what the player wrote, the trail being the point, for the
+  /// bugs that throw nothing, a script that never lets go of Mario or a
+  /// button that does not answer. It leaves on its own when the app sends
+  /// (true), or else goes to the share sheet (false).
+  Future<bool> _reportProblem(String message) async {
     Breadcrumbs.shared.add('app: problema segnalato dal giocatore');
     final report = ErrorReport(
-      error: 'nessun errore: problema segnalato dal giocatore',
+      // What the player wrote takes the error's place, its first line
+      // the summary the server groups by; the trail never holds it.
+      error: message.isEmpty
+          ? 'nessun errore: problema segnalato dal giocatore'
+          : message,
       source: 'segnalazione del giocatore',
       at: DateTime.now(),
     );
@@ -250,7 +254,7 @@ final class _StepboundAppState extends State<StepboundApp> {
   }
 
   /// Whether a problem can be reported: sent, or at least shared.
-  Future<bool> Function()? get _problemReporter =>
+  Future<bool> Function(String message)? get _problemReporter =>
       Telemetry.shared.active || widget.share != null ? _reportProblem : null;
 
   /// Renders [report] like the one of an error and hands it to the share

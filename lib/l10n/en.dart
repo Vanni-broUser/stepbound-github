@@ -53,6 +53,11 @@ final class EnglishStrings implements Strings {
   @override
   String get reportProblemThanks => 'REPORT TAKEN, THANKS';
   @override
+  String get reportProblemHint =>
+      'What happened? Write it here if you like: the last steps of the game go with the report. No personal details, please.';
+  @override
+  String get reportProblemSend => 'SEND';
+  @override
   String get menuChooseNewSlot => 'CHOOSE WHERE TO SAVE';
   @override
   String get menuChooseSave => 'CHOOSE A SAVE';

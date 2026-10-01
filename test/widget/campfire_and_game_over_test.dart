@@ -343,13 +343,24 @@ void main() {
       await tester.tap(find.byKey(const ValueKey<String>('pause-settings')));
       await tester.pump();
       await tester.tap(find.byKey(const ValueKey<String>('settings-report')));
+      await tester.pump();
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('report-message')),
+        'Mario resta fermo',
+      );
+      await tester.tap(find.byKey(const ValueKey<String>('report-send')));
       await untilShared(tester, shared);
       expect(shared, hasLength(1));
+      expect(shared.single, contains('Mario resta fermo'));
+      expect(
+        shared.single.split('== Ultimi passi ==').last,
+        isNot(contains('Mario resta fermo')),
+        reason: 'what the player wrote never goes in the trail',
+      );
       expect(
         shared.single,
         contains('== Errore (segnalazione del giocatore) =='),
       );
-      expect(shared.single, contains('nessun errore'));
       expect(shared.single, contains('nessuno stack trace'));
       expect(shared.single, contains('slot: 1'));
       expect(shared.single, contains('fase: playing'));

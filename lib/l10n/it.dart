@@ -53,6 +53,11 @@ final class ItalianStrings implements Strings {
   @override
   String get reportProblemThanks => 'SEGNALAZIONE PRESA, GRAZIE';
   @override
+  String get reportProblemHint =>
+      'Cosa è successo? Scrivilo qui, se vuoi: col rapporto arrivano anche gli ultimi passi della partita. Niente dati personali.';
+  @override
+  String get reportProblemSend => 'INVIA';
+  @override
   String get menuChooseNewSlot => 'SCEGLI DOVE SALVARE';
   @override
   String get menuChooseSave => 'SCEGLI UN SALVATAGGIO';

@@ -11,9 +11,13 @@ Il gioco manda da solo, senza che il giocatore debba condividere nulla:
 Ci sono poi i bug che non lanciano nessun errore (uno script che non
 restituisce Mario, un bottone che non risponde): il gioco non può
 accorgersene da solo. Per quelli c'è **SEGNALA UN PROBLEMA** in
-IMPOSTAZIONI: manda lo stesso rapporto, senza errore, con gli ultimi passi
-e il salvataggio dello slot, e sul server compare in `/v1/errors` con
-origine `segnalazione del giocatore`. Con l'invio spento, o in una build
+IMPOSTAZIONI: apre una pagina dove il giocatore può scrivere cosa è
+successo (facoltativo, fino a 1000 caratteri) e poi INVIA. Parte lo stesso
+rapporto di un errore, con gli ultimi passi e il salvataggio dello slot;
+il messaggio prende il posto dell'errore, e la sua prima riga è il
+riassunto che il server mostra. Sul server compare in `/v1/errors` con
+origine `segnalazione del giocatore`. Il messaggio non finisce mai negli
+ultimi passi. Con l'invio spento, o in una build
 senza server, apre invece la condivisione del telefono. Se nessuno lo
 preme, di questi bug non arriva nulla: gli eventi anonimi sono solo
 statistiche.

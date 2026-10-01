@@ -5,6 +5,7 @@ import 'package:stepbound/report/telemetry.dart';
 import 'package:stepbound/ui/main_menu.dart';
 import 'package:stepbound/ui/pause_menu.dart';
 import 'package:stepbound/ui/portrait_image.dart';
+import 'package:stepbound/ui/settings_menu.dart';
 
 import 'fake_telemetry.dart';
 
@@ -395,7 +396,7 @@ void main() {
 
   Future<void> pumpWithReport(
     WidgetTester tester,
-    Future<bool> Function()? report,
+    Future<bool> Function(String message)? report,
   ) async {
     await tester.pumpWidget(
       MaterialApp(
@@ -415,32 +416,91 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('a problem is reported from the settings, and thanked for '
-      'once it is sent', (tester) async {
-    var reports = 0;
-    await pumpWithReport(tester, () async {
-      reports++;
+  Future<void> tapKey(WidgetTester tester, String key) async {
+    await tester.tap(find.byKey(ValueKey<String>(key)));
+    await tester.pump();
+  }
+
+  testWidgets('a problem is reported with a message of the player’s own, '
+      'and thanked for once it is sent', (tester) async {
+    final messages = <String>[];
+    await pumpWithReport(tester, (message) async {
+      messages.add(message);
       return true;
     });
     expect(find.text('SEGNALA UN PROBLEMA'), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey<String>('settings-report')));
-    await tester.pump();
-    expect(reports, 1);
+    await tapKey(tester, 'settings-report');
+    expect(
+      find.byKey(const ValueKey<String>('report-message')),
+      findsOneWidget,
+    );
+    expect(find.text('INVIA'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('report-message')),
+      '  Mario non si muove dopo il dialogo col prete  ',
+    );
+    await tapKey(tester, 'report-send');
+    expect(messages, <String>['Mario non si muove dopo il dialogo col prete']);
     expect(find.text('SEGNALAZIONE PRESA, GRAZIE'), findsOneWidget);
     // Once is enough.
-    await tester.tap(find.byKey(const ValueKey<String>('settings-report')));
-    await tester.pump();
-    expect(reports, 1);
+    await tapKey(tester, 'settings-report');
+    expect(find.byKey(const ValueKey<String>('report-message')), findsNothing);
+    expect(messages, hasLength(1));
+  });
+
+  testWidgets('the message can be left empty', (tester) async {
+    final messages = <String>[];
+    await pumpWithReport(tester, (message) async {
+      messages.add(message);
+      return true;
+    });
+    await tapKey(tester, 'settings-report');
+    await tapKey(tester, 'report-send');
+    expect(messages, <String>['']);
+  });
+
+  testWidgets('back from the message sends nothing, and keeps what was '
+      'written', (tester) async {
+    final messages = <String>[];
+    await pumpWithReport(tester, (message) async {
+      messages.add(message);
+      return true;
+    });
+    await tapKey(tester, 'settings-report');
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('report-message')),
+      'mezza frase',
+    );
+    await tapKey(tester, 'report-back');
+    expect(messages, isEmpty);
+    expect(find.text('SEGNALA UN PROBLEMA'), findsOneWidget);
+    await tapKey(tester, 'settings-report');
+    expect(find.text('mezza frase'), findsOneWidget);
+  });
+
+  testWidgets('a message too long is cut at the limit', (tester) async {
+    final messages = <String>[];
+    await pumpWithReport(tester, (message) async {
+      messages.add(message);
+      return true;
+    });
+    await tapKey(tester, 'settings-report');
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('report-message')),
+      'x' * (SettingsChoices.maxMessageLength + 50),
+    );
+    await tapKey(tester, 'report-send');
+    expect(messages.single, hasLength(SettingsChoices.maxMessageLength));
   });
 
   testWidgets('a problem only shared is not thanked for', (tester) async {
     var reports = 0;
-    await pumpWithReport(tester, () async {
+    await pumpWithReport(tester, (_) async {
       reports++;
       return false;
     });
-    await tester.tap(find.byKey(const ValueKey<String>('settings-report')));
-    await tester.pump();
+    await tapKey(tester, 'settings-report');
+    await tapKey(tester, 'report-send');
     expect(reports, 1);
     expect(find.text('SEGNALA UN PROBLEMA'), findsOneWidget);
   });

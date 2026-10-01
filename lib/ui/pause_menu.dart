@@ -80,7 +80,7 @@ final class PauseMenu extends StatefulWidget {
 
   /// Reports a problem from the settings (see
   /// [SettingsChoices.onReportProblem]); not offered when null.
-  final Future<bool> Function()? onReportProblem;
+  final Future<bool> Function(String message)? onReportProblem;
 
   /// Whose data switch the settings show; the app's own when null.
   final Telemetry? telemetry;

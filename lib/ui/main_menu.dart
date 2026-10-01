@@ -48,7 +48,7 @@ final class MainMenu extends StatefulWidget {
 
   /// Reports a problem from the settings (see
   /// [SettingsChoices.onReportProblem]); not offered when null.
-  final Future<bool> Function()? onReportProblem;
+  final Future<bool> Function(String message)? onReportProblem;
 
   /// Starts the story; the game will save in the given slot.
   final void Function(int slot) onNewGame;

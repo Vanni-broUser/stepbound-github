@@ -9,10 +9,10 @@ import 'package:stepbound/ui/main_menu.dart';
 /// The settings, the same from the main menu and from the pause menu: the
 /// sound, the language, whether error reports and anonymous gameplay data
 /// leave the phone on their own (see [Telemetry]), and a way to report a
-/// problem by hand; [onBack] apart at the foot. The smaller buttons of
-/// the menus over the game, so that all of it fits under the main menu's
-/// sign too. The data switch is there
-/// only in a build with a server to send to; it starts on.
+/// problem by hand, with a message of the player's own; [onBack] apart
+/// at the foot. The smaller buttons of the menus over the game, so that
+/// all of it fits under the main menu's sign too. The data switch is
+/// there only in a build with a server to send to; it starts on.
 final class SettingsChoices extends StatefulWidget {
   const SettingsChoices({
     required this.unit,
@@ -30,9 +30,13 @@ final class SettingsChoices extends StatefulWidget {
 
   /// Sends a report with no error in it, for the bugs that throw nothing
   /// (a script that never lets go of Mario, a button that does not
-  /// answer): true when it went to the server, false when it was handed
-  /// to the share sheet instead. The button is not there without it.
-  final Future<bool> Function()? onReportProblem;
+  /// answer), with what the player wrote (maybe nothing): true when it
+  /// went to the server, false when it was handed to the share sheet
+  /// instead. The button is not there without it.
+  final Future<bool> Function(String message)? onReportProblem;
+
+  /// The longest message a player can write.
+  static const int maxMessageLength = 1000;
 
   @override
   State<SettingsChoices> createState() => _SettingsChoicesState();
@@ -45,15 +49,33 @@ final class _SettingsChoicesState extends State<SettingsChoices> {
   bool _reported = false;
   bool _reporting = false;
 
-  Future<void> _report(Future<bool> Function() report) async {
-    if (_reporting || _reported) {
+  /// Whether the page to write the report on is open.
+  bool _writing = false;
+  final TextEditingController _message = TextEditingController();
+
+  @override
+  void dispose() {
+    _message.dispose();
+    super.dispose();
+  }
+
+  void _write({required bool open}) => setState(() => _writing = open);
+
+  Future<void> _send(Future<bool> Function(String message) report) async {
+    if (_reporting) {
       return;
     }
     _reporting = true;
     try {
-      final sent = await report();
-      if (sent && mounted) {
-        setState(() => _reported = true);
+      final sent = await report(_message.text.trim());
+      if (mounted) {
+        setState(() {
+          _writing = false;
+          _reported = sent;
+          if (sent) {
+            _message.clear();
+          }
+        });
       }
     } finally {
       _reporting = false;
@@ -76,6 +98,10 @@ final class _SettingsChoicesState extends State<SettingsChoices> {
 
   @override
   Widget build(BuildContext context) {
+    final report = widget.onReportProblem;
+    if (_writing && report != null) {
+      return _writePage(report);
+    }
     final unit = widget.unit;
     return MenuColumn(
       unit: unit,
@@ -112,7 +138,7 @@ final class _SettingsChoicesState extends State<SettingsChoices> {
             compact: true,
             onPressed: _toggleData,
           ),
-        if (widget.onReportProblem case final report?)
+        if (report != null)
           MenuButton(
             key: const ValueKey<String>('settings-report'),
             label: _reported
@@ -120,8 +146,69 @@ final class _SettingsChoicesState extends State<SettingsChoices> {
                 : strings.reportProblem,
             unit: unit,
             compact: true,
-            onPressed: () => unawaited(_report(report)),
+            onPressed: _reported ? () {} : () => _write(open: true),
           ),
+      ],
+    );
+  }
+
+  /// What happened, in the player's words: up top, so the keyboard of a
+  /// phone in landscape leaves it in view. Sending without writing sends
+  /// the report alone.
+  Widget _writePage(Future<bool> Function(String message) report) {
+    final unit = widget.unit;
+    return MenuColumn(
+      unit: unit,
+      trailing: MenuButton(
+        key: const ValueKey<String>('report-back'),
+        label: strings.back,
+        unit: unit,
+        compact: true,
+        onPressed: () => _write(open: false),
+      ),
+      children: <Widget>[
+        MenuHeading(text: strings.reportProblem, unit: unit),
+        MenuPanel(
+          unit: unit,
+          width: MenuButton.fullWidth,
+          child: Material(
+            type: MaterialType.transparency,
+            child: TextField(
+              key: const ValueKey<String>('report-message'),
+              controller: _message,
+              autofocus: true,
+              minLines: 3,
+              maxLines: 4,
+              maxLength: SettingsChoices.maxMessageLength,
+              textCapitalization: TextCapitalization.sentences,
+              // The keyboard of a phone in landscape hides SEND: its own
+              // key closes it, so the button shows again.
+              textInputAction: TextInputAction.done,
+              cursorColor: const Color(0xffe8dccb),
+              style: menuTextStyle(unit, 6.5),
+              decoration: InputDecoration(
+                isDense: true,
+                border: InputBorder.none,
+                hintText: strings.reportProblemHint,
+                hintStyle: menuTextStyle(
+                  unit,
+                  6.5,
+                ).copyWith(color: const Color(0x99e8dccb)),
+                counterStyle: menuTextStyle(
+                  unit,
+                  4.5,
+                ).copyWith(color: const Color(0x99e8dccb)),
+              ),
+            ),
+          ),
+        ),
+        MenuButton(
+          key: const ValueKey<String>('report-send'),
+          label: strings.reportProblemSend,
+          unit: unit,
+          compact: true,
+          onPressed: () => unawaited(_send(report)),
+        ),
       ],
     );
   }
