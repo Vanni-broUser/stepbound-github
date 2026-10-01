@@ -10,6 +10,7 @@ import 'package:stepbound/game/put_down_writer.dart';
 import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/game/story/scripts/station_script.dart';
 import 'package:stepbound/report/breadcrumbs.dart';
+import 'package:stepbound/report/telemetry.dart';
 import 'package:stepbound/save/save_game.dart';
 import 'package:stepbound/ui/level_complete.dart';
 import 'package:stepbound/ui/main_menu.dart';
@@ -60,12 +61,16 @@ final class AppFlowController extends ChangeNotifier {
     required SaveRepository saves,
     required this.audio,
     Breadcrumbs? trail,
-  }) : trail = trail ?? Breadcrumbs.shared {
+    Telemetry? telemetry,
+    void Function(SaveFailure failure)? onSaveFailed,
+  }) : trail = trail ?? Breadcrumbs.shared,
+       telemetry = telemetry ?? Telemetry.shared {
     session = GameSession(
       saves: saves,
       audio: audio,
       onLevelCompleted: completeLevel,
       onTravelMapRequested: travelFromTrain,
+      onSaveFailed: onSaveFailed,
     );
   }
 
@@ -78,6 +83,9 @@ final class AppFlowController extends ChangeNotifier {
 
   /// The trail an error report ends with.
   final Breadcrumbs trail;
+
+  /// Where the anonymous events of how the game is played go.
+  final Telemetry telemetry;
 
   AppPhase _phase = AppPhase.menu;
   StepboundGame? _game;
@@ -136,6 +144,7 @@ final class AppFlowController extends ChangeNotifier {
 
   /// The app is in front again: only then is the player looking at it.
   void cameToFront() {
+    telemetry.cameToFront();
     audio.resume();
     if (_phase != AppPhase.menu) {
       session.resumeClock();
@@ -154,6 +163,7 @@ final class AppFlowController extends ChangeNotifier {
   /// it does not count, and the game is written again as it is now (see
   /// [PutDownWriter]).
   void leftFront() {
+    telemetry.leftFront();
     audio.pause();
     session.pauseClock();
     _putDown.leftFront();
@@ -180,6 +190,7 @@ final class AppFlowController extends ChangeNotifier {
 
   Future<void> newGame(int slot) async {
     trail.add('app: nuova partita nello slot $slot');
+    _gameStarted('new', slot);
     await session.startNew(slot);
     if (_disposed) {
       return;
@@ -197,6 +208,7 @@ final class AppFlowController extends ChangeNotifier {
       'app: carica lo slot ${save.slot} (${save.place}, formato '
       '${SaveGame.format})',
     );
+    _gameStarted('load', save.slot);
     final game = await session.load(save);
     if (_disposed) {
       return;
@@ -243,6 +255,7 @@ final class AppFlowController extends ChangeNotifier {
 
   void finishOutbreak() {
     trail.add('app: la storia finisce, il gioco comincia');
+    _levelStarted(LevelId.hometown);
     _set(() {
       _phase = AppPhase.dialogue;
       _game = session.newGame();
@@ -272,6 +285,7 @@ final class AppFlowController extends ChangeNotifier {
   /// player stuck.
   Future<void> resumeFromCamp() async {
     trail.add('app: torna all’ultimo salvataggio');
+    _gameStarted('camp', session.slot);
     final game = await session.resumeFromCheckpoint();
     if (_disposed) {
       return;
@@ -293,6 +307,7 @@ final class AppFlowController extends ChangeNotifier {
   Future<void> restartLevel() async {
     trail.add('app: ricomincia il livello');
     final game = _game;
+    _gameStarted('restart', session.slot, level: game?.progress.level);
     final current = game?.snapshot(place: GameSession.levelStartPlace);
     if (current != null && game!.progress.level != LevelId.hometown) {
       await _restartCity(current);
@@ -334,8 +349,26 @@ final class AppFlowController extends ChangeNotifier {
     );
     final world = restoreGameWorld(snapshot.world);
     final progress = Progress.fromJson(snapshot.progress);
+    final stats = LevelStats.of(world, progress, progress.level);
+    telemetry.track('level_completed', <String, Object?>{
+      'level': progress.level.name,
+      'zombiesKilled': stats.killedZombies,
+      'zombiesTotal': stats.totalZombies,
+      'zombieKinds': stats.knownZombieKinds,
+      'backpacks': stats.foundBackpacks,
+      'backpacksTotal': stats.totalBackpacks,
+      'memories': stats.foundMemories,
+      'memoriesTotal': stats.totalMemories,
+      'campfires': stats.litCampfires,
+      'campfiresTotal': stats.totalCampfires,
+      'steps': stats.steps,
+      'missions': stats.doneMissions.length,
+      'secretMission': StationScript.gaveGoldenPistol(snapshot.story),
+      'playSeconds': session.played.inSeconds,
+      'saved': saved,
+    });
     final results = LevelResults(
-      stats: LevelStats.of(world, progress, progress.level),
+      stats: stats,
       finale: Mission.finaleOf(progress.level),
       secret: StationScript.gaveGoldenPistol(snapshot.story)
           ? SecretMission.unarmedToLuigi
@@ -373,11 +406,24 @@ final class AppFlowController extends ChangeNotifier {
     if (snapshot == null) {
       return;
     }
+    _levelStarted(level);
     _set(() {
       _game = session.startLevel(level, snapshot);
       _phase = AppPhase.playing;
     });
   }
+
+  // ---------------------------------------------------------- telemetry
+
+  /// A game begins: [how] is `new`, `load`, `camp` (back to the last fire)
+  /// or `restart` (the level from its start).
+  void _gameStarted(String how, int slot, {LevelId? level}) => telemetry.track(
+    'game_started',
+    <String, Object?>{'how': how, 'slot': slot, 'level': ?level?.name},
+  );
+
+  void _levelStarted(LevelId level) =>
+      telemetry.track('level_started', <String, Object?>{'level': level.name});
 
   void startHometown() {
     trail.add('app: parte la città natale');

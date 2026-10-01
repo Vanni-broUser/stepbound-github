@@ -347,15 +347,19 @@ void main() {
       expect(audio.paused, isFalse);
     });
 
-    testWidgets('the audio switch mutes and says so', (tester) async {
+    testWidgets('the audio switch, in the settings, mutes and says so', (
+      tester,
+    ) async {
       final audio = SilentAudio();
       await tester.pumpWidget(
         StepboundApp(saves: MemorySaveRepository(), audio: audio),
       );
       await tester.pump();
+      await tester.tap(find.byKey(const ValueKey<String>('menu-settings')));
+      await tester.pump();
       expect(find.text('AUDIO: SÌ'), findsOneWidget);
 
-      await tester.tap(find.byKey(const ValueKey<String>('menu-audio')));
+      await tester.tap(find.byKey(const ValueKey<String>('settings-audio')));
       await tester.pump();
       expect(audio.muted, isTrue);
       expect(find.text('AUDIO: NO'), findsOneWidget);

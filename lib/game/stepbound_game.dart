@@ -426,6 +426,7 @@ final class StepboundGame extends FlameGame
       haptics: haptics,
       progress: progress,
       onStoryEvents: story.onEvents,
+      kindOf: (id) => simulation.entities[id]?.kind,
     );
     final storyState = _storyState;
     if (storyState != null) {

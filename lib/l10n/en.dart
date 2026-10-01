@@ -42,6 +42,22 @@ final class EnglishStrings implements Strings {
   @override
   String get menuCredits => 'CREDITS';
   @override
+  String get settingsTitle => 'SETTINGS';
+  @override
+  String settingsLanguage(String language) => 'LANGUAGE: $language';
+  @override
+  String settingsSendData({required bool on}) =>
+      'SEND ANONYMOUS DATA: ${on ? 'YES' : 'NO'}';
+  @override
+  String get reportProblem => 'REPORT A PROBLEM';
+  @override
+  String get reportProblemThanks => 'REPORT TAKEN, THANKS';
+  @override
+  String get reportProblemHint =>
+      'What happened? Write it here if you like: the last steps of the game go with the report. No personal details, please.';
+  @override
+  String get reportProblemSend => 'SEND';
+  @override
   String get menuChooseNewSlot => 'CHOOSE WHERE TO SAVE';
   @override
   String get menuChooseSave => 'CHOOSE A SAVE';
@@ -375,6 +391,9 @@ final class EnglishStrings implements Strings {
   @override
   String get errorExplanation =>
       'The game stopped because of an error. The report says which one, along with the game version, the phone, the last steps of the game and the save in the slot: nothing personal. Send it to the developer, then go back to the menu to resume from the last save.';
+  @override
+  String get errorExplanationSent =>
+      'The game stopped because of an error. The report, with the game version, the phone, the last steps of the game and the save in the slot (nothing personal), goes to the developer on its own, later if there is no network now. Go back to the menu to resume from the last save.';
   @override
   String get errorSharing => 'ONE MOMENT…';
   @override

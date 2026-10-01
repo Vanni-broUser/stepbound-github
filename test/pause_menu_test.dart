@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/game/progress.dart';
+import 'package:stepbound/report/telemetry.dart';
 import 'package:stepbound/ui/main_menu.dart';
 import 'package:stepbound/ui/pause_menu.dart';
 import 'package:stepbound/ui/portrait_image.dart';
+import 'package:stepbound/ui/settings_menu.dart';
+
+import 'fake_telemetry.dart';
 
 void main() {
   late int resumes;
@@ -20,6 +24,7 @@ void main() {
     bool wardrobe = false,
     Iterable<PlayerOutfit> linkedOutfits = const <PlayerOutfit>[],
     Iterable<PlayerOutfit> giftsBeforeStart = const <PlayerOutfit>[],
+    Telemetry? telemetry,
   }) async {
     resumes = 0;
     restarts = 0;
@@ -44,6 +49,7 @@ void main() {
           key: ValueKey<ResumePoint?>(resumePoint),
           resumePoint: resumePoint,
           wardrobe: wardrobe,
+          telemetry: telemetry,
           onResumeFromCamp: () => resumes++,
           onRestartLevel: () => restarts++,
           onMainMenu: () => quits++,
@@ -388,10 +394,10 @@ void main() {
     expect(await costOf(tester, 'pause-quit'), contains('mai stata salvata'));
   });
 
-  testWidgets('with a way to share, a report can be asked for from here', (
-    tester,
+  Future<void> pumpWithReport(
+    WidgetTester tester,
+    Future<bool> Function(String message)? report,
   ) async {
-    var shared = 0;
     await tester.pumpWidget(
       MaterialApp(
         home: PauseMenu(
@@ -402,30 +408,159 @@ void main() {
           onMainMenu: () {},
           onClose: () {},
           onWearOutfit: (_) {},
-          onShareReport: () => shared++,
+          onReportProblem: report,
         ),
       ),
     );
-    await tester.tap(find.byKey(const ValueKey<String>('pause-share')));
+    await tester.tap(find.byKey(const ValueKey<String>('pause-settings')));
     await tester.pump();
-    expect(shared, 1);
-    expect(find.text(PauseMenu.shareLabel), findsOneWidget);
+  }
+
+  Future<void> tapKey(WidgetTester tester, String key) async {
+    await tester.tap(find.byKey(ValueKey<String>(key)));
+    await tester.pump();
+  }
+
+  testWidgets('a problem is reported with a message of the player’s own, '
+      'and thanked for once it is sent', (tester) async {
+    final messages = <String>[];
+    await pumpWithReport(tester, (message) async {
+      messages.add(message);
+      return true;
+    });
+    expect(find.text('SEGNALA UN PROBLEMA'), findsOneWidget);
+    await tapKey(tester, 'settings-report');
+    expect(
+      find.byKey(const ValueKey<String>('report-message')),
+      findsOneWidget,
+    );
+    expect(find.text('INVIA'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('report-message')),
+      '  Mario non si muove dopo il dialogo col prete  ',
+    );
+    await tapKey(tester, 'report-send');
+    expect(messages, <String>['Mario non si muove dopo il dialogo col prete']);
+    expect(find.text('SEGNALAZIONE PRESA, GRAZIE'), findsOneWidget);
+    // Once is enough.
+    await tapKey(tester, 'settings-report');
+    expect(find.byKey(const ValueKey<String>('report-message')), findsNothing);
+    expect(messages, hasLength(1));
   });
 
-  testWidgets('without one, the report is not offered', (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: PauseMenu(
-          progress: Progress(),
-          resumePoint: null,
-          onResumeFromCamp: () {},
-          onRestartLevel: () {},
-          onMainMenu: () {},
-          onClose: () {},
-          onWearOutfit: (_) {},
-        ),
-      ),
+  testWidgets('the message can be left empty', (tester) async {
+    final messages = <String>[];
+    await pumpWithReport(tester, (message) async {
+      messages.add(message);
+      return true;
+    });
+    await tapKey(tester, 'settings-report');
+    await tapKey(tester, 'report-send');
+    expect(messages, <String>['']);
+  });
+
+  testWidgets('back from the message sends nothing, and keeps what was '
+      'written', (tester) async {
+    final messages = <String>[];
+    await pumpWithReport(tester, (message) async {
+      messages.add(message);
+      return true;
+    });
+    await tapKey(tester, 'settings-report');
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('report-message')),
+      'mezza frase',
     );
-    expect(find.byKey(const ValueKey<String>('pause-share')), findsNothing);
+    await tapKey(tester, 'report-back');
+    expect(messages, isEmpty);
+    expect(find.text('SEGNALA UN PROBLEMA'), findsOneWidget);
+    await tapKey(tester, 'settings-report');
+    expect(find.text('mezza frase'), findsOneWidget);
+  });
+
+  testWidgets('a message too long is cut at the limit', (tester) async {
+    final messages = <String>[];
+    await pumpWithReport(tester, (message) async {
+      messages.add(message);
+      return true;
+    });
+    await tapKey(tester, 'settings-report');
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('report-message')),
+      'x' * (SettingsChoices.maxMessageLength + 50),
+    );
+    await tapKey(tester, 'report-send');
+    expect(messages.single, hasLength(SettingsChoices.maxMessageLength));
+  });
+
+  testWidgets('a problem only shared is not thanked for', (tester) async {
+    var reports = 0;
+    await pumpWithReport(tester, (_) async {
+      reports++;
+      return false;
+    });
+    await tapKey(tester, 'settings-report');
+    await tapKey(tester, 'report-send');
+    expect(reports, 1);
+    expect(find.text('SEGNALA UN PROBLEMA'), findsOneWidget);
+  });
+
+  testWidgets('without a way to report, the button is not there', (
+    tester,
+  ) async {
+    await pumpWithReport(tester, null);
+    expect(find.byKey(const ValueKey<String>('settings-report')), findsNothing);
+  });
+
+  testWidgets('the settings sit apart above the choices, as the way '
+      'back sits apart below them', (tester) async {
+    await pumpMenu(tester);
+    double top(String key) =>
+        tester.getTopLeft(find.byKey(ValueKey<String>(key))).dy;
+    double bottom(String key) =>
+        tester.getBottomLeft(find.byKey(ValueKey<String>(key))).dy;
+    final aboveGap = top('pause-resume') - bottom('pause-settings');
+    final betweenGap = top('pause-restart') - bottom('pause-resume');
+    final belowGap = top('pause-close') - bottom('pause-quit');
+    expect(aboveGap, greaterThan(betweenGap * 2));
+    expect(aboveGap, moreOrLessEquals(belowGap));
+  });
+
+  testWidgets('the settings: sound, language and anonymous data, then back', (
+    tester,
+  ) async {
+    final telemetry = (await tester.runAsync(startedTelemetry))!;
+    await pumpMenu(tester, telemetry: telemetry);
+    await tap(tester, 'pause-settings');
+    expect(find.text('IMPOSTAZIONI'), findsOneWidget);
+    expect(find.text('AUDIO: SÌ'), findsOneWidget);
+    expect(find.text('LINGUA: ITALIANO'), findsOneWidget);
+    expect(find.text('INVIO DATI ANONIMI: SÌ'), findsOneWidget);
+
+    await tap(tester, 'settings-send-data');
+    expect(telemetry.enabled, isFalse);
+    expect(find.text('INVIO DATI ANONIMI: NO'), findsOneWidget);
+    await tap(tester, 'settings-send-data');
+    expect(telemetry.enabled, isTrue);
+
+    await tap(tester, 'settings-back');
+    expect(
+      find.byKey(const ValueKey<String>('pause-settings')),
+      findsOneWidget,
+    );
+    expect(closes, 0);
+    telemetry.dispose();
+  });
+
+  testWidgets('without anywhere to send, there is no data switch', (
+    tester,
+  ) async {
+    await pumpMenu(tester);
+    await tap(tester, 'pause-settings');
+    expect(find.text('AUDIO: SÌ'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('settings-send-data')),
+      findsNothing,
+    );
   });
 }

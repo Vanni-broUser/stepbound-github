@@ -38,6 +38,7 @@ final class GameSession {
     required this.audio,
     required this.onLevelCompleted,
     required this.onTravelMapRequested,
+    this.onSaveFailed,
   });
 
   /// What a save made by starting the level over is called in the slots.
@@ -52,6 +53,10 @@ final class GameSession {
   /// The last save that could not be written, campfire, table or train,
   /// for the report; null until one fails.
   SaveFailure? lastSaveFailure;
+
+  /// Told of every save that could not be written, as it fails: its
+  /// report leaves the phone on its own (see `Telemetry`).
+  final void Function(SaveFailure failure)? onSaveFailed;
 
   /// Leaves gameplay for the results screen after the final cutscene;
   /// `saved` says whether the train's save was written.
@@ -297,12 +302,13 @@ final class GameSession {
       );
     } on SaveWriteException catch (error, stack) {
       debugPrint('save: $error');
-      lastSaveFailure = SaveFailure(
+      final failure = lastSaveFailure = SaveFailure(
         error: error,
         stack: stack,
         place: snapshot.place,
         at: DateTime.now(),
       );
+      onSaveFailed?.call(failure);
       return false;
     }
     resumePoint = snapshot.place == trainPlaceName

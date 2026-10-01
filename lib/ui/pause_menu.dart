@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/l10n/language.dart';
+import 'package:stepbound/report/telemetry.dart';
 import 'package:stepbound/ui/letterbox.dart';
 import 'package:stepbound/ui/main_menu.dart';
 import 'package:stepbound/ui/portrait_image.dart';
+import 'package:stepbound/ui/settings_menu.dart';
 
-enum _PausePage { home, outfits, resume, restart, quit }
+enum _PausePage { home, outfits, settings, resume, restart, quit }
 
 /// How many places the outfit page has: the outfits still to come stay
 /// "???", as the zombie book's cards do.
@@ -65,7 +67,8 @@ final class PauseMenu extends StatefulWidget {
     required this.onMainMenu,
     required this.onClose,
     required this.onWearOutfit,
-    this.onShareReport,
+    this.onReportProblem,
+    this.telemetry,
     this.restartsFromStory = true,
     this.wardrobe = false,
     super.key,
@@ -75,12 +78,12 @@ final class PauseMenu extends StatefulWidget {
   /// back button goes straight back to the game.
   final bool wardrobe;
 
-  /// Shares a report of the game as it is, trail and all, for the bugs
-  /// that throw nothing; the button is not there when the app cannot
-  /// share.
-  final VoidCallback? onShareReport;
+  /// Reports a problem from the settings (see
+  /// [SettingsChoices.onReportProblem]); not offered when null.
+  final Future<bool> Function(String message)? onReportProblem;
 
-  static String get shareLabel => strings.shareReport;
+  /// Whose data switch the settings show; the app's own when null.
+  final Telemetry? telemetry;
 
   final Progress progress;
 
@@ -121,7 +124,7 @@ final class _PauseMenuState extends State<PauseMenu> {
       strings.pauseRestartFromArrivalCost,
     _PausePage.restart => strings.pauseRestartFromStoryCost,
     _PausePage.quit => widget.resumePoint?.quitCost ?? strings.quitUnsavedCost,
-    _PausePage.home || _PausePage.outfits => '',
+    _PausePage.home || _PausePage.outfits || _PausePage.settings => '',
   };
 
   /// On the 16:9 picture over the whole screen. The choices leave the
@@ -150,9 +153,16 @@ final class _PauseMenuState extends State<PauseMenu> {
               ? _outfits(unit)
               : Center(
                   child: SingleChildScrollView(
-                    child: _page == _PausePage.home
-                        ? _choices(unit)
-                        : _confirm(unit),
+                    child: switch (_page) {
+                      _PausePage.home => _choices(unit),
+                      _PausePage.settings => SettingsChoices(
+                        unit: unit,
+                        telemetry: widget.telemetry,
+                        onReportProblem: widget.onReportProblem,
+                        onBack: () => _open(_PausePage.home),
+                      ),
+                      _ => _confirm(unit),
+                    },
                   ),
                 ),
         );
@@ -162,6 +172,15 @@ final class _PauseMenuState extends State<PauseMenu> {
 
   Widget _choices(double unit) => MenuColumn(
     unit: unit,
+    // Apart from the choices, above them: the settings change nothing in
+    // the game.
+    leading: MenuButton(
+      key: const ValueKey<String>('pause-settings'),
+      label: strings.settingsTitle,
+      unit: unit,
+      compact: true,
+      onPressed: () => _open(_PausePage.settings),
+    ),
     // Apart from the three: going back to the game costs nothing.
     trailing: MenuButton(
       key: const ValueKey<String>('pause-close'),
@@ -193,14 +212,6 @@ final class _PauseMenuState extends State<PauseMenu> {
         compact: true,
         onPressed: () => _open(_PausePage.quit),
       ),
-      if (widget.onShareReport case final share?)
-        MenuButton(
-          key: const ValueKey<String>('pause-share'),
-          label: PauseMenu.shareLabel,
-          unit: unit,
-          compact: true,
-          onPressed: share,
-        ),
     ],
   );
 
@@ -212,7 +223,9 @@ final class _PauseMenuState extends State<PauseMenu> {
       ),
       _PausePage.restart => (strings.yesRestart, widget.onRestartLevel),
       _PausePage.quit => (strings.pauseYesQuit, widget.onMainMenu),
-      _PausePage.home || _PausePage.outfits => ('', widget.onClose),
+      _PausePage.home ||
+      _PausePage.outfits ||
+      _PausePage.settings => ('', widget.onClose),
     };
     return MenuColumn(
       unit: unit,

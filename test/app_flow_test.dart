@@ -9,6 +9,8 @@ import 'package:stepbound/report/breadcrumbs.dart';
 import 'package:stepbound/save/save_game.dart';
 import 'package:stepbound/ui/main_menu.dart';
 
+import 'fake_telemetry.dart';
+
 void main() {
   late MemorySaveRepository saves;
   late SilentAudio audio;
@@ -272,5 +274,80 @@ void main() {
     later.dispose();
     await starting;
     expect(later.phase, AppPhase.menu);
+  });
+
+  group('telemetry', () {
+    test('counts games started, levels started and completed, and time in '
+        'front', () async {
+      final server = FakeServer();
+      final telemetry = await startedTelemetry(server: server);
+      final counted = AppFlowController(
+        saves: saves,
+        audio: audio,
+        trail: trail,
+        telemetry: telemetry,
+      );
+      addTearDown(counted.dispose);
+      await counted.newGame(2);
+      counted
+        ..finishIntro()
+        ..finishOutbreak()
+        ..finishDialogue();
+      await counted.restartLevel();
+      final save = campfire(slot: 3);
+      await saves.save(save);
+      await counted.loadGame(save);
+      await counted.resumeFromCamp();
+      counted
+        ..completeLevel(aboard(), saved: true)
+        ..travelFromTrain(aboard())
+        ..startHometown()
+        ..leftFront()
+        ..cameToFront();
+      await telemetry.flush(force: true);
+
+      List<Object?> data(String type) => <Object?>[
+        for (final event in server.events(type)) event['data'],
+      ];
+      expect(data('game_started'), <Object?>[
+        <String, Object?>{'how': 'new', 'slot': 2},
+        <String, Object?>{'how': 'restart', 'slot': 2, 'level': 'hometown'},
+        <String, Object?>{'how': 'load', 'slot': 3},
+        <String, Object?>{'how': 'camp', 'slot': 3},
+      ]);
+      expect(data('level_started'), <Object?>[
+        <String, Object?>{'level': 'hometown'},
+        <String, Object?>{'level': 'hometown'},
+      ]);
+      final completed = data('level_completed').single! as Map<String, Object?>;
+      expect(completed['level'], 'hometown');
+      expect(completed['saved'], isTrue);
+      expect(completed['secretMission'], isFalse);
+      expect(
+        completed.keys,
+        containsAll(<String>[
+          'zombiesKilled',
+          'zombiesTotal',
+          'backpacks',
+          'steps',
+          'playSeconds',
+        ]),
+      );
+      telemetry.dispose();
+    });
+
+    test('a save that fails is handed on as it fails', () async {
+      final failures = <String>[];
+      final failing = AppFlowController(
+        saves: MemorySaveRepository()..failWrites = true,
+        audio: audio,
+        trail: trail,
+        onSaveFailed: (failure) => failures.add(failure.place),
+      );
+      addTearDown(failing.dispose);
+      expect(await failing.session.store(aboard()), isFalse);
+      expect(failures, <String>[trainPlaceName]);
+      expect(failing.session.lastSaveFailure, isNotNull);
+    });
   });
 }

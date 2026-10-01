@@ -9,6 +9,8 @@ import 'package:stepbound/game/render/character_component.dart';
 import 'package:stepbound/game/world_event_presenter.dart';
 import 'package:stepbound/report/breadcrumbs.dart';
 
+import 'fake_telemetry.dart';
+
 import 'test_world.dart';
 
 /// A stage that writes down what it is asked, and runs what is put off
@@ -278,5 +280,75 @@ void main() {
     presenter.present(1, const <WorldEvent>[damaged, DiedEvent('zombie')]);
     expect(stage.log, <String>['zombie:hit', 'zombie:death']);
     expect(stage.pending, isEmpty);
+  });
+
+  group('telemetry', () {
+    test('counts places reached, zombies killed by kind, and who killed '
+        'Mario', () async {
+      final server = FakeServer();
+      final telemetry = await startedTelemetry(server: server);
+      final kinds = <String, EntityKind>{
+        'zombie': EntityKind.wanderer,
+        'brute': EntityKind.brute,
+      };
+      final counted = WorldEventPresenter(
+        stage: stage,
+        audio: audio,
+        soundscape: Soundscape(world: corridorWorld(EntityKind.wanderer)),
+        haptics: GameplayHaptics(sink: haptics.add),
+        progress: progress,
+        onStoryEvents: storyEvents.addAll,
+        trail: trail,
+        telemetry: telemetry,
+        kindOf: (id) => kinds[id],
+      )..present(1, const <WorldEvent>[damaged, DiedEvent('zombie')]);
+      stage.place = 'Porto';
+      counted
+        ..present(2, const <WorldEvent>[DiedEvent('ghost')])
+        ..present(3, const <WorldEvent>[
+          DamagedEvent(entityId: 'player', amount: 1, sourceEntityId: 'zombie'),
+          DamagedEvent(entityId: 'player', amount: 2, sourceEntityId: 'brute'),
+          DiedEvent('player'),
+        ])
+        ..present(4, const <WorldEvent>[DiedEvent('player')]);
+      await telemetry.flush(force: true);
+      List<Object?> data(String type) => <Object?>[
+        for (final event in server.events(type)) event['data'],
+      ];
+      expect(data('place_entered'), <Object?>[
+        <String, Object?>{'level': 'hometown', 'place': 'Via Roma'},
+        <String, Object?>{'level': 'hometown', 'place': 'Porto'},
+      ]);
+      expect(data('zombie_killed'), <Object?>[
+        <String, Object?>{
+          'level': 'hometown',
+          'place': 'Via Roma',
+          'kind': 'wanderer',
+        },
+        <String, Object?>{
+          'level': 'hometown',
+          'place': 'Porto',
+          'kind': 'unknown',
+        },
+      ]);
+      expect(data('player_died'), <Object?>[
+        <String, Object?>{
+          'level': 'hometown',
+          'place': 'Porto',
+          'killer': 'brute',
+        },
+        <String, Object?>{
+          'level': 'hometown',
+          'place': 'Porto',
+          'killer': 'unknown',
+        },
+      ]);
+      telemetry.dispose();
+    });
+
+    test('nothing is counted while telemetry is off', () {
+      presenter.present(1, const <WorldEvent>[DiedEvent('zombie')]);
+      expect(stage.log, contains('zombie:death'));
+    });
   });
 }

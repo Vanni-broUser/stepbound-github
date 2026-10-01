@@ -58,7 +58,7 @@ build_android_debug:
         > android/key.properties
   script:
     - status=0
-    - flutter build "$ANDROID_PACKAGE" --release --build-number="$CI_PIPELINE_IID" --dart-define=STEPBOUND_DIAGNOSTICS="${STEPBOUND_DIAGNOSTICS:-0}" --dart-define=VANNI_DEPLOY="${VANNI_DEPLOY:-0}" --dart-define=STEPBOUND_COMMIT="$CI_COMMIT_SHORT_SHA" || status=$?
+    - flutter build "$ANDROID_PACKAGE" --release --build-number="$CI_PIPELINE_IID" --dart-define=STEPBOUND_DIAGNOSTICS="${STEPBOUND_DIAGNOSTICS:-0}" --dart-define=VANNI_DEPLOY="${VANNI_DEPLOY:-0}" --dart-define=STEPBOUND_COMMIT="$CI_COMMIT_SHORT_SHA" --dart-define=STEPBOUND_TELEMETRY_URL="${STEPBOUND_TELEMETRY_URL:-}" --dart-define=STEPBOUND_TELEMETRY_KEY="${STEPBOUND_TELEMETRY_KEY:-}" || status=$?
     - sh gitlab/android_sdk_cache.sh save
     - exit "$status"
   after_script:

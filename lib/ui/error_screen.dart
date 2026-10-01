@@ -16,6 +16,7 @@ final class ErrorScreen extends StatelessWidget {
     required this.onShare,
     required this.onMenu,
     this.sharing = false,
+    this.sentOnItsOwn = false,
     super.key,
   });
 
@@ -27,8 +28,13 @@ final class ErrorScreen extends StatelessWidget {
   /// While the share sheet is being prepared: the button waits.
   final bool sharing;
 
+  /// Whether the report leaves the phone by itself (see `Telemetry`): the
+  /// screen then says so, and has no button to share it.
+  final bool sentOnItsOwn;
+
   static String get title => strings.errorTitle;
   static String get explanation => strings.errorExplanation;
+  static String get explanationSent => strings.errorExplanationSent;
   static String get shareLabel => strings.shareReport;
   static String get sharingLabel => strings.errorSharing;
   static String get menuLabel => strings.errorBackToMenu;
@@ -72,7 +78,12 @@ final class ErrorScreen extends StatelessWidget {
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
                                   children: <Widget>[
-                                    MenuParagraph(explanation, unit: unit),
+                                    MenuParagraph(
+                                      sentOnItsOwn
+                                          ? explanationSent
+                                          : explanation,
+                                      unit: unit,
+                                    ),
                                     SizedBox(height: 4 * unit),
                                     MenuParagraph(
                                       summary,
@@ -90,15 +101,17 @@ final class ErrorScreen extends StatelessWidget {
                           Column(
                             mainAxisSize: MainAxisSize.min,
                             children: <Widget>[
-                              MenuButton(
-                                key: const ValueKey<String>('error-share'),
-                                label: sharing ? sharingLabel : shareLabel,
-                                unit: unit,
-                                width: buttonWidth,
-                                compact: true,
-                                onPressed: sharing ? () {} : onShare,
-                              ),
-                              SizedBox(height: MenuColumn.gap * unit),
+                              if (!sentOnItsOwn) ...<Widget>[
+                                MenuButton(
+                                  key: const ValueKey<String>('error-share'),
+                                  label: sharing ? sharingLabel : shareLabel,
+                                  unit: unit,
+                                  width: buttonWidth,
+                                  compact: true,
+                                  onPressed: sharing ? () {} : onShare,
+                                ),
+                                SizedBox(height: MenuColumn.gap * unit),
+                              ],
                               MenuButton(
                                 key: const ValueKey<String>('error-menu'),
                                 label: menuLabel,

@@ -27,6 +27,13 @@ abstract interface class Strings {
   String get menuAudioOff;
   String get menuLanguage;
   String get menuCredits;
+  String get settingsTitle;
+  String settingsLanguage(String language);
+  String settingsSendData({required bool on});
+  String get reportProblem;
+  String get reportProblemThanks;
+  String get reportProblemHint;
+  String get reportProblemSend;
   String get menuChooseNewSlot;
   String get menuChooseSave;
   String menuOverwrite(int slot);
@@ -154,6 +161,7 @@ abstract interface class Strings {
   // Error, unfinished roads, the Europe map, the tutorial's opening
   String get errorTitle;
   String get errorExplanation;
+  String get errorExplanationSent;
   String get errorSharing;
   String get errorBackToMenu;
   String get workInProgressTitle;

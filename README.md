@@ -106,6 +106,15 @@ the slot's save and the last things the game did (`lib/report/`). CI passes
 `--dart-define=STEPBOUND_COMMIT=<short sha>` so the report names the commit
 it came from; a local build says `build locale`.
 
+Release builds also send that report on their own, together with anonymous
+gameplay events (levels started and completed, zombies killed, deaths,
+places reached, time played), to the `stepbound-be` server
+(`lib/report/telemetry.dart`). The game never needs the network: offline,
+everything waits in a bounded outbox on the phone and leaves the next time
+the app is online. The settings (from the main menu and the pause menu) have the switch to turn it off; it starts on. CI passes
+`--dart-define=STEPBOUND_TELEMETRY_URL` and `STEPBOUND_TELEMETRY_KEY`; a
+local build has neither and sends nothing. See `docs/telemetry.md`.
+
 GitLab CI runs formatting, static analysis, and tests with Flutter 3.44.2. Signed release builds belong on a protected local runner; signing secrets must never be committed.
 
 ## Architecture

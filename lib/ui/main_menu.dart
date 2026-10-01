@@ -5,21 +5,25 @@ import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
 import 'package:stepbound/l10n/language.dart';
+import 'package:stepbound/report/telemetry.dart';
 import 'package:stepbound/save/save_game.dart';
 import 'package:stepbound/ui/audio_scope.dart';
 import 'package:stepbound/ui/blood_decor.dart';
+import 'package:stepbound/ui/settings_menu.dart';
 
-enum _MenuPage { home, newGame, load, credits }
+enum _MenuPage { home, newGame, load, settings, credits }
 
 /// The first screen: the Stepbound sign from the title card, then a new
-/// game in one of the four slots or a saved game to resume, the sound
-/// switch and the credits.
+/// game in one of the four slots or a saved game to resume, the settings
+/// (sound, language, anonymous data) and the credits.
 final class MainMenu extends StatefulWidget {
   const MainMenu({
     required this.saves,
     required this.onNewGame,
     required this.onLoad,
     this.linkNotice,
+    this.telemetry,
+    this.onReportProblem,
     super.key,
   });
 
@@ -38,6 +42,13 @@ final class MainMenu extends StatefulWidget {
 
   /// What the gift link the app was just opened with did.
   final LinkNotice? linkNotice;
+
+  /// Whose data switch the settings show; the app's own when null.
+  final Telemetry? telemetry;
+
+  /// Reports a problem from the settings (see
+  /// [SettingsChoices.onReportProblem]); not offered when null.
+  final Future<bool> Function(String message)? onReportProblem;
 
   /// Starts the story; the game will save in the given slot.
   final void Function(int slot) onNewGame;
@@ -95,15 +106,6 @@ final class _MainMenuState extends State<MainMenu> {
     _confirming = null;
   });
 
-  void _toggleAudio() {
-    final audio = AudioScope.of(context);
-    setState(() => audio.muted = !audio.muted);
-  }
-
-  /// Every word on the screen changes at once: the app rebuilds with the
-  /// language (see `StepboundApp`), this menu included.
-  void _nextLanguage() => Language.current.value = Language.current.value.next;
-
   void _pickNewGameSlot(int slot) {
     final slots = _slots;
     if (slots == null) {
@@ -153,9 +155,15 @@ final class _MainMenuState extends State<MainMenu> {
                 children: <Widget>[
                   Image.asset(
                     MainMenu.logo,
+                    // Smaller where there is more under it: the settings
+                    // have the most.
                     height:
                         constraints.maxHeight *
-                        (_page == _MenuPage.home ? 0.32 : 0.22),
+                        switch (_page) {
+                          _MenuPage.home => 0.32,
+                          _MenuPage.settings => 0.13,
+                          _ => 0.22,
+                        },
                     fit: BoxFit.contain,
                   ),
                   SizedBox(height: 6 * unit),
@@ -217,26 +225,12 @@ final class _MainMenuState extends State<MainMenu> {
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             MenuButton(
-              key: const ValueKey<String>('menu-audio'),
-              label: AudioScope.of(context).muted
-                  ? strings.menuAudioOff
-                  : strings.menuAudioOn,
+              key: const ValueKey<String>('menu-settings'),
+              label: strings.settingsTitle,
               unit: unit,
               compact: true,
-              width: MenuButton.sideWidth,
-              onPressed: _toggleAudio,
-            ),
-            SizedBox(width: MenuButton.pairGap * unit),
-            MenuButton(
-              key: const ValueKey<String>('menu-language'),
-              label: Language.current.value.code.toUpperCase(),
-              semanticsLabel:
-                  '${strings.menuLanguage}: '
-                  '${Language.current.value.nativeName}',
-              unit: unit,
-              compact: true,
-              width: MenuButton.languageWidth,
-              onPressed: _nextLanguage,
+              width: MenuButton.halfWidth,
+              onPressed: () => _open(_MenuPage.settings),
             ),
             SizedBox(width: MenuButton.pairGap * unit),
             MenuButton(
@@ -244,10 +238,18 @@ final class _MainMenuState extends State<MainMenu> {
               label: strings.menuCredits,
               unit: unit,
               compact: true,
-              width: MenuButton.sideWidth,
+              width: MenuButton.halfWidth,
               onPressed: () => _open(_MenuPage.credits),
             ),
           ],
+        ),
+      ],
+      _MenuPage.settings => <Widget>[
+        SettingsChoices(
+          unit: unit,
+          telemetry: widget.telemetry,
+          onReportProblem: widget.onReportProblem,
+          onBack: () => _open(_MenuPage.home),
         ),
       ],
       _MenuPage.credits => <Widget>[
@@ -556,10 +558,9 @@ final class MenuButton extends StatelessWidget {
   static const double halfWidth = 84;
   static const double pairGap = 4;
 
-  /// The row under the main buttons: the audio and the credits either
-  /// side of the narrow language switch, edges lined up with theirs.
-  static const double languageWidth = 30;
-  static const double sideWidth = (fullWidth - languageWidth) / 2 - pairGap;
+  /// What the blood on the rim is drawn from: the key when there is one,
+  /// so a switch keeps its stains when its label changes, else the label.
+  String get _bloodName => key?.toString() ?? label;
 
   @override
   Widget build(BuildContext context) {
@@ -583,10 +584,8 @@ final class MenuButton extends StatelessWidget {
             painter: BloodPainter(
               band: 2.5 * unit,
               cornerRadius: 4 * unit,
-              drips: <BloodDrip>[
-                BloodDrip(0.12, 7 * unit, 2.6 * unit),
-                BloodDrip(0.83, 10 * unit, 3 * unit),
-              ],
+              drips: rimDrips(_bloodName, unit),
+              bandVariant: stableSeed(_bloodName) % 6,
               color: rim,
             ),
             child: Container(
@@ -664,11 +663,14 @@ final class _Credits extends StatelessWidget {
 
 /// A column of [MenuButton]s over the game: the camp menu and the menu
 /// opened mid-game. [trailing] sits further down, apart from the rest,
-/// because the way back to the game is not one of the choices.
+/// because the way back to the game is not one of the choices; [leading]
+/// sits apart above them in the same way (the settings, which change
+/// nothing in the game).
 final class MenuColumn extends StatelessWidget {
   const MenuColumn({
     required this.unit,
     required this.children,
+    this.leading,
     this.trailing,
     super.key,
   });
@@ -676,6 +678,7 @@ final class MenuColumn extends StatelessWidget {
   final double unit;
   final List<Widget> children;
 
+  final Widget? leading;
   final Widget? trailing;
 
   /// The gap between two choices, and the wider one that sets [trailing]
@@ -688,6 +691,14 @@ final class MenuColumn extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
+        if (leading case final leading?)
+          Padding(
+            padding: EdgeInsets.only(
+              top: gap * unit,
+              bottom: trailingGap * unit,
+            ),
+            child: leading,
+          ),
         for (final child in children)
           Padding(
             padding: EdgeInsets.symmetric(vertical: gap * unit),

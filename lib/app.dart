@@ -8,6 +8,7 @@ import 'package:stepbound/app_services.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/game_audio.dart';
 import 'package:stepbound/game/audio/sound.dart';
+import 'package:stepbound/game/game_session.dart';
 import 'package:stepbound/game/input/touch_controls.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
@@ -16,6 +17,7 @@ import 'package:stepbound/game/stepbound_game.dart';
 import 'package:stepbound/l10n/language.dart';
 import 'package:stepbound/report/breadcrumbs.dart';
 import 'package:stepbound/report/error_report.dart';
+import 'package:stepbound/report/telemetry.dart';
 import 'package:stepbound/save/save_game.dart';
 import 'package:stepbound/save/skin_links.dart';
 import 'package:stepbound/ui/audio_scope.dart';
@@ -103,6 +105,7 @@ final class _StepboundAppState extends State<StepboundApp> {
   late final AppFlowController _flow = AppFlowController(
     saves: _saves,
     audio: _audio,
+    onSaveFailed: _sendSaveFailure,
   );
 
   /// Silences the game whenever it is not the app in front.
@@ -181,29 +184,78 @@ final class _StepboundAppState extends State<StepboundApp> {
       return;
     }
     Breadcrumbs.shared.add('app: rapporto del salvataggio condiviso');
-    await _shareReport(
-      ErrorReport(
-        error: failure.error,
-        stack: failure.stack,
-        source: 'salvataggio: ${failure.place}',
-        at: failure.at,
-      ),
+    await _shareReport(_saveFailureReport(failure));
+  }
+
+  /// A save that could not be written is sent as an error is, on its
+  /// own: rendered like one, the failure in the error's place.
+  void _sendSaveFailure(SaveFailure failure) {
+    final telemetry = Telemetry.shared;
+    if (!telemetry.active) {
+      return;
+    }
+    final report = _saveFailureReport(failure);
+    final reporter = (widget.reporter ?? ErrorReporter())
+      ..context ??= _reportSections;
+    unawaited(
+      reporter
+          .render(report)
+          .then(
+            (text) => telemetry.sendReport(
+              at: report.at,
+              source: report.source,
+              summary: report.summary,
+              text: text,
+            ),
+          )
+          .catchError((Object error) {
+            debugPrint('report: could not send the save failure ($error)');
+          }),
     );
   }
 
-  /// The report a player asks for from the pause menu, with no error in
-  /// it: the trail is the point, for the bugs that throw nothing, a script
-  /// that never lets go of Mario or a button that does not answer.
-  Future<void> _shareTrail() async {
-    Breadcrumbs.shared.add('app: rapporto chiesto dal menù pausa');
-    await _shareReport(
-      ErrorReport(
-        error: 'nessun errore: rapporto chiesto dal giocatore',
-        source: 'menù pausa',
-        at: DateTime.now(),
-      ),
+  ErrorReport _saveFailureReport(SaveFailure failure) => ErrorReport(
+    error: failure.error,
+    stack: failure.stack,
+    source: 'salvataggio: ${failure.place}',
+    at: failure.at,
+  );
+
+  /// SEGNALA UN PROBLEMA, from the settings: a report with no error in
+  /// it but what the player wrote, the trail being the point, for the
+  /// bugs that throw nothing, a script that never lets go of Mario or a
+  /// button that does not answer. It leaves on its own when the app sends
+  /// (true), or else goes to the share sheet (false).
+  Future<bool> _reportProblem(String message) async {
+    Breadcrumbs.shared.add('app: problema segnalato dal giocatore');
+    final report = ErrorReport(
+      // What the player wrote takes the error's place, its first line
+      // the summary the server groups by; the trail never holds it.
+      error: message.isEmpty
+          ? 'nessun errore: problema segnalato dal giocatore'
+          : message,
+      source: 'segnalazione del giocatore',
+      at: DateTime.now(),
     );
+    final telemetry = Telemetry.shared;
+    if (!telemetry.active) {
+      await _shareReport(report);
+      return false;
+    }
+    final reporter = (widget.reporter ?? ErrorReporter())
+      ..context ??= _reportSections;
+    await telemetry.sendReport(
+      at: report.at,
+      source: report.source,
+      summary: report.summary,
+      text: await reporter.render(report),
+    );
+    return true;
   }
+
+  /// Whether a problem can be reported: sent, or at least shared.
+  Future<bool> Function(String message)? get _problemReporter =>
+      Telemetry.shared.active || widget.share != null ? _reportProblem : null;
 
   /// Renders [report] like the one of an error and hands it to the share
   /// sheet; nothing if the app cannot share.
@@ -398,9 +450,7 @@ final class _StepboundAppState extends State<StepboundApp> {
       onMainMenu: _flow.backToMenu,
       onClose: game.closeMenu,
       onWearOutfit: game.wearOutfit,
-      onShareReport: widget.share == null
-          ? null
-          : () => unawaited(_shareTrail()),
+      onReportProblem: _problemReporter,
     ),
     LevelEndCover() => const ColoredBox(
       key: ValueKey<String>('level-end-black'),
@@ -477,6 +527,7 @@ final class _StepboundAppState extends State<StepboundApp> {
                   key: ValueKey<int>(_flow.linkNoticeRevision),
                   saves: _saves,
                   linkNotice: _flow.linkNotice,
+                  onReportProblem: _problemReporter,
                   onNewGame: (slot) => unawaited(_flow.newGame(slot)),
                   onLoad: (save) => unawaited(_flow.loadGame(save)),
                 ),
