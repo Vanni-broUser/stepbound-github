@@ -776,6 +776,10 @@ final class EnglishStrings implements Strings {
   @override
   String get rooftopsGrappleLine => 'Mario uses the grappling hook';
   @override
+  String get rooftopsNoWayOut =>
+      'The flames have shut you in completely, there is no way out left: '
+      'start again from the campfire or from the start of the level';
+  @override
   String get speakerCultist => 'Cultist';
   @override
   String get speakerMysteryVoice => 'Mysterious voice';

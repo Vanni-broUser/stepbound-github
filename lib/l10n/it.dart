@@ -756,6 +756,10 @@ final class ItalianStrings implements Strings {
   @override
   String get rooftopsGrappleLine => 'Mario usa il rampino';
   @override
+  String get rooftopsNoWayOut =>
+      'Le fiamme ti hanno completamente bloccato, non c’è più via di fuga, '
+      'ricomincia dal falò o l’intero livello';
+  @override
   String get speakerCultist => 'Cultista';
   @override
   String get speakerMysteryVoice => 'Voce misteriosa';

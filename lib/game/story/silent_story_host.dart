@@ -75,6 +75,9 @@ final class SilentStoryHost implements StoryHost, HometownActions {
   void showWorkInProgress({void Function()? onClosed}) {}
 
   @override
+  void endWithNoWayOut(String reason) {}
+
+  @override
   void openZombieBook() {}
 
   @override

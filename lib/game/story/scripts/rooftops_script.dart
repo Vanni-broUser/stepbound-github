@@ -18,11 +18,24 @@ import 'package:stepbound/l10n/language.dart';
 /// Back in Molfetta with the hook, Mario is given
 /// [Mission.exploreTerraces]; it is done once he has crossed all three
 /// gaps, each at least once, either way.
+///
+/// The burning zombies on the roofs past the airliner leave fire behind
+/// them that never goes out: should it shut Mario in with no way off the
+/// roofs, the game ends there and offers the campfire or the level again.
 final class RooftopsScript extends StoryScript {
   RooftopsScript(super.director);
 
   static String get gapLesson => strings.rooftopsGapLesson;
   static String get grappleLine => strings.rooftopsGrappleLine;
+  static String get noWayOut => strings.rooftopsNoWayOut;
+
+  /// Whether the fire may have closed in since the roofs were last
+  /// checked for a way off them: the burning zombies set new tiles alight,
+  /// Mario arrives, or a game is loaded.
+  bool _fireMoved = true;
+
+  /// The game has already ended with Mario shut in.
+  bool _shutIn = false;
 
   /// Whether the cultist on the Duomo's other tower has come out.
   bool _towerCultistOut = false;
@@ -36,6 +49,9 @@ final class RooftopsScript extends StoryScript {
 
   @override
   void onEvent(WorldEvent event) {
+    if (event is FireStartedEvent || event is TeleportedEvent) {
+      _fireMoved = true;
+    }
     if (event case TeleportedEvent(grappled: true, :final to)) {
       if (hometownGrappleCrossings[to] case final crossing?) {
         _crossed.add(crossing);
@@ -77,6 +93,7 @@ final class RooftopsScript extends StoryScript {
 
   @override
   void update({required bool turnAnimating}) {
+    _checkWayOut(turnAnimating: turnAnimating);
     final missions = progress.missions;
     const mission = Mission.exploreTerraces;
     if (progress.level == LevelId.hometown &&
@@ -86,6 +103,22 @@ final class RooftopsScript extends StoryScript {
       missions.give(mission);
       _checkTerraces();
     }
+  }
+
+  /// Once the turn that set the roofs alight has played out, the game is
+  /// over if Mario has no way left off them: the fire never goes out.
+  void _checkWayOut({required bool turnAnimating}) {
+    if (!_fireMoved || _shutIn || turnAnimating || !world.player.isAlive) {
+      return;
+    }
+    _fireMoved = false;
+    final at = world.player.component<PositionComponent>().position;
+    final hook = world.player.component<AmmoComponent>().grapplingHook;
+    if (hasRooftopWayOut(world, at, grapplingHook: hook)) {
+      return;
+    }
+    _shutIn = true;
+    host.endWithNoWayOut(noWayOut);
   }
 
   /// Crosses [Mission.exploreTerraces] out once all three gaps are behind
@@ -109,6 +142,8 @@ final class RooftopsScript extends StoryScript {
 
   @override
   void restore(Map<String, Object?> json) {
+    _fireMoved = true;
+    _shutIn = false;
     _towerCultistOut = json['towerCultist'] as bool? ?? false;
     _crossed
       ..clear()

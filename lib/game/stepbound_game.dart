@@ -899,6 +899,13 @@ final class StepboundGame extends FlameGame
   void closeWorkInProgress() => _covers.closeWorkInProgress();
 
   @override
+  void endWithNoWayOut(String reason) {
+    input.stopWalking();
+    _covers.gameOver(reason: reason);
+    audio.play(Sfx.gameOver);
+  }
+
+  @override
   void openZombieBook() => _covers.openZombieBook();
 
   @override
