@@ -69,6 +69,14 @@ final class LightingComponent extends Component {
     (38, 0.52),
     (26, 0.74),
   ];
+
+  /// The light through an open door off a lit landing: it fades a step or
+  /// two into the dark room, and never cuts as deep as a lamp.
+  static const List<(double, double)> _spillRings = <(double, double)>[
+    (30, 0.2),
+    (21, 0.32),
+    (12, 0.46),
+  ];
   static const List<(double, double)> _playerRings = <(double, double)>[
     (22, 0.28),
     (13, 0.5),
@@ -145,8 +153,11 @@ final class LightingComponent extends Component {
     light.tile.y * tileSize + tileSize / 2,
   );
 
-  List<(double, double)> _rings(LightSpot light) =>
-      light.torch ? _torchRings : _lampRings;
+  List<(double, double)> _rings(LightSpot light) => light.torch
+      ? _torchRings
+      : light.spill
+      ? _spillRings
+      : _lampRings;
 
   /// The world pixels [light]'s pool can touch.
   ui.Rect _reach(LightSpot light) => ui.Rect.fromCircle(
@@ -372,14 +383,18 @@ final class LightingComponent extends Component {
     }
   }
 
-  /// A warm tint under each working lamp, an orange one round a torch, a
-  /// pale one on each beacon while it is lit.
+  /// A warm tint under each working lamp (not the light through a door),
+  /// an orange one round a torch, a pale one on each beacon while it is
+  /// lit.
   void _renderWarmth(ui.Canvas canvas, Iterable<_Pool> beacons) {
     for (final beacon in beacons) {
       _warm.color = ui.Color.fromRGBO(255, 240, 190, 0.12 * beacon.intensity);
       canvas.drawCircle(beacon.centre, 9, _warm);
     }
     for (final (index, light) in lights.indexed) {
+      if (light.spill) {
+        continue;
+      }
       final intensity = _intensity(light, index);
       _warm.color = light.torch
           ? ui.Color.fromRGBO(255, 150, 60, 0.1 * intensity)

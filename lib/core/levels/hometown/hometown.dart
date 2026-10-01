@@ -280,6 +280,8 @@ const List<PlaceSpec> hometownPlaces = <PlaceSpec>[
     indoor: true,
     darkness: palazzoFlatDarkness,
     litAreas: <GridRect>[palazzoStairwell],
+    // Light from the landing through the flats' doors, kicked in.
+    openDoors: 'P',
     name: 'Palazzo',
   ),
   PlaceSpec(
@@ -290,6 +292,8 @@ const List<PlaceSpec> hometownPlaces = <PlaceSpec>[
     indoor: true,
     darkness: palazzoFlatDarkness,
     litAreas: <GridRect>[palazzoStairwell],
+    // Light from the landing through the flats' doors, kicked in.
+    openDoors: 'P',
     name: 'Palazzo',
   ),
   PlaceSpec(
@@ -300,6 +304,8 @@ const List<PlaceSpec> hometownPlaces = <PlaceSpec>[
     indoor: true,
     darkness: palazzoFlatDarkness,
     litAreas: <GridRect>[palazzoStairwell],
+    // Light from the landing through the flats' doors, kicked in.
+    openDoors: 'P',
     name: 'Palazzo',
   ),
   // The entrance hall: its lights on, and daylight through the portone.
@@ -392,6 +398,8 @@ const List<PlaceSpec> hometownPlaces = <PlaceSpec>[
     indoor: true,
     darkness: eastBlockDarkness,
     litAreas: <GridRect>[eastBlockStairwell, eastBlockCorridor],
+    // Light from the landing through the flats' doors, kicked in.
+    openDoors: 'P',
     name: eastBlockName,
   ),
   PlaceSpec(
@@ -402,6 +410,8 @@ const List<PlaceSpec> hometownPlaces = <PlaceSpec>[
     indoor: true,
     darkness: eastBlockDarkness,
     litAreas: <GridRect>[eastBlockStairwell, eastBlockCorridor],
+    // Light from the landing through the flats' doors, kicked in.
+    openDoors: 'P',
     name: eastBlockName,
   ),
 ];

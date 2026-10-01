@@ -186,6 +186,40 @@ void main() {
     expect(hall.lit, isTrue);
   });
 
+  test('the light of the landing comes a little way into each flat '
+      'through its open door, and not through the locked one', () {
+    for (final floor in <Place>[
+      first,
+      second,
+      third,
+      place(PlaceId.romePalazzoFirst),
+      place(PlaceId.romePalazzoSecond),
+    ]) {
+      final spills = <GridPoint>[
+        for (final light in floor.lights)
+          if (light.spill) light.tile,
+      ];
+      expect(spills, isNotEmpty, reason: '${floor.id}');
+      expect(spills.toSet(), floor.tilesOf('P').toSet(), reason: '${floor.id}');
+      for (final door in spills) {
+        expect(
+          Direction.values.any(
+            (side) => floor.litAreas.any(
+              (lit) => lit.contains(door) || lit.contains(door.step(side)),
+            ),
+          ),
+          isTrue,
+          reason: '$door opens off the lit landing',
+        );
+      }
+    }
+    expect(third.tilesOf('L'), isNotEmpty);
+    expect(
+      third.lights.where((light) => third.tilesOf('L').contains(light.tile)),
+      isEmpty,
+    );
+  });
+
   test('out on the street: the camp by the company is a fire to rest at, '
       'and no way off it goes nowhere: east, past the company, it ends '
       'against a pile-up at the edge of the map', () {

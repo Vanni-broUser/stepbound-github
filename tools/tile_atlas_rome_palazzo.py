@@ -247,6 +247,32 @@ def paint_locked_door(d, px, py):
     rect(d, px + 7, py + 7, 2, 2, RP_BRASS)
 
 
+def paint_side_doorway(d, px, py):
+    """paint_doorway's door in a side wall (see
+    tile_atlas_palazzo.paint_side_door): the white door along the sill."""
+    molfetta.paint_side_door(d, px, py, RP_WALL_TOP, RP_WALL_TOP_LIGHT,
+                             RP_WHITE_SHADE, RP_WHITE, (140, 140, 136),
+                             RP_BRASS, RP_TRAVERTINE, RP_TRAVERTINE_JOINT, "down")
+
+
+def paint_side_flat_door(d, px, py):
+    """paint_flat_door's door in a side wall: the green leaf kicked in and
+    swung back, the blood dragged over the sill."""
+    molfetta.paint_side_door(d, px, py, RP_WALL_TOP, RP_WALL_TOP_LIGHT,
+                             RP_GREEN_DOOR, RP_GREEN_DOOR_LIGHT,
+                             shade(RP_GREEN_DOOR, -20), RP_BRASS,
+                             RP_TRAVERTINE, RP_TRAVERTINE_JOINT, "open",
+                             blood=True)
+
+
+def paint_side_locked_door(d, px, py):
+    """paint_locked_door's door in a side wall: the green leaf, shut."""
+    molfetta.paint_side_door(d, px, py, RP_WALL_TOP, RP_WALL_TOP_LIGHT,
+                             RP_GREEN_DOOR, RP_GREEN_DOOR_LIGHT,
+                             shade(RP_GREEN_DOOR, -20), RP_BRASS,
+                             RP_TRAVERTINE, RP_TRAVERTINE_JOINT, "shut")
+
+
 def paint_stairs_down(d, px, py):
     """The top of the flight down: travertine treads going down into the
     dark, the wrought-iron banister down the side."""

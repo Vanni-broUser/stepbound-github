@@ -188,8 +188,13 @@ void main() {
         }
       }
       // The lamps left: only flickering ones in the rooms, the steady ones
-      // in the stairwell and along the corridor.
+      // in the stairwell and along the corridor; and the corridor's light
+      // through each flat's open door, just off it.
       for (final light in floor.lights) {
+        if (light.spill) {
+          expect(floor.tilesOf('P'), contains(light.tile));
+          continue;
+        }
         if (!light.flickers) {
           expect(
             corridor.contains(light.tile) || stairwell.contains(light.tile),
