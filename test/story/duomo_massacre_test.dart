@@ -210,7 +210,8 @@ void main() {
     expect(host.shown.single.single.text, RooftopsScript.gapLesson);
   });
 
-  test('with the hook, Mario swings across and the game says so', () {
+  test('with the hook, nothing more is said once Mario has swung across: '
+      'the line comes before the swing', () {
     director.onEvents(<WorldEvent>[
       TeleportedEvent(
         entityId: world.playerId,
@@ -220,7 +221,7 @@ void main() {
       ),
     ]);
     settle();
-    expect(host.shown.single.single.text, RooftopsScript.grappleLine);
+    expect(host.shown, isEmpty);
     expect(RooftopsScript.grappleLine, 'Mario usa il rampino');
   });
 
@@ -281,58 +282,19 @@ void main() {
     );
   });
 
-  group("on the Duomo's other tower", () {
-    TeleportedEvent swing(GridPoint edge) => TeleportedEvent(
-      entityId: world.playerId,
-      from: edge.step(world.grapples[edge]!.facing.opposite),
-      to: world.grapples[edge]!.to,
-      grappled: true,
-    );
-
-    test('a cultist comes up after Mario the first time he lands there, '
-        'once the line is read, headed straight for him', () {
-      director.onEvents(<WorldEvent>[swing(duomoTowerLookoutTile)]);
-      settle();
-      expect(host.shown.single.single.text, RooftopsScript.grappleLine);
-      expect(host.spawned, isEmpty, reason: 'not while he reads');
-      host.dismiss();
-
-      final cultist = host.spawned.single;
-      expect(cultist.id, duomoFarTowerCultistId);
-      expect(cultist.kind, EntityKind.cultist);
-      expect(
-        cultist.component<PositionComponent>().position,
-        duomoFarTowerCultistTile,
-      );
-      expect(cultist.component<HearingComponent>().lastHeard, isNotNull);
-
-      // Back and over again: it came out once.
-      director.onEvents(<WorldEvent>[swing(duomoFarTowerEdgeTile)]);
-      settle();
-      host.dismiss();
-      director.onEvents(<WorldEvent>[swing(duomoTowerLookoutTile)]);
-      settle();
-      host.dismiss();
-      expect(host.spawned, hasLength(1));
-      expect(
-        (director.toJson()['rooftops']!
-            as Map<String, Object?>)['towerCultist'],
-        isTrue,
-      );
-    });
-
-    test('nowhere else', () {
-      for (final edge in <GridPoint>[
-        rooftopGapTile,
-        hospitalRoofLookoutTile,
-        duomoFarTowerEdgeTile,
-      ]) {
-        director.onEvents(<WorldEvent>[swing(edge)]);
-        settle();
-        host.dismiss();
-      }
-      expect(host.spawned, isEmpty);
-    });
+  test("landing on the Duomo's other tower raises nobody: its cultists "
+      'are there from the start', () {
+    final edge = duomoTowerLookoutTile;
+    director.onEvents(<WorldEvent>[
+      TeleportedEvent(
+        entityId: world.playerId,
+        from: edge.step(world.grapples[edge]!.facing.opposite),
+        to: world.grapples[edge]!.to,
+        grappled: true,
+      ),
+    ]);
+    settle();
+    expect(host.spawned, isEmpty);
   });
 
   group('the terraces, with the hook', () {

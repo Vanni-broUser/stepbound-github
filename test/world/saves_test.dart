@@ -14,9 +14,9 @@ void main() {
       // Every zombie of every level is in it, Rome's streets' and the
       // palazzo's past the airliner too, the call center's, those in
       // the palazzo and the bank on Via Marsala, and those in the block
-      // east of the hospital: some 450 bytes each, so the budget grows
-      // with the cast.
-      expect(save.length, lessThan(106 * 1024));
+      // east of the hospital, and the two cultists on the Duomo's other
+      // tower: some 450 bytes each, so the budget grows with the cast.
+      expect(save.length, lessThan(107 * 1024));
       expect(saveGameWorld(world).containsKey('map'), isFalse);
       expect(saveGameWorld(world)['mapChanges'], isEmpty);
     });

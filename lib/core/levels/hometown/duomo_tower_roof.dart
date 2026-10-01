@@ -2,6 +2,7 @@ import 'package:stepbound/core/entities/balance.dart';
 import 'package:stepbound/core/entities/entity.dart';
 import 'package:stepbound/core/entities/entity_factory.dart';
 import 'package:stepbound/core/grid/grid_point.dart';
+import 'package:stepbound/core/items/pickup.dart';
 import 'package:stepbound/core/levels/game_world.dart';
 import 'package:stepbound/core/levels/place.dart';
 
@@ -100,19 +101,43 @@ const String duomoFarTowerBackpackId = 'backpack-duomo-tower';
 /// How many rounds it holds.
 const int duomoFarTowerBackpackRockets = 2;
 
-/// Where the cultist up on the other tower comes out, in its far corner,
-/// the first time the hook lands Mario there: nothing of it shows from
-/// this tower.
-final GridPoint duomoFarTowerCultistTile = GridPoint(
-  duomoFarTowerEdgeTile.x + 6,
-  duomoFarTowerEdgeTile.y - 2,
-);
-const String duomoFarTowerCultistId = 'duomo-tower-cultist';
+/// The two cultists waiting on the other tower, in its far corners: there
+/// from the start, turned towards where the hook lands Mario, and never in
+/// sight from this tower (see [duomoTowerRoofCameraZones]).
+final List<GridPoint> duomoFarTowerCultistTiles = <GridPoint>[
+  GridPoint(duomoFarTowerEdgeTile.x + 6, duomoFarTowerEdgeTile.y - 2),
+  GridPoint(duomoFarTowerEdgeTile.x + 5, duomoFarTowerEdgeTile.y + 2),
+];
+const String duomoFarTowerCultistPrefix = 'duomo-tower-cultist-';
 
-/// The cultist on the other tower, turned towards where Mario lands.
-Entity createDuomoTowerCultist() =>
-    EntityFactory(BalanceConfig.standard()).zombie(
-      id: duomoFarTowerCultistId,
-      kind: EntityKind.cultist,
-      position: duomoFarTowerCultistTile,
-    );
+/// The cultists on the other tower, one on each of
+/// [duomoFarTowerCultistTiles].
+List<Entity> createDuomoTowerCultists() {
+  final factory = EntityFactory(BalanceConfig.standard());
+  return <Entity>[
+    for (final (index, tile) in duomoFarTowerCultistTiles.indexed)
+      factory.zombie(
+        id: '$duomoFarTowerCultistPrefix$index',
+        kind: EntityKind.cultist,
+        position: tile,
+      ),
+  ];
+}
+
+/// The first columns of the roofs the view never shows with Mario on
+/// this tower, in the place's own tiles: the far corners of the other
+/// tower, where its cultists wait. The backpack, two columns short of
+/// them, stays in sight.
+const int duomoFarTowerHiddenFromColumn = 29;
+
+/// With Mario on this tower, or over the first half of the gap, the view
+/// stops short of [duomoFarTowerHiddenFromColumn], however wide the
+/// screen: it is a column wider than the widest view
+/// (`IntegerResolutionViewport.maxAspect`). Over the other half, and on
+/// the other tower, it slides over to show the whole roofscape, and them.
+const List<CameraZone> duomoTowerRoofCameraZones = <CameraZone>[
+  CameraZone(
+    area: GridRect(0, 0, 20, 41),
+    limits: GridRect(0, 0, duomoFarTowerHiddenFromColumn - 2, 41),
+  ),
+];

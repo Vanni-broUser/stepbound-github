@@ -289,12 +289,19 @@ void main() {
     expect(map.tileAt(const GridPoint(16, 6)).isWalkable, isTrue);
   });
 
-  test('no cultist zombie stands in the level: the mass raises them', () {
+  test("no cultist zombie stands in the level but the two on the Duomo's "
+      'other tower: the mass raises them', () {
     final cultists = createGameWorld().entities.values.where(
       (entity) => entity.kind == EntityKind.cultist,
     );
 
-    expect(cultists, isEmpty);
+    expect(
+      cultists.map((cultist) => cultist.id),
+      unorderedEquals(<String>[
+        '${duomoFarTowerCultistPrefix}0',
+        '${duomoFarTowerCultistPrefix}1',
+      ]),
+    );
     expect(duomoCultistSpawns, hasLength(4), reason: 'four of them, later');
   });
 
