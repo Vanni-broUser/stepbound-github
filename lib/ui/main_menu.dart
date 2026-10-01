@@ -29,11 +29,13 @@ final class MainMenu extends StatefulWidget {
 
   static const String logo = 'assets/story/ui/logo.png';
 
-  /// The city overrun: zombies chasing people through a burning street.
+  /// Mario turning, step by step, into one of them, in front of a town
+  /// on fire: the picture of the loading screen and of the error screen
+  /// too, so the three read as one.
   ///
   /// The app draws it over the whole screen, bands included (see
   /// [MenuBackdrop]); the menu itself stays on the 16:9 picture.
-  static const String background = 'assets/story/ui/menu_background.jpg';
+  static const String background = 'assets/story/ui/title_loading.jpg';
 
   /// The classic line at the foot of the first screen.
   static String get disclaimer => strings.menuDisclaimer;
