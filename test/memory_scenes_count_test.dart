@@ -11,8 +11,8 @@ void main() {
   LevelStats stats(Progress progress, LevelId level) =>
       LevelStats.of(world, progress, level);
 
-  test('Molfetta holds twelve scenes to remember, Rome three', () {
-    expect(stats(Progress(), LevelId.hometown).totalMemories, 12);
+  test('Molfetta holds thirteen scenes to remember, Rome three', () {
+    expect(stats(Progress(), LevelId.hometown).totalMemories, 13);
     expect(stats(Progress(), LevelId.rome).totalMemories, 3);
   });
 
@@ -34,10 +34,11 @@ void main() {
     }
   });
 
-  test("the golden pistol is part of Luigi's welcome at the station", () {
+  test('the golden pistol is a memory of its own, past Luigi at the '
+      'station', () {
     final progress = Progress()..remember(StoryMemory.luigiAtStation);
     expect(stats(progress, LevelId.hometown).foundMemories, 1);
     progress.remember(StoryMemory.goldenPistol);
-    expect(stats(progress, LevelId.hometown).foundMemories, 1);
+    expect(stats(progress, LevelId.hometown).foundMemories, 2);
   });
 }
