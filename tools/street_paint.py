@@ -109,6 +109,9 @@ STREET_STOREFRONTS = {
     ],
 }
 NORTH_STOREFRONTS = {
+    # On the branch from the new crossroads to the road north, the
+    # butcher's, a palazzo to itself.
+    20: [(64, 6, "macelleria")],
     31: [(68, 7, "barsport")],
     34: [
         # On the road west to the hospital, past the side road down from

@@ -14520,7 +14520,7 @@
         },
         {
           "layer": "structures",
-          "glyphs": "$-.4:=>?ACDFJLOPQSUVXYZadekmnqrvwyz|\u00a6\u266a",
+          "glyphs": "$-.4:=>?ACDFJLOPQSTUVXYZadekmnqrvwyz|\u00a6\u266a",
           "keys": [
             {
               "kind": "neighbour",
@@ -15487,6 +15487,15 @@
         {
           "image": "hometown/northDistrict_shop_109_34.png",
           "at": [109, 34],
+          "under": [
+            "HHHHHH",
+            "HHHHHH",
+            "HHHHHH"
+          ]
+        },
+        {
+          "image": "hometown/northDistrict_shop_64_20.png",
+          "at": [64, 20],
           "under": [
             "HHHHHH",
             "HHHHHH",

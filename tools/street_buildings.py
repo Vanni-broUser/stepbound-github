@@ -143,6 +143,10 @@ SHOPS = {
     # orange letters and the photos of its dishes over the counter.
     "pizzeria_forno": ((176, 138, 94), (128, 94, 60), (30, 84, 46), (240, 236, 220), "PIZZERIA DA MIMMO", ()),
     "doner": ((98, 72, 60), (66, 48, 40), (24, 22, 24), (250, 160, 40), "DONER KEBAB", ()),
+    # On the branch from the new crossroads to the road north: the
+    # butcher's, white tiles and a red sign, its window gone and the hooks
+    # still hanging behind it.
+    "macelleria": ((214, 210, 200), (160, 152, 140), (150, 26, 26), (246, 240, 228), "MACELLERIA", ()),
     "souvenirroma": ((214, 150, 84), (236, 224, 200), (30, 60, 110), (240, 200, 90), "SOUVENIR ROMA", ()),
 }
 # The shops whose palazzo keeps its own Roman floors above the shop front.
@@ -245,6 +249,12 @@ def paint_icon(d, kind, x, y):
                  (170, 96, 40) if i % 2 else (210, 136, 64))
         rect(d, x + 6, y + 1, 1, 5, (220, 220, 226))
         rect(d, x + 6, y + 6, 1, 2, (40, 30, 26))
+    elif kind == "macelleria":  # a cleaver over a cut of meat
+        d.ellipse([x, y + 3, x + 6, y + 7], fill=(200, 80, 80))
+        rect(d, x + 2, y + 4, 2, 2, (240, 220, 210))  # the bone
+        rect(d, x + 3, y, 5, 3, (196, 200, 206))  # the blade
+        rect(d, x + 3, y + 2, 5, 1, (140, 144, 150))
+        rect(d, x + 6, y + 3, 2, 3, (110, 72, 44))  # the handle
     elif kind == "pizzeria":
         rect(d, x + 1, y + 1, 6, 6, (230, 190, 90))
         rect(d, x + 2, y + 2, 4, 4, (200, 60, 40))
@@ -447,6 +457,15 @@ def paint_storefront(d, rng, px, py0, w, h, kind):
         # The last stripes red: green, white and red, the flag in rags.
         rect(d, px + w - 10, shop_top - 3, 8, 5, (180, 36, 30))
         rect(d, px + w - 7, shop_top - 2, 3, 3, (30, 26, 26))  # a hole
+    elif kind == "macelleria":
+        # White tiles round the shop front, the meat hooks in both windows.
+        for ty in range(shop_top, shop_top + 17, 3):
+            rect(d, px + 2, ty, 1, 1, (186, 182, 172))
+            rect(d, px + w - 3, ty, 1, 1, (186, 182, 172))
+        for wx in (px + 3, door_x + door_w + 1):
+            paint_butcher_window(d, wx, shop_top + 2, window_w, 12)
+        paint_torn_awning(d, rng, px + 2, shop_top - 3, w - 4,
+                          stripe=(170, 30, 30))
     elif kind == "doner":
         paint_doner_counter(d, door_x + door_w + 1, shop_top + 2, window_w, 12)
         paint_torn_awning(d, rng, px + 2, shop_top - 3, w - 4,
@@ -475,6 +494,24 @@ def paint_pizza_oven(d, x, y, w, h):
     d.ellipse([x + w // 2 - 4, y + h - 6, x + w // 2 + 3, y + h + 2],
               fill=(10, 8, 8))
     rect(d, x + 1, y + h - 1, w - 2, 1, (90, 86, 82))  # ash on the sill
+    for i in range(0, w, 3):  # glass teeth
+        rect(d, x + i, y, 1, 1 + (i * 5) % 3, (150, 180, 200))
+
+
+def paint_butcher_window(d, x, y, w, h):
+    """The butcher's window, its glass gone: the rail of hooks behind it,
+    a few with what was left on them, the marble counter, and blood run
+    down the tiles under the sill."""
+    rect(d, x, y, w, h, (20, 14, 14))
+    rect(d, x, y + 1, w, 1, (150, 154, 160))  # the rail
+    for i, hx in enumerate(range(x + 2, x + w - 2, 4)):
+        rect(d, hx, y + 2, 1, 2, (170, 174, 180))  # a hook
+        if i % 2 == 0:
+            rect(d, hx - 1, y + 4, 3, 4, (150, 50, 50))  # what hangs on it
+            rect(d, hx, y + 5, 1, 2, (226, 200, 190))
+    rect(d, x, y + h - 3, w, 3, (220, 218, 210))  # the counter
+    rect(d, x + 2, y + h - 3, 3, 1, BLOOD)
+    rect(d, x + w // 2, y + h - 2, 1, 4, BLOOD_DARK)  # run down the front
     for i in range(0, w, 3):  # glass teeth
         rect(d, x + i, y, 1, 1 + (i * 5) % 3, (150, 180, 200))
 

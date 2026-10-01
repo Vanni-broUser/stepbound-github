@@ -16,8 +16,13 @@ void main() {
 
   // Where the branch off the road north comes in, and where the side road
   // down from its crossroads comes out on the road west of the square.
-  final branchMouth = north.tilesOf('Z');
-  final sideRoadMouth = north.tilesOf('V');
+  // (The crossroads has zebras of its own, further west and north.)
+  final zebras = north.tilesOf('Z');
+  final branchMouth = zebras.where((tile) => tile.x == zebras.last.x).toList();
+  final crossings = north.tilesOf('V');
+  final sideRoadMouth = crossings
+      .where((tile) => tile.y == crossings.last.y)
+      .toList();
 
   test('up the road north, before the car park, a branch turns west to a '
       'crossroads, and its side road south comes out on the road west of '
@@ -118,6 +123,30 @@ void main() {
         contains(glyph(GridPoint(x, crossing.y - 1))),
         reason: 'column ${x - north.origin.x}',
       );
+    }
+  });
+
+  test('the crossroads has a zebra crossing across each of its arms and a '
+      'traffic light on its corners', () {
+    final crossroads = GridRect(
+      sideRoadMouth.first.x - 1,
+      branchMouth.first.y - 2,
+      sideRoadMouth.last.x + 2,
+      branchMouth.last.y + 2,
+    );
+    final zebras = <GridPoint>[
+      for (final (tile, found) in north.glyphs)
+        if ('VZ'.contains(found) && crossroads.contains(tile)) tile,
+    ];
+    // Five across each of the side road's arms, three across the branch.
+    expect(zebras, hasLength(13));
+    final lights = <GridPoint>[
+      for (final (tile, found) in north.glyphs)
+        if (found == 'T' && crossroads.contains(tile)) tile,
+    ];
+    expect(lights, hasLength(4));
+    for (final tile in <GridPoint>[...zebras]) {
+      expect(world.map.tileAt(tile).isWalkable, isTrue);
     }
   });
 }
