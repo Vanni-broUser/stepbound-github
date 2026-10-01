@@ -153,11 +153,17 @@ def paint_church_front_wall(d, x, y):
         rect(d, px + 5, py + 4, 6, 1, CH_STONE_DARK)
 
 
-def paint_church_portal(d, px, py):
-    """The way out, the leaves folded back and the square beyond them."""
+def paint_church_portal(d, px, py, west=True, east=True):
+    """The way out, the leaves folded back and the square beyond them. A
+    portal more than a cell wide has its leaves only at its two ends,
+    [west] and [east]: between them the daylight runs on."""
     rect(d, px, py, TILE, TILE, (58, 54, 50))
-    rect(d, px + 4, py + 2, 8, TILE - 2, (152, 146, 130))  # the daylight
-    for leaf in (px, px + TILE - 4):
+    left = px + 4 if west else px
+    right = px + TILE - 4 if east else px + TILE
+    rect(d, left, py + 2, right - left, TILE - 2, (152, 146, 130))  # daylight
+    for leaf, open_ in ((px, west), (px + TILE - 4, east)):
+        if not open_:
+            continue
         rect(d, leaf, py, 4, TILE, DOOR_GREEN)
         rect(d, leaf + 1, py + 1, 2, TILE - 2, shade(DOOR_GREEN, 18))
 
@@ -272,8 +278,12 @@ def church(atlas: Atlas, rng) -> dict:
             lambda d, gx, gy: paint_church_front_wall(d, gx, gy),
             0 if w else 1, 0), 1) for window in (False, True)],
         [pattern_key(5, 0, 7, 0)]))
-    rules.append(rule("structures", "E", [atlas.bucket(lambda: tile_of(
-        lambda d: paint_church_portal(d, 0, 0)), 1)]))
+    # Its leaves stand at the two ends of the portal, however wide.
+    rules.append(rule("structures", "E", [atlas.bucket(
+        lambda i=index: tile_of(lambda d: paint_church_portal(
+            d, 0, 0, west=not i & 1, east=not i & 2)), 1)
+        for index in range(4)],
+        [neighbour_key(-1, 0, "E"), neighbour_key(1, 0, "E")]))
     rules.append(rule("structures", ":", randomly(paint_church_plaster)))
     rules.append(rule("structures", "b", randomly(paint_blood)))
     rules.append(rule("structures", "^", randomly(paint_church_roof_hole)))

@@ -11,7 +11,8 @@ import 'package:stepbound/core/levels/place.dart';
 /// backpack against the east wall.
 /// - `x` darkness, `W` the apse wall behind the altar, `w` the front wall
 ///   with the portal in it, `I` the side walls, `A` the altar: walls.
-/// - `E` the portal onto the little square, the way in and out.
+/// - `E` the portal onto the little square, the way in and out: two
+///   cells wide from inside, like the aisle it opens on.
 /// - `T` a pew, `K` a toppled column drum: obstacles.
 /// - `.` flagstones, `:` fallen plaster and glass (noisy), `b` blood,
 ///   `^` daylight through a hole in the roof, `Z` a wanderer, `9` the
@@ -36,7 +37,7 @@ const List<String> churchRows = <String>[
   'xI..:.....^.......Z..:Ix',
   'xIK..:..........b....KIx',
   'xI..b......:.....^....Ix',
-  'xwwwwwwwwwwwEwwwwwwwwwwx',
+  'xwwwwwwwwwwEEwwwwwwwwwwx',
   'xxxxxxxxxxxxxxxxxxxxxxxx',
 ];
 // church-rows-end
@@ -59,16 +60,20 @@ final List<GridPoint> churchZombieTiles = _church.tilesOf('Z');
 /// The portal of San Nicola, standing open on the church's little square.
 final GridPoint churchPortalTile = _harbour.tileOf('(');
 
-/// The open portal of San Nicola, deep in the old town, both ways.
+/// The two cells of the portal `E` seen from inside the nave, west to
+/// east.
+final List<GridPoint> churchPortalInside = _church.doorRow('E');
+
+/// The open portal of San Nicola, deep in the old town, both ways: from
+/// the square Mario comes in at its west cell, and either cell takes him
+/// back out onto the square.
 final Map<GridPoint, Portal> churchPortals = <GridPoint, Portal>{
   ...pairedDoors(
     <GridPoint>[churchPortalTile],
-    <GridPoint>[_church.tileOf('E')],
+    <GridPoint>[churchPortalInside.first],
     Direction.north,
   ),
-  ...pairedDoors(
-    <GridPoint>[_church.tileOf('E')],
-    <GridPoint>[churchPortalTile],
-    Direction.south,
-  ),
+  ...pairedDoors(churchPortalInside, <GridPoint>[
+    for (final _ in churchPortalInside) churchPortalTile,
+  ], Direction.south),
 };

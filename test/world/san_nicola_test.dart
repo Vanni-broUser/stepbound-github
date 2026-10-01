@@ -40,12 +40,41 @@ void main() {
       expect(world.player.component<PositionComponent>().position, square);
     });
 
+    test('from inside the portal is two cells wide, and either takes Mario '
+        'out onto the square', () {
+      expect(churchPortalInside, hasLength(2));
+      expect(
+        churchPortalInside.last.x - churchPortalInside.first.x,
+        1,
+        reason: 'side by side',
+      );
+      final square = churchPortalTile.step(Direction.south);
+      for (final door in churchPortalInside) {
+        final world = createGameWorld();
+        world.player.component<PositionComponent>().position = door.step(
+          Direction.north,
+        );
+        final events = const TurnScheduler().advance(
+          world,
+          const MoveAction(Direction.south),
+        );
+        expect(events.whereType<TeleportedEvent>(), hasLength(1));
+        expect(
+          world.player.component<PositionComponent>().position,
+          square,
+          reason: 'out through $door',
+        );
+      }
+    });
+
     test('the nave lights the portal, roof holes and incense backpack', () {
       expect(church.indoor, isTrue);
       expect(
         church.lights,
-        hasLength(church.tilesOf('^').length + 2),
-        reason: 'the backpack has a dedicated pool of light',
+        hasLength(church.tilesOf('^').length + churchPortalInside.length + 1),
+        reason:
+            'each cell of the portal lets the daylight in, and the '
+            'backpack has a dedicated pool of light',
       );
       expect(church.lights.every((light) => !light.flickers), isTrue);
       expect(
