@@ -42,6 +42,13 @@ final class EnglishStrings implements Strings {
   @override
   String get menuCredits => 'CREDITS';
   @override
+  String get settingsTitle => 'SETTINGS';
+  @override
+  String settingsLanguage(String language) => 'LANGUAGE: $language';
+  @override
+  String settingsSendData({required bool on}) =>
+      'SEND ANONYMOUS DATA: ${on ? 'YES' : 'NO'}';
+  @override
   String get menuChooseNewSlot => 'CHOOSE WHERE TO SAVE';
   @override
   String get menuChooseSave => 'CHOOSE A SAVE';
@@ -112,9 +119,6 @@ final class EnglishStrings implements Strings {
   String get pauseToMainMenu => 'GO TO THE MAIN MENU';
   @override
   String get pauseYesQuit => 'YES, QUIT';
-  @override
-  String pauseSendData({required bool on}) =>
-      'SEND ANONYMOUS DATA: ${on ? 'YES' : 'NO'}';
   @override
   String get outfitWorn => 'WEARING IT';
   @override

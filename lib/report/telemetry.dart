@@ -55,7 +55,7 @@ final class PreferencesTelemetryStore implements TelemetryStore {
 /// cannot leave waits for the next time, within the outbox's bounds.
 ///
 /// Players are known by a random id made at the first start, nothing
-/// else. The switch in the pause menu turns it all off: the outbox is
+/// else. The switch in the settings turns it all off: the outbox is
 /// emptied, the id forgotten, and the server asked to delete what it holds
 /// under it (asked again at every start until it answers).
 final class Telemetry {

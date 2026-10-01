@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:stepbound/game/progress.dart';
+import 'package:stepbound/report/telemetry.dart';
 import 'package:stepbound/ui/main_menu.dart';
 import 'package:stepbound/ui/pause_menu.dart';
 import 'package:stepbound/ui/portrait_image.dart';
+
+import 'fake_telemetry.dart';
 
 void main() {
   late int resumes;
@@ -20,8 +23,7 @@ void main() {
     bool wardrobe = false,
     Iterable<PlayerOutfit> linkedOutfits = const <PlayerOutfit>[],
     Iterable<PlayerOutfit> giftsBeforeStart = const <PlayerOutfit>[],
-    bool? sendsData,
-    ValueChanged<bool>? onSendData,
+    Telemetry? telemetry,
   }) async {
     resumes = 0;
     restarts = 0;
@@ -46,8 +48,7 @@ void main() {
           key: ValueKey<ResumePoint?>(resumePoint),
           resumePoint: resumePoint,
           wardrobe: wardrobe,
-          sendsData: sendsData,
-          onSendData: onSendData,
+          telemetry: telemetry,
           onResumeFromCamp: () => resumes++,
           onRestartLevel: () => restarts++,
           onMainMenu: () => quits++,
@@ -433,24 +434,55 @@ void main() {
     expect(find.byKey(const ValueKey<String>('pause-share')), findsNothing);
   });
 
-  testWidgets('the switch for the anonymous data turns it off and on', (
-    tester,
-  ) async {
-    final changes = <bool>[];
-    await pumpMenu(tester, sendsData: true, onSendData: changes.add);
-    expect(find.text(PauseMenu.sendDataLabel(on: true)), findsOneWidget);
-    await tester.ensureVisible(
-      find.byKey(const ValueKey<String>('pause-send-data')),
-    );
-    await tap(tester, 'pause-send-data');
-    expect(changes, <bool>[false]);
-    expect(find.text(PauseMenu.sendDataLabel(on: false)), findsOneWidget);
-    await tap(tester, 'pause-send-data');
-    expect(changes, <bool>[false, true]);
+  testWidgets('the settings sit apart above the choices, as the way '
+      'back sits apart below them', (tester) async {
+    await pumpMenu(tester);
+    double top(String key) =>
+        tester.getTopLeft(find.byKey(ValueKey<String>(key))).dy;
+    double bottom(String key) =>
+        tester.getBottomLeft(find.byKey(ValueKey<String>(key))).dy;
+    final aboveGap = top('pause-resume') - bottom('pause-settings');
+    final betweenGap = top('pause-restart') - bottom('pause-resume');
+    final belowGap = top('pause-close') - bottom('pause-quit');
+    expect(aboveGap, greaterThan(betweenGap * 2));
+    expect(aboveGap, moreOrLessEquals(belowGap));
   });
 
-  testWidgets('without anywhere to send, there is no switch', (tester) async {
-    await pumpMenu(tester, onSendData: (_) {});
-    expect(find.byKey(const ValueKey<String>('pause-send-data')), findsNothing);
+  testWidgets('the settings: sound, language and anonymous data, then back', (
+    tester,
+  ) async {
+    final telemetry = (await tester.runAsync(startedTelemetry))!;
+    await pumpMenu(tester, telemetry: telemetry);
+    await tap(tester, 'pause-settings');
+    expect(find.text('IMPOSTAZIONI'), findsOneWidget);
+    expect(find.text('AUDIO: SÌ'), findsOneWidget);
+    expect(find.text('LINGUA: ITALIANO'), findsOneWidget);
+    expect(find.text('INVIO DATI ANONIMI: SÌ'), findsOneWidget);
+
+    await tap(tester, 'settings-send-data');
+    expect(telemetry.enabled, isFalse);
+    expect(find.text('INVIO DATI ANONIMI: NO'), findsOneWidget);
+    await tap(tester, 'settings-send-data');
+    expect(telemetry.enabled, isTrue);
+
+    await tap(tester, 'settings-back');
+    expect(
+      find.byKey(const ValueKey<String>('pause-settings')),
+      findsOneWidget,
+    );
+    expect(closes, 0);
+    telemetry.dispose();
+  });
+
+  testWidgets('without anywhere to send, there is no data switch', (
+    tester,
+  ) async {
+    await pumpMenu(tester);
+    await tap(tester, 'pause-settings');
+    expect(find.text('AUDIO: SÌ'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey<String>('settings-send-data')),
+      findsNothing,
+    );
   });
 }

@@ -57,7 +57,7 @@ nomi, email, indirizzi, posizione, contatti, identificatori pubblicitari o
 del dispositivo; l'indirizzo IP serve solo al limite di richieste del server
 e non viene salvato.
 
-Nel menù di pausa c'è **"INVIO DATI ANONIMI: SÌ/NO"** (in inglese "SEND ANONYMOUS DATA"). Spento:
+In **IMPOSTAZIONI** (dal menù principale e dal menù di pausa) c'è **"INVIO DATI ANONIMI: SÌ/NO"** (in inglese "SEND ANONYMOUS DATA"), acceso di default. Spento:
 
 - la coda sul telefono si svuota e l'id viene dimenticato;
 - il server riceve `/v1/forget` con l'id e cancella tutto quello che ha
@@ -111,7 +111,7 @@ Sì, le dichiarazioni sugli store vanno cambiate insieme a questa funzione.
 - *L'app raccoglie o condivide dati?* Sì, raccoglie; non condivide con terzi.
 - *Dati crittografati in transito?* Sì (HTTPS).
 - *Gli utenti possono chiedere la cancellazione?* Sì: l'interruttore nel
-  menù di pausa cancella i dati sul server; in più l'email della privacy.
+  IMPOSTAZIONI cancella i dati sul server; in più l'email della privacy.
 - Tipi di dati da dichiarare, tutti "raccolti", "non condivisi", finalità
   **Analisi** (e **Funzionalità dell'app** per i crash), trattamento
   **facoltativo** (l'utente può disattivarlo):

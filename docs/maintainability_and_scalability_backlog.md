@@ -101,7 +101,7 @@ What only a release build shows, to keep in mind while testing:
 
 - Only release builds made by CI send error reports and gameplay events
   (`STEPBOUND_TELEMETRY_URL`, `docs/telemetry.md`): a debug build shows the
-  error screen but sends nothing, and the pause menu has no data switch.
+  error screen but sends nothing, and the settings have no data switch.
 - R8 shrinks the plugins' Java/Kotlin code; a plugin relying on reflection
   can break there only. `share_plus` is the newest plugin: try the share
   sheet on a release build once.

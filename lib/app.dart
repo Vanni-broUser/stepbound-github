@@ -431,8 +431,6 @@ final class _StepboundAppState extends State<StepboundApp> {
       onShareReport: widget.share == null
           ? null
           : () => unawaited(_shareTrail()),
-      sendsData: Telemetry.shared.available ? Telemetry.shared.enabled : null,
-      onSendData: (on) => unawaited(Telemetry.shared.setEnabled(enabled: on)),
     ),
     LevelEndCover() => const ColoredBox(
       key: ValueKey<String>('level-end-black'),

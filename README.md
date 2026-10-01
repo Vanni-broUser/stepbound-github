@@ -111,7 +111,7 @@ gameplay events (levels started and completed, zombies killed, deaths,
 places reached, time played), to the `stepbound-be` server
 (`lib/report/telemetry.dart`). The game never needs the network: offline,
 everything waits in a bounded outbox on the phone and leaves the next time
-the app is online. The pause menu has the switch to turn it off. CI passes
+the app is online. The settings (from the main menu and the pause menu) have the switch to turn it off; it starts on. CI passes
 `--dart-define=STEPBOUND_TELEMETRY_URL` and `STEPBOUND_TELEMETRY_KEY`; a
 local build has neither and sends nothing. See `docs/telemetry.md`.
 

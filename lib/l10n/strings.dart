@@ -27,6 +27,9 @@ abstract interface class Strings {
   String get menuAudioOff;
   String get menuLanguage;
   String get menuCredits;
+  String get settingsTitle;
+  String settingsLanguage(String language);
+  String settingsSendData({required bool on});
   String get menuChooseNewSlot;
   String get menuChooseSave;
   String menuOverwrite(int slot);
@@ -59,7 +62,6 @@ abstract interface class Strings {
   String get pauseBackToGame;
   String get pauseToMainMenu;
   String get pauseYesQuit;
-  String pauseSendData({required bool on});
   String get outfitWorn;
   String get outfitWear;
   String get outfitLocked;

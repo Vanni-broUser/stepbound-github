@@ -2,9 +2,9 @@
 
 Il gioco parla italiano (l'originale) e inglese. Cambiano solo le parole:
 insegne, nomi dei negozi e tutto quello che è dipinto sulle mappe restano in
-italiano, perché il gioco è ambientato in Italia. La lingua si cambia dal
-menù principale, col bottone tra AUDIO e CREDITI (mostra il codice della
-lingua, `IT`/`EN`, e a ogni tocco passa alla successiva).
+italiano, perché il gioco è ambientato in Italia. La lingua si cambia da
+IMPOSTAZIONI, nel menù principale o nel menù di pausa, col bottone
+"LINGUA: ITALIANO" (a ogni tocco passa alla successiva).
 
 ## Dove stanno le parole
 

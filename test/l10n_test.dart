@@ -139,36 +139,54 @@ void main() {
     });
   });
 
-  testWidgets('the switch between the audio and the credits changes every '
-      'word of the menu', (tester) async {
+  testWidgets('the main menu: settings and credits side by side under the '
+      'load; the language from the settings changes every word', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       StepboundApp(saves: MemorySaveRepository(), audio: SilentAudio()),
     );
     await tester.pump();
-    final audio = tester.getCenter(
-      find.byKey(const ValueKey<String>('menu-audio')),
+    final load = tester.getBottomLeft(
+      find.byKey(const ValueKey<String>('menu-load')),
     );
-    final language = find.byKey(const ValueKey<String>('menu-language'));
+    final settings = tester.getCenter(
+      find.byKey(const ValueKey<String>('menu-settings')),
+    );
     final credits = tester.getCenter(
       find.byKey(const ValueKey<String>('menu-credits')),
     );
-    expect(tester.getCenter(language).dx, greaterThan(audio.dx));
-    expect(tester.getCenter(language).dx, lessThan(credits.dx));
-    expect(find.text('IT'), findsOneWidget);
+    expect(settings.dy, greaterThan(load.dy));
+    expect(settings.dy, credits.dy);
+    expect(settings.dx, lessThan(credits.dx));
+    expect(find.text('IMPOSTAZIONI'), findsOneWidget);
     expect(find.text('NUOVA PARTITA'), findsOneWidget);
     expect(find.text(MainMenu.disclaimer), findsOneWidget);
 
+    await tester.tap(find.byKey(const ValueKey<String>('menu-settings')));
+    await tester.pump();
+    final language = find.byKey(const ValueKey<String>('settings-language'));
+    expect(find.text('LINGUA: ITALIANO'), findsOneWidget);
     await tester.tap(language);
     await tester.pump();
     expect(Language.current.value, Language.english);
-    expect(find.text('EN'), findsOneWidget);
+    expect(find.text('LANGUAGE: ENGLISH'), findsOneWidget);
+    expect(find.text('SETTINGS'), findsOneWidget);
+    expect(find.text('AUDIO: ON'), findsOneWidget);
+
+    await tester.tap(find.byKey(const ValueKey<String>('settings-back')));
+    await tester.pump();
     expect(find.text('NEW GAME'), findsOneWidget);
     expect(find.text('CREDITS'), findsOneWidget);
     expect(find.text(Language.english.strings.menuDisclaimer), findsOneWidget);
 
+    await tester.tap(find.byKey(const ValueKey<String>('menu-settings')));
+    await tester.pump();
     await tester.tap(language);
     await tester.pump();
     expect(Language.current.value, Language.italian);
+    await tester.tap(find.byKey(const ValueKey<String>('settings-back')));
+    await tester.pump();
     expect(find.text('NUOVA PARTITA'), findsOneWidget);
   });
 }

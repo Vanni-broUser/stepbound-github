@@ -42,6 +42,13 @@ final class ItalianStrings implements Strings {
   @override
   String get menuCredits => 'CREDITI';
   @override
+  String get settingsTitle => 'IMPOSTAZIONI';
+  @override
+  String settingsLanguage(String language) => 'LINGUA: $language';
+  @override
+  String settingsSendData({required bool on}) =>
+      'INVIO DATI ANONIMI: ${on ? 'SÌ' : 'NO'}';
+  @override
   String get menuChooseNewSlot => 'SCEGLI DOVE SALVARE';
   @override
   String get menuChooseSave => 'SCEGLI UN SALVATAGGIO';
@@ -112,9 +119,6 @@ final class ItalianStrings implements Strings {
   String get pauseToMainMenu => 'VAI AL MENÙ PRINCIPALE';
   @override
   String get pauseYesQuit => 'SÌ, ESCI';
-  @override
-  String pauseSendData({required bool on}) =>
-      'INVIO DATI ANONIMI: ${on ? 'SÌ' : 'NO'}';
   @override
   String get outfitWorn => 'GIÀ IN USO';
   @override
