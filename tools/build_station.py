@@ -402,7 +402,9 @@ def paint_railcar(d, rng, area, wrecked, door_x=None, open_door=False,
     away."""
     px, py, w, h = area
     body, cab = py + 9, 22 if with_cab else 0
-    rect(d, px, py + h - 5, w, 5, (30, 30, 34))  # its shadow on the ballast
+    # Its shadow on the ballast, see-through: the stones show under it, no
+    # black band between the train and the platform.
+    rect(d, px, py + h - 5, w, 5, (20, 20, 24, 120))
     rect(d, px, py, w, 10, shade(LIVERY_GREEN, -38))  # the roof
     rect(d, px, py, w, 2, shade(LIVERY_GREEN, -14))
     for vx in range(px + cab + 8, px + w - 12, 38):  # the roof vents
@@ -430,8 +432,16 @@ def paint_railcar(d, rng, area, wrecked, door_x=None, open_door=False,
         rect(d, px + 4, body + 7, 13, 9, GLASS_BROKEN if wrecked else GLASS)
         rect(d, px, py + h - 12, cab, 6, shade(LIVERY_RED, -60))
     else:  # the gangway torn off, the coupler hanging from the end
+        # The end of the body torn open: ragged grey sheet metal down its
+        # whole height, and only the doorway of the gangway dark in the
+        # middle of it, not a black edge.
+        # (As many random numbers as the black edge it replaces took, so
+        # every picture painted after it stays as it was.)
         for i in range(0, h - 6, 5):
-            rect(d, px, py + 2 + i, rng.randint(4, 9), 5, (30, 28, 28))
+            torn = rng.randint(4, 9) - 3
+            rect(d, px, py + 2 + i, torn, 3, METAL_DARK)
+            rect(d, px, py + 4 + i, max(1, torn - 2), 2, METAL)
+        rect(d, px, body + 4, 3, h - 30, (52, 50, 50))
         rect(d, px + 16, py + h - 4, 12, 3, METAL_DARK)
     _grime(d, rng, px, body, w, h - 21, w // 3)
     if not wrecked:
