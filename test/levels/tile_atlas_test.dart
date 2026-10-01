@@ -160,6 +160,25 @@ void main() {
     expect(monument.underCorner, isNotNull);
   });
 
+  test("the bank's stairs up are drawn as wide as their flight: no wall "
+      'shows through either step', () {
+    for (final id in <PlaceId>[PlaceId.bankOffices, PlaceId.bankVault]) {
+      final place = gamePlaces.singleWhere((place) => place.id == id);
+      final stairs = manifest.places[place.artId.name]!.objects.singleWhere(
+        (object) => object.glyph == 'U',
+      );
+      final bytes = File(
+        'assets/levels/places/${stairs.image}',
+      ).readAsBytesSync();
+      final width = ByteData.sublistView(bytes, 16, 20).getUint32(0);
+      expect(
+        width ~/ manifest.tileWidth,
+        place.tilesOf('U').length,
+        reason: '$id',
+      );
+    }
+  });
+
   test('every car of a pile-up is drawn, even stacked lane on lane', () {
     var cars = 0;
     // Only outdoors are these glyphs cars (in the bar `U` is a zombie).

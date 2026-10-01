@@ -267,19 +267,20 @@ def paint_stairs_down(d, px, py):
 
 
 def stair_door() -> Image.Image:
-    """The way up, two tiles high in the back wall: grey treads climbing to
-    the light from the roof, steel handrails either side."""
-    image = Image.new("RGBA", (TILE, TILE * 2), TRANSPARENT)
+    """The way up, two tiles high in the back wall and two wide, as wide as
+    the flight `UU` it is drawn over: grey treads climbing to the light
+    from the roof, steel handrails either side."""
+    width, height = TILE * 2, TILE * 2
+    image = Image.new("RGBA", (width, height), TRANSPARENT)
     d = ImageDraw.Draw(image)
-    height = TILE * 2
-    rect(d, 0, 0, TILE, height, BK_TOP)
-    rect(d, 1, 5, TILE - 2, height - 5, (30, 30, 34))
+    rect(d, 0, 0, width, height, BK_TOP)
+    rect(d, 1, 5, width - 2, height - 5, (30, 30, 34))
     for step in range(6):
         y = height - 3 - step * 4
-        rect(d, 1, y, TILE - 2, 3, shade((130, 130, 130), step * 18))
-        rect(d, 1, y + 3, TILE - 2, 1, (40, 40, 44))
-    rect(d, 1, 5, TILE - 2, 3, (220, 214, 180))  # daylight at the top
-    for x in (0, TILE - 1):
+        rect(d, 1, y, width - 2, 3, shade((130, 130, 130), step * 18))
+        rect(d, 1, y + 3, width - 2, 1, (40, 40, 44))
+    rect(d, 1, 5, width - 2, 3, (220, 214, 180))  # daylight at the top
+    for x in (0, width - 1):
         rect(d, x, 6, 1, height - 7, BK_STEEL)
     return image
 
