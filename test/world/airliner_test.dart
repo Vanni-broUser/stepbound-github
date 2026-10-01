@@ -25,13 +25,22 @@ void main() {
       return world.player.component<PositionComponent>().position;
     }
 
-    test('five emergency lamps evenly mark the cabin aisle', () {
+    test('five emergency lamps evenly mark the cabin aisle, and one more '
+        'lets the mutilated zombie past the first seats be seen', () {
       final aisleRow = airlinerCabinRows.indexWhere(
         (row) => row.startsWith('xI..*'),
       );
+      final mutilated = airlinerMutilatedTiles.firstWhere(
+        (tile) =>
+            tile.y == cabin.origin.y + aisleRow + 1 &&
+            tile.x < cabin.origin.x + 10,
+      );
+      final beside = mutilated.step(Direction.north);
+      expect(cabin.tilesOf('*'), contains(beside));
       final lamps = cabin
           .tilesOf('*')
           .where((tile) => tile.y == cabin.origin.y + aisleRow)
+          .where((tile) => tile != beside)
           .toList();
       expect(lamps, hasLength(5));
       expect(
@@ -311,12 +320,93 @@ void main() {
           expect(zombie.component<ActorComponent>().trailsFire, isTrue);
           final at = zombie.component<PositionComponent>().position;
           expect(roofs.tilesOf('Y'), contains(at));
+          expect(at.y, lessThan(roofs.origin.y + 8), reason: 'upper terrace');
+        }
+        expect(
+          zombies.any(
+            (zombie) => corner.any(
+              (tile) =>
+                  tile.manhattanDistanceTo(
+                    zombie.component<PositionComponent>().position,
+                  ) ==
+                  1,
+            ),
+          ),
+          isTrue,
+          reason: 'one is still by the fire it walked out of',
+        );
+      });
+
+      test('climbing down out of the tail, Mario is seen at once by one of '
+          'them, wherever in the break he comes down', () {
+        for (final landing in airlinerRoofBreak) {
+          final world = createGameWorld();
+          world.player.component<PositionComponent>()
+            ..position = landing.step(Direction.south)
+            ..facing = Direction.south;
+          final events = const TurnScheduler().advance(
+            world,
+            const WaitAction(),
+          );
           expect(
-            corner.any((tile) => tile.manhattanDistanceTo(at) == 1),
-            isTrue,
-            reason: 'it walked out of the fire',
+            events.whereType<AlertedEvent>().map((event) => event.entityId),
+            contains(startsWith(rooftopBurningZombiePrefix)),
+            reason: 'landing below $landing',
           );
         }
+      });
+
+      test('there is a way off the roofs until the fire shuts Mario in; '
+          'with the hook, the gap is one', () {
+        final world = createGameWorld();
+        final landing = airlinerRoofBreak.first.step(Direction.south);
+        expect(hasRooftopWayOut(world, landing, grapplingHook: false), isTrue);
+        for (var y = 0; y < roofs.height; y++) {
+          for (var x = 0; x < roofs.width; x++) {
+            final tile = GridPoint(roofs.origin.x + x, roofs.origin.y + y);
+            if (!world.map.tileAt(tile).isWalkable) {
+              continue;
+            }
+            expect(
+              hasRooftopWayOut(world, tile, grapplingHook: false),
+              isTrue,
+              reason: 'nothing is cut off before anything burns: $tile',
+            );
+          }
+        }
+
+        // The fire closes round him in the middle of the upper terrace.
+        final middle = GridPoint(roofs.origin.x + 10, roofs.origin.y + 5);
+        for (final side in Direction.values) {
+          world.map.setTile(middle.step(side), const Tile(TileKind.fire));
+        }
+        expect(hasRooftopWayOut(world, middle, grapplingHook: false), isFalse);
+        expect(
+          hasRooftopWayOut(world, middle, grapplingHook: true),
+          isFalse,
+          reason: 'the hook needs the edge of the gap within reach',
+        );
+
+        // Down on the lower terrace with the tail cut off, the gap is all
+        // there is left.
+        final lower = rooftopGapTile.step(Direction.north);
+        for (var x = 0; x < roofs.width; x++) {
+          final tile = GridPoint(roofs.origin.x + x, roofs.origin.y + 9);
+          if (world.map.tileAt(tile).isWalkable) {
+            world.map.setTile(tile, const Tile(TileKind.fire));
+          }
+        }
+        expect(hasRooftopWayOut(world, lower, grapplingHook: false), isFalse);
+        expect(hasRooftopWayOut(world, lower, grapplingHook: true), isTrue);
+        expect(
+          hasRooftopWayOut(
+            world,
+            cabin.tilesOf('.').first,
+            grapplingHook: false,
+          ),
+          isTrue,
+          reason: 'off the roofs it is never asked',
+        );
       });
 
       test('going after Mario it leaves a trail of fire nobody crosses, and '

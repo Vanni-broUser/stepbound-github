@@ -96,6 +96,39 @@ void main() {
     });
   });
 
+  testWidgets('shut in by the fire on the roofs, the game is over with the '
+      'reason under the title, and the level can be started again', (tester) {
+    return tester.runAsync(() async {
+      final audio = SilentAudio();
+      final game = await pumpReadyGame(tester, audio: audio);
+
+      game.endWithNoWayOut(RooftopsScript.noWayOut);
+      await tester.pump();
+      expect(game.cover.value, isA<GameOverCover>());
+      expect(
+        find.byKey(const ValueKey<String>('game-over-overlay')),
+        findsOneWidget,
+      );
+      expect(
+        find.text(
+          'Le fiamme ti hanno completamente bloccato, non c’è più via di '
+          'fuga, ricomincia dal falò o l’intero livello',
+        ),
+        findsOneWidget,
+      );
+      expect(audio.played, contains(Sfx.gameOver));
+      expect(find.text('RICOMINCIA IL LIVELLO (60)'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey<String>('restart-button')));
+      await tester.pump();
+      await tester.pump();
+      expect(
+        find.byKey(const ValueKey<String>('game-over-overlay')),
+        findsNothing,
+      );
+    });
+  });
+
   testWidgets('dying with a campfire behind him offers the fire first and '
       'the level second', (tester) {
     return tester.runAsync(() async {
