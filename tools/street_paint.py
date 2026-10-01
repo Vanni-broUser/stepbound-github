@@ -163,6 +163,11 @@ VIA_MARSALA_STOREFRONTS = {
 # painted from its own stream of random numbers, so the place's stream,
 # and every picture drawn after it in the atlas, stays as it was.
 OWN_STREAM = "own"
+# On the street out of the palazzo, behind the camp, a palazzo to
+# itself: the barber's, the only one in town.
+INDUSTRY_STREET_STOREFRONTS = {
+    4: [(34, 6, "barbiere", OWN_STREAM)],
+}
 HARBOUR_STOREFRONTS = {
     7: [(123, 5, "arcobaleno")],  # up the alley, its door `h` at column 125
     15: [

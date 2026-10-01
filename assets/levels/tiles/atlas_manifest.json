@@ -9831,6 +9831,15 @@
       ],
       "objects": [
         {
+          "image": "hometown/industryStreet_shop_34_4.png",
+          "at": [34, 4],
+          "under": [
+            "HHHHHH",
+            "HHHHHH",
+            "HHHHHH"
+          ]
+        },
+        {
           "image": "hometown/industryStreet_factory.png",
           "at": [54, 0],
           "underAt": [54, 0],

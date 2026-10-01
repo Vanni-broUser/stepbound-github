@@ -1867,7 +1867,7 @@ def piazza_cinquecento(atlas: Atlas, rng) -> dict:
 
 def industry_street(atlas: Atlas, rng) -> dict:
     return city_place(atlas, rng, "industryStreet", "industry-street-rows",
-                      {})
+                      brushes.INDUSTRY_STREET_STOREFRONTS)
 
 
 def monument_square(atlas: Atlas, rng) -> dict:
