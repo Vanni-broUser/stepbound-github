@@ -29,7 +29,7 @@ final class ErrorScreen extends StatelessWidget {
   final bool sharing;
 
   /// Whether the report leaves the phone by itself (see `Telemetry`): the
-  /// screen then says so, and sharing it is only for whoever wants to.
+  /// screen then says so, and has no button to share it.
   final bool sentOnItsOwn;
 
   static String get title => strings.errorTitle;
@@ -101,15 +101,17 @@ final class ErrorScreen extends StatelessWidget {
                           Column(
                             mainAxisSize: MainAxisSize.min,
                             children: <Widget>[
-                              MenuButton(
-                                key: const ValueKey<String>('error-share'),
-                                label: sharing ? sharingLabel : shareLabel,
-                                unit: unit,
-                                width: buttonWidth,
-                                compact: true,
-                                onPressed: sharing ? () {} : onShare,
-                              ),
-                              SizedBox(height: MenuColumn.gap * unit),
+                              if (!sentOnItsOwn) ...<Widget>[
+                                MenuButton(
+                                  key: const ValueKey<String>('error-share'),
+                                  label: sharing ? sharingLabel : shareLabel,
+                                  unit: unit,
+                                  width: buttonWidth,
+                                  compact: true,
+                                  onPressed: sharing ? () {} : onShare,
+                                ),
+                                SizedBox(height: MenuColumn.gap * unit),
+                              ],
                               MenuButton(
                                 key: const ValueKey<String>('error-menu'),
                                 label: menuLabel,

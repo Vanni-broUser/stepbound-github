@@ -49,6 +49,10 @@ final class EnglishStrings implements Strings {
   String settingsSendData({required bool on}) =>
       'SEND ANONYMOUS DATA: ${on ? 'YES' : 'NO'}';
   @override
+  String get reportProblem => 'REPORT A PROBLEM';
+  @override
+  String get reportProblemThanks => 'REPORT TAKEN, THANKS';
+  @override
   String get menuChooseNewSlot => 'CHOOSE WHERE TO SAVE';
   @override
   String get menuChooseSave => 'CHOOSE A SAVE';

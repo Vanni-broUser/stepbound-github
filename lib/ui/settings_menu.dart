@@ -7,16 +7,18 @@ import 'package:stepbound/ui/audio_scope.dart';
 import 'package:stepbound/ui/main_menu.dart';
 
 /// The settings, the same from the main menu and from the pause menu: the
-/// sound, the language, and whether error reports and anonymous gameplay
-/// data leave the phone on their own (see [Telemetry]); [onBack] apart at
-/// the foot. The smaller buttons of the menus over the game, so that all
-/// of it fits under the main menu's sign too. The data switch is there
+/// sound, the language, whether error reports and anonymous gameplay data
+/// leave the phone on their own (see [Telemetry]), and a way to report a
+/// problem by hand; [onBack] apart at the foot. The smaller buttons of
+/// the menus over the game, so that all of it fits under the main menu's
+/// sign too. The data switch is there
 /// only in a build with a server to send to; it starts on.
 final class SettingsChoices extends StatefulWidget {
   const SettingsChoices({
     required this.unit,
     required this.onBack,
     this.telemetry,
+    this.onReportProblem,
     super.key,
   });
 
@@ -26,12 +28,37 @@ final class SettingsChoices extends StatefulWidget {
   /// Whose switch it is; the app's own when null.
   final Telemetry? telemetry;
 
+  /// Sends a report with no error in it, for the bugs that throw nothing
+  /// (a script that never lets go of Mario, a button that does not
+  /// answer): true when it went to the server, false when it was handed
+  /// to the share sheet instead. The button is not there without it.
+  final Future<bool> Function()? onReportProblem;
+
   @override
   State<SettingsChoices> createState() => _SettingsChoicesState();
 }
 
 final class _SettingsChoicesState extends State<SettingsChoices> {
   Telemetry get _telemetry => widget.telemetry ?? Telemetry.shared;
+
+  /// Whether the report has gone to the server: the button thanks.
+  bool _reported = false;
+  bool _reporting = false;
+
+  Future<void> _report(Future<bool> Function() report) async {
+    if (_reporting || _reported) {
+      return;
+    }
+    _reporting = true;
+    try {
+      final sent = await report();
+      if (sent && mounted) {
+        setState(() => _reported = true);
+      }
+    } finally {
+      _reporting = false;
+    }
+  }
 
   void _toggleAudio() {
     final audio = AudioScope.of(context);
@@ -84,6 +111,16 @@ final class _SettingsChoicesState extends State<SettingsChoices> {
             unit: unit,
             compact: true,
             onPressed: _toggleData,
+          ),
+        if (widget.onReportProblem case final report?)
+          MenuButton(
+            key: const ValueKey<String>('settings-report'),
+            label: _reported
+                ? strings.reportProblemThanks
+                : strings.reportProblem,
+            unit: unit,
+            compact: true,
+            onPressed: () => unawaited(_report(report)),
           ),
       ],
     );

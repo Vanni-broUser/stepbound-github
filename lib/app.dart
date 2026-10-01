@@ -221,19 +221,37 @@ final class _StepboundAppState extends State<StepboundApp> {
     at: failure.at,
   );
 
-  /// The report a player asks for from the pause menu, with no error in
-  /// it: the trail is the point, for the bugs that throw nothing, a script
-  /// that never lets go of Mario or a button that does not answer.
-  Future<void> _shareTrail() async {
-    Breadcrumbs.shared.add('app: rapporto chiesto dal menù pausa');
-    await _shareReport(
-      ErrorReport(
-        error: 'nessun errore: rapporto chiesto dal giocatore',
-        source: 'menù pausa',
-        at: DateTime.now(),
-      ),
+  /// SEGNALA UN PROBLEMA, from the settings: a report with no error in
+  /// it, the trail being the point, for the bugs that throw nothing, a
+  /// script that never lets go of Mario or a button that does not answer.
+  /// It leaves on its own when the app sends (true), or else goes to the
+  /// share sheet (false).
+  Future<bool> _reportProblem() async {
+    Breadcrumbs.shared.add('app: problema segnalato dal giocatore');
+    final report = ErrorReport(
+      error: 'nessun errore: problema segnalato dal giocatore',
+      source: 'segnalazione del giocatore',
+      at: DateTime.now(),
     );
+    final telemetry = Telemetry.shared;
+    if (!telemetry.active) {
+      await _shareReport(report);
+      return false;
+    }
+    final reporter = (widget.reporter ?? ErrorReporter())
+      ..context ??= _reportSections;
+    await telemetry.sendReport(
+      at: report.at,
+      source: report.source,
+      summary: report.summary,
+      text: await reporter.render(report),
+    );
+    return true;
   }
+
+  /// Whether a problem can be reported: sent, or at least shared.
+  Future<bool> Function()? get _problemReporter =>
+      Telemetry.shared.active || widget.share != null ? _reportProblem : null;
 
   /// Renders [report] like the one of an error and hands it to the share
   /// sheet; nothing if the app cannot share.
@@ -428,9 +446,7 @@ final class _StepboundAppState extends State<StepboundApp> {
       onMainMenu: _flow.backToMenu,
       onClose: game.closeMenu,
       onWearOutfit: game.wearOutfit,
-      onShareReport: widget.share == null
-          ? null
-          : () => unawaited(_shareTrail()),
+      onReportProblem: _problemReporter,
     ),
     LevelEndCover() => const ColoredBox(
       key: ValueKey<String>('level-end-black'),
@@ -506,6 +522,7 @@ final class _StepboundAppState extends State<StepboundApp> {
                   key: ValueKey<int>(_flow.linkNoticeRevision),
                   saves: _saves,
                   linkNotice: _flow.linkNotice,
+                  onReportProblem: _problemReporter,
                   onNewGame: (slot) => unawaited(_flow.newGame(slot)),
                   onLoad: (save) => unawaited(_flow.loadGame(save)),
                 ),

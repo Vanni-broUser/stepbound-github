@@ -67,7 +67,7 @@ final class PauseMenu extends StatefulWidget {
     required this.onMainMenu,
     required this.onClose,
     required this.onWearOutfit,
-    this.onShareReport,
+    this.onReportProblem,
     this.telemetry,
     this.restartsFromStory = true,
     this.wardrobe = false,
@@ -78,12 +78,9 @@ final class PauseMenu extends StatefulWidget {
   /// back button goes straight back to the game.
   final bool wardrobe;
 
-  /// Shares a report of the game as it is, trail and all, for the bugs
-  /// that throw nothing; the button is not there when the app cannot
-  /// share.
-  final VoidCallback? onShareReport;
-
-  static String get shareLabel => strings.shareReport;
+  /// Reports a problem from the settings (see
+  /// [SettingsChoices.onReportProblem]); not offered when null.
+  final Future<bool> Function()? onReportProblem;
 
   /// Whose data switch the settings show; the app's own when null.
   final Telemetry? telemetry;
@@ -161,6 +158,7 @@ final class _PauseMenuState extends State<PauseMenu> {
                       _PausePage.settings => SettingsChoices(
                         unit: unit,
                         telemetry: widget.telemetry,
+                        onReportProblem: widget.onReportProblem,
                         onBack: () => _open(_PausePage.home),
                       ),
                       _ => _confirm(unit),
@@ -214,14 +212,6 @@ final class _PauseMenuState extends State<PauseMenu> {
         compact: true,
         onPressed: () => _open(_PausePage.quit),
       ),
-      if (widget.onShareReport case final share?)
-        MenuButton(
-          key: const ValueKey<String>('pause-share'),
-          label: PauseMenu.shareLabel,
-          unit: unit,
-          compact: true,
-          onPressed: share,
-        ),
     ],
   );
 

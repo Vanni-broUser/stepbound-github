@@ -8,6 +8,16 @@ Il gioco manda da solo, senza che il giocatore debba condividere nulla:
   passi), e di ogni **salvataggio non riuscito**;
 - **eventi di gioco anonimi**, per capire quanti giocano e come.
 
+Ci sono poi i bug che non lanciano nessun errore (uno script che non
+restituisce Mario, un bottone che non risponde): il gioco non può
+accorgersene da solo. Per quelli c'è **SEGNALA UN PROBLEMA** in
+IMPOSTAZIONI: manda lo stesso rapporto, senza errore, con gli ultimi passi
+e il salvataggio dello slot, e sul server compare in `/v1/errors` con
+origine `segnalazione del giocatore`. Con l'invio spento, o in una build
+senza server, apre invece la condivisione del telefono. Se nessuno lo
+preme, di questi bug non arriva nulla: gli eventi anonimi sono solo
+statistiche.
+
 Li riceve il server [`stepbound-be`](https://github.com/Vanni-broUser/stepbound-be-github)
 (Flask, SQLAlchemy, Postgres), che li raggruppa e risponde alle domande
 (`/v1/stats/*`, `/v1/errors`).

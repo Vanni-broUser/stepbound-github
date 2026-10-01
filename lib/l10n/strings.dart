@@ -30,6 +30,8 @@ abstract interface class Strings {
   String get settingsTitle;
   String settingsLanguage(String language);
   String settingsSendData({required bool on});
+  String get reportProblem;
+  String get reportProblemThanks;
   String get menuChooseNewSlot;
   String get menuChooseSave;
   String menuOverwrite(int slot);

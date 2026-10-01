@@ -23,6 +23,7 @@ final class MainMenu extends StatefulWidget {
     required this.onLoad,
     this.linkNotice,
     this.telemetry,
+    this.onReportProblem,
     super.key,
   });
 
@@ -44,6 +45,10 @@ final class MainMenu extends StatefulWidget {
 
   /// Whose data switch the settings show; the app's own when null.
   final Telemetry? telemetry;
+
+  /// Reports a problem from the settings (see
+  /// [SettingsChoices.onReportProblem]); not offered when null.
+  final Future<bool> Function()? onReportProblem;
 
   /// Starts the story; the game will save in the given slot.
   final void Function(int slot) onNewGame;
@@ -150,9 +155,15 @@ final class _MainMenuState extends State<MainMenu> {
                 children: <Widget>[
                   Image.asset(
                     MainMenu.logo,
+                    // Smaller where there is more under it: the settings
+                    // have the most.
                     height:
                         constraints.maxHeight *
-                        (_page == _MenuPage.home ? 0.32 : 0.22),
+                        switch (_page) {
+                          _MenuPage.home => 0.32,
+                          _MenuPage.settings => 0.13,
+                          _ => 0.22,
+                        },
                     fit: BoxFit.contain,
                   ),
                   SizedBox(height: 6 * unit),
@@ -237,6 +248,7 @@ final class _MainMenuState extends State<MainMenu> {
         SettingsChoices(
           unit: unit,
           telemetry: widget.telemetry,
+          onReportProblem: widget.onReportProblem,
           onBack: () => _open(_MenuPage.home),
         ),
       ],

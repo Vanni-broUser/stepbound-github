@@ -49,6 +49,10 @@ final class ItalianStrings implements Strings {
   String settingsSendData({required bool on}) =>
       'INVIO DATI ANONIMI: ${on ? 'SÌ' : 'NO'}';
   @override
+  String get reportProblem => 'SEGNALA UN PROBLEMA';
+  @override
+  String get reportProblemThanks => 'SEGNALAZIONE PRESA, GRAZIE';
+  @override
   String get menuChooseNewSlot => 'SCEGLI DOVE SALVARE';
   @override
   String get menuChooseSave => 'SCEGLI UN SALVATAGGIO';

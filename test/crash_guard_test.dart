@@ -70,7 +70,8 @@ void main() {
       await tester.pump();
       expect(find.text(ErrorScreen.explanationSent), findsOneWidget);
       expect(find.text(ErrorScreen.explanation), findsNothing);
-      expect(find.text(ErrorScreen.shareLabel), findsOneWidget);
+      expect(find.text(ErrorScreen.shareLabel), findsNothing);
+      expect(find.text(ErrorScreen.menuLabel), findsOneWidget);
       telemetry.dispose();
     });
 

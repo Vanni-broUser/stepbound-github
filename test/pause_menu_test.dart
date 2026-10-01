@@ -393,10 +393,10 @@ void main() {
     expect(await costOf(tester, 'pause-quit'), contains('mai stata salvata'));
   });
 
-  testWidgets('with a way to share, a report can be asked for from here', (
-    tester,
+  Future<void> pumpWithReport(
+    WidgetTester tester,
+    Future<bool> Function()? report,
   ) async {
-    var shared = 0;
     await tester.pumpWidget(
       MaterialApp(
         home: PauseMenu(
@@ -407,31 +407,49 @@ void main() {
           onMainMenu: () {},
           onClose: () {},
           onWearOutfit: (_) {},
-          onShareReport: () => shared++,
+          onReportProblem: report,
         ),
       ),
     );
-    await tester.tap(find.byKey(const ValueKey<String>('pause-share')));
+    await tester.tap(find.byKey(const ValueKey<String>('pause-settings')));
     await tester.pump();
-    expect(shared, 1);
-    expect(find.text(PauseMenu.shareLabel), findsOneWidget);
+  }
+
+  testWidgets('a problem is reported from the settings, and thanked for '
+      'once it is sent', (tester) async {
+    var reports = 0;
+    await pumpWithReport(tester, () async {
+      reports++;
+      return true;
+    });
+    expect(find.text('SEGNALA UN PROBLEMA'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey<String>('settings-report')));
+    await tester.pump();
+    expect(reports, 1);
+    expect(find.text('SEGNALAZIONE PRESA, GRAZIE'), findsOneWidget);
+    // Once is enough.
+    await tester.tap(find.byKey(const ValueKey<String>('settings-report')));
+    await tester.pump();
+    expect(reports, 1);
   });
 
-  testWidgets('without one, the report is not offered', (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: PauseMenu(
-          progress: Progress(),
-          resumePoint: null,
-          onResumeFromCamp: () {},
-          onRestartLevel: () {},
-          onMainMenu: () {},
-          onClose: () {},
-          onWearOutfit: (_) {},
-        ),
-      ),
-    );
-    expect(find.byKey(const ValueKey<String>('pause-share')), findsNothing);
+  testWidgets('a problem only shared is not thanked for', (tester) async {
+    var reports = 0;
+    await pumpWithReport(tester, () async {
+      reports++;
+      return false;
+    });
+    await tester.tap(find.byKey(const ValueKey<String>('settings-report')));
+    await tester.pump();
+    expect(reports, 1);
+    expect(find.text('SEGNALA UN PROBLEMA'), findsOneWidget);
+  });
+
+  testWidgets('without a way to report, the button is not there', (
+    tester,
+  ) async {
+    await pumpWithReport(tester, null);
+    expect(find.byKey(const ValueKey<String>('settings-report')), findsNothing);
   });
 
   testWidgets('the settings sit apart above the choices, as the way '
