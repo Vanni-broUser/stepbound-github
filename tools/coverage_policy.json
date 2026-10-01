@@ -33,7 +33,8 @@
         "lib/ui/",
         "lib/app.dart",
         "lib/app_flow.dart",
-        "lib/app_services.dart"
+        "lib/app_services.dart",
+        "lib/l10n/"
       ],
       "minimum": 92
     },
@@ -48,6 +49,7 @@
   "excluded": {
     "lib/main.dart": "the entry point: one line handing over to bootstrap()",
     "lib/bootstrap.dart": "device set-up (screen orientation, immersive mode, the phone's audio): runs only on a device",
-    "lib/report/share_report.dart": "hands the error report to the system's share sheet (share_plus): runs only on a device"
+    "lib/report/share_report.dart": "hands the error report to the system's share sheet (share_plus): runs only on a device",
+    "lib/l10n/en.dart": "the English words: data, not logic; the compiler checks it has every line (it implements Strings) and test/l10n_test.dart that it names every place and zombie"
   }
 }

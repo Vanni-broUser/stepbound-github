@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/render/integer_resolution_viewport.dart';
+import 'package:stepbound/l10n/language.dart';
 import 'package:stepbound/ui/blood_decor.dart';
 import 'package:stepbound/ui/letterbox.dart';
 import 'package:stepbound/ui/main_menu.dart';
@@ -144,7 +145,7 @@ final class LevelComplete extends StatelessWidget {
   /// [saveFailed].
   final VoidCallback? onShareReport;
 
-  static const String shareLabel = 'CONDIVIDI IL RAPPORTO';
+  static String get shareLabel => strings.shareReport;
 
   /// From the bottom of a title's letters down to the card under it, whose
   /// top the title's drips run over.
@@ -157,9 +158,7 @@ final class LevelComplete extends StatelessWidget {
   /// once, since the slot goes on holding the campfire before it.
   final bool saveFailed;
 
-  static const String saveFailedLine =
-      'Salvataggio non riuscito: la partita riprenderà dall’ultimo falò, '
-      'non dal treno.';
+  static String get saveFailedLine => strings.levelCompleteSaveFailed;
 
   /// The mission the level ended on, crossed out here for all to see.
   final Mission? finale;
@@ -184,7 +183,7 @@ final class LevelComplete extends StatelessWidget {
               fit: saveFailed ? BoxFit.scaleDown : BoxFit.none,
               child: DrippingOver(
                 title: BloodyTitle(
-                  'LIVELLO COMPLETATO',
+                  strings.levelComplete,
                   fontSize: 20 * unit,
                   hangDrips: true,
                 ),
@@ -234,7 +233,7 @@ final class LevelComplete extends StatelessWidget {
                     SizedBox(height: 6 * unit),
                     MenuButton(
                       key: const ValueKey<String>('level-complete-continue'),
-                      label: 'CONTINUA',
+                      label: strings.continueLabel,
                       unit: unit,
                       onPressed: onContinue,
                     ),
@@ -268,17 +267,17 @@ final class StatsCard extends StatelessWidget {
           Expanded(
             child: _column(unit, <(String, String, String)>[
               (
-                'ZAINI TROVATI',
+                strings.statBackpacks,
                 stats.outOf(stats.foundBackpacks, stats.totalBackpacks),
                 'backpack-stat',
               ),
               (
-                'RICORDI VISSUTI',
+                strings.statMemories,
                 stats.outOf(stats.foundMemories, stats.totalMemories),
                 'memory-stat',
               ),
               (
-                'FALÒ TROVATI',
+                strings.statCampfires,
                 stats.outOf(stats.litCampfires, stats.totalCampfires),
                 'campfire-stat',
               ),
@@ -288,16 +287,16 @@ final class StatsCard extends StatelessWidget {
           Expanded(
             child: _column(unit, <(String, String, String)>[
               (
-                'ZOMBI CONOSCIUTI',
+                strings.statZombieKinds,
                 stats.outOf(stats.knownZombieKinds, stats.totalZombieKinds),
                 'zombie-kind-stat',
               ),
               (
-                'ZOMBI UCCISI',
+                strings.statKills,
                 stats.outOf(stats.killedZombies, stats.totalZombies),
                 'kill-stat',
               ),
-              ('PASSI FATTI', '${stats.steps}', 'step-stat'),
+              (strings.statSteps, '${stats.steps}', 'step-stat'),
             ]),
           ),
         ],
@@ -393,8 +392,8 @@ final class AdventureStats extends StatefulWidget {
 
   /// What each city is called over its figures.
   static String cityName(LevelId level) => switch (level) {
-    LevelId.hometown => 'CITTÀ NATALE',
-    LevelId.rome => 'ROMA',
+    LevelId.hometown => strings.levelHometown.toUpperCase(),
+    LevelId.rome => strings.levelRome.toUpperCase(),
   };
 
   @override
@@ -518,19 +517,23 @@ final class _AdventureStatsState extends State<AdventureStats> {
                     children: <Widget>[
                       button(
                         'adventure-stats-memories',
-                        'RIVIVI I RICORDI',
+                        strings.statsReplayMemories,
                         () => widget.onReplayMemories(level),
                       ),
                       if (secrets) ...<Widget>[
                         SizedBox(width: AdventureStats.buttonGap * unit),
                         button(
                           'adventure-stats-secrets',
-                          'MISSIONI SEGRETE',
+                          strings.secretMissions,
                           () => setState(() => _secrets = true),
                         ),
                       ],
                       SizedBox(width: AdventureStats.buttonGap * unit),
-                      button('adventure-stats-close', 'ESCI', widget.onClose),
+                      button(
+                        'adventure-stats-close',
+                        strings.statsExit,
+                        widget.onClose,
+                      ),
                     ],
                   ),
                 ],
@@ -566,7 +569,7 @@ final class _SecretMissions extends StatelessWidget {
         child: SingleChildScrollView(
           child: DrippingOver(
             title: BloodyTitle(
-              'MISSIONI SEGRETE',
+              strings.secretMissions,
               fontSize: 20 * unit,
               hangDrips: true,
             ),
@@ -610,7 +613,7 @@ final class _SecretMissions extends StatelessWidget {
                 SizedBox(height: 8 * unit),
                 MenuButton(
                   key: const ValueKey<String>('secret-missions-back'),
-                  label: 'INDIETRO',
+                  label: strings.back,
                   unit: unit,
                   compact: true,
                   onPressed: onBack,
@@ -787,7 +790,7 @@ final class _MissionsCardState extends State<MissionsCard>
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
                     Text(
-                      'MISSIONI',
+                      strings.missions,
                       style: TextStyle(
                         color: menuTextColour,
                         fontFamily: 'monospace',
@@ -870,7 +873,7 @@ final class _MissionsCardState extends State<MissionsCard>
     double boxScale = 1,
   }) => _line(
     key: 'secret-row-${mission.name}',
-    text: 'Segreta: ${mission.short}',
+    text: strings.secretMissionRow(mission.short),
     seed: 50 + mission.index,
     crossed: crossed,
     boxScale: boxScale,

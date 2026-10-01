@@ -1,6 +1,7 @@
 import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/story/story_director.dart';
+import 'package:stepbound/l10n/language.dart';
 
 /// The roofs the airliner's tail came down in, the top of the Duomo's bell
 /// tower and the hospital's roof, and in Rome the terrace of the palazzo on
@@ -20,9 +21,8 @@ import 'package:stepbound/game/story/story_director.dart';
 final class RooftopsScript extends StoryScript {
   RooftopsScript(super.director);
 
-  static const String gapLesson =
-      'Il tetto vicino non è molto distante, è raggiungibile con un rampino';
-  static const String grappleLine = 'Mario usa il rampino';
+  static String get gapLesson => strings.rooftopsGapLesson;
+  static String get grappleLine => strings.rooftopsGrappleLine;
 
   /// Whether the cultist on the Duomo's other tower has come out.
   bool _towerCultistOut = false;
@@ -45,7 +45,7 @@ final class RooftopsScript extends StoryScript {
           !_towerCultistOut && to == world.grapples[duomoTowerLookoutTile]?.to;
       // Said once he has landed: prompts wait for the swing to play.
       say(
-        StoryPrompt(const <StoryLine>[
+        StoryPrompt(<StoryLine>[
           StoryLine(grappleLine),
         ], onDismissed: ontoFarTower ? _raiseTowerCultist : null),
       );
@@ -58,7 +58,7 @@ final class RooftopsScript extends StoryScript {
             event.at != romeTerraceLookoutTile)) {
       return;
     }
-    say(StoryPrompt(const <StoryLine>[StoryLine(gapLesson)]));
+    say(StoryPrompt(<StoryLine>[StoryLine(gapLesson)]));
   }
 
   /// The cultist comes out of the far corner of the other tower, headed

@@ -2,6 +2,7 @@ import 'package:stepbound/core/core.dart';
 import 'package:stepbound/game/audio/sound.dart';
 import 'package:stepbound/game/progress.dart';
 import 'package:stepbound/game/story/story_director.dart';
+import 'package:stepbound/l10n/language.dart';
 
 /// The station, where Luigi said he would wait. Getting to him is the
 /// whole of it: the doorway onto the platform leads to a dead end behind
@@ -20,54 +21,52 @@ final class StationScript extends StoryScript {
       'assets/story/scenes/station_north_cape.jpg';
   static const String goldenPistolScene =
       'assets/story/scenes/station_golden_pistol.jpg';
-  static const String lockedDoorLine = 'La porta è chiusa';
+  static String get lockedDoorLine => strings.stationLockedDoorLine;
 
   /// Luigi finds Mario came all this way with no gun: after the reunion,
   /// only then (see [SecretMission.unarmedToLuigi]). The memory keeps his
   /// words; the line on what the pistol does is said once, there.
-  static const CutsceneFrame goldenPistolGift = CutsceneFrame(
+  static CutsceneFrame get goldenPistolGift => CutsceneFrame(
     image: goldenPistolScene,
     speaker: luigi,
-    text: "Ei ma non hai nessun'arma con te? Tieni prendi questa",
+    text: strings.stationGoldenPistolGift,
   );
-  static const CutsceneFrame goldenPistolLesson = CutsceneFrame(
+  static CutsceneFrame get goldenPistolLesson => CutsceneFrame(
     image: goldenPistolScene,
-    text: "La pistola d'oro infligge danni doppi",
+    text: strings.stationGoldenPistolLesson,
   );
 
   /// Luigi leaning out of the cab of the one train still in one piece.
-  static const List<CutsceneFrame> reunionScene = <CutsceneFrame>[
+  static List<CutsceneFrame> get reunionScene => <CutsceneFrame>[
     CutsceneFrame(
       image: platformScene,
       speaker: luigi,
-      text: "Eccoti ragazzo, ce l'hai fatta finalmente!",
+      text: strings.stationReunionScene1,
     ),
     CutsceneFrame(
       image: planScene,
       speaker: 'Mario Rossi',
-      text:
-          'Quale sarebbe il tuo piano quindi? Cosa vuoi farci con questo '
-          'treno?',
+      text: strings.stationReunionScene2,
     ),
     CutsceneFrame(
       image: planScene,
       speaker: luigi,
-      text: 'Andare via da qui ovviamente!',
+      text: strings.stationReunionScene3,
     ),
     CutsceneFrame(
       image: planScene,
       speaker: 'Mario Rossi',
-      text: 'Si ma dove?',
+      text: strings.stationReunionScene4,
     ),
     CutsceneFrame(
       image: northCapeScene,
       speaker: luigi,
-      text: 'La nostra meta é Capo Nord ragazzo. In Norvegia',
+      text: strings.stationReunionScene5,
     ),
     CutsceneFrame(
       image: northCapeScene,
       speaker: luigi,
-      text: 'Lì gli zombi non arrivano, il freddo li tiene lontani',
+      text: strings.stationReunionScene6,
     ),
   ];
 
@@ -94,7 +93,7 @@ final class StationScript extends StoryScript {
     if (event case NoInteractionEvent(:final at)
         when at == stationTrainDoorTile &&
             !progress.hasExperienced(StoryMemory.luigiRescued)) {
-      say(StoryPrompt(const <StoryLine>[StoryLine(lockedDoorLine)]));
+      say(StoryPrompt(<StoryLine>[StoryLine(lockedDoorLine)]));
       return;
     }
     if (!progress.hasExperienced(StoryMemory.luigiRescued)) {

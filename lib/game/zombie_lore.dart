@@ -1,4 +1,5 @@
 import 'package:stepbound/core/core.dart';
+import 'package:stepbound/l10n/language.dart';
 
 /// Everything the game tells about one zombie type, in one place, so that
 /// a new type cannot be half introduced. The first time one is met the
@@ -16,24 +17,24 @@ import 'package:stepbound/core/core.dart';
 /// Mario, the carabiniere in the barracks when one becomes aware of him.
 final class ZombieLore {
   const ZombieLore({
-    required this.name,
+    required this.kind,
     required this.portrait,
-    required this.lesson,
-    required this.description,
     this.introducedOnSight = false,
   });
 
+  final EntityKind kind;
+
   /// Its name in the book.
-  final String name;
+  String get name => strings.zombieName(kind);
 
   /// Shown over its lesson and on its card in the book.
   final String portrait;
 
   /// The line shown the first time it is met.
-  final String lesson;
+  String get lesson => strings.zombieLesson(kind);
 
   /// Its card in the book.
-  final String description;
+  String get description => strings.zombieDescription(kind);
 
   final bool introducedOnSight;
 }
@@ -41,115 +42,46 @@ final class ZombieLore {
 /// The zombie types the game has, in the order the book lists them.
 const Map<EntityKind, ZombieLore> zombieLore = <EntityKind, ZombieLore>{
   EntityKind.wanderer: ZombieLore(
-    name: 'Vagante',
+    kind: EntityKind.wanderer,
     portrait: 'assets/characters/zombies/portraits/wanderer.png',
-    lesson:
-        'I normali zombi vaganti faranno un passo verso di te ogni due passi '
-        'tuoi',
-    description:
-        'Il più comune: fino a poco fa era una persona qualunque. Lento e '
-        'goffo, fa un passo ogni due dei tuoi. Da solo si evita, in gruppo '
-        'ti chiude la strada.',
   ),
   EntityKind.carabiniere: ZombieLore(
-    name: 'Carabiniere',
+    kind: EntityKind.carabiniere,
     portrait: 'assets/characters/zombies/portraits/carabiniere.png',
-    lesson:
-        'Gli zombi carabinieri possono raggiungerti a due celle di distanza '
-        'grazie al loro manganello',
-    description:
-        'Porta ancora la divisa e stringe il manganello: ti colpisce fino a '
-        'due celle di distanza. Si muove come un vagante, ma non lasciarlo '
-        'avvicinare.',
   ),
   EntityKind.sprinter: ZombieLore(
-    name: 'Veloce',
+    kind: EntityKind.sprinter,
     portrait: 'assets/characters/zombies/portraits/sprinter.png',
-    lesson: 'Gli zombi veloci si muovono alla tua stessa velocità',
-    description:
-        'Si muove alla tua stessa velocità: correndo non lo semini. Ti vede '
-        'e ti sente da più lontano degli altri.',
     introducedOnSight: true,
   ),
   EntityKind.mutilated: ZombieLore(
-    name: 'Mutilato',
+    kind: EntityKind.mutilated,
     portrait: 'assets/characters/zombies/portraits/mutilated.png',
-    lesson:
-        'Gli zombi mutilati non possono inseguirti, ma se passi loro accanto '
-        'ti mordono a ogni tuo passo. Giragli alla larga, o abbattili se ti '
-        'sbarrano la strada',
-    description:
-        'Ha perso le gambe e non si rialza più da dove è caduto. Non ti '
-        'insegue, ma è sveglio quanto un veloce: passagli accanto e ti morde '
-        'a ogni passo. Tienilo a due celle di distanza, o sparagli se ti '
-        'chiude il passaggio.',
     introducedOnSight: true,
   ),
   EntityKind.burning: ZombieLore(
-    name: 'In fiamme',
+    kind: EntityKind.burning,
     portrait: 'assets/characters/zombies/portraits/burning.png',
-    lesson:
-        'Gli zombi in fiamme si muovono come i vaganti, ma ogni cella che '
-        'lasciano prende fuoco e non potrai più attraversarla',
-    description:
-        'Brucia senza consumarsi. Lento come un vagante, ma ogni cella da '
-        'cui si sposta resta in fiamme per sempre: nessuno ci passa più, '
-        'nemmeno lui. Abbattilo prima che ti chiuda la strada del ritorno.',
     introducedOnSight: true,
   ),
   EntityKind.drunk: ZombieLore(
-    name: 'Ubriaco',
+    kind: EntityKind.drunk,
     portrait: 'assets/characters/zombies/portraits/drunk.png',
-    lesson:
-        'Gli zombi ubriachi barcollano a caso e non ti inseguono, ma se gli '
-        'capiti accanto ti mordono. Occhio: la prossima barcollata può '
-        'portarlo proprio da te',
-    description:
-        'Era già ubriaco quando è cambiato, e lo è ancora. Barcolla di '
-        'continuo in una direzione a caso, al passo di un vagante, che ti '
-        'abbia visto o no. Non ti insegue, ma se gli finisci accanto il morso '
-        'arriva dritto.',
     introducedOnSight: true,
   ),
   EntityKind.cultist: ZombieLore(
-    name: 'Cultista',
+    kind: EntityKind.cultist,
     portrait: 'assets/characters/zombies/portraits/cultist.png',
-    lesson:
-        'Gli zombi cultisti si muovono come i vaganti, ma la loro massa '
-        'muscolare richiede tre colpi di pistola per abbatterli',
-    description:
-        'La mutazione ha gonfiato il corpo oltre la tunica: il cappuccio è '
-        'caduto sulle spalle, le vesti si sono strappate e vene gialle '
-        'innaturali attraversano le braccia. Avanza al passo di un vagante, '
-        'ma i primi due colpi non bastano: ne servono tre per abbatterlo.',
     introducedOnSight: true,
   ),
   EntityKind.brute: ZombieLore(
-    name: 'Bruto',
+    kind: EntityKind.brute,
     portrait: 'assets/characters/zombies/portraits/brute.png',
-    lesson:
-        'Gli zombi bruti sono lentissimi, fanno un passo ogni tre tuoi, ma '
-        'servono due colpi di pistola per abbatterli',
-    description:
-        'Un colosso già prima di cambiare, e la mutazione lo ha gonfiato '
-        'ancora. Fa un passo ogni tre dei tuoi e ci vede poco, ma sente il '
-        'minimo rumore da lontano. Il primo colpo non lo ferma: ne servono '
-        'due.',
     introducedOnSight: true,
   ),
   EntityKind.callCenter: ZombieLore(
-    name: 'Call center',
+    kind: EntityKind.callCenter,
     portrait: 'assets/characters/zombies/portraits/call_center.png',
-    lesson:
-        'Gli zombi del call center sono veloci come te, ma il filo della '
-        'cornetta li tiene legati alla loro postazione: oltre la lunghezza '
-        'del filo non possono seguirti',
-    description:
-        'È morto in cuffia, a metà di una telefonata, e la cornetta non la '
-        'molla più. Scatta veloce quanto te, ma il filo lo tiene legato alla '
-        'sua scrivania: si allunga verso di te finché il filo tiene, poi '
-        'resta lì a tirare. Stagli lontano quanto basta, o sparagli prima di '
-        'passargli accanto.',
     introducedOnSight: true,
   ),
 };
