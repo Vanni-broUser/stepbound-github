@@ -43,6 +43,47 @@ void main() {
     });
   });
 
+  testWidgets('with the hook, the line comes first, and Mario swings '
+      'across, the hook thrown and its sound with it, the moment it is '
+      'dismissed', (tester) {
+    return tester.runAsync(() async {
+      final audio = SilentAudio();
+      final game = await pumpReadyGame(tester, audio: audio);
+      final edge = duomoTowerLookoutTile;
+      final over = game.simulation.grapples[edge]!;
+      game.unlock(HudElement.interact);
+      game.simulation.player.component<AmmoComponent>().grapplingHook = true;
+      final mario = game.simulation.player.component<PositionComponent>()
+        ..position = edge.step(over.facing.opposite)
+        ..facing = over.facing;
+      final from = mario.position;
+      game.update(1 / 60);
+      audio.played.clear();
+
+      game.input.pressInteract();
+      for (var i = 0; i < 30; i++) {
+        game.update(1 / 60);
+      }
+      await tester.pump();
+      expect(
+        (game.cover.value! as PromptCover).lines.single.text,
+        RooftopsScript.grappleLine,
+      );
+      expect(mario.position, from, reason: 'not over yet');
+      expect(game.presentation.isAnimating, isFalse);
+      expect(audio.played, isNot(contains(Sfx.grapple)));
+
+      await tester.tap(find.byKey(const ValueKey<String>('gameplay-dialogue')));
+      await tester.pump();
+      expect(game.cover.value, isNull);
+      expect(mario.position, over.to, reason: 'set off at once');
+      expect(game.presentation.isAnimating, isTrue);
+      game.update(1 / 60);
+      expect(audio.played, contains(Sfx.grapple));
+      expect(game.isPromptVisible, isFalse, reason: 'said once, before');
+    });
+  });
+
   testWidgets('Mario waits while Luigi walks out of the hypermarket, and '
       'the tile Luigi stood on is free once he has gone', (tester) {
     return tester.runAsync(() async {

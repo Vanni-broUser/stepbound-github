@@ -81,11 +81,34 @@ final class TurnPresentationController {
   double get progress => _isAnimating ? (_elapsed / _duration).clamp(0, 1) : 1;
   List<WorldEvent> get lastEvents => List<WorldEvent>.unmodifiable(_lastEvents);
 
+  /// Asked of each action Mario takes, just before it is played: true
+  /// keeps it back, along with whatever was queued after it, for the game
+  /// to [play] once it is ready (the line said before a swing with the
+  /// grappling hook, which only sets off once it has been read).
+  bool Function(PlayerAction action)? holdsBack;
+
   void submit(PlayerAction action) {
     if (_isAnimating) {
       if (_buffer.length < maximumBufferedActions) {
         _buffer.addLast(action);
       }
+      return;
+    }
+    _begin(action);
+  }
+
+  /// Plays [action] at once, without asking [holdsBack]: the one it kept
+  /// back, now that it may go.
+  void play(PlayerAction action) {
+    if (_isAnimating) {
+      return;
+    }
+    _start(action);
+  }
+
+  void _begin(PlayerAction action) {
+    if (holdsBack?.call(action) ?? false) {
+      _buffer.clear();
       return;
     }
     _start(action);
@@ -108,7 +131,7 @@ final class TurnPresentationController {
         _burst = null;
         _start(burst);
       } else if (_buffer.isNotEmpty) {
-        _start(_buffer.removeFirst());
+        _begin(_buffer.removeFirst());
       }
     }
   }

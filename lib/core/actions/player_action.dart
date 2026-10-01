@@ -116,6 +116,26 @@ final class MoveAction extends PlayerAction {
 final class InteractAction extends PlayerAction {
   const InteractAction();
 
+  /// The gap interacting now would swing Mario over: the edge of a roof
+  /// in front of him, the hook in hand, nobody where it would put him
+  /// down. Null when interacting would do anything else.
+  static Portal? swingAhead(WorldState world) {
+    final playerPosition = world.player.component<PositionComponent>();
+    final target = playerPosition.position.step(playerPosition.facing);
+    if (!world.map.contains(target) ||
+        world.campfires.contains(target) ||
+        world.travelMaps.contains(target) ||
+        !world.player.component<AmmoComponent>().grapplingHook) {
+      return null;
+    }
+    final grapple = world.grapples[target];
+    if (grapple == null ||
+        world.entityAt(grapple.to, excluding: world.playerId) != null) {
+      return null;
+    }
+    return grapple;
+  }
+
   @override
   int get tickCost => 1;
 

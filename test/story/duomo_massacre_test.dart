@@ -210,7 +210,8 @@ void main() {
     expect(host.shown.single.single.text, RooftopsScript.gapLesson);
   });
 
-  test('with the hook, Mario swings across and the game says so', () {
+  test('with the hook, nothing more is said once Mario has swung across: '
+      'the line comes before the swing', () {
     director.onEvents(<WorldEvent>[
       TeleportedEvent(
         entityId: world.playerId,
@@ -220,7 +221,7 @@ void main() {
       ),
     ]);
     settle();
-    expect(host.shown.single.single.text, RooftopsScript.grappleLine);
+    expect(host.shown, isEmpty);
     expect(RooftopsScript.grappleLine, 'Mario usa il rampino');
   });
 
@@ -290,12 +291,12 @@ void main() {
     );
 
     test('a cultist comes up after Mario the first time he lands there, '
-        'once the line is read, headed straight for him', () {
-      director.onEvents(<WorldEvent>[swing(duomoTowerLookoutTile)]);
+        'once the swing has played, headed straight for him', () {
+      director
+        ..onEvents(<WorldEvent>[swing(duomoTowerLookoutTile)])
+        ..update(0.1, turnAnimating: true);
+      expect(host.spawned, isEmpty, reason: 'not while he swings');
       settle();
-      expect(host.shown.single.single.text, RooftopsScript.grappleLine);
-      expect(host.spawned, isEmpty, reason: 'not while he reads');
-      host.dismiss();
 
       final cultist = host.spawned.single;
       expect(cultist.id, duomoFarTowerCultistId);

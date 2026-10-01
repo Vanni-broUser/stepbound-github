@@ -10,8 +10,10 @@ import 'package:stepbound/l10n/language.dart';
 /// twin across the nave, the hospital's roof the block east of it, the
 /// terrace the bank's roof west of it. Without the grappling
 /// hook, looking over is all Mario can do: the gap is measured for him,
-/// and he can come back and look again. With it, he swings across, and
-/// the game says so. The first time he lands on the Duomo's other tower,
+/// and he can come back and look again. With it, the game says so, and he
+/// swings across as soon as the line is dismissed (the line is the
+/// game's: see `StepboundGame`). The first time he lands on the Duomo's
+/// other tower,
 /// after the backpack seen from the first, a cultist comes up there after
 /// him.
 ///
@@ -40,6 +42,10 @@ final class RooftopsScript extends StoryScript {
   /// Whether the cultist on the Duomo's other tower has come out.
   bool _towerCultistOut = false;
 
+  /// Mario is swinging onto the Duomo's other tower for the first time:
+  /// the cultist comes out once the swing has played.
+  bool _towerCultistDue = false;
+
   /// The gaps crossed with the hook, by their names in
   /// `hometownGrappleCrossings`.
   final Set<String> _crossed = <String>{};
@@ -57,14 +63,12 @@ final class RooftopsScript extends StoryScript {
         _crossed.add(crossing);
         _checkTerraces();
       }
-      final ontoFarTower =
-          !_towerCultistOut && to == world.grapples[duomoTowerLookoutTile]?.to;
-      // Said once he has landed: prompts wait for the swing to play.
-      say(
-        StoryPrompt(<StoryLine>[
-          StoryLine(grappleLine),
-        ], onDismissed: ontoFarTower ? _raiseTowerCultist : null),
-      );
+      // The line was said before the swing (see `StepboundGame`): the
+      // cultist comes up once Mario has landed.
+      if (!_towerCultistOut &&
+          to == world.grapples[duomoTowerLookoutTile]?.to) {
+        _towerCultistDue = true;
+      }
       return;
     }
     if (event is! LookedOutEvent ||
@@ -93,6 +97,10 @@ final class RooftopsScript extends StoryScript {
 
   @override
   void update({required bool turnAnimating}) {
+    if (_towerCultistDue && !turnAnimating) {
+      _towerCultistDue = false;
+      _raiseTowerCultist();
+    }
     _checkWayOut(turnAnimating: turnAnimating);
     final missions = progress.missions;
     const mission = Mission.exploreTerraces;

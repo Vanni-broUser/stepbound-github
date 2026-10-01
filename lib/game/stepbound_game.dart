@@ -417,7 +417,8 @@ final class StepboundGame extends FlameGame
   Future<void> onLoad() async {
     final clock = Stopwatch()..start();
     await super.onLoad();
-    presentation = TurnPresentationController(world: simulation);
+    presentation = TurnPresentationController(world: simulation)
+      ..holdsBack = _readBeforeSwinging;
     story = StoryDirector(world: simulation, host: this, progress: progress);
     _events = WorldEventPresenter(
       stage: this,
@@ -772,6 +773,21 @@ final class StepboundGame extends FlameGame
       !_covers.isCovered &&
       !_camp.resting &&
       !_transitions.holdsMario;
+
+  /// A swing with the grappling hook is said before it is played: the
+  /// line first, and Mario sets off, the hook thrown, its sound with it,
+  /// the moment it is dismissed.
+  bool _readBeforeSwinging(PlayerAction action) {
+    if (action is! InteractAction ||
+        InteractAction.swingAhead(simulation) == null) {
+      return false;
+    }
+    input.stop();
+    showPrompt(<StoryLine>[
+      StoryLine(RooftopsScript.grappleLine),
+    ], onDismissed: () => presentation.play(action));
+    return true;
+  }
 
   @override
   bool get inPlay => _acceptsInput && !inputLocked;
