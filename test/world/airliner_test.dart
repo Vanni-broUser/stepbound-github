@@ -195,10 +195,13 @@ void main() {
         return seen;
       }
 
-      /// The one lying across the aisle.
+      /// The one lying across the aisle past the cross aisle.
       final guard = cabin
           .tilesOf('M')
-          .singleWhere((tile) => tile.y == cabin.origin.y + 5);
+          .singleWhere(
+            (tile) =>
+                tile.y == cabin.origin.y + 5 && tile.x > cabin.origin.x + 20,
+          );
 
       test('lie in the cabin, many of them, facing the aisle', () {
         final world = createGameWorld();
@@ -233,7 +236,8 @@ void main() {
         expect(walk(world, bitesAllowed: false).contains(exit), isFalse);
       });
 
-      test('the first one lies in the galley, in sight of the tear', () {
+      test('the first one lies at the head of the aisle, a few steps from '
+          'the tear', () {
         final world = createGameWorld();
         final start = airlinerCabinTear.first.step(Direction.north);
         final first = mutilatedTiles(world).reduce(
@@ -241,12 +245,8 @@ void main() {
               ? a
               : b,
         );
-        expect(first.manhattanDistanceTo(start), lessThanOrEqualTo(3));
-        expect(
-          first.y,
-          lessThan(start.y - 1),
-          reason: 'not right by the tear: a step in, against the wall',
-        );
+        expect(first.manhattanDistanceTo(start), lessThanOrEqualTo(4));
+        expect(first.y, airlinerCabinAisleRow - 1, reason: 'in the aisle');
       });
 
       test('none lies in front of the tail break', () {
