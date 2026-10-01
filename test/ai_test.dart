@@ -587,6 +587,174 @@ void main() {
     expect(events.whereType<AlertedEvent>(), hasLength(1));
   });
 
+  group('doorways stay clear', () {
+    GridPoint at(WorldState world, String id) =>
+        world.entities[id]!.component<PositionComponent>().position;
+
+    test('a zombie that chased Mario to a door stops short of it, and he '
+        'comes back through it safe, with the turn his', () {
+      final factory = EntityFactory(BalanceConfig.standard());
+      // Two rooms far apart on one row: the first's door is its east end,
+      // the second's its west end.
+      const aDoor = GridPoint(7, 1);
+      const bDoor = GridPoint(29, 1);
+      final world = WorldState(
+        map: TileMap.fromAscii(<String>[
+          '#' * 36,
+          '#.......${'#' * 21}......#',
+          '#' * 36,
+        ]),
+        entities: <Entity>[
+          factory.player(id: 'player', position: const GridPoint(6, 1)),
+          factory.zombie(
+            id: 'zombie',
+            kind: EntityKind.sprinter,
+            position: const GridPoint(2, 1),
+            facing: Direction.east,
+          ),
+        ],
+        portals: <GridPoint, Portal>{
+          aDoor: Portal(to: bDoor.step(Direction.east), facing: Direction.east),
+          bDoor: Portal(to: aDoor.step(Direction.west), facing: Direction.west),
+        },
+        playerId: 'player',
+        random: SeededRandom(1),
+      );
+      final scheduler = const TurnScheduler()
+        ..advance(world, const WaitAction())
+        ..advance(world, const MoveAction(Direction.east));
+      expect(
+        world.player.component<PositionComponent>().position,
+        bDoor.step(Direction.east),
+      );
+
+      for (var turn = 0; turn < 6; turn++) {
+        scheduler.advance(world, const WaitAction());
+        expect(world.doorways(), isNot(contains(at(world, 'zombie'))));
+      }
+      expect(
+        at(world, 'zombie'),
+        const GridPoint(5, 1),
+        reason: 'it waits next to where it last heard him',
+      );
+
+      final back = scheduler.advance(world, const MoveAction(Direction.west));
+      expect(world.player.isAlive, isTrue);
+      expect(back.whereType<DamagedEvent>(), isEmpty);
+      expect(
+        world.player.component<PositionComponent>().position,
+        aDoor.step(Direction.west),
+      );
+    });
+
+    test('a zombie goes round the tile in front of a door where it can', () {
+      final factory = EntityFactory(BalanceConfig.standard());
+      const landing = GridPoint(5, 2);
+      final world = WorldState(
+        map: TileMap.fromAscii(const <String>[
+          '###########',
+          '#.........#',
+          '#.........#',
+          '#.........#',
+          '###########',
+          '#.#########',
+          '###########',
+        ]),
+        entities: <Entity>[
+          factory.player(id: 'player', position: const GridPoint(8, 2)),
+          factory.zombie(
+            id: 'zombie',
+            kind: EntityKind.sprinter,
+            position: const GridPoint(2, 2),
+            facing: Direction.east,
+          ),
+        ],
+        portals: <GridPoint, Portal>{
+          const GridPoint(1, 5): const Portal(
+            to: landing,
+            facing: Direction.east,
+          ),
+        },
+        playerId: 'player',
+        random: SeededRandom(1),
+      );
+      const scheduler = TurnScheduler();
+      for (var turn = 0; turn < 10; turn++) {
+        scheduler.advance(world, const WaitAction());
+        expect(at(world, 'zombie'), isNot(landing));
+      }
+      expect(at(world, 'zombie').manhattanDistanceTo(const GridPoint(8, 2)), 1);
+    });
+
+    test('where there is no way round it crosses the tile in front of a '
+        'door, but never steps on the door itself', () {
+      final factory = EntityFactory(BalanceConfig.standard());
+      const door = GridPoint(5, 2);
+      final world = WorldState(
+        map: TileMap.fromAscii(const <String>[
+          '###########',
+          '#.........#',
+          '#####.#####',
+          '###########',
+        ]),
+        entities: <Entity>[
+          factory.player(id: 'player', position: const GridPoint(8, 1)),
+          factory.zombie(
+            id: 'zombie',
+            kind: EntityKind.sprinter,
+            position: const GridPoint(2, 1),
+            facing: Direction.east,
+          ),
+        ],
+        portals: <GridPoint, Portal>{
+          door: Portal(to: door.step(Direction.north), facing: Direction.north),
+        },
+        playerId: 'player',
+        random: SeededRandom(1),
+      );
+      const scheduler = TurnScheduler();
+      for (var turn = 0; turn < 8; turn++) {
+        scheduler.advance(world, const WaitAction());
+        expect(at(world, 'zombie'), isNot(door));
+      }
+      expect(at(world, 'zombie'), const GridPoint(7, 1));
+      expect(
+        world.player.component<HealthComponent>().current,
+        lessThan(world.player.component<HealthComponent>().maximum),
+      );
+    });
+
+    test('one found standing in a doorway steps out of it', () {
+      final factory = EntityFactory(BalanceConfig.standard());
+      const door = GridPoint(3, 1);
+      final world = WorldState(
+        map: TileMap.fromAscii(const <String>[
+          '#########',
+          '#.......#',
+          '#########',
+        ]),
+        entities: <Entity>[
+          factory.player(id: 'player', position: const GridPoint(7, 1)),
+          // Turned away from Mario, west: it has nothing to go after.
+          factory.zombie(
+            id: 'zombie',
+            kind: EntityKind.sprinter,
+            position: door,
+          ),
+        ],
+        portals: <GridPoint, Portal>{
+          door: const Portal(to: GridPoint(1, 1), facing: Direction.west),
+        },
+        playerId: 'player',
+        random: SeededRandom(1),
+      );
+
+      const TurnScheduler().advance(world, const WaitAction());
+
+      expect(world.doorways(), isNot(contains(at(world, 'zombie'))));
+    });
+  });
+
   test('an adjacent zombie turns to face the player before biting', () {
     final world = corridorWorld(
       EntityKind.sprinter,

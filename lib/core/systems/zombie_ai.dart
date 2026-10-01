@@ -97,14 +97,20 @@ final class ZombieAi {
       hearing.lastHeard = playerPosition;
     }
     final target = seesPlayer ? playerPosition : hearing.lastHeard;
-    if (target == null) {
-      world.emit(WaitedEvent(zombie.id));
-      return;
-    }
-
-    if (target == zombiePosition.position) {
-      if (!seesPlayer) {
+    // Built only when asked for: the stationary ones never do.
+    late final doorways = world.doorways();
+    if (target == null || target == zombiePosition.position) {
+      if (target != null && !seesPlayer) {
         hearing.lastHeard = null;
+      }
+      // One left standing in a doorway (a save from before they kept out
+      // of them) gets out of the way as soon as it has nothing to do.
+      final actor = zombie.component<ActorComponent>();
+      if (!actor.stationary &&
+          zombie.maybeComponent<TetherComponent>() == null &&
+          doorways.contains(zombiePosition.position)) {
+        _stagger(world, zombie);
+        return;
       }
       world.emit(WaitedEvent(zombie.id));
       return;
@@ -130,15 +136,23 @@ final class ZombieAi {
       return;
     }
 
-    final next = world.map.shortestNextStep(
-      start: zombiePosition.position,
-      target: target,
-      isBlocked: (point) => world.isBlocked(point, excluding: zombie.id),
-      canStep: world.stairs.isEmpty ? null : world.canStep,
-      maxDistance: detourFor(
-        zombiePosition.position.manhattanDistanceTo(target),
-      ),
-    );
+    GridPoint? stepTowards(bool Function(GridPoint point) keptOff) =>
+        world.map.shortestNextStep(
+          start: zombiePosition.position,
+          target: target,
+          isBlocked: (point) =>
+              keptOff(point) || world.isBlocked(point, excluding: zombie.id),
+          canStep: world.stairs.isEmpty ? null : world.canStep,
+          maxDistance: detourFor(
+            zombiePosition.position.manhattanDistanceTo(target),
+          ),
+        );
+    // Round the doorways, which must stay clear. Only where there is no
+    // way round (a door that opens onto a narrow street) does it cross the
+    // tile in front of one, and never a door itself.
+    final next =
+        stepTowards(doorways.contains) ??
+        stepTowards(world.portals.containsKey);
     if (next == null) {
       world.emit(WaitedEvent(zombie.id));
       return;
@@ -147,6 +161,13 @@ final class ZombieAi {
     zombiePosition.facing = _directionBetween(zombiePosition.position, next);
     if (next == playerPosition) {
       _attackPlayer(world, zombie);
+      return;
+    }
+    if (next == target && doorways.contains(next)) {
+      // Where it last heard Mario is a doorway, the one he left by: it
+      // stops short of it, and the way back stays open.
+      hearing.lastHeard = null;
+      world.emit(WaitedEvent(zombie.id));
       return;
     }
     if (world.entityAt(next, excluding: zombie.id) != null) {
@@ -170,6 +191,7 @@ final class ZombieAi {
   ) {
     final position = zombie.component<PositionComponent>();
     final start = position.position;
+    final doorways = world.doorways();
     final cameFrom = <GridPoint, GridPoint>{start: start};
     final queue = <GridPoint>[start];
     var best = start;
@@ -182,7 +204,7 @@ final class ZombieAi {
             !tether.reaches(next) ||
             !world.map.contains(next) ||
             !world.map.tileAt(next).isWalkable ||
-            world.portals.containsKey(next) ||
+            doorways.contains(next) ||
             !world.canStep(here, next) ||
             world.isBlocked(next, excluding: zombie.id)) {
           continue;
@@ -221,10 +243,12 @@ final class ZombieAi {
 
   /// One lurch a random way, whether it has seen the player or not: of the
   /// four directions, shuffled, the first it can step into. Never onto a
-  /// doorway, where it would stand in the way in or out, and never into
-  /// the player, who is bitten instead when he is next to it.
+  /// doorway (see [WorldState.doorways]), where it would stand in the way
+  /// in or out, and never into the player, who is bitten instead when he
+  /// is next to it.
   void _stagger(WorldState world, Entity zombie) {
     final position = zombie.component<PositionComponent>();
+    final doorways = world.doorways();
     final directions = List<Direction>.of(Direction.values);
     for (var i = directions.length - 1; i > 0; i--) {
       final j = world.random.nextInt(i + 1);
@@ -236,7 +260,7 @@ final class ZombieAi {
       final next = position.position.step(direction);
       if (!world.map.contains(next) ||
           !world.map.tileAt(next).isWalkable ||
-          world.portals.containsKey(next) ||
+          doorways.contains(next) ||
           !world.canStep(position.position, next) ||
           world.isBlocked(next, excluding: zombie.id)) {
         continue;
